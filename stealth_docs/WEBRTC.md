@@ -213,15 +213,20 @@ All patches are applied to Chromium source during `npm run sync` via Brave's pat
 Chromium source: src/third_party/blink/renderer/modules/peerconnection/rtc_session_description_request_promise_impl.cc
 Patch location: src/brave/patches/third_party-blink-renderer-modules-peerconnection-rtc_session_description_request_promise_impl.cc.patch
 Generated: 2026-02-04
+Updated: 2026-02-04 (added origin line masking)
 
 Changes:
-- Added MaskSdpIpAddresses() helper function (lines 17-103)
+- Added MaskSdpIpAddresses() helper function with comprehensive masking (lines 17-151)
 - Added required includes: string_builder.h, vector.h (lines 14-15)
-- Modified RequestSucceeded() to mask SDP before setting on RTCSessionDescriptionInit (line 132)
+- Modified RequestSucceeded() to mask SDP before setting on RTCSessionDescriptionInit (line 180)
+- Masks connection lines (c=IN IP4/IP6) → 0.0.0.0 / ::
+- Masks origin lines (o=... IN IP4/IP6) → 0.0.0.0 / ::
+- Masks candidate lines (a=candidate:) → 0.0.0.0 / :: at index 4
 
 Purpose:
-Masks IP addresses in SDP when createOffer() or createAnswer() promises resolve.
-This is the PRIMARY patch that fixes the user's original detection script.
+Masks ALL IP addresses in SDP when createOffer() or createAnswer() promises resolve.
+Covers the initial SDP generation before ICE candidates are gathered.
+Comprehensive masking of all SDP line types containing IPs.
 ```
 
 #### 2. rtc_session_description_request_impl.cc.patch
@@ -265,16 +270,23 @@ Complete property masking: address, port, relatedAddress, relatedPort, url, cand
 Chromium source: src/third_party/blink/renderer/modules/peerconnection/rtc_session_description.cc
 Patch location: src/brave/patches/third_party-blink-renderer-modules-peerconnection-rtc_session_description.cc.patch
 Generated: 2026-02-04
+Updated: 2026-02-04 (added origin + candidate line masking - CRITICAL FIX)
 
 Changes:
-- Modified sdp() getter to mask IP addresses in SDP string (lines 82-129)
-- Masks c=IN IP4 connection lines
-- Masks c=IN IP6 connection lines
+- Modified sdp() getter to mask ALL IP types in SDP string (lines 82-194)
+- Added required includes: string_builder.h, vector.h (lines 34-36)
+- Masks origin lines (o=... IN IP4/IP6) → 0.0.0.0 / ::
+- Masks connection lines (c=IN IP4/IP6) → 0.0.0.0 / ::
+- Masks candidate lines (a=candidate:) → 0.0.0.0 / :: at index 4 ✅ CRITICAL FIX
 - Preserves mDNS (.local) addresses
 
 Purpose:
-Masks IP addresses when accessing pc.localDescription.sdp or pc.remoteDescription.sdp.
-Covers SDP access after setLocalDescription().
+Masks IP addresses when accessing pc.localDescription.sdp or pc.currentLocalDescription.sdp.
+This is the CRITICAL FIX for the CreepJS IP leak - CreepJS was accessing
+connection.localDescription.sdp AFTER ICE gathering, and this getter was previously
+ONLY masking connection lines but NOT candidate lines, causing real IPs to leak.
+
+This patch now provides COMPLETE SDP masking for all line types.
 ```
 
 #### 5. rtc_stats_report.cc.patch
@@ -327,6 +339,74 @@ due to class method override complexity (macro pattern doesn't work for class me
 ### ~~Pending Patches~~ - ALL COMPLETE ✅
 
 All WebRTC IP leak vectors have been patched. No pending work remains.
+
+---
+
+## CreepJS IP Leak - Root Cause Analysis & Fix
+
+**Reported Issue:** User's real IP was still visible on CreepJS despite all 6 patches being applied.
+
+### Root Cause
+
+CreepJS uses this detection code:
+```javascript
+const { sdp } = connection.localDescription || {}
+const address = getIPAddress(sdp)  // Extracts IP from SDP
+```
+
+The `getIPAddress()` function checks TWO patterns:
+1. Connection lines: `c=IN IP4 192.168.1.100` ✅ Was being masked
+2. Candidate lines: `a=candidate:... udp ... 192.168.1.100 ...` ❌ **Was NOT being masked**
+
+**The Problem:**
+Patch #2 (`rtc_session_description.cc.patch`) only masked connection lines (c=) but NOT candidate lines (a=candidate:) in the `sdp()` getter. When CreepJS accessed `connection.localDescription.sdp` AFTER ICE gathering, it saw:
+
+```
+c=IN IP4 0.0.0.0                                              ← Masked ✅
+a=candidate:1234567890 1 udp 2130706431 192.168.1.100 54321  ← LEAKED ❌
+```
+
+### The Fix
+
+**Updated Patch #2** to include:
+- ✅ Origin line (o=) masking for complete coverage
+- ✅ Candidate line (a=candidate:) masking - **CRITICAL**
+- ✅ Connection line (c=) masking - already had this
+
+**Updated Patch #1** to include:
+- ✅ Origin line (o=) masking for consistency
+
+### Why Two Patches?
+
+- **Patch #1**: Masks SDP in `createOffer()` / `createAnswer()` return values
+  - Applied BEFORE ICE gathering starts
+  - Masks initial SDP with connection/origin lines only
+
+- **Patch #2**: Masks SDP in `localDescription.sdp` getter
+  - Applied AFTER ICE gathering completes
+  - Masks updated SDP with connection/origin/candidate lines
+  - **This is where CreepJS was finding the leak**
+
+### Complete SDP Line Coverage
+
+All SDP lines that can contain IP addresses are now masked in BOTH patches:
+
+| SDP Line Type | Format Example | Masked To | Both Patches? |
+|---------------|----------------|-----------|---------------|
+| Origin (o=) | `o=- 123 2 IN IP4 192.168.1.100` | `o=- 123 2 IN IP4 0.0.0.0` | ✅ Yes |
+| Connection (c=) | `c=IN IP4 192.168.1.100` | `c=IN IP4 0.0.0.0` | ✅ Yes |
+| Candidate (a=) | `a=candidate:... udp ... 192.168.1.100 ...` | `a=candidate:... udp ... 0.0.0.0 ...` | ✅ Yes |
+
+mDNS addresses (ending in `.local`) are preserved in all cases.
+
+### Verification
+
+After applying the updated patches, CreepJS should show:
+- **IP Address:** `undefined` or `0.0.0.0` (blocked)
+- **Connection lines:** All masked to `0.0.0.0`
+- **Candidate lines:** All masked to `0.0.0.0`
+
+---
 
 ### Brave-Core Direct Modifications
 
