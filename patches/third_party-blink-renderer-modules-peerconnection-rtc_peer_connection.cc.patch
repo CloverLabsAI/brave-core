@@ -1,0 +1,45 @@
+diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_peer_connection.cc b/third_party/blink/renderer/modules/peerconnection/rtc_peer_connection.cc
+index 91b8815f00d93..26cb0a6e5bb2e 100644
+--- a/third_party/blink/renderer/modules/peerconnection/rtc_peer_connection.cc
++++ b/third_party/blink/renderer/modules/peerconnection/rtc_peer_connection.cc
+@@ -2356,8 +2356,39 @@ void RTCPeerConnection::DidFailICECandidate(const String& address,
+                                             const String& error_text) {
+   DCHECK(!closed_);
+   DCHECK(GetExecutionContext()->IsContextThread());
++
++  // Mask IP addresses in error events to prevent WebRTC leaks
++  auto MaskIp = [](const String& ip) -> String {
++    if (ip.IsNull() || ip.empty() || ip.EndsWith(".local")) {
++      return ip;
++    }
++    return ip.Contains(':') ? "::" : "0.0.0.0";
++  };
++
++  auto MaskCandidate = [](const String& candidate) -> String {
++    if (candidate.IsNull() || candidate.empty() || candidate.Contains(".local")) {
++      return candidate;
++    }
++    Vector<String> parts;
++    candidate.Split(' ', parts);
++    if (parts.size() >= 6 && !parts[4].EndsWith(".local")) {
++      parts[4] = parts[4].Contains(':') ? "::" : "0.0.0.0";
++      StringBuilder masked;
++      for (wtf_size_t i = 0; i < parts.size(); i++) {
++        if (i > 0) masked.Append(' ');
++        masked.Append(parts[i]);
++      }
++      return masked.ToString();
++    }
++    return candidate;
++  };
++
++  String masked_address = MaskIp(address);
++  std::optional<uint16_t> masked_port = port.has_value() ? std::optional<uint16_t>(0) : std::nullopt;
++  String masked_host_candidate = MaskCandidate(host_candidate);
++
+   MaybeDispatchEvent(RTCPeerConnectionIceErrorEvent::Create(
+-      address, port, host_candidate, url, error_code, error_text));
++      masked_address, masked_port, masked_host_candidate, url, error_code, error_text));
+ }
+ 
+ void RTCPeerConnection::DidChangeSessionDescriptions(

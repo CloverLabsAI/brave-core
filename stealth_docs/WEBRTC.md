@@ -10,7 +10,7 @@
 
 This document tracks all patches and modifications made to Brave Browser to prevent WebRTC IP address leaks. WebRTC can expose users' real IP addresses even when using VPNs or proxies through multiple JavaScript-accessible APIs.
 
-**All WebRTC IP leak vectors are now protected through a combination of chromium_src overrides (preferred) and patches.**
+**All WebRTC IP leak vectors are now protected through 6 patches and 1 chromium_src override (Tor blocking).**
 
 ---
 
@@ -20,9 +20,9 @@ This document tracks all patches and modifications made to Brave Browser to prev
 
 1. **createOffer/createAnswer SDP** ✅ - IPs masked in returned promise objects (patch)
 2. **localDescription.sdp getter** ✅ - IPs masked when accessing SDP property (patch)
-3. **getStats() API** ✅ - IPs/ports masked in stats report (chromium_src override)
+3. **getStats() API** ✅ - IPs/ports masked in stats report (patch)
 4. **onicecandidate event properties** ✅ - address/port/url all masked (patch)
-5. **icecandidateerror event** ✅ - address/port/hostCandidate masked (chromium_src override)
+5. **icecandidateerror event** ✅ - address/port/hostCandidate masked (patch)
 6. **RTCIceTransport.getLocalCandidates()** ✅ - Same masking as onicecandidate
 7. **toJSON() methods** ✅ - Protected (uses masked getters)
 
@@ -73,7 +73,7 @@ stats.forEach(report => {
 ```
 
 **Protection:**
-- chromium_src override masks all IP fields in RTCIceCandidateStats
+- Patch masks all IP fields in RTCIceCandidateStats
 - Bypasses SDP but IPs are masked at stats conversion layer
 - Was the most reliable detection method (now blocked)
 
@@ -139,7 +139,7 @@ const json = JSON.stringify(candidate);
 
 ## Files Modified
 
-### Brave chromium_src Overrides (PREFERRED METHOD)
+### Brave chromium_src Overrides
 
 **Location:** `src/brave/chromium_src/`
 
@@ -150,48 +150,48 @@ Chromium_src overrides completely replace Chromium functions at compile time. Th
 
 | Override File | Target Chromium File | Lines | Purpose | Status |
 |---------------|---------------------|-------|---------|--------|
-| `third_party/blink/renderer/modules/peerconnection/rtc_stats_report.cc` | `src/third_party/blink/renderer/modules/peerconnection/rtc_stats_report.cc` | ~90 | Override ToV8Stat() to mask getStats() IPs | ✅ Applied |
-| `third_party/blink/renderer/modules/peerconnection/rtc_peer_connection.cc` | `src/third_party/blink/renderer/modules/peerconnection/rtc_peer_connection.cc` | ~110 | Override DidFailICECandidate() to mask error event IPs | ✅ Applied |
+| `third_party/blink/renderer/modules/peerconnection/rtc_peer_connection.cc` | `src/third_party/blink/renderer/modules/peerconnection/rtc_peer_connection.cc` | 21 | Block RTCPeerConnection in Tor context | ✅ Applied (original) |
 
 **Override Details:**
 
-#### 1. rtc_stats_report.cc (NEW - getStats() API fix)
-```
-Full path: src/brave/chromium_src/third_party/blink/renderer/modules/peerconnection/rtc_stats_report.cc
-Created: 2026-02-04
-Lines: ~90
-
-Technique:
-- Includes original Chromium file
-- Redefines ToV8Stat(RTCIceCandidateStats) function in blink namespace
-- Masks address, port, relatedAddress, relatedPort, ip fields
-- Uses MaskStatsIpAddress() helper for consistent masking
-
-Purpose:
-Fixes the PRIMARY WebRTC leak vector. The getStats() API is the most reliable way
-to extract IPs and is used by all major leak detection tools (BrowserLeaks, ipleak.net).
-This override intercepts stats before they reach JavaScript.
-```
-
-#### 2. rtc_peer_connection.cc (EXTENDED - icecandidateerror fix)
+#### 1. rtc_peer_connection.cc (Tor Blocking Only)
 ```
 Full path: src/brave/chromium_src/third_party/blink/renderer/modules/peerconnection/rtc_peer_connection.cc
-Modified: 2026-02-04 (originally existed for Tor blocking)
-Lines: ~110
+Created: Pre-existing
+Modified: 2026-02-04 (kept original functionality only)
+Lines: 21
 
 Technique:
-- Existing file had Tor blocking via IncrementCounter macro redefinition
-- Added DidFailICECandidate macro redefinition to rename original function
-- Implemented new DidFailICECandidate() that masks IPs before calling event creation
-- Uses MaskErrorIpAddress() and MaskHostCandidate() helpers
+- Uses IncrementCounter macro redefinition
+- Checks RuntimeEnabledFeatures::BraveIsInTorContextEnabled()
+- Throws DOMException if in Tor context
 
 Purpose:
-Prevents IP leaks through icecandidateerror events. When ICE gathering fails
-(common with STUN/TURN timeouts), the error event previously exposed raw IP addresses.
-This override masks them before the event is created.
+Completely blocks WebRTC when Brave detects Tor usage, preventing all leaks.
+Originally attempted to extend for icecandidateerror masking, but reverted to
+original Tor-blocking-only code due to compilation complexity.
 ```
 
-### Brave Patch Files (Used When Override Not Possible)
+### Attempted chromium_src Overrides (Failed - Converted to Patches)
+
+These overrides were attempted but failed due to technical limitations with C++ macro redefinition:
+
+#### 1. rtc_stats_report.cc (FAILED - function overloading conflicts)
+```
+Issue: ToV8Stat() has multiple overloads, macro redefinition doesn't work
+Fallback: Converted to patch file (rtc_stats_report.cc.patch)
+Reason: Function overloading + template parameters made macro approach impossible
+```
+
+#### 2. rtc_peer_connection.cc extension for icecandidateerror (FAILED - class method override complexity)
+```
+Issue: Class member functions can't be overridden via macro redefinition
+Fallback: Converted to patch file (rtc_peer_connection.cc.patch)
+Reason: Macro pattern #define DidFailICECandidate doesn't work for class methods
+Additional: Missing StringBuilder include, complex lambda injection required
+```
+
+### Brave Patch Files
 
 **Location:** `src/brave/patches/`
 
@@ -203,6 +203,8 @@ All patches are applied to Chromium source during `npm run sync` via Brave's pat
 | `third_party-blink-renderer-modules-peerconnection-rtc_session_description_request_impl.cc.patch` | `src/third_party/blink/renderer/modules/peerconnection/rtc_session_description_request_impl.cc` | 4.2KB | ~100 lines | ✅ Applied |
 | `third_party-blink-renderer-modules-peerconnection-rtc_ice_candidate.cc.patch` | `src/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.cc` | 4.1KB | ~120 lines | ✅ Applied |
 | `third_party-blink-renderer-modules-peerconnection-rtc_session_description.cc.patch` | `src/third_party/blink/renderer/modules/peerconnection/rtc_session_description.cc` | 2.6KB | ~50 lines | ✅ Applied |
+| `third_party-blink-renderer-modules-peerconnection-rtc_stats_report.cc.patch` | `src/third_party/blink/renderer/modules/peerconnection/rtc_stats_report.cc` | 2.5KB | ~80 lines | ✅ Applied |
+| `third_party-blink-renderer-modules-peerconnection-rtc_peer_connection.cc.patch` | `src/third_party/blink/renderer/modules/peerconnection/rtc_peer_connection.cc` | 1.3KB | ~40 lines | ✅ Applied |
 
 **Patch Details:**
 
@@ -273,6 +275,53 @@ Changes:
 Purpose:
 Masks IP addresses when accessing pc.localDescription.sdp or pc.remoteDescription.sdp.
 Covers SDP access after setLocalDescription().
+```
+
+#### 5. rtc_stats_report.cc.patch
+```
+Chromium source: src/third_party/blink/renderer/modules/peerconnection/rtc_stats_report.cc
+Patch location: src/brave/patches/third_party-blink-renderer-modules-peerconnection-rtc_stats_report.cc.patch
+Generated: 2026-02-04
+
+Changes:
+- Added MaskStatsIpAddress() helper function inside anonymous namespace (line 102)
+- Modified ToV8Stat(RTCIceCandidateStats) to mask IP fields (lines 495-515)
+  - Masks address field → 0.0.0.0 / ::
+  - Masks port field → 0
+  - Masks related_address field → 0.0.0.0 / ::
+  - Masks related_port field → 0
+  - Masks ip field (obsolete) → 0.0.0.0 / ::
+
+Purpose:
+Fixes the PRIMARY WebRTC leak vector. The getStats() API bypasses SDP masking and
+is the most reliable detection method used by BrowserLeaks, ipleak.net, etc.
+This patch intercepts RTCIceCandidateStats before conversion to JavaScript objects.
+
+Note: Originally attempted as chromium_src override but converted to patch due to
+function overloading conflicts (ToV8Stat has multiple overloads).
+```
+
+#### 6. rtc_peer_connection.cc.patch
+```
+Chromium source: src/third_party/blink/renderer/modules/peerconnection/rtc_peer_connection.cc
+Patch location: src/brave/patches/third_party-blink-renderer-modules-peerconnection-rtc_peer_connection.cc.patch
+Generated: 2026-02-04
+
+Changes:
+- Modified DidFailICECandidate() method with inline lambda helpers (lines 2356-2392)
+- Added MaskIp lambda to mask IP addresses (preserves mDNS .local)
+- Added MaskCandidate lambda to mask IPs in SDP candidate strings
+- Masks address → 0.0.0.0 / ::
+- Masks port → 0
+- Masks hostCandidate → masked candidate string
+
+Purpose:
+Prevents IP leaks through icecandidateerror events. When ICE gathering fails
+(common with STUN/TURN timeouts), the error event previously exposed raw IP addresses.
+This patch masks them before the event is dispatched.
+
+Note: Originally attempted as chromium_src override extension but converted to patch
+due to class method override complexity (macro pattern doesn't work for class members).
 ```
 
 ### ~~Pending Patches~~ - ALL COMPLETE ✅
