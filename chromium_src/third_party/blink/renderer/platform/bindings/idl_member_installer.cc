@@ -18,6 +18,11 @@ bool IsConnectionConfig(const IDLMemberInstaller::AttributeConfig& config) {
   return kConnection == config.property_name;
 }
 
+bool IsWebdriverConfig(const IDLMemberInstaller::AttributeConfig& config) {
+  constexpr std::string_view kWebdriver = "webdriver";
+  return kWebdriver == config.property_name;
+}
+
 }  // namespace
 
 // static
@@ -36,6 +41,9 @@ PLATFORM_EXPORT void IDLMemberInstaller::BraveInstallAttributes<
       blink::features::kNavigatorConnectionAttribute);
   for (const auto& config : configs) {
     if (!connection_attribute_enabled && IsConnectionConfig(config)) {
+      continue;
+    }
+    if (IsWebdriverConfig(config)) {
       continue;
     }
     InstallAttribute(isolate, world, instance_template, prototype_template,
@@ -60,6 +68,9 @@ PLATFORM_EXPORT void IDLMemberInstaller::BraveInstallAttributes<
   v8::Local<v8::Context> context = isolate->GetCurrentContext();
   for (const auto& config : configs) {
     if (!connection_attribute_enabled && IsConnectionConfig(config)) {
+      continue;
+    }
+    if (IsWebdriverConfig(config)) {
       continue;
     }
     InstallAttribute(isolate, context, world, instance_object, prototype_object,
