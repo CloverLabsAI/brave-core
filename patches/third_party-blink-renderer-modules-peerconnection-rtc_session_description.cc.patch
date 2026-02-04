@@ -1,0 +1,66 @@
+diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_session_description.cc b/third_party/blink/renderer/modules/peerconnection/rtc_session_description.cc
+index 1b06d623144c3..d16f1cfcc7ad9 100644
+--- a/third_party/blink/renderer/modules/peerconnection/rtc_session_description.cc
++++ b/third_party/blink/renderer/modules/peerconnection/rtc_session_description.cc
+@@ -31,6 +31,7 @@
+ #include "third_party/blink/renderer/modules/peerconnection/rtc_session_description.h"
+ 
+ #include "third_party/blink/renderer/bindings/core/v8/script_value.h"
++#include "third_party/blink/renderer/platform/wtf/text/wtf_string.h"
+ #include "third_party/blink/renderer/bindings/core/v8/v8_object_builder.h"
+ #include "third_party/blink/renderer/bindings/modules/v8/v8_rtc_session_description_init.h"
+ #include "third_party/blink/renderer/core/execution_context/execution_context.h"
+@@ -79,7 +80,52 @@ void RTCSessionDescription::setType(std::optional<V8RTCSdpType> type) {
+ }
+ 
+ String RTCSessionDescription::sdp() const {
+-  return platform_session_description_->Sdp();
++  String original_sdp = platform_session_description_->Sdp();
++
++  if (original_sdp.IsNull() || original_sdp.empty()) {
++    return original_sdp;
++  }
++
++  // Only allow mDNS candidates, mask IP addresses in SDP connection lines
++  // The connection line format is: c=IN IP4 <ip-address> or c=IN IP6 <ip-address>
++  if (original_sdp.Contains(".local")) {
++    return original_sdp;  // Already using mDNS
++  }
++
++  // Find and replace IP addresses in connection lines
++  // Pattern: c=IN IP4 x.x.x.x -> c=IN IP4 0.0.0.0
++  String result = original_sdp;
++
++  // Simple regex-like replacement: find "c=IN IP4 " followed by IP
++  wtf_size_t pos = 0;
++  while ((pos = result.Find("c=IN IP4 ", pos)) != kNotFound) {
++    wtf_size_t ip_start = pos + 9;  // Length of "c=IN IP4 "
++    wtf_size_t ip_end = result.Find("\n", ip_start);
++    if (ip_end == kNotFound) ip_end = result.length();
++
++    // Replace the IP part with 0.0.0.0
++    String before = result.Substring(0, ip_start);
++    String after = result.Substring(ip_end);
++    result = before + "0.0.0.0" + after;
++
++    pos = ip_start + 7;  // Length of "0.0.0.0"
++  }
++
++  // Same for IPv6
++  pos = 0;
++  while ((pos = result.Find("c=IN IP6 ", pos)) != kNotFound) {
++    wtf_size_t ip_start = pos + 9;
++    wtf_size_t ip_end = result.Find("\n", ip_start);
++    if (ip_end == kNotFound) ip_end = result.length();
++
++    String before = result.Substring(0, ip_start);
++    String after = result.Substring(ip_end);
++    result = before + "::" + after;
++
++    pos = ip_start + 2;
++  }
++
++  return result;
+ }
+ 
+ void RTCSessionDescription::setSdp(const String& sdp) {
