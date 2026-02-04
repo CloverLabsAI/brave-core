@@ -58,6 +58,8 @@
 #include "brave/components/webcompat_reporter/common/pref_names.h"
 #include "build/build_config.h"
 #include "chrome/browser/prefetch/pref_names.h"
+#include "chrome/common/pref_names.h"
+#include "third_party/blink/public/common/peerconnection/webrtc_ip_handling_policy.h"
 #include "chrome/browser/prefs/session_startup_pref.h"
 #include "chrome/browser/preloading/preloading_prefs.h"
 #include "chrome/browser/ui/webui/new_tab_page/ntp_pref_names.h"
@@ -277,6 +279,12 @@ void OverrideDefaultPrefValues(user_prefs::PrefRegistrySyncable* registry) {
   // TODO(https://github.com/brave/brave-browser/issues/49752): Re-enable.
   registry->SetDefaultPrefValue(prefs::kSplitViewDragAndDropEnabled,
                                 base::Value(false));
+
+  // Set WebRTC IP handling policy to prevent IP leaks
+  // Use default public interface only - no local IP addresses exposed
+  registry->SetDefaultPrefValue(
+      ::prefs::kWebRTCIPHandlingPolicy,
+      base::Value(blink::kWebRTCIPHandlingDefaultPublicInterfaceOnly));
 }
 
 }  // namespace
