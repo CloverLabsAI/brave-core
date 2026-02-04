@@ -1,19 +1,19 @@
 diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.cc b/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.cc
-index 0000000000000000000000000000000000000000..1111111111111111111111111111111111111111 100644
+index 2c4713a9717a5..e6b27a491ac2b 100644
 --- a/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.cc
 +++ b/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.cc
 @@ -33,6 +33,8 @@
  #include <utility>
-
+ 
  #include "third_party/blink/renderer/bindings/core/v8/script_value.h"
 +#include "third_party/blink/renderer/platform/wtf/text/string_builder.h"
 +#include "third_party/blink/renderer/platform/wtf/vector.h"
  #include "third_party/blink/renderer/bindings/core/v8/v8_object_builder.h"
  #include "third_party/blink/renderer/bindings/modules/v8/v8_rtc_ice_candidate_init.h"
  #include "third_party/blink/renderer/bindings/modules/v8/v8_rtc_ice_candidate_type.h"
-@@ -83,7 +85,30 @@ RTCIceCandidate::RTCIceCandidate(RTCIceCandidatePlatform* platform_candidate)
+@@ -83,7 +85,38 @@ RTCIceCandidate::RTCIceCandidate(RTCIceCandidatePlatform* platform_candidate)
      : platform_candidate_(platform_candidate) {}
-
+ 
  String RTCIceCandidate::candidate() const {
 -  return platform_candidate_->Candidate();
 +  String original = platform_candidate_->Candidate();
@@ -36,10 +36,12 @@ index 0000000000000000000000000000000000000000..11111111111111111111111111111111
 +    // Field 4 (index 4) is the IP address
 +    parts[4] = "0.0.0.0";
 +
-+    // Reconstruct the candidate string with masked IP
++    // Reconstruct the candidate string
 +    StringBuilder result;
 +    for (wtf_size_t i = 0; i < parts.size(); i++) {
-+      if (i > 0) result.Append(' ');
++      if (i > 0) {
++        result.Append(' ');
++      }
 +      result.Append(parts[i]);
 +    }
 +    return result.ToString();
@@ -47,11 +49,11 @@ index 0000000000000000000000000000000000000000..11111111111111111111111111111111
 +
 +  return original;
  }
-
+ 
  String RTCIceCandidate::sdpMid() const {
-@@ -116,7 +141,16 @@ std::optional<uint32_t> RTCIceCandidate::priority() const {
+@@ -116,7 +149,18 @@ std::optional<uint32_t> RTCIceCandidate::priority() const {
  }
-
+ 
  String RTCIceCandidate::address() const {
 -  return platform_candidate_->Address();
 +  String real_address = platform_candidate_->Address();
@@ -64,13 +66,14 @@ index 0000000000000000000000000000000000000000..11111111111111111111111111111111
 +    return real_address;  // Already obfuscated with mDNS
 +  }
 +  // For non-mDNS addresses, return generic placeholder
++  // This prevents leaking actual local/public IPs
 +  return "0.0.0.0";
  }
-
+ 
  std::optional<V8RTCIceProtocol> RTCIceCandidate::protocol() const {
-@@ -140,7 +174,15 @@ std::optional<V8RTCIceTcpCandidateType> RTCIceCandidate::tcpType() const {
+@@ -140,7 +184,16 @@ std::optional<V8RTCIceTcpCandidateType> RTCIceCandidate::tcpType() const {
  }
-
+ 
  String RTCIceCandidate::relatedAddress() const {
 -  return platform_candidate_->RelatedAddress();
 +  String real_related = platform_candidate_->RelatedAddress();
@@ -84,5 +87,5 @@ index 0000000000000000000000000000000000000000..11111111111111111111111111111111
 +  }
 +  return "0.0.0.0";
  }
-
+ 
  std::optional<uint16_t> RTCIceCandidate::relatedPort() const {
