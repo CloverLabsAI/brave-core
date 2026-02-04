@@ -1,8 +1,8 @@
 diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_session_description_request_promise_impl.cc b/third_party/blink/renderer/modules/peerconnection/rtc_session_description_request_promise_impl.cc
-index f7dc58b456e8d..442fc7ad389c6 100644
+index f7dc58b456e8d..6d022260e8fd1 100644
 --- a/third_party/blink/renderer/modules/peerconnection/rtc_session_description_request_promise_impl.cc
 +++ b/third_party/blink/renderer/modules/peerconnection/rtc_session_description_request_promise_impl.cc
-@@ -11,9 +11,169 @@
+@@ -11,9 +11,132 @@
  #include "third_party/blink/renderer/modules/peerconnection/rtc_peer_connection.h"
  #include "third_party/blink/renderer/modules/peerconnection/rtc_session_description.h"
  #include "third_party/blink/renderer/platform/peerconnection/rtc_session_description_platform.h"
@@ -20,84 +20,47 @@ index f7dc58b456e8d..442fc7ad389c6 100644
 +  }
 +
 +  // Mask ALL IPs except mDNS (.local) addresses on a per-line basis
-+  // Note: We cannot skip masking just because .local exists - the SDP may
-+  // contain BOTH mDNS candidates AND real IP candidates
 +  String result = original_sdp;
-+
-+  // Mask connection lines: c=IN IP4 x.x.x.x -> c=IN IP4 0.0.0.0
 +  wtf_size_t pos = 0;
-+  while ((pos = result.Find("c=IN IP4 ", pos)) != kNotFound) {
-+    wtf_size_t ip_start = pos + 9;  // Length of "c=IN IP4 "
-+    wtf_size_t ip_end = result.Find("\n", ip_start);
-+    if (ip_end == kNotFound) ip_end = result.length();
 +
-+    String before = result.Substring(0, ip_start);
-+    String after = result.Substring(ip_end);
-+    result = before + "0.0.0.0" + after;
++  // Mask connection lines: c=IN IP4/IP6 <anything> -> c=IN IP4 0.0.0.0
++  pos = 0;
++  while ((pos = result.Find("c=IN ", pos)) != kNotFound) {
++    wtf_size_t line_end = result.Find("\n", pos);
++    if (line_end == kNotFound) line_end = result.length();
 +
-+    pos = ip_start + 7;  // Length of "0.0.0.0"
++    String before = result.Substring(0, pos);
++    String after = result.Substring(line_end);
++    result = before + "c=IN IP4 0.0.0.0" + after;
++
++    pos = pos + 17;  // Length of "c=IN IP4 0.0.0.0"
 +  }
 +
-+  // Mask IPv6 connection lines: c=IN IP6 x:x:x -> c=IN IP6 ::
++  // Mask origin lines: o=... IN IP4/IP6 <anything> -> o=... IN IP4 0.0.0.0
 +  pos = 0;
-+  while ((pos = result.Find("c=IN IP6 ", pos)) != kNotFound) {
-+    wtf_size_t ip_start = pos + 9;
-+    wtf_size_t ip_end = result.Find("\n", ip_start);
-+    if (ip_end == kNotFound) ip_end = result.length();
++  while ((pos = result.Find("o=", pos)) != kNotFound) {
++    wtf_size_t line_end = result.Find("\n", pos);
++    if (line_end == kNotFound) line_end = result.length();
 +
-+    String before = result.Substring(0, ip_start);
-+    String after = result.Substring(ip_end);
-+    result = before + "::" + after;
++    String origin_line = result.Substring(pos, line_end - pos);
 +
-+    pos = ip_start + 2;
-+  }
++    // Check if line contains IN IP4 or IN IP6
++    if (origin_line.Contains(" IN IP4 ") || origin_line.Contains(" IN IP6 ")) {
++      // Find where " IN IP" starts
++      wtf_size_t in_ip_pos = origin_line.Find(" IN IP");
++      if (in_ip_pos != kNotFound) {
++        // Replace from " IN IP" onwards with " IN IP4 0.0.0.0"
++        String origin_prefix = origin_line.Substring(0, in_ip_pos);
++        String before = result.Substring(0, pos);
++        String after = result.Substring(line_end);
++        result = before + origin_prefix + " IN IP4 0.0.0.0" + after;
 +
-+  // Mask origin lines: o=- <sess-id> <sess-version> IN IP4 <IP>
-+  pos = 0;
-+  while ((pos = result.Find(" IN IP4 ", pos)) != kNotFound) {
-+    // Check if this is part of an origin line (o=)
-+    wtf_size_t line_start = result.ReverseFind("\n", pos);
-+    if (line_start == kNotFound) line_start = 0;
-+    else line_start += 1;  // Move past the newline
-+
-+    String line_prefix = result.Substring(line_start, pos - line_start);
-+    if (line_prefix.StartsWith("o=")) {
-+      wtf_size_t ip_start = pos + 8;  // Length of " IN IP4 "
-+      wtf_size_t ip_end = result.Find("\n", ip_start);
-+      if (ip_end == kNotFound) ip_end = result.Find("\r", ip_start);
-+      if (ip_end == kNotFound) ip_end = result.length();
-+
-+      String before = result.Substring(0, ip_start);
-+      String after = result.Substring(ip_end);
-+      result = before + "0.0.0.0" + after;
-+
-+      pos = ip_start + 7;  // Length of "0.0.0.0"
++        pos = pos + origin_prefix.length() + 17;  // Length of " IN IP4 0.0.0.0"
++      } else {
++        pos = line_end;
++      }
 +    } else {
-+      pos += 8;
-+    }
-+  }
-+
-+  // Mask IPv6 origin lines: o=- <sess-id> <sess-version> IN IP6 <IP>
-+  pos = 0;
-+  while ((pos = result.Find(" IN IP6 ", pos)) != kNotFound) {
-+    wtf_size_t line_start = result.ReverseFind("\n", pos);
-+    if (line_start == kNotFound) line_start = 0;
-+    else line_start += 1;
-+
-+    String line_prefix = result.Substring(line_start, pos - line_start);
-+    if (line_prefix.StartsWith("o=")) {
-+      wtf_size_t ip_start = pos + 8;  // Length of " IN IP6 "
-+      wtf_size_t ip_end = result.Find("\n", ip_start);
-+      if (ip_end == kNotFound) ip_end = result.Find("\r", ip_start);
-+      if (ip_end == kNotFound) ip_end = result.length();
-+
-+      String before = result.Substring(0, ip_start);
-+      String after = result.Substring(ip_end);
-+      result = before + "::" + after;
-+
-+      pos = ip_start + 2;  // Length of "::"
-+    } else {
-+      pos += 8;
++      pos = line_end;
 +    }
 +  }
 +
@@ -172,7 +135,7 @@ index f7dc58b456e8d..442fc7ad389c6 100644
  RTCSessionDescriptionRequestPromiseImpl*
  RTCSessionDescriptionRequestPromiseImpl::Create(
      RTCPeerConnection* requester,
-@@ -40,7 +200,9 @@ void RTCSessionDescriptionRequestPromiseImpl::RequestSucceeded(
+@@ -40,7 +163,9 @@ void RTCSessionDescriptionRequestPromiseImpl::RequestSucceeded(
      auto* description = RTCSessionDescriptionInit::Create();
      description->setType(
          V8RTCSdpType::Create(platform_session_description->GetType()).value());
