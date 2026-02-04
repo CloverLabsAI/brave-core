@@ -1,8 +1,8 @@
 diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_session_description_request_promise_impl.cc b/third_party/blink/renderer/modules/peerconnection/rtc_session_description_request_promise_impl.cc
-index f7dc58b456e8d..667bbaa67ba98 100644
+index f7dc58b456e8d..888977767e5f6 100644
 --- a/third_party/blink/renderer/modules/peerconnection/rtc_session_description_request_promise_impl.cc
 +++ b/third_party/blink/renderer/modules/peerconnection/rtc_session_description_request_promise_impl.cc
-@@ -11,9 +11,99 @@
+@@ -11,9 +11,148 @@
  #include "third_party/blink/renderer/modules/peerconnection/rtc_peer_connection.h"
  #include "third_party/blink/renderer/modules/peerconnection/rtc_session_description.h"
  #include "third_party/blink/renderer/platform/peerconnection/rtc_session_description_platform.h"
@@ -54,6 +54,55 @@ index f7dc58b456e8d..667bbaa67ba98 100644
 +    pos = ip_start + 2;
 +  }
 +
++  // Mask origin lines: o=- <sess-id> <sess-version> IN IP4 <IP>
++  pos = 0;
++  while ((pos = result.Find(" IN IP4 ", pos)) != kNotFound) {
++    // Check if this is part of an origin line (o=)
++    wtf_size_t line_start = result.ReverseFind("\n", pos);
++    if (line_start == kNotFound) line_start = 0;
++    else line_start += 1;  // Move past the newline
++
++    String line_prefix = result.Substring(line_start, pos - line_start);
++    if (line_prefix.StartsWith("o=")) {
++      wtf_size_t ip_start = pos + 8;  // Length of " IN IP4 "
++      wtf_size_t ip_end = result.Find("\n", ip_start);
++      if (ip_end == kNotFound) ip_end = result.Find("\r", ip_start);
++      if (ip_end == kNotFound) ip_end = result.length();
++
++      String before = result.Substring(0, ip_start);
++      String after = result.Substring(ip_end);
++      result = before + "0.0.0.0" + after;
++
++      pos = ip_start + 7;  // Length of "0.0.0.0"
++    } else {
++      pos += 8;
++    }
++  }
++
++  // Mask IPv6 origin lines: o=- <sess-id> <sess-version> IN IP6 <IP>
++  pos = 0;
++  while ((pos = result.Find(" IN IP6 ", pos)) != kNotFound) {
++    wtf_size_t line_start = result.ReverseFind("\n", pos);
++    if (line_start == kNotFound) line_start = 0;
++    else line_start += 1;
++
++    String line_prefix = result.Substring(line_start, pos - line_start);
++    if (line_prefix.StartsWith("o=")) {
++      wtf_size_t ip_start = pos + 8;  // Length of " IN IP6 "
++      wtf_size_t ip_end = result.Find("\n", ip_start);
++      if (ip_end == kNotFound) ip_end = result.Find("\r", ip_start);
++      if (ip_end == kNotFound) ip_end = result.length();
++
++      String before = result.Substring(0, ip_start);
++      String after = result.Substring(ip_end);
++      result = before + "::" + after;
++
++      pos = ip_start + 2;  // Length of "::"
++    } else {
++      pos += 8;
++    }
++  }
++
 +  // Mask IP addresses in candidate lines
 +  // Format: a=candidate:... udp ... <IP> <port> typ ...
 +  pos = 0;
@@ -102,7 +151,7 @@ index f7dc58b456e8d..667bbaa67ba98 100644
  RTCSessionDescriptionRequestPromiseImpl*
  RTCSessionDescriptionRequestPromiseImpl::Create(
      RTCPeerConnection* requester,
-@@ -40,7 +130,9 @@ void RTCSessionDescriptionRequestPromiseImpl::RequestSucceeded(
+@@ -40,7 +179,9 @@ void RTCSessionDescriptionRequestPromiseImpl::RequestSucceeded(
      auto* description = RTCSessionDescriptionInit::Create();
      description->setType(
          V8RTCSdpType::Create(platform_session_description->GetType()).value());
