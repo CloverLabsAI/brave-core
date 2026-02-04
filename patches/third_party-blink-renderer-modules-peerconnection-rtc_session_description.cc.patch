@@ -1,5 +1,5 @@
 diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_session_description.cc b/third_party/blink/renderer/modules/peerconnection/rtc_session_description.cc
-index 1b06d623144c3..556dc3ba696ae 100644
+index 1b06d623144c3..f360c6a45be68 100644
 --- a/third_party/blink/renderer/modules/peerconnection/rtc_session_description.cc
 +++ b/third_party/blink/renderer/modules/peerconnection/rtc_session_description.cc
 @@ -31,6 +31,9 @@
@@ -12,7 +12,7 @@ index 1b06d623144c3..556dc3ba696ae 100644
  #include "third_party/blink/renderer/bindings/core/v8/v8_object_builder.h"
  #include "third_party/blink/renderer/bindings/modules/v8/v8_rtc_session_description_init.h"
  #include "third_party/blink/renderer/core/execution_context/execution_context.h"
-@@ -79,7 +82,113 @@ void RTCSessionDescription::setType(std::optional<V8RTCSdpType> type) {
+@@ -79,7 +82,108 @@ void RTCSessionDescription::setType(std::optional<V8RTCSdpType> type) {
  }
  
  String RTCSessionDescription::sdp() const {
@@ -23,13 +23,8 @@ index 1b06d623144c3..556dc3ba696ae 100644
 +    return original_sdp;
 +  }
 +
-+  // Only allow mDNS candidates, mask IP addresses in SDP connection lines
-+  // The connection line format is: c=IN IP4 <ip-address> or c=IN IP6 <ip-address>
-+  if (original_sdp.Contains(".local")) {
-+    return original_sdp;  // Already using mDNS
-+  }
-+
-+  // Find and replace IP addresses in SDP lines to prevent WebRTC leaks
++  // Mask IP addresses in SDP lines to prevent WebRTC leaks
++  // Note: We mask ALL IPs except mDNS (.local) addresses on a per-line basis
 +  String result = original_sdp;
 +  wtf_size_t pos = 0;
 +
