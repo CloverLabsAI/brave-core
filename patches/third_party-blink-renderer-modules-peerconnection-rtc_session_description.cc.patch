@@ -1,5 +1,5 @@
 diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_session_description.cc b/third_party/blink/renderer/modules/peerconnection/rtc_session_description.cc
-index 1b06d623144c3..f360c6a45be68 100644
+index 1b06d623144c3..de95256493ce3 100644
 --- a/third_party/blink/renderer/modules/peerconnection/rtc_session_description.cc
 +++ b/third_party/blink/renderer/modules/peerconnection/rtc_session_description.cc
 @@ -31,6 +31,9 @@
@@ -12,7 +12,7 @@ index 1b06d623144c3..f360c6a45be68 100644
  #include "third_party/blink/renderer/bindings/core/v8/v8_object_builder.h"
  #include "third_party/blink/renderer/bindings/modules/v8/v8_rtc_session_description_init.h"
  #include "third_party/blink/renderer/core/execution_context/execution_context.h"
-@@ -79,7 +82,108 @@ void RTCSessionDescription::setType(std::optional<V8RTCSdpType> type) {
+@@ -79,7 +82,131 @@ void RTCSessionDescription::setType(std::optional<V8RTCSdpType> type) {
  }
  
  String RTCSessionDescription::sdp() const {
@@ -78,7 +78,7 @@ index 1b06d623144c3..f360c6a45be68 100644
 +  }
 +
 +  // Mask IP addresses in candidate lines
-+  // Format: a=candidate:... udp ... <IP> <port> typ ...
++  // Format: a=candidate:... udp ... <IP> <port> typ ... [raddr <IP>] [rport <port>]
 +  pos = 0;
 +  while ((pos = result.Find("a=candidate:", pos)) != kNotFound) {
 +    wtf_size_t line_end = result.Find("\n", pos);
@@ -91,6 +91,7 @@ index 1b06d623144c3..f360c6a45be68 100644
 +
 +    // The IP address is at index 4 in the candidate line
 +    // a=candidate:<foundation> <component> <protocol> <priority> <IP> <port> ...
++    bool modified = false;
 +    if (parts.size() >= 6) {
 +      String original_ip = parts[4];
 +      // Don't mask if already mDNS (.local)
@@ -101,18 +102,40 @@ index 1b06d623144c3..f360c6a45be68 100644
 +        } else {
 +          parts[4] = "0.0.0.0";  // IPv4
 +        }
-+
-+        // Reconstruct the candidate line
-+        StringBuilder masked_line;
-+        for (wtf_size_t i = 0; i < parts.size(); i++) {
-+          if (i > 0) masked_line.Append(' ');
-+          masked_line.Append(parts[i]);
-+        }
-+
-+        String before = result.Substring(0, pos);
-+        String after = result.Substring(line_end);
-+        result = before + masked_line.ToString() + after;
++        modified = true;
 +      }
++    }
++
++    // Also mask raddr (related address) if present
++    // Format: ... raddr <IP> rport <port> ...
++    for (wtf_size_t i = 0; i < parts.size(); i++) {
++      if (parts[i] == "raddr" && i + 1 < parts.size()) {
++        String raddr_ip = parts[i + 1];
++        if (!raddr_ip.EndsWith(".local")) {
++          if (raddr_ip.Contains(":")) {
++            parts[i + 1] = "::";  // IPv6
++          } else {
++            parts[i + 1] = "0.0.0.0";  // IPv4
++          }
++          modified = true;
++        }
++      }
++    }
++
++    // Reconstruct the candidate line if any modifications were made
++    if (modified) {
++      StringBuilder masked_line;
++      for (wtf_size_t i = 0; i < parts.size(); i++) {
++        if (i > 0) masked_line.Append(' ');
++        masked_line.Append(parts[i]);
++      }
++
++      String before = result.Substring(0, pos);
++      String after = result.Substring(line_end);
++      result = before + masked_line.ToString() + after;
++
++      // Update line_end to reflect the new string length
++      line_end = pos + masked_line.ToString().length();
 +    }
 +
 +    pos = line_end;
