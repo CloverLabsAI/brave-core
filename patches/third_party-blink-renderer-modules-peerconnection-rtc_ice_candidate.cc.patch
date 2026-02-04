@@ -1,5 +1,5 @@
 diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.cc b/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.cc
-index 2c4713a9717a5..e6b27a491ac2b 100644
+index 2c4713a9717a5..038b8145efa67 100644
 --- a/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.cc
 +++ b/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.cc
 @@ -33,6 +33,8 @@
@@ -89,3 +89,12 @@ index 2c4713a9717a5..e6b27a491ac2b 100644
  }
  
  std::optional<uint16_t> RTCIceCandidate::relatedPort() const {
+@@ -166,7 +219,7 @@ std::optional<V8RTCIceServerTransportProtocol> RTCIceCandidate::relayProtocol()
+ 
+ ScriptObject RTCIceCandidate::toJSONForBinding(ScriptState* script_state) {
+   V8ObjectBuilder result(script_state);
+-  result.AddString("candidate", platform_candidate_->Candidate());
++  result.AddString("candidate", candidate());  // Use masked version
+   result.AddString("sdpMid", platform_candidate_->SdpMid());
+   if (platform_candidate_->SdpMLineIndex())
+     result.AddNumber("sdpMLineIndex", *platform_candidate_->SdpMLineIndex());
