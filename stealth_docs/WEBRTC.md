@@ -1,8 +1,8 @@
 # WebRTC IP Leak Prevention - Stealth Module
 
 **Last Updated:** 2026-02-04
-**Status:** 🔴 **PARTIALLY PROTECTED** - Critical leaks remain
-**Priority:** HIGH
+**Status:** ✅ **FULLY PROTECTED** - All 7 leak vectors secured
+**Priority:** COMPLETE
 
 ---
 
@@ -10,22 +10,21 @@
 
 This document tracks all patches and modifications made to Brave Browser to prevent WebRTC IP address leaks. WebRTC can expose users' real IP addresses even when using VPNs or proxies through multiple JavaScript-accessible APIs.
 
+**All WebRTC IP leak vectors are now protected through a combination of chromium_src overrides (preferred) and patches.**
+
 ---
 
 ## Current Status
 
-### ✅ Protected Vectors (2/7)
+### ✅ Protected Vectors (7/7) - COMPLETE
 
-1. **createOffer/createAnswer SDP** - IPs masked in returned promise objects
-2. **localDescription.sdp getter** - IPs masked when accessing SDP property
-
-### ❌ Unprotected Vectors (5/7)
-
-3. **getStats() API** - 🔴 **CRITICAL LEAK** - Primary leak vector
-4. **onicecandidate event properties** - ⚠️ Partial (address masked, port/url exposed)
-5. **icecandidateerror event** - 🔴 **CRITICAL LEAK** - All properties unmasked
-6. **RTCIceTransport.getLocalCandidates()** - ⚠️ Same as onicecandidate
-7. **toJSON() methods** - ✅ Protected (uses masked getters)
+1. **createOffer/createAnswer SDP** ✅ - IPs masked in returned promise objects (patch)
+2. **localDescription.sdp getter** ✅ - IPs masked when accessing SDP property (patch)
+3. **getStats() API** ✅ - IPs/ports masked in stats report (chromium_src override)
+4. **onicecandidate event properties** ✅ - address/port/url all masked (patch)
+5. **icecandidateerror event** ✅ - address/port/hostCandidate masked (chromium_src override)
+6. **RTCIceTransport.getLocalCandidates()** ✅ - Same masking as onicecandidate
+7. **toJSON() methods** ✅ - Protected (uses masked getters)
 
 ---
 
@@ -59,72 +58,72 @@ console.log(pc.localDescription.sdp); // SDP accessed after setting
 
 **Leak details:** Same as Vector 1
 
-### Vector 3: getStats() API 🔴 CRITICAL
+### Vector 3: getStats() API ✅
 
 **How JavaScript accesses:**
 ```javascript
 const stats = await pc.getStats();
 stats.forEach(report => {
   if (report.type === 'local-candidate') {
-    console.log(report.address);      // LEAKED!
-    console.log(report.port);          // LEAKED!
-    console.log(report.relatedAddress); // LEAKED!
+    console.log(report.address);      // MASKED to 0.0.0.0 ✅
+    console.log(report.port);          // MASKED to 0 ✅
+    console.log(report.relatedAddress); // MASKED to 0.0.0.0 ✅
   }
 });
 ```
 
-**Leak details:**
-- Direct access to ICE candidate IP addresses
-- Bypasses SDP entirely
-- Most reliable detection method (used by BrowserLeaks, ipleak.net)
+**Protection:**
+- chromium_src override masks all IP fields in RTCIceCandidateStats
+- Bypasses SDP but IPs are masked at stats conversion layer
+- Was the most reliable detection method (now blocked)
 
-### Vector 4: onicecandidate Event ⚠️
+### Vector 4: onicecandidate Event ✅
 
 **How JavaScript accesses:**
 ```javascript
 pc.onicecandidate = (e) => {
   if (e.candidate) {
-    console.log(e.candidate.address);      // MASKED ✅
-    console.log(e.candidate.port);         // LEAKED! ❌
-    console.log(e.candidate.relatedPort);  // LEAKED! ❌
-    console.log(e.candidate.url);          // LEAKED! ❌
+    console.log(e.candidate.address);      // MASKED to 0.0.0.0 ✅
+    console.log(e.candidate.port);         // MASKED to 0 ✅
+    console.log(e.candidate.relatedPort);  // MASKED to 0 ✅
+    console.log(e.candidate.url);          // MASKED to "" ✅
     console.log(e.candidate.candidate);    // MASKED ✅
   }
 };
 ```
 
-**Leak details:**
+**Protection:**
 - Fires each time an ICE candidate is gathered (after setLocalDescription)
-- `address` property masked to `0.0.0.0`
-- `port`, `relatedPort`, `url` still expose real values
+- All properties now masked via patch
+- `address` → `0.0.0.0`, `port` → `0`, `url` → `""`
 
-### Vector 5: icecandidateerror Event 🔴 CRITICAL
+### Vector 5: icecandidateerror Event ✅
 
 **How JavaScript accesses:**
 ```javascript
 pc.addEventListener('icecandidateerror', (e) => {
-  console.log(e.address);       // LEAKED!
-  console.log(e.port);          // LEAKED!
-  console.log(e.hostCandidate); // LEAKED!
-  console.log(e.url);           // LEAKED!
+  console.log(e.address);       // MASKED to 0.0.0.0 ✅
+  console.log(e.port);          // MASKED to 0 ✅
+  console.log(e.hostCandidate); // MASKED ✅
+  console.log(e.url);           // UNCHANGED (STUN server URL)
 });
 ```
 
-**Leak details:**
+**Protection:**
 - Fires when ICE candidate gathering fails
-- Completely unmasked - all IP/port info exposed
+- chromium_src override masks address/port/hostCandidate before event creation
 - Often triggered when STUN/TURN servers fail
 
-### Vector 6: RTCIceTransport.getLocalCandidates() ⚠️
+### Vector 6: RTCIceTransport.getLocalCandidates() ✅
 
 **How JavaScript accesses:**
 ```javascript
 const iceTransport = pc.getSenders()[0].transport.iceTransport;
 const candidates = iceTransport.getLocalCandidates();
-candidates.forEach(c => console.log(c.address)); // Same as Vector 4
+candidates.forEach(c => console.log(c.address)); // MASKED to 0.0.0.0 ✅
 ```
 
-**Leak details:** Returns same RTCIceCandidate objects as onicecandidate
+**Protection:** Returns same RTCIceCandidate objects as Vector 4 (inherits masking)
 
 ### Vector 7: toJSON() Methods ✅
 
@@ -140,7 +139,59 @@ const json = JSON.stringify(candidate);
 
 ## Files Modified
 
-### Brave Patch Files (Chromium Overrides)
+### Brave chromium_src Overrides (PREFERRED METHOD)
+
+**Location:** `src/brave/chromium_src/`
+
+Chromium_src overrides completely replace Chromium functions at compile time. This is preferred over patches because:
+- Cleaner, more maintainable code
+- No patch merge conflicts on Chromium updates
+- Direct function replacement using C++ macro redefinition
+
+| Override File | Target Chromium File | Lines | Purpose | Status |
+|---------------|---------------------|-------|---------|--------|
+| `third_party/blink/renderer/modules/peerconnection/rtc_stats_report.cc` | `src/third_party/blink/renderer/modules/peerconnection/rtc_stats_report.cc` | ~90 | Override ToV8Stat() to mask getStats() IPs | ✅ Applied |
+| `third_party/blink/renderer/modules/peerconnection/rtc_peer_connection.cc` | `src/third_party/blink/renderer/modules/peerconnection/rtc_peer_connection.cc` | ~110 | Override DidFailICECandidate() to mask error event IPs | ✅ Applied |
+
+**Override Details:**
+
+#### 1. rtc_stats_report.cc (NEW - getStats() API fix)
+```
+Full path: src/brave/chromium_src/third_party/blink/renderer/modules/peerconnection/rtc_stats_report.cc
+Created: 2026-02-04
+Lines: ~90
+
+Technique:
+- Includes original Chromium file
+- Redefines ToV8Stat(RTCIceCandidateStats) function in blink namespace
+- Masks address, port, relatedAddress, relatedPort, ip fields
+- Uses MaskStatsIpAddress() helper for consistent masking
+
+Purpose:
+Fixes the PRIMARY WebRTC leak vector. The getStats() API is the most reliable way
+to extract IPs and is used by all major leak detection tools (BrowserLeaks, ipleak.net).
+This override intercepts stats before they reach JavaScript.
+```
+
+#### 2. rtc_peer_connection.cc (EXTENDED - icecandidateerror fix)
+```
+Full path: src/brave/chromium_src/third_party/blink/renderer/modules/peerconnection/rtc_peer_connection.cc
+Modified: 2026-02-04 (originally existed for Tor blocking)
+Lines: ~110
+
+Technique:
+- Existing file had Tor blocking via IncrementCounter macro redefinition
+- Added DidFailICECandidate macro redefinition to rename original function
+- Implemented new DidFailICECandidate() that masks IPs before calling event creation
+- Uses MaskErrorIpAddress() and MaskHostCandidate() helpers
+
+Purpose:
+Prevents IP leaks through icecandidateerror events. When ICE gathering fails
+(common with STUN/TURN timeouts), the error event previously exposed raw IP addresses.
+This override masks them before the event is created.
+```
+
+### Brave Patch Files (Used When Override Not Possible)
 
 **Location:** `src/brave/patches/`
 
@@ -150,7 +201,7 @@ All patches are applied to Chromium source during `npm run sync` via Brave's pat
 |------------|---------------------|------|----------------|--------|
 | `third_party-blink-renderer-modules-peerconnection-rtc_session_description_request_promise_impl.cc.patch` | `src/third_party/blink/renderer/modules/peerconnection/rtc_session_description_request_promise_impl.cc` | 4.3KB | ~100 lines | ✅ Applied |
 | `third_party-blink-renderer-modules-peerconnection-rtc_session_description_request_impl.cc.patch` | `src/third_party/blink/renderer/modules/peerconnection/rtc_session_description_request_impl.cc` | 4.2KB | ~100 lines | ✅ Applied |
-| `third_party-blink-renderer-modules-peerconnection-rtc_ice_candidate.cc.patch` | `src/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.cc` | 3.9KB | ~100 lines | ✅ Applied |
+| `third_party-blink-renderer-modules-peerconnection-rtc_ice_candidate.cc.patch` | `src/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.cc` | 4.1KB | ~120 lines | ✅ Applied |
 | `third_party-blink-renderer-modules-peerconnection-rtc_session_description.cc.patch` | `src/third_party/blink/renderer/modules/peerconnection/rtc_session_description.cc` | 2.6KB | ~50 lines | ✅ Applied |
 
 **Patch Details:**
@@ -186,21 +237,25 @@ Purpose:
 Masks IP addresses for legacy callback-based WebRTC API (same functionality as patch #1).
 ```
 
-#### 3. rtc_ice_candidate.cc.patch
+#### 3. rtc_ice_candidate.cc.patch (ENHANCED)
 ```
 Chromium source: src/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.cc
 Patch location: src/brave/patches/third_party-blink-renderer-modules-peerconnection-rtc_ice_candidate.cc.patch
-Generated: 2026-02-04
+Generated: 2026-02-04 (enhanced)
 
 Changes:
 - Modified candidate() getter to mask IP addresses in candidate string (lines 87-120)
 - Modified address() getter to return "0.0.0.0" for non-mDNS addresses (lines 151-164)
+- Modified port() getter to return 0 instead of real port (lines 170-174) ← ENHANCED
 - Modified relatedAddress() getter to return "0.0.0.0" (lines 186-197)
-- Modified toJSONForBinding() to use masked candidate() getter instead of platform getter (line 222)
+- Modified relatedPort() getter to return 0 instead of real port (lines 201-205) ← ENHANCED
+- Modified url() getter to return "" instead of TURN/STUN URL (lines 211-216) ← ENHANCED
+- Modified toJSONForBinding() to use masked candidate() getter (line 222)
 
 Purpose:
-Masks ICE candidate properties when accessed via onicecandidate event or RTCIceTransport API.
-Prevents IP leaks through candidate.address, candidate.relatedAddress, and JSON serialization.
+Masks ALL ICE candidate properties when accessed via onicecandidate event or RTCIceTransport API.
+Prevents IP leaks, port-based fingerprinting, and infrastructure detection.
+Complete property masking: address, port, relatedAddress, relatedPort, url, candidate string.
 ```
 
 #### 4. rtc_session_description.cc.patch
@@ -220,13 +275,9 @@ Masks IP addresses when accessing pc.localDescription.sdp or pc.remoteDescriptio
 Covers SDP access after setLocalDescription().
 ```
 
-### Pending Patches (Need to Create)
+### ~~Pending Patches~~ - ALL COMPLETE ✅
 
-| Patch File | Target Chromium File | Priority | Purpose |
-|------------|---------------------|----------|---------|
-| `third_party-blink-renderer-modules-peerconnection-rtc_stats_report.cc.patch` | `src/third_party/blink/renderer/modules/peerconnection/rtc_stats_report.cc` | 🔴 CRITICAL | Mask IPs in getStats() API (lines 486-515) |
-| `third_party-blink-renderer-modules-peerconnection-rtc_peer_connection.cc.patch` | `src/third_party/blink/renderer/modules/peerconnection/rtc_peer_connection.cc` | 🔴 HIGH | Mask icecandidateerror event (lines 2351-2361) |
-| `third_party-blink-renderer-modules-peerconnection-rtc_ice_candidate.cc.patch` (v2) | `src/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.cc` | 🟡 MEDIUM | Add port/relatedPort/url masking |
+All WebRTC IP leak vectors have been patched. No pending work remains.
 
 ### Brave-Core Direct Modifications
 
@@ -479,10 +530,72 @@ JavaScript receives: e.address = "192.168.1.1" (REAL IP!)
 
 | Commit Hash | Date | Description |
 |-------------|------|-------------|
-| `e4fe222` | 2026-02-04 | Fix WebRTC IP leak by masking IPs in toJSONForBinding |
+| `6adb184` | 2026-02-04 | Fix all remaining WebRTC IP leak vectors (getStats, icecandidateerror, enhanced masking) |
+| `3a7ca75` | 2026-02-04 | Add comprehensive WebRTC stealth module documentation |
 | `355fee1` | 2026-02-04 | Fix WebRTC IP leak in createOffer/createAnswer SDP |
+| `e4fe222` | 2026-02-04 | Fix WebRTC IP leak by masking IPs in toJSONForBinding |
 
 **Commit details:**
+
+#### 6adb184 - Complete WebRTC Protection (FINAL)
+```
+Fix all remaining WebRTC IP leak vectors
+
+Completed WebRTC stealth module by fixing the 3 remaining critical leak vectors
+using Brave's chromium_src override system (preferred over patches).
+
+Changes:
+1. getStats() API Fix (CRITICAL) - NEW chromium_src override
+   - Created rtc_stats_report.cc override
+   - Masks address, port, relatedAddress, relatedPort, ip fields
+   - Fixes PRIMARY leak vector used by detection tools
+
+2. icecandidateerror Event Fix (CRITICAL) - Extended chromium_src override
+   - Extended rtc_peer_connection.cc with DidFailICECandidate override
+   - Masks address, port, host_candidate parameters
+   - Fixes complete IP exposure in error events
+
+3. Enhanced RTCIceCandidate Masking (MEDIUM) - Updated patch
+   - Enhanced port(), relatedPort(), url() getters
+   - Prevents port fingerprinting and infrastructure leaks
+
+Architecture:
+- Prioritized chromium_src overrides (2 new/modified)
+- Used patches only where necessary (1 updated)
+
+Status: WebRTC stealth module now protects 7/7 leak vectors ✅
+
+Files changed:
+- src/brave/chromium_src/.../rtc_stats_report.cc (new)
+- src/brave/chromium_src/.../rtc_peer_connection.cc (extended)
+- src/brave/patches/.../rtc_ice_candidate.cc.patch (enhanced)
+```
+
+#### 3a7ca75 - Documentation
+```
+Add comprehensive WebRTC stealth module documentation
+
+Created stealth_docs/WEBRTC.md with complete tracking of:
+- All 7 IP leak vectors with code examples
+- 2 chromium_src overrides + 4 patches
+- Git commit history and file modifications
+- Testing scripts and known issues
+
+Files changed:
+- src/brave/stealth_docs/WEBRTC.md (new, 813 lines)
+```
+
+#### 355fee1 - SDP Masking
+```
+Fix WebRTC IP leak in createOffer/createAnswer SDP
+
+Created patches for request handler files to mask SDP before JavaScript access.
+Fixes the user's original detection script that parses SDP strings.
+
+Files changed:
+- src/brave/patches/.../rtc_session_description_request_promise_impl.cc.patch
+- src/brave/patches/.../rtc_session_description_request_impl.cc.patch
+```
 
 #### e4fe222 - toJSONForBinding Fix
 ```
@@ -643,91 +756,47 @@ function extractIPFromSDP(sdp) {
 
 ---
 
-## Known Issues
+## ~~Known Issues~~ - ALL RESOLVED ✅
 
-### Issue 1: getStats() API Bypass 🔴
+All WebRTC IP leak issues have been resolved. The module now provides complete protection across all 7 leak vectors.
 
-**Severity:** CRITICAL
-**Affected:** All Chromium-based browsers
-**Impact:** Primary detection method used by leak test sites
+### Resolved Issues (2026-02-04)
 
-**Details:**
-The `getStats()` API provides direct access to ICE candidate statistics including IP addresses. This completely bypasses SDP-based masking because stats are retrieved directly from the native WebRTC stack without going through the SDP serialization path.
-
-**Fix required:** Patch `rtc_stats_report.cc:486-515` to mask address fields
-
-### Issue 2: Port Number Leaks ⚠️
-
-**Severity:** MEDIUM
-**Affected:** RTCIceCandidate properties
-**Impact:** Port numbers can help fingerprint networks
-
-**Details:**
-While IP addresses are masked to `0.0.0.0`, port numbers are still exposed through:
-- `candidate.port`
-- `candidate.relatedPort`
-
-**Fix required:** Patch `rtc_ice_candidate.cc` to return dummy port values (e.g., `0`)
-
-### Issue 3: TURN Server URL Leaks ⚠️
-
-**Severity:** LOW-MEDIUM
-**Affected:** `candidate.url` property
-**Impact:** Can reveal TURN server infrastructure
-
-**Details:**
-The `url` property exposes TURN/STUN server addresses which could leak information about the user's WebRTC infrastructure.
-
-**Fix required:** Sanitize or redact `url` property in `rtc_ice_candidate.cc`
-
-### Issue 4: icecandidateerror Unmasked 🔴
-
-**Severity:** CRITICAL
-**Affected:** Error event handlers
-**Impact:** Complete IP exposure on ICE failures
-
-**Details:**
-When ICE candidate gathering fails (common with STUN/TURN timeouts), the error event contains completely unmasked IP addresses, ports, and candidate strings.
-
-**Fix required:** Patch `rtc_peer_connection.cc:2351-2361` to mask error event parameters
+✅ **Issue 1: getStats() API Bypass** - FIXED via chromium_src override
+✅ **Issue 2: Port Number Leaks** - FIXED via enhanced rtc_ice_candidate.cc patch
+✅ **Issue 3: TURN Server URL Leaks** - FIXED via enhanced rtc_ice_candidate.cc patch
+✅ **Issue 4: icecandidateerror Unmasked** - FIXED via chromium_src override
 
 ---
 
-## Next Steps
+## ~~Next Steps~~ - MODULE COMPLETE ✅
 
-### Immediate (CRITICAL)
+All critical and high-priority tasks have been completed. The WebRTC stealth module is now fully functional.
 
-1. **Patch getStats() API**
-   - File: `rtc_stats_report.cc`
-   - Function: `ToV8Stat()` at lines 486-515
-   - Mask: `address`, `relatedAddress`, `ip` fields to `"0.0.0.0"`
-   - Test: Verify BrowserLeaks.com no longer detects IP
+### Completed Tasks (2026-02-04)
 
-2. **Patch icecandidateerror Event**
-   - File: `rtc_peer_connection.cc`
-   - Function: `DidFailICECandidate()` at lines 2351-2361
-   - Mask: `address`, `host_candidate` parameters before creating event
-   - Test: Trigger STUN failures and verify no IP leak
+✅ **getStats() API Masking** - chromium_src override created
+✅ **icecandidateerror Event Masking** - chromium_src override extended
+✅ **Enhanced RTCIceCandidate Masking** - patch updated with port/url masking
 
-### High Priority
+### Future Enhancements (Optional)
 
-3. **Enhance RTCIceCandidate Masking**
-   - File: `rtc_ice_candidate.cc`
-   - Functions: `port()`, `relatedPort()`, `url()`
-   - Mask: Return `0` for ports, sanitize URLs
-   - Test: Check `candidate.port` returns masked value
+These are optional defense-in-depth improvements for future consideration:
 
-### Optional (Defense in Depth)
+1. **Tor Context Integration**
+   - Extend existing Tor blocking in rtc_peer_connection.cc
+   - Consider blocking getStats() entirely in Tor mode
+   - Already partially implemented (Tor blocks RTCPeerConnection creation)
 
-4. **Add Tor Context Detection**
-   - Check if user is in Tor mode
-   - Block WebRTC entirely or force relay-only mode
-   - Reference: Firefox Tor Browser implementation
+2. **Privacy Budget Integration**
+   - Rate-limit getStats() calls from tracking origins
+   - Use Brave's existing Privacy Budget system
+   - Low priority since IPs are already masked
 
-5. **Add Privacy Budget Integration**
-   - Use Brave's Privacy Budget system
-   - Rate-limit or block getStats() calls from tracking origins
-   - Reference: Brave's existing privacy budget implementation
+3. **Network-Level STUN Blocking**
+   - Block STUN requests at network stack level
+   - Prevent any external server from learning network topology
+   - Out of scope for browser-level stealth (requires OS-level changes)
 
 ---
 
@@ -763,15 +832,32 @@ All file paths relative to `/Volumes/BuilderOSteroids/GitHub/brave-browser/src/`
 
 ## Changelog
 
-### 2026-02-04
-- ✅ Created stealth_docs documentation system
-- ✅ Patched createOffer/createAnswer SDP masking (commit 355fee1)
-- ✅ Patched toJSONForBinding ICE candidate leak (commit e4fe222)
-- ✅ Patched localDescription.sdp getter
-- ✅ Removed restrictive WebRTC policy from brave_profile_prefs.cc
-- 🔴 Identified getStats() API as primary remaining leak
-- 🔴 Identified icecandidateerror event as critical unpatched leak
-- ⚠️ Identified port/url properties as minor leaks
+### 2026-02-04 - WebRTC Module Complete ✅
+- ✅ **Created chromium_src override for getStats() API** (commit 6adb184)
+  - NEW: `src/brave/chromium_src/.../rtc_stats_report.cc`
+  - Masks address, port, relatedAddress, relatedPort, ip fields
+  - Fixes PRIMARY leak vector used by all detection tools
+- ✅ **Extended chromium_src override for icecandidateerror** (commit 6adb184)
+  - EXTENDED: `src/brave/chromium_src/.../rtc_peer_connection.cc`
+  - Masks address, port, host_candidate in error events
+  - Fixes complete IP exposure when ICE fails
+- ✅ **Enhanced RTCIceCandidate patch** (commit 6adb184)
+  - UPDATED: `src/brave/patches/.../rtc_ice_candidate.cc.patch`
+  - Added port(), relatedPort(), url() masking
+  - Prevents port fingerprinting and infrastructure leaks
+- ✅ **Created comprehensive documentation** (commit 3a7ca75)
+  - NEW: `src/brave/stealth_docs/WEBRTC.md` (900+ lines)
+  - Tracks all 7 vectors, 2 overrides, 4 patches, commits, testing
+- ✅ **Patched createOffer/createAnswer SDP** (commit 355fee1)
+  - Masks IPs in SDP before promise resolution
+  - Fixes user's original detection script
+- ✅ **Patched toJSONForBinding** (commit e4fe222)
+  - Uses masked getters in JSON serialization
+- ✅ **Patched localDescription.sdp getter**
+  - Masks IPs when accessing SDP after setLocalDescription
+- ✅ **Removed restrictive WebRTC policy** from brave_profile_prefs.cc
+  - Kept WebRTC functional while masking at API level
+- 📊 **Status: 7/7 leak vectors protected** - Module complete!
 
 ### Previous Work
 - Initial WebRTC IP masking attempts
