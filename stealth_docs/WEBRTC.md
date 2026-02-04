@@ -439,6 +439,36 @@ Now mDNS candidates are preserved on a **per-candidate basis** while all real IP
 
 **Commit:** `14b4294` - "CRITICAL FIX: Remove mDNS early-return bug that leaked all IPs"
 
+### Third Critical Bug Fixed (2026-02-04)
+
+**Third IP Leak Found:** Even after removing the mDNS early-return, public and private IPs were STILL leaking!
+
+**Root Cause #1: Missing raddr (Related Address) Masking**
+SRFLX (Server Reflexive) candidates contain an `raddr` field with the private IP:
+```
+a=candidate:... 86.187.231.77 ... typ srflx raddr 10.250.8.163 rport 65247
+                ^^^^^^^^^^^^^^                   ^^^^^^^^^^^^^^
+                Public IP (at index 4)           Private IP (raddr field)
+```
+
+The masking code ONLY masked index 4, completely missing the `raddr` field.
+
+**Root Cause #2: Position Tracking Bug**
+After masking a candidate line, the `result` string changed length, but `line_end` pointed to the OLD position:
+```cpp
+result = before + masked_line.ToString() + after;  // String changes!
+pos = line_end;  // BUG: line_end is now wrong!
+```
+
+This caused subsequent candidate lines to be skipped entirely.
+
+**The Fix:**
+1. Added loop to find and mask `raddr` field values
+2. Recalculate `line_end` after string replacement
+3. Only reconstruct line if modifications were made (efficiency)
+
+**Commit:** `6085405` - "CRITICAL FIX: Add raddr masking and fix position tracking bug"
+
 ---
 
 ### Brave-Core Direct Modifications
