@@ -2,7 +2,33 @@
 
 **Last Updated:** 2026-02-04
 **Status:** ✅ **FULLY PROTECTED** - All 7 leak vectors secured
-**Priority:** COMPLETE
+**Priority:** ✅ COMPLETE
+**Verification:** ✅ Tested with CreepJS - No IP leaks detected
+
+---
+
+## Quick Summary
+
+**What This Module Does:**
+Prevents WebRTC from leaking your real IP addresses (both public and private) to websites, even when using VPNs or proxies.
+
+**Protection Coverage:**
+- ✅ 7 WebRTC leak vectors completely blocked
+- ✅ Works with IPv4 and IPv6
+- ✅ Preserves mDNS (.local) candidates for privacy
+- ✅ Masks IPs to `0.0.0.0` / `::`
+- ✅ Tested with CreepJS, BrowserLeaks, ipleak.net
+
+**Implementation:**
+- 6 Chromium patches (applied during build)
+- 1 chromium_src override (Tor blocking)
+- All masking happens at JavaScript API layer
+
+**Key Commits:**
+- `cc8e7d8` - Complete candidate + origin line masking
+- `14b4294` - Fixed mDNS early-return bug
+- `6085405` - Added raddr masking + position tracking fix
+- `bf7bcb6` - Simplified connection line masking (FINAL FIX)
 
 ---
 
@@ -468,6 +494,49 @@ This caused subsequent candidate lines to be skipped entirely.
 3. Only reconstruct line if modifications were made (efficiency)
 
 **Commit:** `6085405` - "CRITICAL FIX: Add raddr masking and fix position tracking bug"
+
+### Fourth Critical Bug Fixed (2026-02-04)
+
+**Fourth IP Leak Found:** Public IP still leaking in `c=IN IP4 86.187.231.77`!
+
+**Root Cause: Overly Complex Line Detection Logic**
+The connection line masking used a complex approach:
+```cpp
+// Find " IN IP4 " anywhere
+pos = result.Find(" IN IP4 ", pos);
+// Go backwards to find line start
+line_start = result.ReverseFind("\n", pos);
+// Extract line prefix
+line_prefix = result.Substring(line_start, pos - line_start);
+// Check if it starts with "c="
+if (line_prefix.StartsWith("c="))
+```
+
+This was failing because:
+- `ReverseFind` could return wrong positions
+- String prefix detection was fragile
+- Complex logic prone to edge cases
+
+**The Fix: Simplified Direct Replacement**
+```cpp
+// Simply find "c=IN " and replace entire line
+while ((pos = result.Find("c=IN ", pos)) != kNotFound) {
+    result = before + "c=IN IP4 0.0.0.0" + after;
+}
+```
+
+**Key Decision: Always Use IPv4 0.0.0.0**
+Even if the original connection line was IPv6 (`c=IN IP6 2001:db8::1`), we replace it with IPv4 `c=IN IP4 0.0.0.0`.
+
+**Why this is correct:**
+- SDP connection lines are fallback hints, not used for actual connectivity
+- WebRTC uses ICE candidates for actual connections (which are separately masked)
+- Using consistent IPv4 0.0.0.0 provides maximum privacy
+- Doesn't reveal whether user has IPv6 capability
+
+**Commit:** `bf7bcb6` - "Simplify connection line masking to always use IP4 0.0.0.0"
+
+**Result:** ✅ ALL IP LEAKS FIXED! CreepJS now shows `undefined` or `0.0.0.0` for all IP detection methods.
 
 ---
 
