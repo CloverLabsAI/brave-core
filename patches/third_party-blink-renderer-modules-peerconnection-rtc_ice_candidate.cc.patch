@@ -1,5 +1,5 @@
 diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.cc b/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.cc
-index 2c4713a9717a5..038b8145efa67 100644
+index 2c4713a9717a5..5254172fb5d8f 100644
 --- a/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.cc
 +++ b/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.cc
 @@ -33,6 +33,8 @@
@@ -71,7 +71,18 @@ index 2c4713a9717a5..038b8145efa67 100644
  }
  
  std::optional<V8RTCIceProtocol> RTCIceCandidate::protocol() const {
-@@ -140,7 +184,16 @@ std::optional<V8RTCIceTcpCandidateType> RTCIceCandidate::tcpType() const {
+@@ -124,7 +168,9 @@ std::optional<V8RTCIceProtocol> RTCIceCandidate::protocol() const {
+ }
+ 
+ std::optional<uint16_t> RTCIceCandidate::port() const {
+-  return platform_candidate_->Port();
++  // Mask port to prevent network fingerprinting
++  auto real_port = platform_candidate_->Port();
++  return real_port.has_value() ? std::optional<uint16_t>(0) : std::nullopt;
+ }
+ 
+ std::optional<V8RTCIceCandidateType> RTCIceCandidate::type() const {
+@@ -140,11 +186,22 @@ std::optional<V8RTCIceTcpCandidateType> RTCIceCandidate::tcpType() const {
  }
  
  String RTCIceCandidate::relatedAddress() const {
@@ -89,7 +100,26 @@ index 2c4713a9717a5..038b8145efa67 100644
  }
  
  std::optional<uint16_t> RTCIceCandidate::relatedPort() const {
-@@ -166,7 +219,7 @@ std::optional<V8RTCIceServerTransportProtocol> RTCIceCandidate::relayProtocol()
+-  return platform_candidate_->RelatedPort();
++  // Mask related port to prevent network fingerprinting
++  auto real_port = platform_candidate_->RelatedPort();
++  return real_port.has_value() ? std::optional<uint16_t>(0) : std::nullopt;
+ }
+ 
+ String RTCIceCandidate::usernameFragment() const {
+@@ -152,7 +209,10 @@ String RTCIceCandidate::usernameFragment() const {
+ }
+ 
+ String RTCIceCandidate::url() const {
+-  return platform_candidate_->Url();
++  // Redact TURN/STUN server URLs to prevent infrastructure leaks
++  // Return empty string instead of actual URL
++  String real_url = platform_candidate_->Url();
++  return real_url.IsNull() ? real_url : String("");
+ }
+ 
+ std::optional<V8RTCIceServerTransportProtocol> RTCIceCandidate::relayProtocol()
+@@ -166,7 +226,7 @@ std::optional<V8RTCIceServerTransportProtocol> RTCIceCandidate::relayProtocol()
  
  ScriptObject RTCIceCandidate::toJSONForBinding(ScriptState* script_state) {
    V8ObjectBuilder result(script_state);
