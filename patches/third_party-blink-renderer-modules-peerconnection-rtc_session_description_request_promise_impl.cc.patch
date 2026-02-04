@@ -1,0 +1,115 @@
+diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_session_description_request_promise_impl.cc b/third_party/blink/renderer/modules/peerconnection/rtc_session_description_request_promise_impl.cc
+index f7dc58b456e8d..667bbaa67ba98 100644
+--- a/third_party/blink/renderer/modules/peerconnection/rtc_session_description_request_promise_impl.cc
++++ b/third_party/blink/renderer/modules/peerconnection/rtc_session_description_request_promise_impl.cc
+@@ -11,9 +11,99 @@
+ #include "third_party/blink/renderer/modules/peerconnection/rtc_peer_connection.h"
+ #include "third_party/blink/renderer/modules/peerconnection/rtc_session_description.h"
+ #include "third_party/blink/renderer/platform/peerconnection/rtc_session_description_platform.h"
++#include "third_party/blink/renderer/platform/wtf/text/string_builder.h"
++#include "third_party/blink/renderer/platform/wtf/vector.h"
+ 
+ namespace blink {
+ 
++namespace {
++
++// Mask IP addresses in SDP to prevent WebRTC IP leaks
++String MaskSdpIpAddresses(const String& original_sdp) {
++  if (original_sdp.IsNull() || original_sdp.empty()) {
++    return original_sdp;
++  }
++
++  // If already using mDNS, no need to mask
++  if (original_sdp.Contains(".local")) {
++    return original_sdp;
++  }
++
++  String result = original_sdp;
++
++  // Mask connection lines: c=IN IP4 x.x.x.x -> c=IN IP4 0.0.0.0
++  wtf_size_t pos = 0;
++  while ((pos = result.Find("c=IN IP4 ", pos)) != kNotFound) {
++    wtf_size_t ip_start = pos + 9;  // Length of "c=IN IP4 "
++    wtf_size_t ip_end = result.Find("\n", ip_start);
++    if (ip_end == kNotFound) ip_end = result.length();
++
++    String before = result.Substring(0, ip_start);
++    String after = result.Substring(ip_end);
++    result = before + "0.0.0.0" + after;
++
++    pos = ip_start + 7;  // Length of "0.0.0.0"
++  }
++
++  // Mask IPv6 connection lines: c=IN IP6 x:x:x -> c=IN IP6 ::
++  pos = 0;
++  while ((pos = result.Find("c=IN IP6 ", pos)) != kNotFound) {
++    wtf_size_t ip_start = pos + 9;
++    wtf_size_t ip_end = result.Find("\n", ip_start);
++    if (ip_end == kNotFound) ip_end = result.length();
++
++    String before = result.Substring(0, ip_start);
++    String after = result.Substring(ip_end);
++    result = before + "::" + after;
++
++    pos = ip_start + 2;
++  }
++
++  // Mask IP addresses in candidate lines
++  // Format: a=candidate:... udp ... <IP> <port> typ ...
++  pos = 0;
++  while ((pos = result.Find("a=candidate:", pos)) != kNotFound) {
++    wtf_size_t line_end = result.Find("\n", pos);
++    if (line_end == kNotFound) line_end = result.length();
++
++    String candidate_line = result.Substring(pos, line_end - pos);
++    Vector<String> parts;
++    candidate_line.Split(' ', parts);
++
++    // The IP address is at index 4 in the candidate line
++    // a=candidate:<foundation> <component> <protocol> <priority> <IP> <port> ...
++    if (parts.size() >= 6) {
++      String original_ip = parts[4];
++      // Don't mask if already mDNS (.local)
++      if (!original_ip.EndsWith(".local")) {
++        // Determine if IPv4 or IPv6
++        if (original_ip.Contains(":")) {
++          parts[4] = "::";  // IPv6
++        } else {
++          parts[4] = "0.0.0.0";  // IPv4
++        }
++
++        // Reconstruct the candidate line
++        StringBuilder masked_line;
++        for (wtf_size_t i = 0; i < parts.size(); i++) {
++          if (i > 0) masked_line.Append(' ');
++          masked_line.Append(parts[i]);
++        }
++
++        String before = result.Substring(0, pos);
++        String after = result.Substring(line_end);
++        result = before + masked_line.ToString() + after;
++      }
++    }
++
++    pos = line_end;
++  }
++
++  return result;
++}
++
++}  // namespace
++
+ RTCSessionDescriptionRequestPromiseImpl*
+ RTCSessionDescriptionRequestPromiseImpl::Create(
+     RTCPeerConnection* requester,
+@@ -40,7 +130,9 @@ void RTCSessionDescriptionRequestPromiseImpl::RequestSucceeded(
+     auto* description = RTCSessionDescriptionInit::Create();
+     description->setType(
+         V8RTCSdpType::Create(platform_session_description->GetType()).value());
+-    description->setSdp(platform_session_description->Sdp());
++    // Mask IP addresses in SDP to prevent WebRTC IP leaks
++    String masked_sdp = MaskSdpIpAddresses(platform_session_description->Sdp());
++    description->setSdp(masked_sdp);
+     requester_->NoteSdpCreated(*description);
+     resolver_->Resolve(description);
+   } else {
