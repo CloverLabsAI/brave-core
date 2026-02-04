@@ -406,6 +406,39 @@ After applying the updated patches, CreepJS should show:
 - **Connection lines:** All masked to `0.0.0.0`
 - **Candidate lines:** All masked to `0.0.0.0`
 
+### Critical Bug Fixed (2026-02-04)
+
+**Second IP Leak Found:** Even after adding candidate line masking, IPs were still leaking!
+
+**Root Cause:**
+Both patches had a fatal early-return check:
+```cpp
+if (original_sdp.Contains(".local")) {
+    return original_sdp;  // BUG: Returns entire SDP UNMASKED!
+}
+```
+
+This meant if the SDP contained **ANY** mDNS candidate (`.local`), the **entire SDP** was returned unmasked, leaking ALL real IP addresses in other candidates!
+
+**The Logic Error:**
+- Modern browsers generate BOTH mDNS candidates AND real IP candidates
+- The code checked if ".local" existed ANYWHERE in the SDP
+- If found, it skipped ALL masking and returned the raw SDP
+- Real IP candidates were completely exposed
+
+**The Fix:**
+Removed the early-return entirely. The masking logic already handles mDNS correctly:
+```cpp
+// For each candidate individually:
+if (!original_ip.EndsWith(".local")) {
+    // Mask this specific candidate
+}
+```
+
+Now mDNS candidates are preserved on a **per-candidate basis** while all real IPs are masked.
+
+**Commit:** `14b4294` - "CRITICAL FIX: Remove mDNS early-return bug that leaked all IPs"
+
 ---
 
 ### Brave-Core Direct Modifications
