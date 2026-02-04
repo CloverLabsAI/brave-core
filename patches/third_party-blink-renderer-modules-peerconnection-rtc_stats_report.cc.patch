@@ -1,0 +1,85 @@
+diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_stats_report.cc b/third_party/blink/renderer/modules/peerconnection/rtc_stats_report.cc
+index 596cda8db52f6..27c1a21204955 100644
+--- a/third_party/blink/renderer/modules/peerconnection/rtc_stats_report.cc
++++ b/third_party/blink/renderer/modules/peerconnection/rtc_stats_report.cc
+@@ -489,8 +489,17 @@ RTCIceCandidateStats* ToV8Stat(
+   RTCIceCandidateStats* v8_stat =
+       MakeGarbageCollected<RTCIceCandidateStats>(script_state->GetIsolate());
+   SET_STAT(webrtc_stat.transport_id, v8_stat->setTransportId);
+-  SET_STAT(webrtc_stat.address, v8_stat->setAddress);
+-  SET_STAT(webrtc_stat.port, v8_stat->setPort);
++
++  // Mask IP addresses to prevent WebRTC leaks
++  if (webrtc_stat.address.has_value()) {
++    v8_stat->setAddress(MaskStatsIpAddress(*webrtc_stat.address));
++  }
++
++  // Mask port to prevent fingerprinting
++  if (webrtc_stat.port.has_value()) {
++    v8_stat->setPort(0);
++  }
++
+   SET_STAT(webrtc_stat.protocol, v8_stat->setProtocol);
+   SET_STAT_ENUM(webrtc_stat.candidate_type, v8_stat->setCandidateType,
+                 V8RTCIceCandidateType);
+@@ -499,8 +508,17 @@ RTCIceCandidateStats* ToV8Stat(
+   SET_STAT_ENUM(webrtc_stat.relay_protocol, v8_stat->setRelayProtocol,
+                 V8RTCIceServerTransportProtocol);
+   SET_STAT(webrtc_stat.foundation, v8_stat->setFoundation);
+-  SET_STAT(webrtc_stat.related_address, v8_stat->setRelatedAddress);
+-  SET_STAT(webrtc_stat.related_port, v8_stat->setRelatedPort);
++
++  // Mask related addresses (STUN/TURN reflexive)
++  if (webrtc_stat.related_address.has_value()) {
++    v8_stat->setRelatedAddress(MaskStatsIpAddress(*webrtc_stat.related_address));
++  }
++
++  // Mask related port
++  if (webrtc_stat.related_port.has_value()) {
++    v8_stat->setRelatedPort(0);
++  }
++
+   SET_STAT(webrtc_stat.username_fragment, v8_stat->setUsernameFragment);
+   SET_STAT_ENUM(webrtc_stat.tcp_type, v8_stat->setTcpType,
+                 V8RTCIceTcpCandidateType);
+@@ -508,9 +526,11 @@ RTCIceCandidateStats* ToV8Stat(
+   // Note: additional work needed to reach consensus on the privacy model.
+   SET_STAT_ENUM(webrtc_stat.network_type, v8_stat->setNetworkType,
+                 V8RTCNetworkType);
+-  // Non-standard and obsolete stats.
++  // Non-standard and obsolete stats - mask IP field
+   SET_STAT(webrtc_stat.is_remote, v8_stat->setIsRemote);
+-  SET_STAT(webrtc_stat.ip, v8_stat->setIp);
++  if (webrtc_stat.ip.has_value()) {
++    v8_stat->setIp(MaskStatsIpAddress(*webrtc_stat.ip));
++  }
+   return v8_stat;
+ }
+ 
+@@ -741,4 +761,26 @@ bool RTCStatsReport::GetMapEntry(ScriptState* script_state,
+   return true;
+ }
+ 
++namespace {
++
++// Helper function to mask IP addresses in getStats() API
++// Prevents WebRTC IP leaks through stats reporting
++String MaskStatsIpAddress(const std::string& address) {
++  String addr = String::FromUTF8(address);
++
++  // Preserve mDNS addresses (*.local)
++  if (addr.EndsWith(".local")) {
++    return addr;
++  }
++
++  // Mask all other IP addresses
++  if (addr.Contains(':')) {
++    return "::";  // IPv6
++  } else {
++    return "0.0.0.0";  // IPv4
++  }
++}
++
++}  // namespace
++
+ }  // namespace blink
