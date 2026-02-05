@@ -20,6 +20,7 @@
 #include "brave/third_party/blink/renderer/brave_font_whitelist.h"
 #include "build/build_config.h"
 #include "crypto/hmac.h"
+#include "net/base/registry_controlled_domains/registry_controlled_domain.h"
 #include "third_party/blink/public/common/features.h"
 #include "third_party/blink/public/platform/web_content_settings_client.h"
 #include "third_party/blink/renderer/core/execution_context/execution_context.h"
@@ -222,6 +223,79 @@ int FarbledPointerScreenCoordinate(const DOMWindow* view,
   }
   double zoom_factor = frame->LayoutZoomFactor();
   return FarbleInteger(context, key, zoom_factor * client_coordinate, 0, 8);
+}
+
+blink::String BraveSessionCache::ExtractETLDPlusOne(const GURL& url) {
+  // Handle special schemes
+  if (url.SchemeIsFile()) {
+    return blink::String("file");
+  }
+  if (url.SchemeIs("chrome-extension")) {
+    return blink::String::FromUTF8(url.host());
+  }
+  if (url.SchemeIs("data") || url.SchemeIs("blob")) {
+    return blink::String("data");
+  }
+
+  // Extract eTLD+1 using Chromium's public suffix list
+  std::string etld_plus_one =
+      net::registry_controlled_domains::GetDomainAndRegistry(
+          url, net::registry_controlled_domains::INCLUDE_PRIVATE_REGISTRIES);
+
+  if (etld_plus_one.empty()) {
+    // Fallback for IP addresses, localhost, etc.
+    return blink::String::FromUTF8(url.host());
+  }
+
+  return blink::String::FromUTF8(etld_plus_one);
+}
+
+base::Token BraveSessionCache::DeriveTokenFromSeed(uint64_t master_seed,
+                                                    const GURL& url) {
+  // Extract eTLD+1 to normalize subdomains
+  blink::String domain = ExtractETLDPlusOne(url);
+
+  // Convert seed to bytes (big-endian)
+  uint8_t seed_bytes[8];
+  base::WriteBigEndian(seed_bytes, master_seed);
+
+  // HMAC-SHA256(key=seed, message=domain)
+  // This ensures deterministic but cryptographically secure derivation
+  auto hmac_result =
+      crypto::hmac::SignSha256(base::span(seed_bytes),
+                               base::as_byte_span(domain.Utf8()));
+
+  // Extract 128-bit token from HMAC result (first 16 bytes)
+  uint64_t high = base::U64FromNativeEndian(base::span(hmac_result).first<8u>());
+  uint64_t low = base::U64FromNativeEndian(base::span(hmac_result).subspan<8u, 8u>());
+
+  return base::Token(high, low);
+}
+
+void BraveSessionCache::SetMasterFingerprintingSeed(uint64_t seed) {
+  master_seed_ = seed;
+  has_master_seed_ = true;
+
+  // Derive token from master seed + current domain
+  const GURL& url = execution_context_->Url();
+  base::Token derived_token = DeriveTokenFromSeed(master_seed_, url);
+
+  // Override the default farbling token
+  default_shields_settings_->farbling_token = derived_token;
+
+  // Clear cached values to force regeneration
+  farbled_integers_.clear();
+  audio_farbling_helper_.reset();
+}
+
+void BraveSessionCache::SetWebRTCIPv4Override(const blink::String& ipv4) {
+  webrtc_ipv4_override_ = ipv4;
+  has_webrtc_ip_override_ = true;
+}
+
+void BraveSessionCache::SetWebRTCIPv6Override(const blink::String& ipv6) {
+  webrtc_ipv6_override_ = ipv6;
+  has_webrtc_ip_override_ = true;
 }
 
 BraveSessionCache::BraveSessionCache(ExecutionContext& context)

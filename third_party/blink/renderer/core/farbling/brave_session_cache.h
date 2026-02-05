@@ -93,16 +93,40 @@ class CORE_EXPORT BraveSessionCache final
   FarblingPRNG MakePseudoRandomGenerator(FarbleKey key = FarbleKey::kNone);
   std::optional<blink::BraveAudioFarblingHelper> GetAudioFarblingHelper();
 
+  // Per-context overrides for dynamic seed/IP control
+  void SetMasterFingerprintingSeed(uint64_t seed);
+  bool HasMasterSeed() const { return has_master_seed_; }
+  uint64_t GetMasterSeed() const { return master_seed_; }
+
+  void SetWebRTCIPv4Override(const blink::String& ipv4);
+  void SetWebRTCIPv6Override(const blink::String& ipv6);
+  const blink::String& GetWebRTCIPv4Override() const {
+    return webrtc_ipv4_override_;
+  }
+  const blink::String& GetWebRTCIPv6Override() const {
+    return webrtc_ipv6_override_;
+  }
+  bool HasWebRTCIPOverride() const { return has_webrtc_ip_override_; }
+
   void Trace(blink::Visitor* visitor) const override;
 
  private:
   void PerturbPixelsInternal(base::span<uint8_t> data);
+  base::Token DeriveTokenFromSeed(uint64_t master_seed, const GURL& url);
+  blink::String ExtractETLDPlusOne(const GURL& url);
 
   blink::Member<blink::ExecutionContext> execution_context_;
   blink::HashMap<FarbleKey, int> farbled_integers_;
   brave_shields::mojom::ShieldsSettingsPtr default_shields_settings_;
   std::optional<blink::BraveAudioFarblingHelper> audio_farbling_helper_;
   blink::HashMap<ContentSettingsType, BraveFarblingLevel> farbling_levels_;
+
+  // Per-context override state
+  bool has_master_seed_ = false;
+  uint64_t master_seed_ = 0;
+  bool has_webrtc_ip_override_ = false;
+  blink::String webrtc_ipv4_override_;
+  blink::String webrtc_ipv6_override_;
 };
 
 }  // namespace brave
