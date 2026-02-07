@@ -39,6 +39,7 @@ enum FarbleKey : uint64_t {
   kWindowScreenY,
   kPointerScreenX,
   kPointerScreenY,
+  kSpeechSynthesis,
   kKeyCount
 };
 
