@@ -8,6 +8,9 @@
 #include <string_view>
 
 #include "base/check.h"
+#include "brave/components/brave_fingerprinting/mojom/brave_fingerprinting.mojom-blink.h"
+#include "mojo/public/cpp/bindings/remote.h"
+#include "third_party/blink/public/platform/browser_interface_broker_proxy.h"
 #include "base/compiler_specific.h"
 #include "base/debug/alias.h"
 #include "base/debug/dump_without_crashing.h"
@@ -257,7 +260,14 @@ base::Token BraveSessionCache::DeriveTokenFromSeed(uint64_t master_seed,
 
   // Convert seed to bytes (big-endian)
   uint8_t seed_bytes[8];
-  base::WriteBigEndian(seed_bytes, master_seed);
+  seed_bytes[0] = (master_seed >> 56) & 0xFF;
+  seed_bytes[1] = (master_seed >> 48) & 0xFF;
+  seed_bytes[2] = (master_seed >> 40) & 0xFF;
+  seed_bytes[3] = (master_seed >> 32) & 0xFF;
+  seed_bytes[4] = (master_seed >> 24) & 0xFF;
+  seed_bytes[5] = (master_seed >> 16) & 0xFF;
+  seed_bytes[6] = (master_seed >> 8) & 0xFF;
+  seed_bytes[7] = master_seed & 0xFF;
 
   // HMAC-SHA256(key=seed, message=domain)
   // This ensures deterministic but cryptographically secure derivation
@@ -277,11 +287,8 @@ void BraveSessionCache::SetMasterFingerprintingSeed(uint64_t seed) {
   has_master_seed_ = true;
 
   // Derive token from master seed + current domain
-  const GURL& url = execution_context_->Url();
-  base::Token derived_token = DeriveTokenFromSeed(master_seed_, url);
-
-  // Override the default farbling token
-  default_shields_settings_->farbling_token = derived_token;
+  GURL url(execution_context_->Url());
+  custom_farbling_token_ = DeriveTokenFromSeed(master_seed_, url);
 
   // Clear cached values to force regeneration
   farbled_integers_.clear();
@@ -325,6 +332,40 @@ BraveSessionCache::BraveSessionCache(ExecutionContext& context)
                     default_shields_settings_->farbling_token.low() ^
                         storage_key_nonce_hash);
   }
+
+  // Fetch fingerprinting overrides from browser process on navigation
+  // Only fetch from window contexts - workers don't have access to this interface
+  // but they can still access overrides set via JavaScript on the parent window
+  if (blink::DynamicTo<blink::LocalDOMWindow>(&context)) {
+    mojo::Remote<brave::mojom::blink::BraveFingerprintingHost> host;
+    context.GetBrowserInterfaceBroker().GetInterface(
+        host.BindNewPipeAndPassReceiver());
+    if (host) {
+      // Synchronous mojo call to ensure overrides are available immediately
+
+      // Fetch master seed
+      bool has_seed = false;
+      uint64_t seed = 0;
+      if (host->GetMasterSeed(&has_seed, &seed)) {
+        if (has_seed) {
+          // Apply the seed to derive farbling token
+          SetMasterFingerprintingSeed(seed);
+        }
+      }
+
+      // Fetch WebRTC IP overrides
+      bool has_override = false;
+      blink::String ipv4;
+      blink::String ipv6;
+      if (host->GetWebRTCIPOverrides(&has_override, &ipv4, &ipv6)) {
+        if (has_override) {
+          has_webrtc_ip_override_ = true;
+          webrtc_ipv4_override_ = ipv4;
+          webrtc_ipv6_override_ = ipv6;
+        }
+      }
+    }
+  }
 }
 
 BraveSessionCache& BraveSessionCache::From(ExecutionContext& context) {
@@ -349,11 +390,14 @@ BraveSessionCache::GetAudioFarblingHelper() {
     return std::nullopt;
   }
   if (!audio_farbling_helper_) {
+    // Use custom token if master seed is set, otherwise use default
+    const base::Token& token = has_master_seed_ ? custom_farbling_token_
+                                                 : default_shields_settings_->farbling_token;
     // This call is only expensive the first time; afterwards it returns
     // a cached value:
-    const uint64_t fudge = default_shields_settings_->farbling_token.high();
+    const uint64_t fudge = token.high();
     const double fudge_factor = 0.99 + ((fudge / maxUInt64AsDouble) / 100);
-    const uint64_t seed = default_shields_settings_->farbling_token.low();
+    const uint64_t seed = token.low();
     audio_farbling_helper_.emplace(
         fudge_factor, seed,
         audio_farbling_level == BraveFarblingLevel::MAXIMUM);
@@ -388,10 +432,13 @@ void BraveSessionCache::PerturbPixelsInternal(base::span<uint8_t> data) {
   // Four bits per pixel
   const size_t pixel_count = data.size() / 4;
 
+  // Use custom token if master seed is set, otherwise use default
+  const base::Token& token = has_master_seed_ ? custom_farbling_token_
+                                               : default_shields_settings_->farbling_token;
+
   // calculate initial seed to find first pixel to perturb, based on session
   // key, domain key, and canvas contents
-  auto canvas_key = crypto::hmac::SignSha256(
-      default_shields_settings_->farbling_token.AsBytes(), data);
+  auto canvas_key = crypto::hmac::SignSha256(token.AsBytes(), data);
   uint64_t v = base::U64FromNativeEndian(base::span(canvas_key).first<8u>());
   // iterate through 32-byte canvas key and use each bit to determine how to
   // perturb the current pixel
@@ -415,9 +462,10 @@ void BraveSessionCache::PerturbPixelsInternal(base::span<uint8_t> data) {
 blink::String BraveSessionCache::GenerateRandomString(
     std::string_view seed,
     blink::wtf_size_t length) {
-  auto key = crypto::hmac::SignSha256(
-      default_shields_settings_->farbling_token.AsBytes(),
-      base::as_byte_span(seed));
+  // Use custom token if master seed is set, otherwise use default
+  const base::Token& token = has_master_seed_ ? custom_farbling_token_
+                                               : default_shields_settings_->farbling_token;
+  auto key = crypto::hmac::SignSha256(token.AsBytes(), base::as_byte_span(seed));
   // initial PRNG seed based on session key and passed-in seed string
   uint64_t v = base::U64FromNativeEndian(base::span(key).first<8u>());
   base::span<UChar> destination;
@@ -445,6 +493,17 @@ int BraveSessionCache::FarbledInteger(FarbleKey key,
                                       int spoof_value,
                                       int min_random_offset,
                                       int max_random_offset) {
+  // When master seed is active, always derive fresh values - don't cache
+  // This ensures fingerprint changes immediately when seed is set
+  if (has_master_seed_) {
+    FarblingPRNG prng = MakePseudoRandomGenerator(key);
+    int offset = base::checked_cast<int>(
+        prng() % (1 + max_random_offset - min_random_offset) +
+        min_random_offset);
+    return offset + spoof_value;
+  }
+
+  // For default farbling (no master seed), use cache for consistency
   auto item = farbled_integers_.find(key);
   if (item == farbled_integers_.end()) {
     FarblingPRNG prng = MakePseudoRandomGenerator(key);
@@ -489,9 +548,10 @@ bool BraveSessionCache::AllowFontFamily(
 }
 
 FarblingPRNG BraveSessionCache::MakePseudoRandomGenerator(FarbleKey key) {
-  uint64_t seed = default_shields_settings_->farbling_token.high() ^
-                  default_shields_settings_->farbling_token.low() ^
-                  static_cast<uint64_t>(key);
+  // Use custom token if master seed is set, otherwise use default
+  const base::Token& token = has_master_seed_ ? custom_farbling_token_
+                                               : default_shields_settings_->farbling_token;
+  uint64_t seed = token.high() ^ token.low() ^ static_cast<uint64_t>(key);
   return FarblingPRNG(seed);
 }
 

@@ -1,10 +1,10 @@
 diff --git a/headless/lib/browser/headless_screen.cc b/headless/lib/browser/headless_screen.cc
-index 9f577bee6dd6376bb1988dec7061b6e9c2fcc974..9107536c98554e044d5679df940f152f4ff6af03 100644
+index 9f577bee6dd6376bb1988dec7061b6e9c2fcc974..547a1a51eb3a2def57c6592fbe511944d7d08cbb 100644
 --- a/headless/lib/browser/headless_screen.cc
 +++ b/headless/lib/browser/headless_screen.cc
 @@ -31,7 +31,13 @@ HeadlessScreen* HeadlessScreen::Create(const gfx::Size& window_size,
  HeadlessScreen::~HeadlessScreen() = default;
-
+ 
  gfx::Point HeadlessScreen::GetCursorScreenPoint() {
 -  return gfx::Point();
 +  // Return a realistic cursor position instead of always (0,0)
@@ -15,5 +15,5 @@ index 9f577bee6dd6376bb1988dec7061b6e9c2fcc974..9107536c98554e044d5679df940f152f
 +  }
 +  return gfx::Point(960, 540);  // Fallback to center of 1920x1080
  }
-
+ 
  bool HeadlessScreen::IsWindowUnderCursor(gfx::NativeWindow window) {

@@ -1,8 +1,16 @@
 diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_session_description_request_impl.cc b/third_party/blink/renderer/modules/peerconnection/rtc_session_description_request_impl.cc
-index ba1a621d378e8..a735a944a522f 100644
+index ba1a621d378e8..637a53544c7a8 100644
 --- a/third_party/blink/renderer/modules/peerconnection/rtc_session_description_request_impl.cc
 +++ b/third_party/blink/renderer/modules/peerconnection/rtc_session_description_request_impl.cc
-@@ -37,9 +37,99 @@
+@@ -31,15 +31,168 @@
+ #include "third_party/blink/renderer/modules/peerconnection/rtc_session_description_request_impl.h"
+ 
+ #include "base/memory/scoped_refptr.h"
++#include "brave/third_party/blink/renderer/core/farbling/brave_session_cache.h"
+ #include "third_party/blink/renderer/bindings/modules/v8/v8_rtc_session_description_init.h"
+ #include "third_party/blink/renderer/core/dom/dom_exception.h"
++#include "third_party/blink/renderer/core/execution_context/execution_context.h"
+ #include "third_party/blink/renderer/modules/peerconnection/rtc_error_util.h"
  #include "third_party/blink/renderer/modules/peerconnection/rtc_peer_connection.h"
  #include "third_party/blink/renderer/modules/peerconnection/rtc_session_description.h"
  #include "third_party/blink/renderer/platform/peerconnection/rtc_session_description_platform.h"
@@ -13,49 +21,87 @@ index ba1a621d378e8..a735a944a522f 100644
  
 +namespace {
 +
++// Get WebRTC IP overrides from BraveSessionCache
++void GetWebRTCIPOverrides(ExecutionContext* context,
++                          String* out_ipv4,
++                          String* out_ipv6) {
++  // Default values
++  *out_ipv4 = "0.0.0.0";
++  *out_ipv6 = "::";
++
++  if (!context) {
++    return;
++  }
++
++  // Get overrides from session cache (already populated from browser process)
++  auto& session_cache = brave::BraveSessionCache::From(*context);
++  if (session_cache.HasWebRTCIPOverride()) {
++    *out_ipv4 = session_cache.GetWebRTCIPv4Override();
++    *out_ipv6 = session_cache.GetWebRTCIPv6Override();
++  }
++}
++
 +// Mask IP addresses in SDP to prevent WebRTC IP leaks
-+String MaskSdpIpAddresses(const String& original_sdp) {
++// Supports per-BrowserContext custom IPs via browser process service
++String MaskSdpIpAddresses(const String& original_sdp, ExecutionContext* context) {
 +  if (original_sdp.IsNull() || original_sdp.empty()) {
 +    return original_sdp;
 +  }
 +
-+  // If already using mDNS, no need to mask
-+  if (original_sdp.Contains(".local")) {
-+    return original_sdp;
-+  }
++  // Get per-BrowserContext IP overrides from browser process
++  String mask_ipv4;
++  String mask_ipv6;
++  GetWebRTCIPOverrides(context, &mask_ipv4, &mask_ipv6);
 +
++  // Mask ALL IPs except mDNS (.local) addresses on a per-line basis
 +  String result = original_sdp;
-+
-+  // Mask connection lines: c=IN IP4 x.x.x.x -> c=IN IP4 0.0.0.0
 +  wtf_size_t pos = 0;
-+  while ((pos = result.Find("c=IN IP4 ", pos)) != kNotFound) {
-+    wtf_size_t ip_start = pos + 9;  // Length of "c=IN IP4 "
-+    wtf_size_t ip_end = result.Find("\n", ip_start);
-+    if (ip_end == kNotFound) ip_end = result.length();
 +
-+    String before = result.Substring(0, ip_start);
-+    String after = result.Substring(ip_end);
-+    result = before + "0.0.0.0" + after;
++  // Mask connection lines: c=IN IP4/IP6 <anything> -> c=IN IP4 <mask_ipv4>
++  pos = 0;
++  while ((pos = result.Find("c=IN ", pos)) != kNotFound) {
++    wtf_size_t line_end = result.Find("\n", pos);
++    if (line_end == kNotFound) line_end = result.length();
 +
-+    pos = ip_start + 7;  // Length of "0.0.0.0"
++    String before = result.Substring(0, pos);
++    String after = result.Substring(line_end);
++    String masked_connection = "c=IN IP4 " + mask_ipv4;
++    result = before + masked_connection + after;
++
++    pos = pos + masked_connection.length();
 +  }
 +
-+  // Mask IPv6 connection lines: c=IN IP6 x:x:x -> c=IN IP6 ::
++  // Mask origin lines: o=... IN IP4/IP6 <anything> -> o=... IN IP4 <mask_ipv4>
 +  pos = 0;
-+  while ((pos = result.Find("c=IN IP6 ", pos)) != kNotFound) {
-+    wtf_size_t ip_start = pos + 9;
-+    wtf_size_t ip_end = result.Find("\n", ip_start);
-+    if (ip_end == kNotFound) ip_end = result.length();
++  while ((pos = result.Find("o=", pos)) != kNotFound) {
++    wtf_size_t line_end = result.Find("\n", pos);
++    if (line_end == kNotFound) line_end = result.length();
 +
-+    String before = result.Substring(0, ip_start);
-+    String after = result.Substring(ip_end);
-+    result = before + "::" + after;
++    String origin_line = result.Substring(pos, line_end - pos);
 +
-+    pos = ip_start + 2;
++    // Check if line contains IN IP4 or IN IP6
++    if (origin_line.Contains(" IN IP4 ") || origin_line.Contains(" IN IP6 ")) {
++      // Find where " IN IP" starts
++      wtf_size_t in_ip_pos = origin_line.Find(" IN IP");
++      if (in_ip_pos != kNotFound) {
++        // Replace from " IN IP" onwards with " IN IP4 <mask_ipv4>"
++        String origin_prefix = origin_line.Substring(0, in_ip_pos);
++        String before = result.Substring(0, pos);
++        String after = result.Substring(line_end);
++        String masked_origin = " IN IP4 " + mask_ipv4;
++        result = before + origin_prefix + masked_origin + after;
++
++        pos = pos + origin_prefix.length() + masked_origin.length();
++      } else {
++        pos = line_end;
++      }
++    } else {
++      pos = line_end;
++    }
 +  }
 +
 +  // Mask IP addresses in candidate lines
-+  // Format: a=candidate:... udp ... <IP> <port> typ ...
++  // Format: a=candidate:... udp ... <IP> <port> typ ... [raddr <IP>] [rport <port>]
 +  pos = 0;
 +  while ((pos = result.Find("a=candidate:", pos)) != kNotFound) {
 +    wtf_size_t line_end = result.Find("\n", pos);
@@ -67,28 +113,51 @@ index ba1a621d378e8..a735a944a522f 100644
 +
 +    // The IP address is at index 4 in the candidate line
 +    // a=candidate:<foundation> <component> <protocol> <priority> <IP> <port> ...
++    bool modified = false;
 +    if (parts.size() >= 6) {
 +      String original_ip = parts[4];
 +      // Don't mask if already mDNS (.local)
 +      if (!original_ip.EndsWith(".local")) {
-+        // Determine if IPv4 or IPv6
++        // Determine if IPv4 or IPv6 and use appropriate mask
 +        if (original_ip.Contains(":")) {
-+          parts[4] = "::";  // IPv6
++          parts[4] = mask_ipv6;  // IPv6
 +        } else {
-+          parts[4] = "0.0.0.0";  // IPv4
++          parts[4] = mask_ipv4;  // IPv4
 +        }
-+
-+        // Reconstruct the candidate line
-+        StringBuilder masked_line;
-+        for (wtf_size_t i = 0; i < parts.size(); i++) {
-+          if (i > 0) masked_line.Append(' ');
-+          masked_line.Append(parts[i]);
-+        }
-+
-+        String before = result.Substring(0, pos);
-+        String after = result.Substring(line_end);
-+        result = before + masked_line.ToString() + after;
++        modified = true;
 +      }
++    }
++
++    // Also mask raddr (related address) if present
++    // Format: ... raddr <IP> rport <port> ...
++    for (wtf_size_t i = 0; i < parts.size(); i++) {
++      if (parts[i] == "raddr" && i + 1 < parts.size()) {
++        String raddr_ip = parts[i + 1];
++        if (!raddr_ip.EndsWith(".local")) {
++          if (raddr_ip.Contains(":")) {
++            parts[i + 1] = mask_ipv6;  // IPv6
++          } else {
++            parts[i + 1] = mask_ipv4;  // IPv4
++          }
++          modified = true;
++        }
++      }
++    }
++
++    // Reconstruct the candidate line if any modifications were made
++    if (modified) {
++      StringBuilder masked_line;
++      for (wtf_size_t i = 0; i < parts.size(); i++) {
++        if (i > 0) masked_line.Append(' ');
++        masked_line.Append(parts[i]);
++      }
++
++      String before = result.Substring(0, pos);
++      String after = result.Substring(line_end);
++      result = before + masked_line.ToString() + after;
++
++      // Update line_end to reflect the new string length
++      line_end = pos + masked_line.ToString().length();
 +    }
 +
 +    pos = line_end;
@@ -102,13 +171,14 @@ index ba1a621d378e8..a735a944a522f 100644
  RTCSessionDescriptionRequestImpl* RTCSessionDescriptionRequestImpl::Create(
      ExecutionContext* context,
      RTCPeerConnection* requester,
-@@ -74,7 +164,9 @@ void RTCSessionDescriptionRequestImpl::RequestSucceeded(
+@@ -74,7 +227,10 @@ void RTCSessionDescriptionRequestImpl::RequestSucceeded(
        description->setType(
            V8RTCSdpType::Create(description_platform->GetType()).value());
      }
 -    description->setSdp(description_platform->Sdp());
 +    // Mask IP addresses in SDP to prevent WebRTC IP leaks
-+    String masked_sdp = MaskSdpIpAddresses(description_platform->Sdp());
++    // Supports per-context custom IPs via BraveSessionCache
++    String masked_sdp = MaskSdpIpAddresses(description_platform->Sdp(), requester_->GetExecutionContext());
 +    description->setSdp(masked_sdp);
  
      requester_->NoteSdpCreated(*description);

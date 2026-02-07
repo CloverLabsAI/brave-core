@@ -1,0 +1,22 @@
+# Copyright (c) 2026 The Brave Authors. All rights reserved.
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this file,
+# You can obtain one at https://mozilla.org/MPL/2.0/.
+
+import("//mojo/public/tools/bindings/mojom.gni")
+
+mojom_component("mojom") {
+  output_prefix = "brave_fingerprinting_mojom"
+  macro_prefix = "BRAVE_FINGERPRINTING_MOJOM"
+
+  generate_java = true
+  sources = [ "brave_fingerprinting.mojom" ]
+
+  public_deps = []
+
+  export_class_attribute_blink = "BLINK_PLATFORM_EXPORT"
+  export_define_blink = "BLINK_PLATFORM_IMPLEMENTATION=1"
+  export_header_blink = "third_party/blink/public/platform/web_common.h"
+  
+  webui_module_path = "/"
+}

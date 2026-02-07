@@ -1,8 +1,16 @@
 diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_session_description_request_promise_impl.cc b/third_party/blink/renderer/modules/peerconnection/rtc_session_description_request_promise_impl.cc
-index f7dc58b456e8d..6d022260e8fd1 100644
+index f7dc58b456e8d..67be503669045 100644
 --- a/third_party/blink/renderer/modules/peerconnection/rtc_session_description_request_promise_impl.cc
 +++ b/third_party/blink/renderer/modules/peerconnection/rtc_session_description_request_promise_impl.cc
-@@ -11,9 +11,132 @@
+@@ -4,6 +4,7 @@
+ 
+ #include "third_party/blink/renderer/modules/peerconnection/rtc_session_description_request_promise_impl.h"
+ 
++#include "brave/third_party/blink/renderer/core/farbling/brave_session_cache.h"
+ #include "third_party/blink/renderer/bindings/core/v8/script_promise_resolver.h"
+ #include "third_party/blink/renderer/bindings/modules/v8/v8_rtc_session_description_init.h"
+ #include "third_party/blink/renderer/core/dom/dom_exception.h"
+@@ -11,9 +12,157 @@
  #include "third_party/blink/renderer/modules/peerconnection/rtc_peer_connection.h"
  #include "third_party/blink/renderer/modules/peerconnection/rtc_session_description.h"
  #include "third_party/blink/renderer/platform/peerconnection/rtc_session_description_platform.h"
@@ -13,17 +21,42 @@ index f7dc58b456e8d..6d022260e8fd1 100644
  
 +namespace {
 +
++// Get WebRTC IP overrides from BraveSessionCache
++void GetWebRTCIPOverrides(ExecutionContext* context,
++                          String* out_ipv4,
++                          String* out_ipv6) {
++  // Default values
++  *out_ipv4 = "0.0.0.0";
++  *out_ipv6 = "::";
++
++  if (!context) {
++    return;
++  }
++
++  // Get overrides from session cache (already populated from browser process)
++  auto& session_cache = brave::BraveSessionCache::From(*context);
++  if (session_cache.HasWebRTCIPOverride()) {
++    *out_ipv4 = session_cache.GetWebRTCIPv4Override();
++    *out_ipv6 = session_cache.GetWebRTCIPv6Override();
++  }
++}
++
 +// Mask IP addresses in SDP to prevent WebRTC IP leaks
-+String MaskSdpIpAddresses(const String& original_sdp) {
++String MaskSdpIpAddresses(const String& original_sdp, ExecutionContext* context) {
 +  if (original_sdp.IsNull() || original_sdp.empty()) {
 +    return original_sdp;
 +  }
++
++  // Get per-BrowserContext IP overrides from browser process
++  String mask_ipv4;
++  String mask_ipv6;
++  GetWebRTCIPOverrides(context, &mask_ipv4, &mask_ipv6);
 +
 +  // Mask ALL IPs except mDNS (.local) addresses on a per-line basis
 +  String result = original_sdp;
 +  wtf_size_t pos = 0;
 +
-+  // Mask connection lines: c=IN IP4/IP6 <anything> -> c=IN IP4 0.0.0.0
++  // Mask connection lines: c=IN IP4/IP6 <anything> -> c=IN IP4 <mask_ipv4>
 +  pos = 0;
 +  while ((pos = result.Find("c=IN ", pos)) != kNotFound) {
 +    wtf_size_t line_end = result.Find("\n", pos);
@@ -31,12 +64,12 @@ index f7dc58b456e8d..6d022260e8fd1 100644
 +
 +    String before = result.Substring(0, pos);
 +    String after = result.Substring(line_end);
-+    result = before + "c=IN IP4 0.0.0.0" + after;
++    result = before + "c=IN IP4 " + mask_ipv4 + after;
 +
-+    pos = pos + 17;  // Length of "c=IN IP4 0.0.0.0"
++    pos = pos + 9 + mask_ipv4.length();  // Length of "c=IN IP4 " + mask
 +  }
 +
-+  // Mask origin lines: o=... IN IP4/IP6 <anything> -> o=... IN IP4 0.0.0.0
++  // Mask origin lines: o=... IN IP4/IP6 <anything> -> o=... IN IP4 <mask_ipv4>
 +  pos = 0;
 +  while ((pos = result.Find("o=", pos)) != kNotFound) {
 +    wtf_size_t line_end = result.Find("\n", pos);
@@ -49,13 +82,13 @@ index f7dc58b456e8d..6d022260e8fd1 100644
 +      // Find where " IN IP" starts
 +      wtf_size_t in_ip_pos = origin_line.Find(" IN IP");
 +      if (in_ip_pos != kNotFound) {
-+        // Replace from " IN IP" onwards with " IN IP4 0.0.0.0"
++        // Replace from " IN IP" onwards with " IN IP4 <mask_ipv4>"
 +        String origin_prefix = origin_line.Substring(0, in_ip_pos);
 +        String before = result.Substring(0, pos);
 +        String after = result.Substring(line_end);
-+        result = before + origin_prefix + " IN IP4 0.0.0.0" + after;
++        result = before + origin_prefix + " IN IP4 " + mask_ipv4 + after;
 +
-+        pos = pos + origin_prefix.length() + 17;  // Length of " IN IP4 0.0.0.0"
++        pos = pos + origin_prefix.length() + 9 + mask_ipv4.length();
 +      } else {
 +        pos = line_end;
 +      }
@@ -82,11 +115,11 @@ index f7dc58b456e8d..6d022260e8fd1 100644
 +      String original_ip = parts[4];
 +      // Don't mask if already mDNS (.local)
 +      if (!original_ip.EndsWith(".local")) {
-+        // Determine if IPv4 or IPv6
++        // Determine if IPv4 or IPv6 and use custom mask
 +        if (original_ip.Contains(":")) {
-+          parts[4] = "::";  // IPv6
++          parts[4] = mask_ipv6;  // IPv6
 +        } else {
-+          parts[4] = "0.0.0.0";  // IPv4
++          parts[4] = mask_ipv4;  // IPv4
 +        }
 +        modified = true;
 +      }
@@ -99,9 +132,9 @@ index f7dc58b456e8d..6d022260e8fd1 100644
 +        String raddr_ip = parts[i + 1];
 +        if (!raddr_ip.EndsWith(".local")) {
 +          if (raddr_ip.Contains(":")) {
-+            parts[i + 1] = "::";  // IPv6
++            parts[i + 1] = mask_ipv6;  // IPv6
 +          } else {
-+            parts[i + 1] = "0.0.0.0";  // IPv4
++            parts[i + 1] = mask_ipv4;  // IPv4
 +          }
 +          modified = true;
 +        }
@@ -135,13 +168,14 @@ index f7dc58b456e8d..6d022260e8fd1 100644
  RTCSessionDescriptionRequestPromiseImpl*
  RTCSessionDescriptionRequestPromiseImpl::Create(
      RTCPeerConnection* requester,
-@@ -40,7 +163,9 @@ void RTCSessionDescriptionRequestPromiseImpl::RequestSucceeded(
+@@ -40,7 +189,10 @@ void RTCSessionDescriptionRequestPromiseImpl::RequestSucceeded(
      auto* description = RTCSessionDescriptionInit::Create();
      description->setType(
          V8RTCSdpType::Create(platform_session_description->GetType()).value());
 -    description->setSdp(platform_session_description->Sdp());
 +    // Mask IP addresses in SDP to prevent WebRTC IP leaks
-+    String masked_sdp = MaskSdpIpAddresses(platform_session_description->Sdp());
++    String masked_sdp = MaskSdpIpAddresses(platform_session_description->Sdp(),
++                                           requester_->GetExecutionContext());
 +    description->setSdp(masked_sdp);
      requester_->NoteSdpCreated(*description);
      resolver_->Resolve(description);

@@ -124,6 +124,7 @@ class CORE_EXPORT BraveSessionCache final
   // Per-context override state
   bool has_master_seed_ = false;
   uint64_t master_seed_ = 0;
+  base::Token custom_farbling_token_;  // Derived from master seed
   bool has_webrtc_ip_override_ = false;
   blink::String webrtc_ipv4_override_;
   blink::String webrtc_ipv6_override_;

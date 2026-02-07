@@ -1,5 +1,5 @@
 diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_stats_report.cc b/third_party/blink/renderer/modules/peerconnection/rtc_stats_report.cc
-index 596cda8db52f6..b31ef1eac28d4 100644
+index 596cda8db52f6ad2bfdda2e502f74d445346de42..b31ef1eac28d4f54632b62ad06bd37fd007434d9 100644
 --- a/third_party/blink/renderer/modules/peerconnection/rtc_stats_report.cc
 +++ b/third_party/blink/renderer/modules/peerconnection/rtc_stats_report.cc
 @@ -99,6 +99,24 @@ bool ExposeHardwareCapabilityStats(ScriptState* script_state) {

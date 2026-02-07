@@ -24,6 +24,7 @@ class BraveRenderFrameObserver : public content::RenderFrameObserver {
   void OnInterfaceRequestForFrame(
       const std::string& interface_name,
       mojo::ScopedMessagePipeHandle* interface_pipe) override;
+  void DidClearWindowObject() override;
 
  protected:
   ~BraveRenderFrameObserver() override;

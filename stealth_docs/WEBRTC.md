@@ -1,34 +1,37 @@
 # WebRTC IP Leak Prevention - Stealth Module
 
-**Last Updated:** 2026-02-04
-**Status:** ✅ **FULLY PROTECTED** - All 7 leak vectors secured
-**Priority:** ✅ COMPLETE
-**Verification:** ✅ Tested with CreepJS - No IP leaks detected
+**Last Updated:** 2026-02-06
+**Status:** ✅ **COMPLETE** - All 7 leak vectors secured + Per-Context Implementation Complete + All Bug Fixes Applied
+**Priority:** ✅ COMPLETE (Core masking + JavaScript API + Integration + Canvas/Audio Bug Fixes all done)
+**Verification:** ✅ Tested with CreepJS - No IP leaks detected, custom IPs working correctly
 
 ---
 
 ## Quick Summary
 
 **What This Module Does:**
-Prevents WebRTC from leaking your real IP addresses (both public and private) to websites, even when using VPNs or proxies.
+Prevents WebRTC from leaking your real IP addresses (both public and private) to websites, even when using VPNs or proxies. Supports per-context custom IP override for advanced use cases.
 
 **Protection Coverage:**
 - ✅ 7 WebRTC leak vectors completely blocked
 - ✅ Works with IPv4 and IPv6
 - ✅ Preserves mDNS (.local) candidates for privacy
-- ✅ Masks IPs to `0.0.0.0` / `::`
+- ✅ Default masking to `0.0.0.0` / `::`
+- ✅ Per-context custom IP override fully implemented (JavaScript API operational)
 - ✅ Tested with CreepJS, BrowserLeaks, ipleak.net
 
 **Implementation:**
 - 6 Chromium patches (applied during build)
 - 1 chromium_src override (Tor blocking)
 - All masking happens at JavaScript API layer
+- Per-context control via BraveSessionCache (see [PER_CONTEXT.md](PER_CONTEXT.md))
 
 **Key Commits:**
-- `cc8e7d8` - Complete candidate + origin line masking
-- `14b4294` - Fixed mDNS early-return bug
-- `6085405` - Added raddr masking + position tracking fix
-- `bf7bcb6` - Simplified connection line masking (FINAL FIX)
+- `055dcba` - Added per-context fingerprinting seed & WebRTC IP override infrastructure (2026-02-05)
+- `cc8e7d8` - Complete candidate + origin line masking (2026-02-04)
+- `14b4294` - Fixed mDNS early-return bug (2026-02-04)
+- `6085405` - Added raddr masking + position tracking fix (2026-02-04)
+- `bf7bcb6` - Simplified connection line masking (FINAL FIX) (2026-02-04)
 
 ---
 
@@ -606,9 +609,46 @@ These files were modified during development/debugging but are not part of the f
 
 ## Implementation Details
 
+### Per-Context IP Override Architecture
+
+**NEW (2026-02-05):** WebRTC IP masking now supports per-context custom IP addresses via the BraveSessionCache infrastructure. This allows advanced use cases where specific IP addresses can be set per ExecutionContext (tab/frame).
+
+**Current Status:**
+- ✅ C++ infrastructure complete in [brave_session_cache.h:96-129](../third_party/blink/renderer/core/farbling/brave_session_cache.h#L96-L129)
+- ✅ Getter methods available: `GetWebRTCIPv4Override()`, `GetWebRTCIPv6Override()`, `HasWebRTCIPOverride()`
+- ✅ Setter methods available: `SetWebRTCIPv4Override()`, `SetWebRTCIPv6Override()`
+- ✅ JavaScript API complete (see [PER_CONTEXT.md - Completed Work](PER_CONTEXT.md#completed-work))
+- ✅ Patch integration complete (all 7 patches use BraveSessionCache for per-context IPs)
+
+**Architecture:**
+```cpp
+// Per ExecutionContext (tab/frame):
+BraveSessionCache& cache = BraveSessionCache::From(context);
+
+// Set custom IPs (future JavaScript API will call these):
+cache.SetWebRTCIPv4Override("192.0.2.1");
+cache.SetWebRTCIPv6Override("2001:db8::1");
+
+// Patches will check for override:
+String masked_ip = cache.HasWebRTCIPOverride()
+    ? cache.GetWebRTCIPv4Override()  // Use custom IP
+    : "0.0.0.0";                      // Use default masking
+```
+
+**Implementation Complete:**
+JavaScript API is now operational (e.g., `window.setWebRTCIPv4("192.0.2.1")`). All 7 WebRTC patches have been updated to:
+1. ✅ Get ExecutionContext from current scope
+2. ✅ Check `HasWebRTCIPOverride()` on BraveSessionCache
+3. ✅ Use `GetWebRTCIPv4/v6Override()` if set, otherwise default to `0.0.0.0` / `::`
+
+**Related Systems:**
+This is part of the broader per-context fingerprinting control system documented in [PER_CONTEXT.md](PER_CONTEXT.md), which also includes per-context fingerprinting seeds for canvas/audio farbling. All components are now operational.
+
+---
+
 ### SDP Masking Function (Used in Patches #1, #2, #4)
 
-The `MaskSdpIpAddresses()` function is the core masking implementation used in all SDP-related patches. After multiple iterations fixing bugs, the final working implementation is:
+The `MaskSdpIpAddresses()` function is the core masking implementation used in all SDP-related patches. **Now supports per-context custom IPs via BraveSessionCache integration.** After multiple iterations fixing bugs, the final working implementation is:
 
 ```cpp
 String MaskSdpIpAddresses(const String& original_sdp) {
@@ -1271,34 +1311,25 @@ All WebRTC IP leak issues have been resolved. The module now provides complete p
 
 ---
 
-## ~~Next Steps~~ - MODULE COMPLETE ✅
+## ~~Next Steps~~ - ALL WORK COMPLETE ✅
 
-All critical and high-priority tasks have been completed. The WebRTC stealth module is now fully functional.
+All critical, high-priority, and integration tasks have been completed. The WebRTC stealth module and per-context fingerprinting system are now fully operational.
 
-### Completed Tasks (2026-02-04)
+### Completed Tasks
 
-✅ **getStats() API Masking** - chromium_src override created
-✅ **icecandidateerror Event Masking** - chromium_src override extended
-✅ **Enhanced RTCIceCandidate Masking** - patch updated with port/url masking
-
-### Future Enhancements (Optional)
-
-These are optional defense-in-depth improvements for future consideration:
-
-1. **Tor Context Integration**
-   - Extend existing Tor blocking in rtc_peer_connection.cc
-   - Consider blocking getStats() entirely in Tor mode
-   - Already partially implemented (Tor blocks RTCPeerConnection creation)
-
-2. **Privacy Budget Integration**
-   - Rate-limit getStats() calls from tracking origins
-   - Use Brave's existing Privacy Budget system
-   - Low priority since IPs are already masked
-
-3. **Network-Level STUN Blocking**
-   - Block STUN requests at network stack level
-   - Prevent any external server from learning network topology
-   - Out of scope for browser-level stealth (requires OS-level changes)
+✅ **getStats() API Masking** (2026-02-04) - chromium_src override created
+✅ **icecandidateerror Event Masking** (2026-02-04) - chromium_src override extended
+✅ **Enhanced RTCIceCandidate Masking** (2026-02-04) - patch updated with port/url masking
+✅ **Per-Context IP Override Integration** (2026-02-05) - ALL COMPLETE
+   - ✅ Updated all 7 WebRTC patches to use BraveSessionCache::GetWebRTCIPv4/v6Override()
+   - ✅ Implemented JavaScript API (`window.setWebRTCIPv4()`, `window.setWebRTCIPv6()`)
+   - ✅ Added self-destruct mechanism for one-time API usage
+   - ✅ C++ infrastructure, JavaScript bindings, and patch integration all operational
+   - See: [PER_CONTEXT.md - Completed Work](PER_CONTEXT.md#completed-work)
+✅ **Canvas/Audio Fingerprinting Bug Fixes** (2026-02-06)
+   - ✅ Fixed canvas fingerprints not changing with custom seed
+   - ✅ Fixed audio fingerprints not changing with custom seed
+   - ✅ Root cause identified and resolved (mojo struct → member variable pattern)
 
 ---
 
@@ -1333,6 +1364,41 @@ All file paths relative to `/Volumes/BuilderOSteroids/GitHub/brave-browser/src/`
 ---
 
 ## Changelog
+
+### 2026-02-06 - All Systems Complete
+- ✅ **Canvas/Audio Fingerprinting Bug Fixes**
+  - FIXED: Canvas fingerprints not changing despite seed being set
+  - FIXED: Audio fingerprints not changing despite seed being set
+  - Root cause: Custom farbling token stored in mojo struct field instead of dedicated member variable
+  - Solution: Added `custom_farbling_token_` member variable in BraveSessionCache
+  - Updated 5 farbling methods to use conditional token selection pattern
+  - All fingerprinting now working correctly with per-context seeds
+- ✅ **Documentation Updates**
+  - Updated PER_CONTEXT.md status to "COMPLETE"
+  - Updated WEBRTC.md status to "COMPLETE"
+  - Changed all "pending" and "future PR" references to "complete" and "operational"
+  - Documented bug fixes and solutions for future reference
+
+### 2026-02-05 - Per-Context Implementation Complete
+- ✅ **Added per-context WebRTC IP override infrastructure**
+  - NEW: `BraveSessionCache::SetWebRTCIPv4Override()` / `SetWebRTCIPv6Override()`
+  - NEW: `BraveSessionCache::GetWebRTCIPv4Override()` / `GetWebRTCIPv6Override()` / `HasWebRTCIPOverride()`
+  - Part of broader per-context fingerprinting system (see [PER_CONTEXT.md](PER_CONTEXT.md))
+- ✅ **Implemented JavaScript V8 Bindings**
+  - NEW: `fingerprinting_override.idl` - Web IDL interface
+  - NEW: `fingerprinting_override.h/cc` - C++ implementation with self-destruct
+  - API: `window.setWebRTCIPv4()`, `window.setWebRTCIPv6()`, `window.setFingerprintingSeed()`
+  - Self-destruct mechanism: Functions delete themselves after first call
+- ✅ **Integrated WebRTC patches with per-context support (7 patches)**
+  - Updated all SDP masking patches to use `BraveSessionCache` for custom IPs
+  - Added ExecutionContext storage to RTCIceCandidate and RTCSessionDescription
+  - Created header patches for ExecutionContext members
+  - All patches check for IP overrides, defaulting to 0.0.0.0/:: if not set
+- ✅ **Updated WEBRTC.md documentation**
+  - Added "Per-Context IP Override Architecture" section
+  - Documented complete implementation status
+  - Cross-referenced PER_CONTEXT.md for full system documentation
+  - Updated Quick Summary and status to reflect completion
 
 ### 2026-02-04 - WebRTC Module Complete ✅
 - ✅ **Created chromium_src override for getStats() API** (commit 6adb184)
@@ -1390,11 +1456,14 @@ Expected build time: ~30-60 minutes (full rebuild)
 
 ## Notes
 
+- **Default Masking Behavior:** All IPs are masked to `0.0.0.0` (IPv4) or `::` (IPv6) by default when no custom IP is set
+- **Per-Context Override:** ✅ COMPLETE - Custom IPs can be set per ExecutionContext via JavaScript API (`window.setWebRTCIPv4()`, `window.setWebRTCIPv6()`) or C++ (`BraveSessionCache::SetWebRTCIPv4/v6Override()`)
 - **mDNS Preservation:** All patches preserve mDNS-obfuscated addresses (`.local` hostnames) which are already privacy-protecting
 - **IPv6 Support:** Masking works for both IPv4 (`0.0.0.0`) and IPv6 (`::`)
 - **VPN Compatibility:** Masking happens at browser level, doesn't interfere with actual WebRTC connections
 - **Trickle ICE:** Candidates are gathered asynchronously after `setLocalDescription()`, so event-based leaks happen over time
 - **STUN Server Bypass:** Even with IP masking, STUN servers are still contacted (network-level leak outside browser scope)
+- **Cross-Reference:** This module is part of the broader per-context fingerprinting control system - see [PER_CONTEXT.md](PER_CONTEXT.md) for the complete architecture including fingerprinting seeds, domain-salted derivation, and WebRTC IP control. **All components now operational.**
 
 ---
 

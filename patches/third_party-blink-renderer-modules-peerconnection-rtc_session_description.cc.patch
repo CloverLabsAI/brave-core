@@ -1,18 +1,33 @@
 diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_session_description.cc b/third_party/blink/renderer/modules/peerconnection/rtc_session_description.cc
-index 1b06d623144c3..c9b7f56e59e4c 100644
+index 1b06d623144c3bc6cc85eaa6a6b18ddd2bd55b91..4dc40738ae6ff42d246c2639faf2d01f5d758b3e 100644
 --- a/third_party/blink/renderer/modules/peerconnection/rtc_session_description.cc
 +++ b/third_party/blink/renderer/modules/peerconnection/rtc_session_description.cc
 @@ -31,6 +31,9 @@
  #include "third_party/blink/renderer/modules/peerconnection/rtc_session_description.h"
  
  #include "third_party/blink/renderer/bindings/core/v8/script_value.h"
-+#include "third_party/blink/renderer/platform/wtf/text/wtf_string.h"
++#include "brave/third_party/blink/renderer/core/farbling/brave_session_cache.h"
 +#include "third_party/blink/renderer/platform/wtf/text/string_builder.h"
 +#include "third_party/blink/renderer/platform/wtf/vector.h"
  #include "third_party/blink/renderer/bindings/core/v8/v8_object_builder.h"
  #include "third_party/blink/renderer/bindings/modules/v8/v8_rtc_session_description_init.h"
  #include "third_party/blink/renderer/core/execution_context/execution_context.h"
-@@ -79,7 +82,125 @@ void RTCSessionDescription::setType(std::optional<V8RTCSdpType> type) {
+@@ -67,7 +70,13 @@ RTCSessionDescription* RTCSessionDescription::Create(
+ 
+ RTCSessionDescription::RTCSessionDescription(
+     RTCSessionDescriptionPlatform* platform_session_description)
+-    : platform_session_description_(platform_session_description) {}
++    : platform_session_description_(platform_session_description), execution_context_(nullptr) {}
++
++// Brave: Constructor with ExecutionContext for per-context IP masking
++RTCSessionDescription::RTCSessionDescription(
++    RTCSessionDescriptionPlatform* description,
++    ExecutionContext* context)
++    : platform_session_description_(description), execution_context_(context) {}
+ 
+ std::optional<V8RTCSdpType> RTCSessionDescription::type() const {
+   return V8RTCSdpType::Create(platform_session_description_->GetType());
+@@ -79,7 +88,136 @@ void RTCSessionDescription::setType(std::optional<V8RTCSdpType> type) {
  }
  
  String RTCSessionDescription::sdp() const {
@@ -23,11 +38,22 @@ index 1b06d623144c3..c9b7f56e59e4c 100644
 +    return original_sdp;
 +  }
 +
++  // Get per-context IP overrides
++  String mask_ipv4 = "0.0.0.0";
++  String mask_ipv6 = "::";
++  if (execution_context_) {
++    auto& session_cache = brave::BraveSessionCache::From(*execution_context_);
++    if (session_cache.HasWebRTCIPOverride()) {
++      mask_ipv4 = session_cache.GetWebRTCIPv4Override();
++      mask_ipv6 = session_cache.GetWebRTCIPv6Override();
++    }
++  }
++
 +  // Mask IP addresses in SDP lines to prevent WebRTC leaks
 +  String result = original_sdp;
 +  wtf_size_t pos = 0;
 +
-+  // Mask connection lines: c=IN IP4/IP6 <anything> -> c=IN IP4 0.0.0.0
++  // Mask connection lines: c=IN IP4/IP6 <anything> -> c=IN IP4 <mask_ipv4>
 +  // Simple and direct: find "c=IN" and replace entire line
 +  pos = 0;
 +  while ((pos = result.Find("c=IN ", pos)) != kNotFound) {
@@ -37,12 +63,12 @@ index 1b06d623144c3..c9b7f56e59e4c 100644
 +
 +    String before = result.Substring(0, pos);
 +    String after = result.Substring(line_end);
-+    result = before + "c=IN IP4 0.0.0.0" + after;
++    result = before + "c=IN IP4 " + mask_ipv4 + after;
 +
-+    pos = pos + 17;  // Length of "c=IN IP4 0.0.0.0"
++    pos = pos + 9 + mask_ipv4.length();  // Length of "c=IN IP4 " + mask_ipv4
 +  }
 +
-+  // Mask origin lines: o=... IN IP4/IP6 <anything> -> o=... IN IP4 0.0.0.0
++  // Mask origin lines: o=... IN IP4/IP6 <anything> -> o=... IN IP4 <mask_ipv4>
 +  pos = 0;
 +  while ((pos = result.Find("o=", pos)) != kNotFound) {
 +    wtf_size_t line_end = result.Find("\n", pos);
@@ -56,13 +82,13 @@ index 1b06d623144c3..c9b7f56e59e4c 100644
 +      // Find where " IN IP" starts
 +      wtf_size_t in_ip_pos = origin_line.Find(" IN IP");
 +      if (in_ip_pos != kNotFound) {
-+        // Replace from " IN IP" onwards with " IN IP4 0.0.0.0"
++        // Replace from " IN IP" onwards with " IN IP4 <mask_ipv4>"
 +        String origin_prefix = origin_line.Substring(0, in_ip_pos);
 +        String before = result.Substring(0, pos);
 +        String after = result.Substring(line_end);
-+        result = before + origin_prefix + " IN IP4 0.0.0.0" + after;
++        result = before + origin_prefix + " IN IP4 " + mask_ipv4 + after;
 +
-+        pos = pos + origin_prefix.length() + 17;  // Length of " IN IP4 0.0.0.0"
++        pos = pos + origin_prefix.length() + 9 + mask_ipv4.length();  // Length of " IN IP4 " + mask_ipv4
 +      } else {
 +        pos = line_end;
 +      }
@@ -92,9 +118,9 @@ index 1b06d623144c3..c9b7f56e59e4c 100644
 +      if (!original_ip.EndsWith(".local")) {
 +        // Determine if IPv4 or IPv6
 +        if (original_ip.Contains(":")) {
-+          parts[4] = "::";  // IPv6
++          parts[4] = mask_ipv6;  // IPv6
 +        } else {
-+          parts[4] = "0.0.0.0";  // IPv4
++          parts[4] = mask_ipv4;  // IPv4
 +        }
 +        modified = true;
 +      }
@@ -107,9 +133,9 @@ index 1b06d623144c3..c9b7f56e59e4c 100644
 +        String raddr_ip = parts[i + 1];
 +        if (!raddr_ip.EndsWith(".local")) {
 +          if (raddr_ip.Contains(":")) {
-+            parts[i + 1] = "::";  // IPv6
++            parts[i + 1] = mask_ipv6;  // IPv6
 +          } else {
-+            parts[i + 1] = "0.0.0.0";  // IPv4
++            parts[i + 1] = mask_ipv4;  // IPv4
 +          }
 +          modified = true;
 +        }
@@ -139,3 +165,11 @@ index 1b06d623144c3..c9b7f56e59e4c 100644
  }
  
  void RTCSessionDescription::setSdp(const String& sdp) {
+@@ -100,6 +238,7 @@ RTCSessionDescriptionPlatform* RTCSessionDescription::WebSessionDescription() {
+ 
+ void RTCSessionDescription::Trace(Visitor* visitor) const {
+   visitor->Trace(platform_session_description_);
++  visitor->Trace(execution_context_);
+   ScriptWrappable::Trace(visitor);
+ }
+ 

@@ -1,45 +1,47 @@
 diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_peer_connection.cc b/third_party/blink/renderer/modules/peerconnection/rtc_peer_connection.cc
-index 91b8815f00d93..26cb0a6e5bb2e 100644
+index 91b8815f00d9307fd8fba9782c2b92de9287b7fc..aac182b5e44c568bf93c9a941998ae042df58c3e 100644
 --- a/third_party/blink/renderer/modules/peerconnection/rtc_peer_connection.cc
 +++ b/third_party/blink/renderer/modules/peerconnection/rtc_peer_connection.cc
-@@ -2356,8 +2356,39 @@ void RTCPeerConnection::DidFailICECandidate(const String& address,
-                                             const String& error_text) {
+@@ -2344,7 +2344,10 @@ void RTCPeerConnection::DidGenerateICECandidate(
    DCHECK(!closed_);
    DCHECK(GetExecutionContext()->IsContextThread());
-+
-+  // Mask IP addresses in error events to prevent WebRTC leaks
-+  auto MaskIp = [](const String& ip) -> String {
-+    if (ip.IsNull() || ip.empty() || ip.EndsWith(".local")) {
-+      return ip;
-+    }
-+    return ip.Contains(':') ? "::" : "0.0.0.0";
-+  };
-+
-+  auto MaskCandidate = [](const String& candidate) -> String {
-+    if (candidate.IsNull() || candidate.empty() || candidate.Contains(".local")) {
-+      return candidate;
-+    }
-+    Vector<String> parts;
-+    candidate.Split(' ', parts);
-+    if (parts.size() >= 6 && !parts[4].EndsWith(".local")) {
-+      parts[4] = parts[4].Contains(':') ? "::" : "0.0.0.0";
-+      StringBuilder masked;
-+      for (wtf_size_t i = 0; i < parts.size(); i++) {
-+        if (i > 0) masked.Append(' ');
-+        masked.Append(parts[i]);
-+      }
-+      return masked.ToString();
-+    }
-+    return candidate;
-+  };
-+
-+  String masked_address = MaskIp(address);
-+  std::optional<uint16_t> masked_port = port.has_value() ? std::optional<uint16_t>(0) : std::nullopt;
-+  String masked_host_candidate = MaskCandidate(host_candidate);
-+
-   MaybeDispatchEvent(RTCPeerConnectionIceErrorEvent::Create(
--      address, port, host_candidate, url, error_code, error_text));
-+      masked_address, masked_port, masked_host_candidate, url, error_code, error_text));
+   DCHECK(platform_candidate);
+-  RTCIceCandidate* ice_candidate = RTCIceCandidate::Create(platform_candidate);
++  // Brave: Pass ExecutionContext for per-context IP masking
++  RTCIceCandidate* ice_candidate =
++      MakeGarbageCollected<RTCIceCandidate>(platform_candidate,
++                                             GetExecutionContext());
+   MaybeDispatchEvent(RTCPeerConnectionIceEvent::Create(ice_candidate));
  }
  
- void RTCPeerConnection::DidChangeSessionDescriptions(
+@@ -2367,21 +2370,26 @@ void RTCPeerConnection::DidChangeSessionDescriptions(
+     RTCSessionDescriptionPlatform* current_remote_description) {
+   DCHECK(!closed_);
+   DCHECK(GetExecutionContext()->IsContextThread());
++  // Brave: Pass ExecutionContext for per-context IP masking
+   pending_local_description_ =
+       pending_local_description
+-          ? RTCSessionDescription::Create(pending_local_description)
++          ? MakeGarbageCollected<RTCSessionDescription>(pending_local_description,
++                                                         GetExecutionContext())
+           : nullptr;
+   current_local_description_ =
+       current_local_description
+-          ? RTCSessionDescription::Create(current_local_description)
++          ? MakeGarbageCollected<RTCSessionDescription>(current_local_description,
++                                                         GetExecutionContext())
+           : nullptr;
+   pending_remote_description_ =
+       pending_remote_description
+-          ? RTCSessionDescription::Create(pending_remote_description)
++          ? MakeGarbageCollected<RTCSessionDescription>(pending_remote_description,
++                                                         GetExecutionContext())
+           : nullptr;
+   current_remote_description_ =
+       current_remote_description
+-          ? RTCSessionDescription::Create(current_remote_description)
++          ? MakeGarbageCollected<RTCSessionDescription>(current_remote_description,
++                                                         GetExecutionContext())
+           : nullptr;
+ }
+ 

@@ -1,5 +1,5 @@
 diff --git a/third_party/blink/renderer/core/css/dom_window_css.cc b/third_party/blink/renderer/core/css/dom_window_css.cc
-index 0000000000000000000000000000000000000000..1111111111111111111111111111111111111111 100644
+index 2dc7bb5c84f6255c73816eb863b2c6134ef02193..fed8ad24857871d76439aaa3f34fc94258c795d9 100644
 --- a/third_party/blink/renderer/core/css/dom_window_css.cc
 +++ b/third_party/blink/renderer/core/css/dom_window_css.cc
 @@ -44,6 +44,11 @@ namespace blink {
@@ -15,7 +15,7 @@ index 0000000000000000000000000000000000000000..11111111111111111111111111111111
        UnresolvedCSSPropertyID(execution_context, property);
    if (unresolved_property == CSSPropertyID::kInvalid) {
 @@ -74,6 +79,10 @@ bool DOMWindowCSS::supports(const ExecutionContext* execution_context,
-
+ 
  bool DOMWindowCSS::supports(const ExecutionContext* execution_context,
                              const String& condition_text) {
 +  // Check if the condition contains border-end-end-radius
@@ -24,4 +24,4 @@ index 0000000000000000000000000000000000000000..11111111111111111111111111111111
 +  }
    return CSSParser::ParseSupportsCondition(condition_text, execution_context);
  }
-
+ 
