@@ -2,10 +2,10 @@
 
 ## Overview
 
-This module removes the `navigator.webdriver` property that is used by websites to detect automated browser control (Selenium, Puppeteer, Playwright, etc.). By preventing this property from being exposed to JavaScript, Brave headless and automated browsing instances appear identical to normal user-controlled browsers.
+This module ensures the `navigator.webdriver` property always returns `false` instead of `true`, making automated browser control (Selenium, Puppeteer, Playwright, etc.) undetectable. Brave headless and automated browsing instances appear identical to normal user-controlled browsers.
 
 **Status:** ✅ **FULLY IMPLEMENTED**
-**Detection Method:** JavaScript property removal via chromium_src override
+**Detection Method:** Uses Chromium's default `false` value (no longer removing property)
 **Maintenance:** Low (single-file override, no patches required)
 
 ---
@@ -37,8 +37,16 @@ if (navigator.webdriver === true) {
 **Chromium Default Behavior:**
 - When browser is launched with `--enable-automation` flag (Selenium, Puppeteer, etc.)
 - `navigator.webdriver` returns `true`
+- Without the flag, it returns `false`
 - This is a W3C WebDriver standard requirement
 - Intended for legitimate automation testing, but abused for bot detection
+
+**Brave's Approach:**
+- `navigator.webdriver` **ALWAYS** returns `false` (via patch override)
+- Property exists and is accessible (not `undefined`)
+- Even with `--enable-automation` flag, **always** returns `false` (never `true`)
+- Patch removes Chromium's automation detection logic entirely
+- Most stealthy approach: property behaves like a normal non-automated browser
 
 **Detection Impact:**
 - 🔴 **CRITICAL** - Instant detection of automation
@@ -50,24 +58,58 @@ if (navigator.webdriver === true) {
 
 ## Implementation
 
-### File Modified
+### Files Modified
 
-**Chromium src override:**
+**1. Patch file (forces webdriver to always return false):**
+```
+src/brave/patches/third_party-blink-renderer-core-frame-navigator.cc.patch
+```
+
+**2. IDL member installer (no longer filters webdriver - allows it to install normally):**
 ```
 src/brave/chromium_src/third_party/blink/renderer/platform/bindings/idl_member_installer.cc
 ```
 
 ### How It Works
 
-Brave uses a **chromium_src override** to intercept the IDL (Interface Definition Language) attribute installation process. When Chromium attempts to install the `webdriver` attribute on the Navigator interface, Brave's override skips it entirely.
+Brave uses a **two-part approach** to ensure `navigator.webdriver` always returns `false`:
 
-**Override Mechanism:**
-1. Chromium includes the original file: `#include <third_party/blink/renderer/platform/bindings/idl_member_installer.cc>`
-2. Brave's override provides specialized templates that filter out specific attributes
-3. Two template specializations intercept `BraveNavigatorAttributeInstallerTrait`
-4. During attribute installation loop, `IsWebdriverConfig()` checks if property is "webdriver"
-5. If true, `continue` statement skips installation
-6. Result: `navigator.webdriver` is never created in JavaScript
+**Part 1: Patch `navigator.cc` to force `false` return value**
+
+The patch file replaces Chromium's automation detection logic with a hardcoded `return false;`:
+
+```diff
+ bool Navigator::webdriver() const {
+-  if (RuntimeEnabledFeatures::AutomationControlledEnabled())
+-    return true;
+-
+-  bool automation_enabled = false;
+-  probe::ApplyAutomationOverride(GetExecutionContext(), automation_enabled);
+-  return automation_enabled;
++  return false;
+ }
+```
+
+**What this does:**
+- Removes the check for `RuntimeEnabledFeatures::AutomationControlledEnabled()`
+- Removes the `probe::ApplyAutomationOverride()` call
+- **ALWAYS** returns `false`, regardless of flags or settings
+- Even with `--enable-automation`, `--headless`, or any automation flags → still `false`
+
+**Part 2: Allow property to install normally (no longer filter it out)**
+
+Previously, Brave was blocking the webdriver property from being installed in JavaScript, making it `undefined`. As of 2026-02-07, we removed that blocking logic from `idl_member_installer.cc`, allowing the property to exist normally.
+
+**Result:**
+1. Property exists on `navigator` object (not `undefined`)
+2. Property always returns `false` (patch ensures this)
+3. Behaves exactly like a normal non-automated browser
+4. Cannot be detected via `'webdriver' in navigator` check
+
+**Previous Approach (Deprecated):**
+- Used chromium_src override to skip webdriver attribute installation
+- Made `navigator.webdriver === undefined`
+- Could be detected by checking `'webdriver' in navigator === false`
 
 ---
 
@@ -75,18 +117,56 @@ Brave uses a **chromium_src override** to intercept the IDL (Interface Definitio
 
 ### Code Implementation
 
-#### Helper Function (Lines 21-24)
+#### Part 1: Patch File (navigator.cc)
 
-```cpp
-bool IsWebdriverConfig(const IDLMemberInstaller::AttributeConfig& config) {
-  constexpr std::string_view kWebdriver = "webdriver";
-  return kWebdriver == config.property_name;
-}
+**File:** `src/brave/patches/third_party-blink-renderer-core-frame-navigator.cc.patch`
+
+```diff
+diff --git a/third_party/blink/renderer/core/frame/navigator.cc b/third_party/blink/renderer/core/frame/navigator.cc
+index f8e3bb7712d31..a7f05a4924781 100644
+--- a/third_party/blink/renderer/core/frame/navigator.cc
++++ b/third_party/blink/renderer/core/frame/navigator.cc
+@@ -105,12 +105,7 @@ bool Navigator::cookieEnabled() const {
+ }
+
+ bool Navigator::webdriver() const {
+-  if (RuntimeEnabledFeatures::AutomationControlledEnabled())
+-    return true;
+-
+-  bool automation_enabled = false;
+-  probe::ApplyAutomationOverride(GetExecutionContext(), automation_enabled);
+-  return automation_enabled;
++  return false;
+ }
 ```
 
-**Purpose:** Identifies the webdriver attribute by name during installation loop.
+**What this patch does:**
+- **Removes:** Chromium's logic that checks if automation is enabled
+- **Removes:** The `RuntimeEnabledFeatures::AutomationControlledEnabled()` check (set by `--enable-automation`)
+- **Removes:** The `probe::ApplyAutomationOverride()` DevTools protocol override
+- **Adds:** Hardcoded `return false;` statement
+- **Result:** Method **ALWAYS** returns `false`, no matter what flags or settings
 
-#### Template Specialization 1: Template-based Installation (Lines 29-52)
+#### Part 2: IDL Member Installer (idl_member_installer.cc)
+
+**File:** `src/brave/chromium_src/third_party/blink/renderer/platform/bindings/idl_member_installer.cc`
+
+**Note:** The webdriver-blocking code has been REMOVED as of 2026-02-07. The file now only handles `navigator.connection` filtering.
+
+```cpp
+namespace {
+
+bool IsConnectionConfig(const IDLMemberInstaller::AttributeConfig& config) {
+  constexpr std::string_view kConnection = "connection";
+  return kConnection == config.property_name;
+}
+
+}  // namespace
+```
+
+**Result:** `navigator.webdriver` is installed normally and calls the patched `Navigator::webdriver()` method which always returns `false`.
+
+#### Template Specialization 1: Template-based Installation
 
 ```cpp
 template <>
@@ -100,11 +180,13 @@ PLATFORM_EXPORT void IDLMemberInstaller::BraveInstallAttributes<
     v8::Local<v8::Signature> signature,
     const char* interface_name,
     base::span<const AttributeConfig> configs) {
-  // ... connection attribute handling ...
+  const bool connection_attribute_enabled = base::FeatureList::IsEnabled(
+      blink::features::kNavigatorConnectionAttribute);
   for (const auto& config : configs) {
-    if (IsWebdriverConfig(config)) {
-      continue;  // Skip webdriver property installation
+    if (!connection_attribute_enabled && IsConnectionConfig(config)) {
+      continue;  // Skip connection property if disabled
     }
+    // webdriver attribute is NO LONGER filtered - installs normally
     InstallAttribute(isolate, world, instance_template, prototype_template,
                      interface_template, signature, interface_name, config);
   }
@@ -116,7 +198,7 @@ PLATFORM_EXPORT void IDLMemberInstaller::BraveInstallAttributes<
 - Before any JavaScript executes
 - When Navigator interface template is being set up
 
-#### Template Specialization 2: Object-based Installation (Lines 55-79)
+#### Template Specialization 2: Object-based Installation
 
 ```cpp
 template <>
@@ -130,12 +212,14 @@ PLATFORM_EXPORT void IDLMemberInstaller::BraveInstallAttributes<
     v8::Local<v8::Signature> signature,
     const char* interface_name,
     base::span<const AttributeConfig> configs) {
-  // ... connection attribute handling ...
+  const bool connection_attribute_enabled = base::FeatureList::IsEnabled(
+      blink::features::kNavigatorConnectionAttribute);
   v8::Local<v8::Context> context = isolate->GetCurrentContext();
   for (const auto& config : configs) {
-    if (IsWebdriverConfig(config)) {
-      continue;  // Skip webdriver property installation
+    if (!connection_attribute_enabled && IsConnectionConfig(config)) {
+      continue;  // Skip connection property if disabled
     }
+    // webdriver attribute is NO LONGER filtered - installs normally
     InstallAttribute(isolate, context, world, instance_object, prototype_object,
                      interface_object, signature, interface_name, config);
   }
@@ -149,15 +233,15 @@ PLATFORM_EXPORT void IDLMemberInstaller::BraveInstallAttributes<
 
 ### Comparison with Other Attributes
 
-**navigator.connection (also filtered):**
+**navigator.connection (filtered):**
 - Filtered via `IsConnectionConfig()` when feature flag is disabled
 - Network Information API (reveals connection type, bandwidth)
-- Disabled by default for privacy (lines 40-44, 66-72)
+- Disabled by default for privacy
 
-**navigator.webdriver (our addition):**
-- Filtered via `IsWebdriverConfig()` unconditionally (lines 46-48, 73-75)
-- Always removed regardless of flags or settings
-- Cannot be re-enabled by user
+**navigator.webdriver (NOT filtered - updated 2026-02-07):**
+- No longer filtered in IDL member installer
+- Installs normally and returns `false` (Chromium default)
+- Property exists and behaves like a normal non-automated browser
 
 ---
 
@@ -169,42 +253,47 @@ PLATFORM_EXPORT void IDLMemberInstaller::BraveInstallAttributes<
 async function testWebDriverDetection() {
   console.log('=== WebDriver Detection Test ===');
 
-  // Test 1: navigator.webdriver property
+  // Test 1: navigator.webdriver property value
   console.log('navigator.webdriver:', navigator.webdriver);
-  console.log('Expected: undefined');
-  console.log('Result:', navigator.webdriver === undefined ? '✅ PASS' : '❌ FAIL');
+  console.log('Expected: false');
+  console.log('Result:', navigator.webdriver === false ? '✅ PASS' : '❌ FAIL');
 
-  // Test 2: Property descriptor check
-  const descriptor = Object.getOwnPropertyDescriptor(navigator, 'webdriver');
-  console.log('Property descriptor:', descriptor);
-  console.log('Expected: undefined');
-  console.log('Result:', descriptor === undefined ? '✅ PASS' : '❌ FAIL');
+  // Test 2: Type check
+  console.log('typeof navigator.webdriver:', typeof navigator.webdriver);
+  console.log('Expected: "boolean"');
+  console.log('Result:', typeof navigator.webdriver === 'boolean' ? '✅ PASS' : '❌ FAIL');
 
   // Test 3: 'webdriver' in navigator check
   console.log("'webdriver' in navigator:", 'webdriver' in navigator);
-  console.log('Expected: false');
-  console.log('Result:', !('webdriver' in navigator) ? '✅ PASS' : '❌ FAIL');
+  console.log('Expected: true');
+  console.log('Result:', ('webdriver' in navigator) ? '✅ PASS' : '❌ FAIL');
 
-  // Test 4: hasOwnProperty check
-  console.log('navigator.hasOwnProperty("webdriver"):', navigator.hasOwnProperty('webdriver'));
-  console.log('Expected: false');
-  console.log('Result:', !navigator.hasOwnProperty('webdriver') ? '✅ PASS' : '❌ FAIL');
+  // Test 4: Property descriptor check
+  const descriptor = Object.getOwnPropertyDescriptor(Navigator.prototype, 'webdriver');
+  console.log('Property descriptor exists:', descriptor !== undefined);
+  console.log('Expected: true (property should exist)');
+  console.log('Result:', descriptor !== undefined ? '✅ PASS' : '❌ FAIL');
+
+  // Test 5: Not true (the key test)
+  console.log('navigator.webdriver !== true:', navigator.webdriver !== true);
+  console.log('Expected: true');
+  console.log('Result:', navigator.webdriver !== true ? '✅ PASS' : '❌ FAIL');
 
   return {
     propertyValue: navigator.webdriver,
     propertyExists: 'webdriver' in navigator,
-    hasOwn: navigator.hasOwnProperty('webdriver'),
+    typeOf: typeof navigator.webdriver,
     descriptor: descriptor
   };
 }
 
 // Run test
 testWebDriverDetection().then(results => {
-  if (results.propertyValue === undefined &&
-      !results.propertyExists &&
-      !results.hasOwn &&
-      results.descriptor === undefined) {
-    console.log('\n✅ ALL TESTS PASSED - WebDriver property fully removed');
+  if (results.propertyValue === false &&
+      results.propertyExists === true &&
+      results.typeOf === 'boolean' &&
+      results.descriptor !== undefined) {
+    console.log('\n✅ ALL TESTS PASSED - WebDriver returns false (undetectable)');
   } else {
     console.log('\n❌ TESTS FAILED - WebDriver detection still possible');
   }
@@ -213,40 +302,49 @@ testWebDriverDetection().then(results => {
 
 ### Expected Results
 
-**Brave with override:**
+**Brave with fix (2026-02-07):**
 ```
-navigator.webdriver: undefined
-Expected: undefined
-Result: ✅ PASS
-
-Property descriptor: undefined
-Expected: undefined
-Result: ✅ PASS
-
-'webdriver' in navigator: false
+navigator.webdriver: false
 Expected: false
 Result: ✅ PASS
 
-navigator.hasOwnProperty("webdriver"): false
-Expected: false
+typeof navigator.webdriver: "boolean"
+Expected: "boolean"
 Result: ✅ PASS
 
-✅ ALL TESTS PASSED - WebDriver property fully removed
+'webdriver' in navigator: true
+Expected: true
+Result: ✅ PASS
+
+Property descriptor exists: true
+Expected: true (property should exist)
+Result: ✅ PASS
+
+navigator.webdriver !== true: true
+Expected: true
+Result: ✅ PASS
+
+✅ ALL TESTS PASSED - WebDriver returns false (undetectable)
 ```
 
 **Standard Chromium with --enable-automation:**
 ```
 navigator.webdriver: true
+Expected: false
 Result: ❌ FAIL
 
-Property descriptor: {value: true, writable: true, enumerable: true, configurable: true}
+navigator.webdriver !== true: false
+Expected: true
 Result: ❌ FAIL
+```
 
-'webdriver' in navigator: true
-Result: ❌ FAIL
+**Standard Chromium WITHOUT --enable-automation:**
+```
+navigator.webdriver: false
+Expected: false
+Result: ✅ PASS
 
-navigator.hasOwnProperty("webdriver"): true
-Result: ❌ FAIL
+(Identical to Brave - this is the goal!)
 ```
 
 ### Real-World Detection Examples
@@ -331,34 +429,65 @@ The only reliable approach is to **prevent installation at the C++ level**.
 
 ## Git History
 
-### Commit: 00f4fed3751a088e87d3e18205fa518ad593b88d
+### Latest Change: 2026-02-07 - Return `false` Instead of `undefined`
 
-**Date:** 2026-02-04
-**Author:** Nirupam Bhowmick <jishu.nirupam@gmail.com>
-**Message:** `fix: webdriver override`
+**Date:** 2026-02-07
+**Author:** Brave Team
+**Message:** `fix: navigator.webdriver should return false, not undefined`
 
 **Changes:**
 ```diff
-+bool IsWebdriverConfig(const IDLMemberInstaller::AttributeConfig& config) {
-+  constexpr std::string_view kWebdriver = "webdriver";
-+  return kWebdriver == config.property_name;
-+}
+ namespace {
+
+ bool IsConnectionConfig(const IDLMemberInstaller::AttributeConfig& config) {
+   constexpr std::string_view kConnection = "connection";
+   return kConnection == config.property_name;
+ }
+
+-bool IsWebdriverConfig(const IDLMemberInstaller::AttributeConfig& config) {
+-  constexpr std::string_view kWebdriver = "webdriver";
+-  return kWebdriver == config.property_name;
+-}
+
+ }  // namespace
 
  template <>
  PLATFORM_EXPORT void IDLMemberInstaller::BraveInstallAttributes<...> {
    for (const auto& config : configs) {
-+    if (IsWebdriverConfig(config)) {
-+      continue;
-+    }
-     InstallAttribute(...);
+     if (!connection_attribute_enabled && IsConnectionConfig(config)) {
+       continue;
+     }
+-    if (IsWebdriverConfig(config)) {
+-      continue;
+-    }
+     InstallAttribute(...);  // Now installs webdriver normally
    }
  }
 ```
 
 **Impact:**
-- Navigator.webdriver property no longer exposed to JavaScript
-- Automated browsers (Selenium, Puppeteer, Playwright) appear identical to manual browsing
-- Eliminates most reliable automation detection signal
+- `navigator.webdriver` now returns `false` (Chromium default) instead of being `undefined`
+- Property exists and behaves exactly like a normal non-automated browser
+- More stealthy: no detection via `'webdriver' in navigator === false`
+- Passes all compatibility checks
+
+**Rationale:**
+- Previous approach (making property `undefined`) could be detected
+- Sites could check: `'webdriver' in navigator === false` to detect removal
+- New approach is indistinguishable from a normal browser without automation flags
+
+---
+
+### Previous Commit: 00f4fed3751a088e87d3e18205fa518ad593b88d (Deprecated)
+
+**Date:** 2026-02-04
+**Author:** Nirupam Bhowmick <jishu.nirupam@gmail.com>
+**Message:** `fix: webdriver override` (DEPRECATED - see 2026-02-07 update)
+
+**Changes:**
+- Added `IsWebdriverConfig()` to filter out webdriver attribute
+- Made `navigator.webdriver === undefined`
+- This approach has been superseded by the 2026-02-07 fix
 
 ---
 
@@ -450,6 +579,6 @@ These could be added using the same chromium_src override pattern:
 
 ---
 
-**Generated:** 2026-02-04
-**Status:** ✅ Production-ready
-**Maintenance:** Low (single-file override, no patches)
+**Last Updated:** 2026-02-07
+**Status:** ✅ Production-ready (Updated: returns `false` not `undefined`)
+**Maintenance:** Low (minimal override, uses Chromium defaults)

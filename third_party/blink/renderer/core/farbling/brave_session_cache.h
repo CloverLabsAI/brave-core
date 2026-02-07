@@ -40,6 +40,8 @@ enum FarbleKey : uint64_t {
   kPointerScreenX,
   kPointerScreenY,
   kSpeechSynthesis,
+  kHardwareConcurrency,
+  kDeviceMemory,
   kKeyCount
 };
 
