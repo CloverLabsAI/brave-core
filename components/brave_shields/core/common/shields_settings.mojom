@@ -34,6 +34,11 @@ struct ShieldsSettings {
   array<string> origins_to_allow_scripts;
   bool reduce_language;
   bool enforced_script_blocking;
+  // Master fingerprinting seed for consistent cross-context farbling.
+  // When set, workers use this to derive the same farbling token as the
+  // main window context.
+  bool has_master_seed;
+  uint64 master_seed;
 };
 
 enum AdBlockMode {

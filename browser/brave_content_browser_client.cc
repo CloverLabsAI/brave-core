@@ -23,7 +23,7 @@
 #include "brave/browser/brave_browser_features.h"
 #include "brave/browser/brave_browser_main_extra_parts.h"
 #include "brave/browser/brave_fingerprinting_host.h"
-#include "brave/browser/brave_fingerprinting_host.h"
+#include "brave/browser/brave_fingerprinting_service.h"
 #include "brave/browser/brave_browser_process.h"
 #include "brave/browser/brave_search/backup_results_navigation_throttle.h"
 #include "brave/browser/brave_search/backup_results_service_factory.h"
@@ -883,10 +883,22 @@ BraveContentBrowserClient::WorkerGetBraveShieldSettings(
 
   PrefService* pref_service = user_prefs::UserPrefs::Get(browser_context);
 
+  // Include master seed so workers produce the same farbled values as the
+  // main window context.
+  bool has_master_seed = false;
+  uint64_t master_seed = 0;
+  auto* fp_service =
+      BraveFingerprintingService::GetForBrowserContext(browser_context);
+  if (fp_service && fp_service->HasMasterSeed()) {
+    has_master_seed = true;
+    master_seed = fp_service->GetMasterSeed().value_or(0);
+  }
+
   return brave_shields::mojom::ShieldsSettings::New(
       farbling_level, farbling_token, std::vector<std::string>(),
       brave_shields::IsReduceLanguageEnabledForProfile(pref_service),
-      IsJsBlockingEnforced(browser_context, url));
+      IsJsBlockingEnforced(browser_context, url),
+      has_master_seed, master_seed);
 }
 
 content::ContentBrowserClient::AllowWebBluetoothResult

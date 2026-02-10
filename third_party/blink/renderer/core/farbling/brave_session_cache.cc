@@ -333,9 +333,9 @@ BraveSessionCache::BraveSessionCache(ExecutionContext& context)
                         storage_key_nonce_hash);
   }
 
-  // Fetch fingerprinting overrides from browser process on navigation
-  // Only fetch from window contexts - workers don't have access to this interface
-  // but they can still access overrides set via JavaScript on the parent window
+  // Fetch fingerprinting overrides from browser process on navigation.
+  // Window contexts use the BraveFingerprintingHost Mojo interface directly.
+  // Worker contexts receive the master seed through ShieldsSettings instead.
   if (blink::DynamicTo<blink::LocalDOMWindow>(&context)) {
     mojo::Remote<brave::mojom::blink::BraveFingerprintingHost> host;
     context.GetBrowserInterfaceBroker().GetInterface(
@@ -365,6 +365,10 @@ BraveSessionCache::BraveSessionCache(ExecutionContext& context)
         }
       }
     }
+  } else if (default_shields_settings_->has_master_seed) {
+    // Workers receive the master seed through ShieldsSettings so they produce
+    // the same farbled values as the main window context.
+    SetMasterFingerprintingSeed(default_shields_settings_->master_seed);
   }
 }
 
