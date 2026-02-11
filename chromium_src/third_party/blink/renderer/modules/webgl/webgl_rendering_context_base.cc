@@ -15,11 +15,23 @@
 
 namespace {
 
+// Returns true if fingerprinting is allowed (farbling OFF or BALANCED).
+// Used for MAXIMUM-level blocking of various WebGL functions.
 bool AllowFingerprintingForHost(blink::CanvasRenderingContextHost* host) {
   if (!host)
     return true;
   return brave::AllowFingerprinting(host->GetTopExecutionContext(),
                                     ContentSettingsType::BRAVE_WEBCOMPAT_WEBGL);
+}
+
+// Returns true if WebGL vendor/renderer should be farbled (BALANCED or MAXIMUM).
+bool ShouldFarbleWebGLVendorRenderer(blink::CanvasRenderingContextHost* host) {
+  if (!host)
+    return false;
+  return brave::GetBraveFarblingLevelFor(
+             host->GetTopExecutionContext(),
+             ContentSettingsType::BRAVE_WEBCOMPAT_WEBGL,
+             BraveFarblingLevel::OFF) != BraveFarblingLevel::OFF;
 }
 
 }  // namespace
@@ -59,23 +71,23 @@ bool AllowFingerprintingForHost(blink::CanvasRenderingContextHost* host) {
     precision = 0;                                          \
   }
 
-#define BRAVE_WEBGL_GET_PARAMETER_UNMASKED_RENDERER     \
-  if (ExtensionEnabled(kWebGLDebugRendererInfoName) &&  \
-      !AllowFingerprintingForHost(Host()))              \
-    return WebGLAny(                                    \
-        script_state,                                   \
-        String(brave::BraveSessionCache::From(          \
-                   *(Host()->GetTopExecutionContext())) \
-                   .GenerateRandomString("UNMASKED_RENDERER_WEBGL", 8)));
+#define BRAVE_WEBGL_GET_PARAMETER_UNMASKED_RENDERER      \
+  if (ExtensionEnabled(kWebGLDebugRendererInfoName) &&   \
+      ShouldFarbleWebGLVendorRenderer(Host()))           \
+    return WebGLAny(                                     \
+        script_state,                                    \
+        String(brave::BraveSessionCache::From(           \
+                   *(Host()->GetTopExecutionContext()))   \
+                   .GetFarbledWebGLRenderer()));
 
-#define BRAVE_WEBGL_GET_PARAMETER_UNMASKED_VENDOR       \
-  if (ExtensionEnabled(kWebGLDebugRendererInfoName) &&  \
-      !AllowFingerprintingForHost(Host()))              \
-    return WebGLAny(                                    \
-        script_state,                                   \
-        String(brave::BraveSessionCache::From(          \
-                   *(Host()->GetTopExecutionContext())) \
-                   .GenerateRandomString("UNMASKED_VENDOR_WEBGL", 8)));
+#define BRAVE_WEBGL_GET_PARAMETER_UNMASKED_VENDOR        \
+  if (ExtensionEnabled(kWebGLDebugRendererInfoName) &&   \
+      ShouldFarbleWebGLVendorRenderer(Host()))           \
+    return WebGLAny(                                     \
+        script_state,                                    \
+        String(brave::BraveSessionCache::From(           \
+                   *(Host()->GetTopExecutionContext()))   \
+                   .GetFarbledWebGLVendor()));
 
 #define getExtension getExtension_ChromiumImpl
 #define getSupportedExtensions getSupportedExtensions_ChromiumImpl
@@ -85,8 +97,9 @@ bool AllowFingerprintingForHost(blink::CanvasRenderingContextHost* host) {
 
 namespace blink {
 
-// If fingerprinting is disallowed, claim that the only supported extension is
-// WebGLDebugRendererInfo.
+// If fingerprinting is disallowed at MAXIMUM level, claim that the only
+// supported extension is WebGLDebugRendererInfo. At BALANCED level, we still
+// return the real extensions list since vendor/renderer are already farbled.
 std::optional<Vector<String>>
 WebGLRenderingContextBase::getSupportedExtensions() {
   std::optional<Vector<String>> real_extensions =
@@ -102,8 +115,10 @@ WebGLRenderingContextBase::getSupportedExtensions() {
   return fake_extensions;
 }
 
-// If fingerprinting is disallowed and they're asking for information about any
-// extension other than WebGLDebugRendererInfo, don't give it to them.
+// If fingerprinting is disallowed at MAXIMUM level and they're asking for
+// information about any extension other than WebGLDebugRendererInfo, don't
+// give it to them. At BALANCED level, all extensions are accessible since
+// vendor/renderer are already farbled via profile-based system.
 ScriptObject WebGLRenderingContextBase::getExtension(ScriptState* script_state,
                                                      const String& name) {
   if (!AllowFingerprintingForHost(Host())) {

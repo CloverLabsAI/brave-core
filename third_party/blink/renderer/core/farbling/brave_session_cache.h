@@ -42,6 +42,8 @@ enum FarbleKey : uint64_t {
   kSpeechSynthesis,
   kHardwareConcurrency,
   kDeviceMemory,
+  kWebGLVendor,
+  kWebGLRenderer,
   kKeyCount
 };
 
@@ -95,6 +97,8 @@ class CORE_EXPORT BraveSessionCache final
                        const blink::AtomicString& family_name);
   FarblingPRNG MakePseudoRandomGenerator(FarbleKey key = FarbleKey::kNone);
   std::optional<blink::BraveAudioFarblingHelper> GetAudioFarblingHelper();
+  blink::String GetFarbledWebGLVendor();
+  blink::String GetFarbledWebGLRenderer();
 
   // Per-context overrides for dynamic seed/IP control
   void SetMasterFingerprintingSeed(uint64_t seed);

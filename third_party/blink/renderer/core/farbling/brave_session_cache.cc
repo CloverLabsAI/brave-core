@@ -236,8 +236,16 @@ blink::String BraveSessionCache::ExtractETLDPlusOne(const GURL& url) {
   if (url.SchemeIs("chrome-extension")) {
     return blink::String::FromUTF8(url.host());
   }
-  if (url.SchemeIs("data") || url.SchemeIs("blob")) {
+  if (url.SchemeIs("data")) {
     return blink::String("data");
+  }
+  if (url.SchemeIs("blob")) {
+    // blob:https://example.com/uuid -> extract the inner origin URL
+    GURL inner_url(url.path());
+    if (inner_url.is_valid() && inner_url.has_host()) {
+      return ExtractETLDPlusOne(inner_url);
+    }
+    return blink::String("blob");
   }
 
   // Extract eTLD+1 using Chromium's public suffix list
@@ -286,8 +294,19 @@ void BraveSessionCache::SetMasterFingerprintingSeed(uint64_t seed) {
   master_seed_ = seed;
   has_master_seed_ = true;
 
-  // Derive token from master seed + current domain
-  GURL url(execution_context_->Url());
+  // Use the security origin URL (not execution_context_->Url()) to derive the
+  // token. This ensures workers on the same origin as the main window derive
+  // the same farbling token. Workers can have different raw URLs (e.g.,
+  // blob:https://example.com/uuid for blob workers, or the script URL for
+  // dedicated workers), but their security origin matches the main window.
+  GURL url;
+  if (const auto* origin = execution_context_->GetSecurityOrigin()
+                                ->GetOriginOrPrecursorOriginIfOpaque();
+      origin && !origin->IsOpaque()) {
+    url = GURL(origin->ToString().Utf8());
+  } else {
+    url = GURL(execution_context_->Url());
+  }
   custom_farbling_token_ = DeriveTokenFromSeed(master_seed_, url);
 
   // Clear cached values to force regeneration
@@ -557,6 +576,28 @@ FarblingPRNG BraveSessionCache::MakePseudoRandomGenerator(FarbleKey key) {
                                                : default_shields_settings_->farbling_token;
   uint64_t seed = token.high() ^ token.low() ^ static_cast<uint64_t>(key);
   return FarblingPRNG(seed);
+}
+
+blink::String BraveSessionCache::GetFarbledWebGLVendor() {
+  return "Google Inc. (Apple)";
+}
+
+blink::String BraveSessionCache::GetFarbledWebGLRenderer() {
+  static constexpr const char* kWebGLRendererProfiles[] = {
+      "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+      "ANGLE (Apple, ANGLE Metal Renderer: Apple M1, Unspecified Version)",
+      "ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Pro, Unspecified Version)",
+      "ANGLE (Apple, ANGLE Metal Renderer: Apple M2, Unspecified Version)",
+      "ANGLE (Apple, ANGLE Metal Renderer: Apple M3 Max, Unspecified Version)",
+      "ANGLE (Apple, ANGLE Metal Renderer: Apple M3 Pro, Unspecified Version)",
+      "ANGLE (Apple, ANGLE Metal Renderer: Apple M3, Unspecified Version)",
+      "ANGLE (Apple, ANGLE Metal Renderer: Apple M4 Pro, Unspecified Version)",
+      "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+      "ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)",
+  };
+  static constexpr size_t kProfileCount = std::size(kWebGLRendererProfiles);
+  FarblingPRNG prng = MakePseudoRandomGenerator(FarbleKey::kWebGLRenderer);
+  return blink::String(kWebGLRendererProfiles[prng() % kProfileCount]);
 }
 
 BraveFarblingLevel BraveSessionCache::GetBraveFarblingLevel(
