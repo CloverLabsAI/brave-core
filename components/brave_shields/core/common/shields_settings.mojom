@@ -39,6 +39,10 @@ struct ShieldsSettings {
   // main window context.
   bool has_master_seed;
   uint64 master_seed;
+  // Timezone override for consistent cross-context timezone spoofing.
+  // When set, workers apply the same timezone override as the main window.
+  bool has_timezone_override;
+  string timezone_id;
 };
 
 enum AdBlockMode {

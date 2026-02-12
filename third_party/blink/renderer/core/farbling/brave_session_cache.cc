@@ -324,6 +324,34 @@ void BraveSessionCache::SetWebRTCIPv6Override(const blink::String& ipv6) {
   has_webrtc_ip_override_ = true;
 }
 
+void BraveSessionCache::SetTimezoneOverride(const blink::String& timezone_id) {
+  if (timezone_id.empty()) {
+    return;
+  }
+
+  has_timezone_override_ = true;
+  timezone_id_ = timezone_id;
+
+  // Apply the timezone override via TimeZoneController.
+  // If we already have an active override handle, change it.
+  // Otherwise, acquire a new one.
+  if (timezone_override_handle_) {
+    timezone_override_handle_->change(timezone_id);
+  } else {
+    auto result =
+        blink::TimeZoneController::SetTimeZoneOverride(timezone_id);
+    if (result.status ==
+        blink::TimeZoneController::TimeZoneOverrideStatus::kSuccess) {
+      timezone_override_handle_ = std::move(result.handle);
+    } else if (result.status ==
+               blink::TimeZoneController::TimeZoneOverrideStatus::
+                   kAlreadyInEffect) {
+      // Another context already has the override — this is expected in
+      // same-process scenarios. The timezone is already set globally.
+    }
+  }
+}
+
 BraveSessionCache::BraveSessionCache(ExecutionContext& context)
     : execution_context_(context) {
   if (auto* settings_client = GetContentSettingsClientFor(&context)) {
@@ -383,11 +411,26 @@ BraveSessionCache::BraveSessionCache(ExecutionContext& context)
           webrtc_ipv6_override_ = ipv6;
         }
       }
+
+      // Fetch timezone override
+      bool has_tz = false;
+      blink::String tz_id;
+      if (host->GetTimezone(&has_tz, &tz_id)) {
+        if (has_tz) {
+          SetTimezoneOverride(tz_id);
+        }
+      }
     }
-  } else if (default_shields_settings_->has_master_seed) {
-    // Workers receive the master seed through ShieldsSettings so they produce
-    // the same farbled values as the main window context.
-    SetMasterFingerprintingSeed(default_shields_settings_->master_seed);
+  } else {
+    // Workers receive overrides through ShieldsSettings so they produce
+    // the same values as the main window context.
+    if (default_shields_settings_->has_master_seed) {
+      SetMasterFingerprintingSeed(default_shields_settings_->master_seed);
+    }
+    if (default_shields_settings_->has_timezone_override) {
+      SetTimezoneOverride(
+          blink::String(default_shields_settings_->timezone_id));
+    }
   }
 }
 

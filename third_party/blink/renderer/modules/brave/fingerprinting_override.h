@@ -64,6 +64,8 @@ class MODULES_EXPORT FingerprintingOverride final {
   static void SendSeedToBrowser(ExecutionContext* context, uint64_t seed);
   static void SendIPv4ToBrowser(ExecutionContext* context, const String& ipv4);
   static void SendIPv6ToBrowser(ExecutionContext* context, const String& ipv6);
+  static void SendTimezoneToBrowser(ExecutionContext* context,
+                                    const String& timezone_id);
 
  private:
   // Helper to remove function from window object after first call

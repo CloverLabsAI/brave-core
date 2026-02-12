@@ -6,6 +6,7 @@
 #ifndef BRAVE_THIRD_PARTY_BLINK_RENDERER_CORE_FARBLING_BRAVE_SESSION_CACHE_H_
 #define BRAVE_THIRD_PARTY_BLINK_RENDERER_CORE_FARBLING_BRAVE_SESSION_CACHE_H_
 
+#include <memory>
 #include <optional>
 #include <string>
 
@@ -17,6 +18,7 @@
 #include "third_party/blink/renderer/core/core_export.h"
 #include "third_party/blink/renderer/core/execution_context/execution_context.h"
 #include "third_party/blink/renderer/core/frame/dom_window.h"
+#include "third_party/blink/renderer/core/timezone/timezone_controller.h"
 #include "third_party/blink/renderer/platform/wtf/hash_map.h"
 #include "third_party/blink/renderer/platform/wtf/text/atomic_string.h"
 
@@ -115,6 +117,11 @@ class CORE_EXPORT BraveSessionCache final
   }
   bool HasWebRTCIPOverride() const { return has_webrtc_ip_override_; }
 
+  // Timezone override
+  void SetTimezoneOverride(const blink::String& timezone_id);
+  bool HasTimezoneOverride() const { return has_timezone_override_; }
+  const blink::String& GetTimezoneOverride() const { return timezone_id_; }
+
   void Trace(blink::Visitor* visitor) const override;
 
  private:
@@ -135,6 +142,12 @@ class CORE_EXPORT BraveSessionCache final
   bool has_webrtc_ip_override_ = false;
   blink::String webrtc_ipv4_override_;
   blink::String webrtc_ipv6_override_;
+
+  // Timezone override state
+  bool has_timezone_override_ = false;
+  blink::String timezone_id_;
+  std::unique_ptr<blink::TimeZoneController::TimeZoneOverride>
+      timezone_override_handle_;
 };
 
 }  // namespace brave

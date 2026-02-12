@@ -337,7 +337,7 @@ void BraveShieldsWebContentsObserver::SendShieldsSettings(
       farbling_level, farbling_token, allowed_scripts_,
       brave_shields::IsReduceLanguageEnabledForProfile(pref_service),
       IsJsBlockingEnforced(rfh->GetBrowserContext(), primary_url),
-      false, 0));
+      false, 0, false, ""));
 }
 
 void BraveShieldsWebContentsObserver::BindReceiver(

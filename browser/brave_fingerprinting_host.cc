@@ -103,4 +103,37 @@ void BraveFingerprintingHost::GetWebRTCIPOverrides(
   std::move(callback).Run(has_override, ipv4, ipv6);
 }
 
+void BraveFingerprintingHost::SetTimezone(const std::string& timezone_id) {
+  auto* browser_context = web_contents()->GetBrowserContext();
+  if (!browser_context) {
+    return;
+  }
+
+  auto* service =
+      BraveFingerprintingService::GetForBrowserContext(browser_context);
+  if (service) {
+    service->SetTimezone(timezone_id);
+  }
+}
+
+void BraveFingerprintingHost::GetTimezone(GetTimezoneCallback callback) {
+  auto* browser_context = web_contents()->GetBrowserContext();
+  if (!browser_context) {
+    std::move(callback).Run(false, "");
+    return;
+  }
+
+  auto* service =
+      BraveFingerprintingService::GetForBrowserContext(browser_context);
+  if (!service) {
+    std::move(callback).Run(false, "");
+    return;
+  }
+
+  bool has_override = service->HasTimezoneOverride();
+  std::string timezone_id = service->GetTimezone();
+
+  std::move(callback).Run(has_override, timezone_id);
+}
+
 WEB_CONTENTS_USER_DATA_KEY_IMPL(BraveFingerprintingHost);

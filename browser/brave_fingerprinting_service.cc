@@ -63,3 +63,11 @@ std::string BraveFingerprintingService::GetWebRTCIPv6() const {
 bool BraveFingerprintingService::HasWebRTCIPOverride() const {
   return webrtc_ipv4_.has_value() || webrtc_ipv6_.has_value();
 }
+
+void BraveFingerprintingService::SetTimezone(const std::string& timezone_id) {
+  timezone_id_ = timezone_id;
+}
+
+std::string BraveFingerprintingService::GetTimezone() const {
+  return timezone_id_.value_or("");
+}

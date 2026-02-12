@@ -44,10 +44,16 @@ class BraveFingerprintingService : public KeyedService,
   std::string GetWebRTCIPv6() const;
   bool HasWebRTCIPOverride() const;
 
+  // Timezone override management
+  void SetTimezone(const std::string& timezone_id);
+  std::string GetTimezone() const;
+  bool HasTimezoneOverride() const { return timezone_id_.has_value(); }
+
  private:
   std::optional<uint64_t> master_seed_;
   std::optional<std::string> webrtc_ipv4_;
   std::optional<std::string> webrtc_ipv6_;
+  std::optional<std::string> timezone_id_;
 };
 
 #endif  // BRAVE_BROWSER_BRAVE_FINGERPRINTING_SERVICE_H_

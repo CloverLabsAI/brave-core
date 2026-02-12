@@ -163,6 +163,19 @@ void FingerprintingOverride::SendIPv6ToBrowser(ExecutionContext* context,
 }
 
 // static
+void FingerprintingOverride::SendTimezoneToBrowser(ExecutionContext* context,
+                                                    const String& timezone_id) {
+  if (!context) {
+    return;
+  }
+
+  auto& host = GetFingerprintingHost(context);
+  if (host) {
+    host->SetTimezone(timezone_id);
+  }
+}
+
+// static
 void FingerprintingOverride::SelfDestruct(ScriptState* script_state,
                                           const String& function_name) {
   ScriptState::Scope scope(script_state);

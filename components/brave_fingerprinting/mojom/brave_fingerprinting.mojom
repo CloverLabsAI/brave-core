@@ -21,4 +21,11 @@ interface BraveFingerprintingHost {
   // Get WebRTC IP overrides for this browser context
   [Sync]
   GetWebRTCIPOverrides() => (bool has_override, string ipv4, string ipv6);
+
+  // Set timezone override for this browser context (IANA timezone ID)
+  SetTimezone(string timezone_id);
+
+  // Get timezone override for this browser context
+  [Sync]
+  GetTimezone() => (bool has_override, string timezone_id);
 };

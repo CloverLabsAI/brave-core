@@ -894,11 +894,20 @@ BraveContentBrowserClient::WorkerGetBraveShieldSettings(
     master_seed = fp_service->GetMasterSeed().value_or(0);
   }
 
+  // Include timezone override so workers apply the same timezone.
+  bool has_timezone_override = false;
+  std::string timezone_id;
+  if (fp_service && fp_service->HasTimezoneOverride()) {
+    has_timezone_override = true;
+    timezone_id = fp_service->GetTimezone();
+  }
+
   return brave_shields::mojom::ShieldsSettings::New(
       farbling_level, farbling_token, std::vector<std::string>(),
       brave_shields::IsReduceLanguageEnabledForProfile(pref_service),
       IsJsBlockingEnforced(browser_context, url),
-      has_master_seed, master_seed);
+      has_master_seed, master_seed,
+      has_timezone_override, timezone_id);
 }
 
 content::ContentBrowserClient::AllowWebBluetoothResult

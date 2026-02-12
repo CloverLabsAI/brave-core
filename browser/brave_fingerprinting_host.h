@@ -37,6 +37,8 @@ class BraveFingerprintingHost
   void SetWebRTCIPv6(const std::string& ipv6) override;
   void GetMasterSeed(GetMasterSeedCallback callback) override;
   void GetWebRTCIPOverrides(GetWebRTCIPOverridesCallback callback) override;
+  void SetTimezone(const std::string& timezone_id) override;
+  void GetTimezone(GetTimezoneCallback callback) override;
 
  private:
   explicit BraveFingerprintingHost(content::WebContents* web_contents);

@@ -47,9 +47,10 @@ void InstallFingerprintingOverrides(blink::WebLocalFrame* web_frame) {
   auto& session_cache = brave::BraveSessionCache::From(*context);
   bool has_seed = session_cache.HasMasterSeed();
   bool has_webrtc = session_cache.HasWebRTCIPOverride();
+  bool has_timezone = session_cache.HasTimezoneOverride();
 
-  // Don't install any functions if overrides already exist
-  if (has_seed && has_webrtc) {
+  // Don't install any functions if all overrides already exist
+  if (has_seed && has_webrtc && has_timezone) {
     return;
   }
 
@@ -176,6 +177,51 @@ void InstallFingerprintingOverrides(blink::WebLocalFrame* web_frame) {
     v8::Local<v8::String> ipv6_name = blink::V8String(isolate, "setWebRTCIPv6");
     (void)global->Set(v8_context, ipv4_name, ipv4_callback);
     (void)global->Set(v8_context, ipv6_name, ipv6_callback);
+  }
+
+  // Install setTimezone if no timezone override exists
+  if (!has_timezone) {
+    auto tz_callback = v8::Function::New(
+        v8_context,
+        [](const v8::FunctionCallbackInfo<v8::Value>& info) {
+          v8::Isolate* isolate = info.GetIsolate();
+          if (info.Length() < 1 || !info[0]->IsString()) {
+            isolate->ThrowException(v8::Exception::TypeError(
+                blink::V8String(isolate,
+                    "setTimezone requires an IANA timezone string argument")));
+            return;
+          }
+
+          blink::String timezone_id =
+              blink::ToCoreString(isolate, info[0].As<v8::String>());
+
+          blink::LocalDOMWindow* window = blink::CurrentDOMWindow(isolate);
+          if (!window) {
+            return;
+          }
+
+          blink::ExecutionContext* context = window->GetExecutionContext();
+          if (!context) {
+            return;
+          }
+
+          // Update local session cache and apply via TimeZoneController
+          auto& session_cache = brave::BraveSessionCache::From(*context);
+          session_cache.SetTimezoneOverride(timezone_id);
+
+          // Send to browser process for persistence
+          blink::FingerprintingOverride::SendTimezoneToBrowser(
+              context, timezone_id);
+
+          // Self-destruct
+          v8::Local<v8::Context> v8_context = isolate->GetCurrentContext();
+          v8::Local<v8::Object> global = v8_context->Global();
+          (void)global->Delete(
+              v8_context, blink::V8String(isolate, "setTimezone"));
+        }).ToLocalChecked();
+
+    v8::Local<v8::String> tz_name = blink::V8String(isolate, "setTimezone");
+    (void)global->Set(v8_context, tz_name, tz_callback);
   }
 }
 
