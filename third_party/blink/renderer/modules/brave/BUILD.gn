@@ -6,8 +6,18 @@
 import("//third_party/blink/renderer/modules/modules.gni")
 
 blink_modules_sources("brave") {
+  visibility = [
+    "//third_party/blink/renderer/modules/*",
+    "//chrome/renderer:renderer",
+    "//brave/renderer:renderer",
+  ]
+
   sources = [
     "brave.cc",
     "brave.h",
+    "fingerprinting_override.cc",
+    "fingerprinting_override.h",
+    "fingerprinting_overrides_installer.cc",
+    "fingerprinting_overrides_installer.h",
   ]
 }

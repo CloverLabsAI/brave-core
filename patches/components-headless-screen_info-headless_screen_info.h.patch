@@ -1,0 +1,13 @@
+diff --git a/components/headless/screen_info/headless_screen_info.h b/components/headless/screen_info/headless_screen_info.h
+index 4de34f50653ed6e8a7bf7b44d7ac8d8b84662446..eda31b1f7b95cf461f4a996edaa83b98c2ac7a51 100644
+--- a/components/headless/screen_info/headless_screen_info.h
++++ b/components/headless/screen_info/headless_screen_info.h
+@@ -16,7 +16,7 @@
+ namespace headless {
+ 
+ struct HeadlessScreenInfo {
+-  gfx::Rect bounds = gfx::Rect(800, 600);
++  gfx::Rect bounds = gfx::Rect(1920, 1080);
+   gfx::Insets work_area_insets;
+   int color_depth = 24;
+   float device_pixel_ratio = 1.0f;

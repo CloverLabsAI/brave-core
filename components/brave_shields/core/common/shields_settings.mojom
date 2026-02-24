@@ -34,6 +34,15 @@ struct ShieldsSettings {
   array<string> origins_to_allow_scripts;
   bool reduce_language;
   bool enforced_script_blocking;
+  // Master fingerprinting seed for consistent cross-context farbling.
+  // When set, workers use this to derive the same farbling token as the
+  // main window context.
+  bool has_master_seed;
+  uint64 master_seed;
+  // Timezone override for consistent cross-context timezone spoofing.
+  // When set, workers apply the same timezone override as the main window.
+  bool has_timezone_override;
+  string timezone_id;
 };
 
 enum AdBlockMode {

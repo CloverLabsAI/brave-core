@@ -22,6 +22,8 @@
 #include "brave/browser/brave_account/brave_account_navigation_throttle.h"
 #include "brave/browser/brave_browser_features.h"
 #include "brave/browser/brave_browser_main_extra_parts.h"
+#include "brave/browser/brave_fingerprinting_host.h"
+#include "brave/browser/brave_fingerprinting_service.h"
 #include "brave/browser/brave_browser_process.h"
 #include "brave/browser/brave_search/backup_results_navigation_throttle.h"
 #include "brave/browser/brave_search/backup_results_service_factory.h"
@@ -381,6 +383,7 @@ bool HandleURLRewrite(GURL* url, content::BrowserContext* browser_context) {
   return false;
 }
 
+
 void BindCosmeticFiltersResourcesOnTaskRunner(
     mojo::PendingReceiver<cosmetic_filters::mojom::CosmeticFiltersResources>
         receiver) {
@@ -389,6 +392,22 @@ void BindCosmeticFiltersResourcesOnTaskRunner(
           g_brave_browser_process->ad_block_service()),
       std::move(receiver));
 }
+
+
+void BindBraveFingerprintingHost(
+    content::RenderFrameHost* const frame_host,
+    mojo::PendingReceiver<brave::mojom::BraveFingerprintingHost> receiver) {
+  auto* web_contents = content::WebContents::FromRenderFrameHost(frame_host);
+  if (!web_contents) {
+    return;
+  }
+  BraveFingerprintingHost::CreateForWebContents(web_contents);
+  auto* host = BraveFingerprintingHost::FromWebContents(web_contents);
+  if (host) {
+    host->BindReceiver(std::move(receiver));
+  }
+}
+
 
 void BindCosmeticFiltersResources(
     content::RenderFrameHost* const frame_host,
@@ -864,10 +883,31 @@ BraveContentBrowserClient::WorkerGetBraveShieldSettings(
 
   PrefService* pref_service = user_prefs::UserPrefs::Get(browser_context);
 
+  // Include master seed so workers produce the same farbled values as the
+  // main window context.
+  bool has_master_seed = false;
+  uint64_t master_seed = 0;
+  auto* fp_service =
+      BraveFingerprintingService::GetForBrowserContext(browser_context);
+  if (fp_service && fp_service->HasMasterSeed()) {
+    has_master_seed = true;
+    master_seed = fp_service->GetMasterSeed().value_or(0);
+  }
+
+  // Include timezone override so workers apply the same timezone.
+  bool has_timezone_override = false;
+  std::string timezone_id;
+  if (fp_service && fp_service->HasTimezoneOverride()) {
+    has_timezone_override = true;
+    timezone_id = fp_service->GetTimezone();
+  }
+
   return brave_shields::mojom::ShieldsSettings::New(
       farbling_level, farbling_token, std::vector<std::string>(),
       brave_shields::IsReduceLanguageEnabledForProfile(pref_service),
-      IsJsBlockingEnforced(browser_context, url));
+      IsJsBlockingEnforced(browser_context, url),
+      has_master_seed, master_seed,
+      has_timezone_override, timezone_id);
 }
 
 content::ContentBrowserClient::AllowWebBluetoothResult
@@ -941,6 +981,8 @@ void BraveContentBrowserClient::RegisterBrowserInterfaceBindersForFrame(
       render_frame_host, map);
   map->Add<cosmetic_filters::mojom::CosmeticFiltersResources>(
       base::BindRepeating(&BindCosmeticFiltersResources));
+  map->Add<brave::mojom::BraveFingerprintingHost>(
+      base::BindRepeating(&BindBraveFingerprintingHost));
   if (brave_search::IsDefaultAPIEnabled()) {
     map->Add<brave_search::mojom::BraveSearchDefault>(
         base::BindRepeating(&BindBraveSearchDefaultHost));

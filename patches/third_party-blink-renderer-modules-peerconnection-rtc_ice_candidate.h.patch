@@ -1,0 +1,23 @@
+diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.h b/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.h
+index 0f93d01673bd7ddbf408eb518b028c3ec064f6ea..6068ba26db0895b1981f697121f1307a54854482 100644
+--- a/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.h
++++ b/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.h
+@@ -60,7 +60,10 @@ class MODULES_EXPORT RTCIceCandidate final : public ScriptWrappable {
+   static RTCIceCandidate* Create(RTCIceCandidatePlatform*);
+ 
+   explicit RTCIceCandidate(RTCIceCandidatePlatform*);
++  // Brave: Constructor that accepts ExecutionContext for per-context masking
++  RTCIceCandidate(RTCIceCandidatePlatform*, ExecutionContext*);
+ 
++  void SetExecutionContext(ExecutionContext* context) { execution_context_ = context; }
+   String candidate() const;
+   String sdpMid() const;
+   std::optional<uint16_t> sdpMLineIndex() const;
+@@ -86,6 +89,7 @@ class MODULES_EXPORT RTCIceCandidate final : public ScriptWrappable {
+ 
+  private:
+   Member<RTCIceCandidatePlatform> platform_candidate_;
++  Member<ExecutionContext> execution_context_;  // Brave: For per-context IP masking
+ };
+ 
+ }  // namespace blink

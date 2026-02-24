@@ -1,0 +1,203 @@
+diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.cc b/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.cc
+index 2c4713a9717a5..a578d4512c3f2 100644
+--- a/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.cc
++++ b/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.cc
+@@ -32,6 +32,7 @@
+ 
+ #include <utility>
+ 
++#include "brave/third_party/blink/renderer/core/farbling/brave_session_cache.h"
+ #include "third_party/blink/renderer/bindings/core/v8/script_value.h"
+ #include "third_party/blink/renderer/bindings/core/v8/v8_object_builder.h"
+ #include "third_party/blink/renderer/bindings/modules/v8/v8_rtc_ice_candidate_init.h"
+@@ -46,9 +47,35 @@
+ #include "third_party/blink/renderer/platform/bindings/exception_state.h"
+ #include "third_party/blink/renderer/platform/heap/garbage_collected.h"
+ #include "third_party/blink/renderer/platform/instrumentation/use_counter.h"
++#include "third_party/blink/renderer/platform/wtf/text/string_builder.h"
++#include "third_party/blink/renderer/platform/wtf/vector.h"
+ 
+ namespace blink {
+ 
++namespace {
++
++// Get WebRTC IP overrides from BraveSessionCache
++void GetWebRTCIPOverrides(ExecutionContext* context,
++                          String* out_ipv4,
++                          String* out_ipv6) {
++  // Default values
++  *out_ipv4 = "0.0.0.0";
++  *out_ipv6 = "::";
++
++  if (!context) {
++    return;
++  }
++
++  // Get overrides from session cache (already populated from browser process)
++  auto& session_cache = brave::BraveSessionCache::From(*context);
++  if (session_cache.HasWebRTCIPOverride()) {
++    *out_ipv4 = session_cache.GetWebRTCIPv4Override();
++    *out_ipv6 = session_cache.GetWebRTCIPv6Override();
++  }
++}
++
++}  // namespace
++
+ RTCIceCandidate* RTCIceCandidate::Create(
+     ExecutionContext* context,
+     const RTCIceCandidateInit* candidate_init,
+@@ -80,10 +107,53 @@ RTCIceCandidate* RTCIceCandidate::Create(
+ }
+ 
+ RTCIceCandidate::RTCIceCandidate(RTCIceCandidatePlatform* platform_candidate)
+-    : platform_candidate_(platform_candidate) {}
++    : platform_candidate_(platform_candidate), execution_context_(nullptr) {}
++
++// Brave: Constructor with ExecutionContext for per-context IP masking
++RTCIceCandidate::RTCIceCandidate(RTCIceCandidatePlatform* platform_candidate,
++                                 ExecutionContext* context)
++    : platform_candidate_(platform_candidate), execution_context_(context) {}
+ 
+ String RTCIceCandidate::candidate() const {
+-  return platform_candidate_->Candidate();
++  String original = platform_candidate_->Candidate();
++  if (original.IsNull() || original.empty()) {
++    return original;
++  }
++
++  // Get per-BrowserContext IP overrides from browser process
++  String mask_ipv4;
++  String mask_ipv6;
++  GetWebRTCIPOverrides(execution_context_, &mask_ipv4, &mask_ipv6);
++
++  // Only allow mDNS candidates (*.local), mask all other IP addresses
++  if (original.Contains(".local")) {
++    return original;  // Already mDNS obfuscated
++  }
++
++  // Replace IP address in SDP string
++  // Format: candidate:<foundation> <component-id> <transport> <priority> <address> <port> typ <type>
++  Vector<String> parts;
++  original.Split(' ', parts);
++
++  if (parts.size() >= 5) {
++    String original_ip = parts[4];
++    if (!original_ip.EndsWith(".local")) {
++      // Use appropriate mask based on IP type
++      parts[4] = original_ip.Contains(":") ? mask_ipv6 : mask_ipv4;
++
++      // Reconstruct the candidate string
++      StringBuilder result;
++      for (wtf_size_t i = 0; i < parts.size(); i++) {
++        if (i > 0) {
++          result.Append(' ');
++        }
++        result.Append(parts[i]);
++      }
++      return result.ToString();
++    }
++  }
++
++  return original;
+ }
+ 
+ String RTCIceCandidate::sdpMid() const {
+@@ -100,6 +170,7 @@ RTCIceCandidatePlatform* RTCIceCandidate::PlatformCandidate() const {
+ 
+ void RTCIceCandidate::Trace(Visitor* visitor) const {
+   visitor->Trace(platform_candidate_);
++  visitor->Trace(execution_context_);
+   ScriptWrappable::Trace(visitor);
+ }
+ 
+@@ -116,7 +187,24 @@ std::optional<uint32_t> RTCIceCandidate::priority() const {
+ }
+ 
+ String RTCIceCandidate::address() const {
+-  return platform_candidate_->Address();
++  String real_address = platform_candidate_->Address();
++  if (real_address.IsNull()) {
++    return real_address;
++  }
++
++  // Only expose mDNS-obfuscated addresses (*.local)
++  if (real_address.EndsWith(".local")) {
++    return real_address;
++  }
++
++  // Get per-context IP override or use default
++  if (execution_context_) {
++    auto& session_cache = brave::BraveSessionCache::From(*execution_context_);
++    if (session_cache.HasWebRTCIPOverride()) {
++      return real_address.Contains(":") ? session_cache.GetWebRTCIPv6Override() : session_cache.GetWebRTCIPv4Override();
++    }
++  }
++  return real_address.Contains(":") ? "::" : "0.0.0.0";
+ }
+ 
+ std::optional<V8RTCIceProtocol> RTCIceCandidate::protocol() const {
+@@ -124,7 +212,9 @@ std::optional<V8RTCIceProtocol> RTCIceCandidate::protocol() const {
+ }
+ 
+ std::optional<uint16_t> RTCIceCandidate::port() const {
+-  return platform_candidate_->Port();
++  // Mask port to prevent network fingerprinting
++  auto real_port = platform_candidate_->Port();
++  return real_port.has_value() ? std::optional<uint16_t>(0) : std::nullopt;
+ }
+ 
+ std::optional<V8RTCIceCandidateType> RTCIceCandidate::type() const {
+@@ -140,11 +230,30 @@ std::optional<V8RTCIceTcpCandidateType> RTCIceCandidate::tcpType() const {
+ }
+ 
+ String RTCIceCandidate::relatedAddress() const {
+-  return platform_candidate_->RelatedAddress();
++  String real_related = platform_candidate_->RelatedAddress();
++  if (real_related.IsNull()) {
++    return real_related;
++  }
++
++  // Only expose mDNS-obfuscated related addresses
++  if (real_related.EndsWith(".local")) {
++    return real_related;
++  }
++
++  // Get per-context IP override or use default
++  if (execution_context_) {
++    auto& session_cache = brave::BraveSessionCache::From(*execution_context_);
++    if (session_cache.HasWebRTCIPOverride()) {
++      return real_related.Contains(":") ? session_cache.GetWebRTCIPv6Override() : session_cache.GetWebRTCIPv4Override();
++    }
++  }
++  return real_related.Contains(":") ? "::" : "0.0.0.0";
+ }
+ 
+ std::optional<uint16_t> RTCIceCandidate::relatedPort() const {
+-  return platform_candidate_->RelatedPort();
++  // Mask related port to prevent network fingerprinting
++  auto real_port = platform_candidate_->RelatedPort();
++  return real_port.has_value() ? std::optional<uint16_t>(0) : std::nullopt;
+ }
+ 
+ String RTCIceCandidate::usernameFragment() const {
+@@ -152,7 +261,10 @@ String RTCIceCandidate::usernameFragment() const {
+ }
+ 
+ String RTCIceCandidate::url() const {
+-  return platform_candidate_->Url();
++  // Redact TURN/STUN server URLs to prevent infrastructure leaks
++  // Return empty string instead of actual URL
++  String real_url = platform_candidate_->Url();
++  return real_url.IsNull() ? real_url : String("");
+ }
+ 
+ std::optional<V8RTCIceServerTransportProtocol> RTCIceCandidate::relayProtocol()
+@@ -166,7 +278,7 @@ std::optional<V8RTCIceServerTransportProtocol> RTCIceCandidate::relayProtocol()
+ 
+ ScriptObject RTCIceCandidate::toJSONForBinding(ScriptState* script_state) {
+   V8ObjectBuilder result(script_state);
+-  result.AddString("candidate", platform_candidate_->Candidate());
++  result.AddString("candidate", candidate());  // Use masked version
+   result.AddString("sdpMid", platform_candidate_->SdpMid());
+   if (platform_candidate_->SdpMLineIndex())
+     result.AddNumber("sdpMLineIndex", *platform_candidate_->SdpMLineIndex());

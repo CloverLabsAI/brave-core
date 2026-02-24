@@ -1,0 +1,31 @@
+// Copyright (c) 2026 The Brave Authors. All rights reserved.
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this file,
+// You can obtain one at https://mozilla.org/MPL/2.0/.
+
+module brave.mojom;
+
+// Browser-side interface for managing per-profile fingerprinting overrides
+interface BraveFingerprintingHost {
+  // Set the master fingerprinting seed for this browser context
+  SetMasterSeed(uint64 seed);
+
+  // Set WebRTC IP overrides for this browser context
+  SetWebRTCIPv4(string ipv4);
+  SetWebRTCIPv6(string ipv6);
+
+  // Get master fingerprinting seed for this browser context
+  [Sync]
+  GetMasterSeed() => (bool has_seed, uint64 seed);
+
+  // Get WebRTC IP overrides for this browser context
+  [Sync]
+  GetWebRTCIPOverrides() => (bool has_override, string ipv4, string ipv6);
+
+  // Set timezone override for this browser context (IANA timezone ID)
+  SetTimezone(string timezone_id);
+
+  // Get timezone override for this browser context
+  [Sync]
+  GetTimezone() => (bool has_override, string timezone_id);
+};

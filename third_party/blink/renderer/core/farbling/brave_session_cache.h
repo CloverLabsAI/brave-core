@@ -6,6 +6,7 @@
 #ifndef BRAVE_THIRD_PARTY_BLINK_RENDERER_CORE_FARBLING_BRAVE_SESSION_CACHE_H_
 #define BRAVE_THIRD_PARTY_BLINK_RENDERER_CORE_FARBLING_BRAVE_SESSION_CACHE_H_
 
+#include <memory>
 #include <optional>
 #include <string>
 
@@ -17,6 +18,7 @@
 #include "third_party/blink/renderer/core/core_export.h"
 #include "third_party/blink/renderer/core/execution_context/execution_context.h"
 #include "third_party/blink/renderer/core/frame/dom_window.h"
+#include "third_party/blink/renderer/core/timezone/timezone_controller.h"
 #include "third_party/blink/renderer/platform/wtf/hash_map.h"
 #include "third_party/blink/renderer/platform/wtf/text/atomic_string.h"
 
@@ -39,6 +41,11 @@ enum FarbleKey : uint64_t {
   kWindowScreenY,
   kPointerScreenX,
   kPointerScreenY,
+  kSpeechSynthesis,
+  kHardwareConcurrency,
+  kDeviceMemory,
+  kWebGLVendor,
+  kWebGLRenderer,
   kKeyCount
 };
 
@@ -92,17 +99,55 @@ class CORE_EXPORT BraveSessionCache final
                        const blink::AtomicString& family_name);
   FarblingPRNG MakePseudoRandomGenerator(FarbleKey key = FarbleKey::kNone);
   std::optional<blink::BraveAudioFarblingHelper> GetAudioFarblingHelper();
+  blink::String GetFarbledWebGLVendor();
+  blink::String GetFarbledWebGLRenderer();
+
+  // Per-context overrides for dynamic seed/IP control
+  void SetMasterFingerprintingSeed(uint64_t seed);
+  bool HasMasterSeed() const { return has_master_seed_; }
+  uint64_t GetMasterSeed() const { return master_seed_; }
+
+  void SetWebRTCIPv4Override(const blink::String& ipv4);
+  void SetWebRTCIPv6Override(const blink::String& ipv6);
+  const blink::String& GetWebRTCIPv4Override() const {
+    return webrtc_ipv4_override_;
+  }
+  const blink::String& GetWebRTCIPv6Override() const {
+    return webrtc_ipv6_override_;
+  }
+  bool HasWebRTCIPOverride() const { return has_webrtc_ip_override_; }
+
+  // Timezone override
+  void SetTimezoneOverride(const blink::String& timezone_id);
+  bool HasTimezoneOverride() const { return has_timezone_override_; }
+  const blink::String& GetTimezoneOverride() const { return timezone_id_; }
 
   void Trace(blink::Visitor* visitor) const override;
 
  private:
   void PerturbPixelsInternal(base::span<uint8_t> data);
+  base::Token DeriveTokenFromSeed(uint64_t master_seed, const GURL& url);
+  blink::String ExtractETLDPlusOne(const GURL& url);
 
   blink::Member<blink::ExecutionContext> execution_context_;
   blink::HashMap<FarbleKey, int> farbled_integers_;
   brave_shields::mojom::ShieldsSettingsPtr default_shields_settings_;
   std::optional<blink::BraveAudioFarblingHelper> audio_farbling_helper_;
   blink::HashMap<ContentSettingsType, BraveFarblingLevel> farbling_levels_;
+
+  // Per-context override state
+  bool has_master_seed_ = false;
+  uint64_t master_seed_ = 0;
+  base::Token custom_farbling_token_;  // Derived from master seed
+  bool has_webrtc_ip_override_ = false;
+  blink::String webrtc_ipv4_override_;
+  blink::String webrtc_ipv6_override_;
+
+  // Timezone override state
+  bool has_timezone_override_ = false;
+  blink::String timezone_id_;
+  std::unique_ptr<blink::TimeZoneController::TimeZoneOverride>
+      timezone_override_handle_;
 };
 
 }  // namespace brave

@@ -1,0 +1,18 @@
+diff --git a/headless/lib/browser/headless_content_browser_client.cc b/headless/lib/browser/headless_content_browser_client.cc
+index e42025897f48659f0a5755c3600c9a73ac5859ac..550e1c48c04689456c6ec088eb9c00007c74aaf0 100644
+--- a/headless/lib/browser/headless_content_browser_client.cc
++++ b/headless/lib/browser/headless_content_browser_client.cc
+@@ -584,10 +584,9 @@ void HeadlessContentBrowserClient::SetEncryptionKey(
+ 
+ content::BluetoothDelegate*
+ HeadlessContentBrowserClient::GetBluetoothDelegate() {
+-  if (!bluetooth_delegate_) {
+-    bluetooth_delegate_ = std::make_unique<HeadlessBluetoothDelegate>();
+-  }
+-  return bluetooth_delegate_.get();
++  // Return nullptr to use Chromium's default Bluetooth implementation
++  // This makes headless Bluetooth behavior identical to headful mode
++  return nullptr;
+ }
+ 
+ bool HeadlessContentBrowserClient::IsRendererProcessPriorityEnabled() {

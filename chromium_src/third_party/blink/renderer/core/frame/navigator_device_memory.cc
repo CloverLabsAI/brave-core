@@ -51,7 +51,8 @@ float FarbleDeviceMemory(blink::ExecutionContext* context) {
       return valid_values[min_farbled_index];
   }
   FarblingPRNG prng =
-      BraveSessionCache::From(*context).MakePseudoRandomGenerator();
+      BraveSessionCache::From(*context).MakePseudoRandomGenerator(
+          brave::FarbleKey::kDeviceMemory);
   return valid_values[min_farbled_index +
                       (prng() % (max_farbled_index + 1 - min_farbled_index))];
 }

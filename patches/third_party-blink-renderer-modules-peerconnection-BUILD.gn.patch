@@ -1,0 +1,12 @@
+diff --git a/third_party/blink/renderer/modules/peerconnection/BUILD.gn b/third_party/blink/renderer/modules/peerconnection/BUILD.gn
+index f4c4410182f08..bfa5600cdb531 100644
+--- a/third_party/blink/renderer/modules/peerconnection/BUILD.gn
++++ b/third_party/blink/renderer/modules/peerconnection/BUILD.gn
+@@ -173,6 +173,7 @@ blink_modules_sources("peerconnection") {
+ 
+   public_deps = [ "//third_party/webrtc_overrides:webrtc_component" ]
+   deps = [
++    "//brave/components/brave_fingerprinting/mojom:mojom_blink",
+     "//build:chromecast_buildflags",
+     "//components/webrtc:net_address_utils",
+     "//components/webrtc:thread_wrapper",

@@ -1,0 +1,34 @@
+diff --git a/headless/lib/browser/headless_browser_impl.cc b/headless/lib/browser/headless_browser_impl.cc
+index f0c79ccd63e102c4ef51535f476ceddc6c5156a9..87dc4ec39a8a8baa16928a4a1d031a6e433db494 100644
+--- a/headless/lib/browser/headless_browser_impl.cc
++++ b/headless/lib/browser/headless_browser_impl.cc
+@@ -101,27 +101,8 @@ std::string HeadlessBrowser::GetProductNameAndVersion() {
+ 
+ /// static
+ blink::UserAgentMetadata HeadlessBrowser::GetUserAgentMetadata() {
+-  auto metadata = embedder_support::GetUserAgentMetadata();
+-  // Skip override brand version information if components' API returns a blank
+-  // UserAgentMetadata.
+-  if (metadata == blink::UserAgentMetadata()) {
+-    return metadata;
+-  }
+-  std::string significant_version = version_info::GetMajorVersionNumber();
+-
+-  // Use the major version number as a greasing seed
+-  int seed = 1;
+-  bool got_seed = base::StringToInt(significant_version, &seed);
+-  DCHECK(got_seed);
+-
+-  // Rengenerate the brand version lists with kHeadlessProductName.
+-  metadata.brand_version_list = embedder_support::GenerateBrandVersionList(
+-      seed, kHeadlessProductName, significant_version,
+-      blink::UserAgentBrandVersionType::kMajorVersion);
+-  metadata.brand_full_version_list = embedder_support::GenerateBrandVersionList(
+-      seed, kHeadlessProductName, metadata.full_version,
+-      blink::UserAgentBrandVersionType::kFullVersion);
+-  return metadata;
++  // Return the same metadata as normal Brave (don't regenerate with HeadlessChrome)
++  return embedder_support::GetUserAgentMetadata();
+ }
+ 
+ HeadlessBrowserImpl::HeadlessBrowserImpl(

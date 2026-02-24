@@ -1,0 +1,22 @@
+diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_session_description.h b/third_party/blink/renderer/modules/peerconnection/rtc_session_description.h
+index 3fbe77f61afc61578914eb742686417756335b93..67a9c6d27c1b5afb2bda09565e991baf56b35adf 100644
+--- a/third_party/blink/renderer/modules/peerconnection/rtc_session_description.h
++++ b/third_party/blink/renderer/modules/peerconnection/rtc_session_description.h
+@@ -53,6 +53,9 @@ class RTCSessionDescription final : public ScriptWrappable {
+   static RTCSessionDescription* Create(RTCSessionDescriptionPlatform*);
+ 
+   explicit RTCSessionDescription(RTCSessionDescriptionPlatform*);
++  // Brave: Constructor that accepts ExecutionContext for per-context masking
++  RTCSessionDescription(RTCSessionDescriptionPlatform*, ExecutionContext*);
++  void SetExecutionContext(ExecutionContext* context) { execution_context_ = context; }
+ 
+   std::optional<V8RTCSdpType> type() const;
+   void setType(std::optional<V8RTCSdpType> type);
+@@ -68,6 +71,7 @@ class RTCSessionDescription final : public ScriptWrappable {
+ 
+  private:
+   Member<RTCSessionDescriptionPlatform> platform_session_description_;
++  Member<ExecutionContext> execution_context_;  // Brave: For per-context IP masking
+ };
+ 
+ }  // namespace blink

@@ -8,6 +8,9 @@
 #include <string_view>
 
 #include "base/check.h"
+#include "brave/components/brave_fingerprinting/mojom/brave_fingerprinting.mojom-blink.h"
+#include "mojo/public/cpp/bindings/remote.h"
+#include "third_party/blink/public/platform/browser_interface_broker_proxy.h"
 #include "base/compiler_specific.h"
 #include "base/debug/alias.h"
 #include "base/debug/dump_without_crashing.h"
@@ -20,6 +23,7 @@
 #include "brave/third_party/blink/renderer/brave_font_whitelist.h"
 #include "build/build_config.h"
 #include "crypto/hmac.h"
+#include "net/base/registry_controlled_domains/registry_controlled_domain.h"
 #include "third_party/blink/public/common/features.h"
 #include "third_party/blink/public/platform/web_content_settings_client.h"
 #include "third_party/blink/renderer/core/execution_context/execution_context.h"
@@ -224,6 +228,130 @@ int FarbledPointerScreenCoordinate(const DOMWindow* view,
   return FarbleInteger(context, key, zoom_factor * client_coordinate, 0, 8);
 }
 
+blink::String BraveSessionCache::ExtractETLDPlusOne(const GURL& url) {
+  // Handle special schemes
+  if (url.SchemeIsFile()) {
+    return blink::String("file");
+  }
+  if (url.SchemeIs("chrome-extension")) {
+    return blink::String::FromUTF8(url.host());
+  }
+  if (url.SchemeIs("data")) {
+    return blink::String("data");
+  }
+  if (url.SchemeIs("blob")) {
+    // blob:https://example.com/uuid -> extract the inner origin URL
+    GURL inner_url(url.path());
+    if (inner_url.is_valid() && inner_url.has_host()) {
+      return ExtractETLDPlusOne(inner_url);
+    }
+    return blink::String("blob");
+  }
+
+  // Extract eTLD+1 using Chromium's public suffix list
+  std::string etld_plus_one =
+      net::registry_controlled_domains::GetDomainAndRegistry(
+          url, net::registry_controlled_domains::INCLUDE_PRIVATE_REGISTRIES);
+
+  if (etld_plus_one.empty()) {
+    // Fallback for IP addresses, localhost, etc.
+    return blink::String::FromUTF8(url.host());
+  }
+
+  return blink::String::FromUTF8(etld_plus_one);
+}
+
+base::Token BraveSessionCache::DeriveTokenFromSeed(uint64_t master_seed,
+                                                    const GURL& url) {
+  // Extract eTLD+1 to normalize subdomains
+  blink::String domain = ExtractETLDPlusOne(url);
+
+  // Convert seed to bytes (big-endian)
+  uint8_t seed_bytes[8];
+  seed_bytes[0] = (master_seed >> 56) & 0xFF;
+  seed_bytes[1] = (master_seed >> 48) & 0xFF;
+  seed_bytes[2] = (master_seed >> 40) & 0xFF;
+  seed_bytes[3] = (master_seed >> 32) & 0xFF;
+  seed_bytes[4] = (master_seed >> 24) & 0xFF;
+  seed_bytes[5] = (master_seed >> 16) & 0xFF;
+  seed_bytes[6] = (master_seed >> 8) & 0xFF;
+  seed_bytes[7] = master_seed & 0xFF;
+
+  // HMAC-SHA256(key=seed, message=domain)
+  // This ensures deterministic but cryptographically secure derivation
+  auto hmac_result =
+      crypto::hmac::SignSha256(base::span(seed_bytes),
+                               base::as_byte_span(domain.Utf8()));
+
+  // Extract 128-bit token from HMAC result (first 16 bytes)
+  uint64_t high = base::U64FromNativeEndian(base::span(hmac_result).first<8u>());
+  uint64_t low = base::U64FromNativeEndian(base::span(hmac_result).subspan<8u, 8u>());
+
+  return base::Token(high, low);
+}
+
+void BraveSessionCache::SetMasterFingerprintingSeed(uint64_t seed) {
+  master_seed_ = seed;
+  has_master_seed_ = true;
+
+  // Use the security origin URL (not execution_context_->Url()) to derive the
+  // token. This ensures workers on the same origin as the main window derive
+  // the same farbling token. Workers can have different raw URLs (e.g.,
+  // blob:https://example.com/uuid for blob workers, or the script URL for
+  // dedicated workers), but their security origin matches the main window.
+  GURL url;
+  if (const auto* origin = execution_context_->GetSecurityOrigin()
+                                ->GetOriginOrPrecursorOriginIfOpaque();
+      origin && !origin->IsOpaque()) {
+    url = GURL(origin->ToString().Utf8());
+  } else {
+    url = GURL(execution_context_->Url());
+  }
+  custom_farbling_token_ = DeriveTokenFromSeed(master_seed_, url);
+
+  // Clear cached values to force regeneration
+  farbled_integers_.clear();
+  audio_farbling_helper_.reset();
+}
+
+void BraveSessionCache::SetWebRTCIPv4Override(const blink::String& ipv4) {
+  webrtc_ipv4_override_ = ipv4;
+  has_webrtc_ip_override_ = true;
+}
+
+void BraveSessionCache::SetWebRTCIPv6Override(const blink::String& ipv6) {
+  webrtc_ipv6_override_ = ipv6;
+  has_webrtc_ip_override_ = true;
+}
+
+void BraveSessionCache::SetTimezoneOverride(const blink::String& timezone_id) {
+  if (timezone_id.empty()) {
+    return;
+  }
+
+  has_timezone_override_ = true;
+  timezone_id_ = timezone_id;
+
+  // Apply the timezone override via TimeZoneController.
+  // If we already have an active override handle, change it.
+  // Otherwise, acquire a new one.
+  if (timezone_override_handle_) {
+    timezone_override_handle_->change(timezone_id);
+  } else {
+    auto result =
+        blink::TimeZoneController::SetTimeZoneOverride(timezone_id);
+    if (result.status ==
+        blink::TimeZoneController::TimeZoneOverrideStatus::kSuccess) {
+      timezone_override_handle_ = std::move(result.handle);
+    } else if (result.status ==
+               blink::TimeZoneController::TimeZoneOverrideStatus::
+                   kAlreadyInEffect) {
+      // Another context already has the override — this is expected in
+      // same-process scenarios. The timezone is already set globally.
+    }
+  }
+}
+
 BraveSessionCache::BraveSessionCache(ExecutionContext& context)
     : execution_context_(context) {
   if (auto* settings_client = GetContentSettingsClientFor(&context)) {
@@ -251,6 +379,59 @@ BraveSessionCache::BraveSessionCache(ExecutionContext& context)
                     default_shields_settings_->farbling_token.low() ^
                         storage_key_nonce_hash);
   }
+
+  // Fetch fingerprinting overrides from browser process on navigation.
+  // Window contexts use the BraveFingerprintingHost Mojo interface directly.
+  // Worker contexts receive the master seed through ShieldsSettings instead.
+  if (blink::DynamicTo<blink::LocalDOMWindow>(&context)) {
+    mojo::Remote<brave::mojom::blink::BraveFingerprintingHost> host;
+    context.GetBrowserInterfaceBroker().GetInterface(
+        host.BindNewPipeAndPassReceiver());
+    if (host) {
+      // Synchronous mojo call to ensure overrides are available immediately
+
+      // Fetch master seed
+      bool has_seed = false;
+      uint64_t seed = 0;
+      if (host->GetMasterSeed(&has_seed, &seed)) {
+        if (has_seed) {
+          // Apply the seed to derive farbling token
+          SetMasterFingerprintingSeed(seed);
+        }
+      }
+
+      // Fetch WebRTC IP overrides
+      bool has_override = false;
+      blink::String ipv4;
+      blink::String ipv6;
+      if (host->GetWebRTCIPOverrides(&has_override, &ipv4, &ipv6)) {
+        if (has_override) {
+          has_webrtc_ip_override_ = true;
+          webrtc_ipv4_override_ = ipv4;
+          webrtc_ipv6_override_ = ipv6;
+        }
+      }
+
+      // Fetch timezone override
+      bool has_tz = false;
+      blink::String tz_id;
+      if (host->GetTimezone(&has_tz, &tz_id)) {
+        if (has_tz) {
+          SetTimezoneOverride(tz_id);
+        }
+      }
+    }
+  } else {
+    // Workers receive overrides through ShieldsSettings so they produce
+    // the same values as the main window context.
+    if (default_shields_settings_->has_master_seed) {
+      SetMasterFingerprintingSeed(default_shields_settings_->master_seed);
+    }
+    if (default_shields_settings_->has_timezone_override) {
+      SetTimezoneOverride(
+          blink::String(default_shields_settings_->timezone_id));
+    }
+  }
 }
 
 BraveSessionCache& BraveSessionCache::From(ExecutionContext& context) {
@@ -275,11 +456,14 @@ BraveSessionCache::GetAudioFarblingHelper() {
     return std::nullopt;
   }
   if (!audio_farbling_helper_) {
+    // Use custom token if master seed is set, otherwise use default
+    const base::Token& token = has_master_seed_ ? custom_farbling_token_
+                                                 : default_shields_settings_->farbling_token;
     // This call is only expensive the first time; afterwards it returns
     // a cached value:
-    const uint64_t fudge = default_shields_settings_->farbling_token.high();
+    const uint64_t fudge = token.high();
     const double fudge_factor = 0.99 + ((fudge / maxUInt64AsDouble) / 100);
-    const uint64_t seed = default_shields_settings_->farbling_token.low();
+    const uint64_t seed = token.low();
     audio_farbling_helper_.emplace(
         fudge_factor, seed,
         audio_farbling_level == BraveFarblingLevel::MAXIMUM);
@@ -314,10 +498,13 @@ void BraveSessionCache::PerturbPixelsInternal(base::span<uint8_t> data) {
   // Four bits per pixel
   const size_t pixel_count = data.size() / 4;
 
+  // Use custom token if master seed is set, otherwise use default
+  const base::Token& token = has_master_seed_ ? custom_farbling_token_
+                                               : default_shields_settings_->farbling_token;
+
   // calculate initial seed to find first pixel to perturb, based on session
   // key, domain key, and canvas contents
-  auto canvas_key = crypto::hmac::SignSha256(
-      default_shields_settings_->farbling_token.AsBytes(), data);
+  auto canvas_key = crypto::hmac::SignSha256(token.AsBytes(), data);
   uint64_t v = base::U64FromNativeEndian(base::span(canvas_key).first<8u>());
   // iterate through 32-byte canvas key and use each bit to determine how to
   // perturb the current pixel
@@ -341,9 +528,10 @@ void BraveSessionCache::PerturbPixelsInternal(base::span<uint8_t> data) {
 blink::String BraveSessionCache::GenerateRandomString(
     std::string_view seed,
     blink::wtf_size_t length) {
-  auto key = crypto::hmac::SignSha256(
-      default_shields_settings_->farbling_token.AsBytes(),
-      base::as_byte_span(seed));
+  // Use custom token if master seed is set, otherwise use default
+  const base::Token& token = has_master_seed_ ? custom_farbling_token_
+                                               : default_shields_settings_->farbling_token;
+  auto key = crypto::hmac::SignSha256(token.AsBytes(), base::as_byte_span(seed));
   // initial PRNG seed based on session key and passed-in seed string
   uint64_t v = base::U64FromNativeEndian(base::span(key).first<8u>());
   base::span<UChar> destination;
@@ -371,6 +559,17 @@ int BraveSessionCache::FarbledInteger(FarbleKey key,
                                       int spoof_value,
                                       int min_random_offset,
                                       int max_random_offset) {
+  // When master seed is active, always derive fresh values - don't cache
+  // This ensures fingerprint changes immediately when seed is set
+  if (has_master_seed_) {
+    FarblingPRNG prng = MakePseudoRandomGenerator(key);
+    int offset = base::checked_cast<int>(
+        prng() % (1 + max_random_offset - min_random_offset) +
+        min_random_offset);
+    return offset + spoof_value;
+  }
+
+  // For default farbling (no master seed), use cache for consistency
   auto item = farbled_integers_.find(key);
   if (item == farbled_integers_.end()) {
     FarblingPRNG prng = MakePseudoRandomGenerator(key);
@@ -415,10 +614,33 @@ bool BraveSessionCache::AllowFontFamily(
 }
 
 FarblingPRNG BraveSessionCache::MakePseudoRandomGenerator(FarbleKey key) {
-  uint64_t seed = default_shields_settings_->farbling_token.high() ^
-                  default_shields_settings_->farbling_token.low() ^
-                  static_cast<uint64_t>(key);
+  // Use custom token if master seed is set, otherwise use default
+  const base::Token& token = has_master_seed_ ? custom_farbling_token_
+                                               : default_shields_settings_->farbling_token;
+  uint64_t seed = token.high() ^ token.low() ^ static_cast<uint64_t>(key);
   return FarblingPRNG(seed);
+}
+
+blink::String BraveSessionCache::GetFarbledWebGLVendor() {
+  return "Google Inc. (Apple)";
+}
+
+blink::String BraveSessionCache::GetFarbledWebGLRenderer() {
+  static constexpr const char* kWebGLRendererProfiles[] = {
+      "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+      "ANGLE (Apple, ANGLE Metal Renderer: Apple M1, Unspecified Version)",
+      "ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Pro, Unspecified Version)",
+      "ANGLE (Apple, ANGLE Metal Renderer: Apple M2, Unspecified Version)",
+      "ANGLE (Apple, ANGLE Metal Renderer: Apple M3 Max, Unspecified Version)",
+      "ANGLE (Apple, ANGLE Metal Renderer: Apple M3 Pro, Unspecified Version)",
+      "ANGLE (Apple, ANGLE Metal Renderer: Apple M3, Unspecified Version)",
+      "ANGLE (Apple, ANGLE Metal Renderer: Apple M4 Pro, Unspecified Version)",
+      "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+      "ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)",
+  };
+  static constexpr size_t kProfileCount = std::size(kWebGLRendererProfiles);
+  FarblingPRNG prng = MakePseudoRandomGenerator(FarbleKey::kWebGLRenderer);
+  return blink::String(kWebGLRendererProfiles[prng() % kProfileCount]);
 }
 
 BraveFarblingLevel BraveSessionCache::GetBraveFarblingLevel(

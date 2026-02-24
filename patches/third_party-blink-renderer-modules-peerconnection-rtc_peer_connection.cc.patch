@@ -1,0 +1,47 @@
+diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_peer_connection.cc b/third_party/blink/renderer/modules/peerconnection/rtc_peer_connection.cc
+index 91b8815f00d9307fd8fba9782c2b92de9287b7fc..aac182b5e44c568bf93c9a941998ae042df58c3e 100644
+--- a/third_party/blink/renderer/modules/peerconnection/rtc_peer_connection.cc
++++ b/third_party/blink/renderer/modules/peerconnection/rtc_peer_connection.cc
+@@ -2344,7 +2344,10 @@ void RTCPeerConnection::DidGenerateICECandidate(
+   DCHECK(!closed_);
+   DCHECK(GetExecutionContext()->IsContextThread());
+   DCHECK(platform_candidate);
+-  RTCIceCandidate* ice_candidate = RTCIceCandidate::Create(platform_candidate);
++  // Brave: Pass ExecutionContext for per-context IP masking
++  RTCIceCandidate* ice_candidate =
++      MakeGarbageCollected<RTCIceCandidate>(platform_candidate,
++                                             GetExecutionContext());
+   MaybeDispatchEvent(RTCPeerConnectionIceEvent::Create(ice_candidate));
+ }
+ 
+@@ -2367,21 +2370,26 @@ void RTCPeerConnection::DidChangeSessionDescriptions(
+     RTCSessionDescriptionPlatform* current_remote_description) {
+   DCHECK(!closed_);
+   DCHECK(GetExecutionContext()->IsContextThread());
++  // Brave: Pass ExecutionContext for per-context IP masking
+   pending_local_description_ =
+       pending_local_description
+-          ? RTCSessionDescription::Create(pending_local_description)
++          ? MakeGarbageCollected<RTCSessionDescription>(pending_local_description,
++                                                         GetExecutionContext())
+           : nullptr;
+   current_local_description_ =
+       current_local_description
+-          ? RTCSessionDescription::Create(current_local_description)
++          ? MakeGarbageCollected<RTCSessionDescription>(current_local_description,
++                                                         GetExecutionContext())
+           : nullptr;
+   pending_remote_description_ =
+       pending_remote_description
+-          ? RTCSessionDescription::Create(pending_remote_description)
++          ? MakeGarbageCollected<RTCSessionDescription>(pending_remote_description,
++                                                         GetExecutionContext())
+           : nullptr;
+   current_remote_description_ =
+       current_remote_description
+-          ? RTCSessionDescription::Create(current_remote_description)
++          ? MakeGarbageCollected<RTCSessionDescription>(current_remote_description,
++                                                         GetExecutionContext())
+           : nullptr;
+ }
+ 

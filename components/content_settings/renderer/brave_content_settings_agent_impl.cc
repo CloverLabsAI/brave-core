@@ -408,7 +408,7 @@ BraveContentSettingsAgentImpl::GetBraveShieldsSettings(
     base::debug::DumpWithoutCrashing();
     return brave_shields::mojom::ShieldsSettings::New(
         farbling_level, base::Token(), std::vector<std::string>(), false,
-        false);
+        false, false, 0, false, "");
   }
 }
 

@@ -3,6 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#include "brave/browser/brave_fingerprinting_service.h"
 #include "brave/browser/brave_shields/brave_shields_settings_service_factory.h"
 #include "brave/components/brave_shields/core/browser/brave_shields_settings_service.h"
 #include "brave/components/brave_shields/core/browser/brave_shields_utils.h"
@@ -53,10 +54,31 @@ brave_shields::mojom::ShieldsSettingsPtr GetBraveShieldsSettingsOnUI(
           : base::Token();
   PrefService* pref_service = user_prefs::UserPrefs::Get(browser_context);
 
+  // Include master seed so workers produce the same farbled values as the
+  // main window context.
+  bool has_master_seed = false;
+  uint64_t master_seed = 0;
+  auto* fp_service =
+      BraveFingerprintingService::GetForBrowserContext(browser_context);
+  if (fp_service && fp_service->HasMasterSeed()) {
+    has_master_seed = true;
+    master_seed = fp_service->GetMasterSeed().value_or(0);
+  }
+
+  // Include timezone override so workers apply the same timezone.
+  bool has_timezone_override = false;
+  std::string timezone_id;
+  if (fp_service && fp_service->HasTimezoneOverride()) {
+    has_timezone_override = true;
+    timezone_id = fp_service->GetTimezone();
+  }
+
   return brave_shields::mojom::ShieldsSettings::New(
       farbling_level, farbling_token, std::vector<std::string>(),
       brave_shields::IsReduceLanguageEnabledForProfile(pref_service),
-      IsJsBlockingEnforced(browser_context, top_frame_url));
+      IsJsBlockingEnforced(browser_context, top_frame_url),
+      has_master_seed, master_seed,
+      has_timezone_override, timezone_id);
 }
 
 }  // namespace

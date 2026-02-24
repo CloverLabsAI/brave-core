@@ -1,0 +1,107 @@
+diff --git a/headless/lib/browser/headless_permission_manager.cc b/headless/lib/browser/headless_permission_manager.cc
+index 23ff0956ce0d2d3db4d7eb3d73e76240205739a4..8930a56cffe5d66fc9d2155008e6ceabcfb10bb1 100644
+--- a/headless/lib/browser/headless_permission_manager.cc
++++ b/headless/lib/browser/headless_permission_manager.cc
+@@ -5,6 +5,8 @@
+ #include "headless/lib/browser/headless_permission_manager.h"
+ 
+ #include "base/functional/callback.h"
++#include "base/rand_util.h"
++#include "base/task/sequenced_task_runner.h"
+ #include "content/public/browser/permission_controller.h"
+ #include "content/public/browser/permission_result.h"
+ #include "third_party/blink/public/common/permissions/permission_utils.h"
+@@ -22,12 +24,23 @@ void HeadlessPermissionManager::RequestPermissions(
+     const content::PermissionRequestDescription& request_description,
+     base::OnceCallback<void(const std::vector<content::PermissionResult>&)>
+         callback) {
+-  // In headless mode we just pretend the user "closes" any permission prompt,
+-  // without accepting or denying.
+-  std::vector<content::PermissionResult> result(
+-      request_description.permissions.size(),
+-      content::PermissionResult(blink::mojom::PermissionStatus::ASK));
+-  std::move(callback).Run(result);
++  // Simulate human behavior: add random delay (500ms-3000ms) then deny
++  // This mimics a real user reading the permission prompt and clicking "Block"
++  int delay_ms = base::RandInt(500, 3000);
++
++  base::SequencedTaskRunner::GetCurrentDefault()->PostDelayedTask(
++      FROM_HERE,
++      base::BindOnce(
++          [](base::OnceCallback<void(const std::vector<content::PermissionResult>&)> cb,
++             size_t count) {
++            // User denied the permission after thinking about it
++            std::vector<content::PermissionResult> result(
++                count,
++                content::PermissionResult(blink::mojom::PermissionStatus::DENIED));
++            std::move(cb).Run(result);
++          },
++          std::move(callback), request_description.permissions.size()),
++      base::Milliseconds(delay_ms));
+ }
+ 
+ void HeadlessPermissionManager::ResetPermission(
+@@ -40,19 +53,29 @@ void HeadlessPermissionManager::RequestPermissionsFromCurrentDocument(
+     const content::PermissionRequestDescription& request_description,
+     base::OnceCallback<void(const std::vector<content::PermissionResult>&)>
+         callback) {
+-  // In headless mode we just pretent the user "closes" any permission prompt,
+-  // without accepting or denying.
+-  std::vector<content::PermissionResult> result(
+-      request_description.permissions.size(),
+-      content::PermissionResult(blink::mojom::PermissionStatus::ASK));
+-  std::move(callback).Run(result);
++  // Simulate human behavior: add random delay (500ms-3000ms) then deny
++  int delay_ms = base::RandInt(500, 3000);
++
++  base::SequencedTaskRunner::GetCurrentDefault()->PostDelayedTask(
++      FROM_HERE,
++      base::BindOnce(
++          [](base::OnceCallback<void(const std::vector<content::PermissionResult>&)> cb,
++             size_t count) {
++            std::vector<content::PermissionResult> result(
++                count,
++                content::PermissionResult(blink::mojom::PermissionStatus::DENIED));
++            std::move(cb).Run(result);
++          },
++          std::move(callback), request_description.permissions.size()),
++      base::Milliseconds(delay_ms));
+ }
+ 
+ blink::mojom::PermissionStatus HeadlessPermissionManager::GetPermissionStatus(
+     const blink::mojom::PermissionDescriptorPtr& permission_descriptor,
+     const GURL& requesting_origin,
+     const GURL& embedding_origin) {
+-  return blink::mojom::PermissionStatus::ASK;
++  // Return DENIED to match what a real user would have (permissions denied by default)
++  return blink::mojom::PermissionStatus::DENIED;
+ }
+ 
+ content::PermissionResult
+@@ -72,7 +95,7 @@ HeadlessPermissionManager::GetPermissionResultForCurrentDocument(
+     const blink::mojom::PermissionDescriptorPtr& permission_descriptor,
+     content::RenderFrameHost* render_frame_host,
+     bool should_include_device_status) {
+-  return content::PermissionResult(blink::mojom::PermissionStatus::ASK);
++  return content::PermissionResult(blink::mojom::PermissionStatus::DENIED);
+ }
+ 
+ content::PermissionResult
+@@ -80,7 +103,7 @@ HeadlessPermissionManager::GetPermissionResultForWorker(
+     const blink::mojom::PermissionDescriptorPtr& permission_descriptor,
+     content::RenderProcessHost* render_process_host,
+     const GURL& worker_origin) {
+-  return content::PermissionResult(blink::mojom::PermissionStatus::ASK);
++  return content::PermissionResult(blink::mojom::PermissionStatus::DENIED);
+ }
+ 
+ content::PermissionResult
+@@ -88,7 +111,7 @@ HeadlessPermissionManager::GetPermissionResultForEmbeddedRequester(
+     const blink::mojom::PermissionDescriptorPtr& permission_descriptor,
+     content::RenderFrameHost* render_frame_host,
+     const url::Origin& overridden_origin) {
+-  return content::PermissionResult(blink::mojom::PermissionStatus::ASK);
++  return content::PermissionResult(blink::mojom::PermissionStatus::DENIED);
+ }
+ 
+ }  // namespace headless
