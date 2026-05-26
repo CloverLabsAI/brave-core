@@ -311,19 +311,8 @@ class SystemVPNConnectionAPIUnitTest : public testing::Test {
         timezone;
   }
 
-  void LoadCachedRegionData() {
-    GetBraveVPNConnectionManager()->GetRegionDataManager().
-        LoadCachedRegionData();
-  }
-
   void ClearRegions() {
     GetBraveVPNConnectionManager()->GetRegionDataManager().regions_.clear();
-  }
-
-  bool NeedToUpdateRegionData() {
-    return GetBraveVPNConnectionManager()
-        ->GetRegionDataManager()
-        .NeedToUpdateRegionData();
   }
 
   mojom::RegionPtr device_region() {
@@ -374,29 +363,6 @@ class SystemVPNConnectionAPIUnitTest : public testing::Test {
   std::unique_ptr<BraveVPNConnectionManager> connection_manager_;
 };
 
-TEST_F(SystemVPNConnectionAPIUnitTest, LoadRegionDataFromPrefsTest) {
-  // Initially, prefs doesn't have region data.
-  EXPECT_FALSE(device_region());
-  EXPECT_TRUE(regions().empty());
-
-  // Set proper data to store them in prefs.
-  OnFetchRegionList(GetRegionsData(), true);
-  SetTestTimezone("Asia/Seoul");
-  OnFetchTimezones(GetTimeZonesData(), true);
-
-  // Check region data is set with above data.
-  EXPECT_TRUE(device_region());
-  EXPECT_FALSE(regions().empty());
-
-  // Clear region data from api instance.
-  ClearRegions();
-  EXPECT_TRUE(regions().empty());
-
-  // Check region data is loaded from prefs.
-  LoadCachedRegionData();
-  EXPECT_FALSE(regions().empty());
-}
-
 TEST_F(SystemVPNConnectionAPIUnitTest, RegionDataTest) {
   // Initially, prefs doesn't have region data.
   EXPECT_FALSE(device_region());
@@ -434,23 +400,6 @@ TEST_F(SystemVPNConnectionAPIUnitTest, RegionDataTest) {
   SetTestTimezone("Invalid");
   OnFetchTimezones(GetTimeZonesData(), true);
   EXPECT_EQ(regions()[0], device_region());
-}
-
-TEST_F(SystemVPNConnectionAPIUnitTest, NeedToUpdateRegionDataTest) {
-  // Initially, need to update region data.
-  EXPECT_TRUE(NeedToUpdateRegionData());
-
-  // Still need to update.
-  OnFetchRegionList(std::string(), true);
-  EXPECT_TRUE(NeedToUpdateRegionData());
-
-  // Don't need to update when got valid region data.
-  OnFetchRegionList(GetRegionsData(), true);
-  EXPECT_FALSE(NeedToUpdateRegionData());
-
-  // Need to update again after 5h passed.
-  task_environment_.AdvanceClock(base::Hours(5));
-  EXPECT_TRUE(NeedToUpdateRegionData());
 }
 
 // Create os vpn entry with cached connection_info when there is cached

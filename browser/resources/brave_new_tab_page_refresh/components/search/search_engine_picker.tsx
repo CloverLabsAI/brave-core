@@ -8,7 +8,7 @@ import Button from '@brave/leo/react/button'
 import ButtonMenu from '@brave/leo/react/buttonMenu'
 
 import { getString } from '../../lib/strings'
-import { SearchEngineInfo } from '../../state/search_state'
+import { SearchEngineInfo } from '../../state/search_store'
 import { EngineIcon } from './engine_icon'
 
 import { style } from './search_engine_picker.style'
@@ -25,18 +25,21 @@ export function SearchEnginePicker(props: Props) {
   return (
     <div data-css-scope={style.scope}>
       <ButtonMenu>
-        <Button
+        <div
           className='engine-picker-button'
-          fab
-          kind='plain-faint'
           slot='anchor-content'
         >
-          {selectedEngine ? (
-            <EngineIcon engine={selectedEngine} />
-          ) : (
-            <span className='engine-icon' />
-          )}
-        </Button>
+          <Button
+            fab
+            kind='plain-faint'
+          >
+            {selectedEngine ? (
+              <EngineIcon engine={selectedEngine} />
+            ) : (
+              <span className='engine-icon' />
+            )}
+          </Button>
+        </div>
         {searchEngines.map((engine) => (
           <leo-menu-item
             key={engine.host}

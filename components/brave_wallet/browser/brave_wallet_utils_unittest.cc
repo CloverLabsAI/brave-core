@@ -256,7 +256,7 @@ TEST(BraveWalletUtilsUnitTest, TransactionReceiptAndValue) {
   tx_receipt.contract_address = "0xb60e8dd61c5d32be8058bb8eb970870f07233155";
   tx_receipt.status = true;
 
-  base::Value::Dict tx_receipt_value = TransactionReceiptToValue(tx_receipt);
+  base::DictValue tx_receipt_value = TransactionReceiptToValue(tx_receipt);
   auto tx_receipt_from_value = ValueToTransactionReceipt(tx_receipt_value);
   ASSERT_NE(tx_receipt_from_value, std::nullopt);
   EXPECT_EQ(tx_receipt, *tx_receipt_from_value);
@@ -279,7 +279,7 @@ TEST(BraveWalletUtilsUnitTest, SwapInfoToValue_Basic) {
   swap_info->provider = mojom::SwapProvider::kZeroEx;
   swap_info->route_id = "test-route-id";
 
-  base::Value::Dict value = SwapInfoToValue(swap_info);
+  base::DictValue value = SwapInfoToValue(swap_info);
 
   // Verify all fields are correctly serialized
   EXPECT_EQ(*value.FindString("source_coin"), "ETH");
@@ -316,7 +316,7 @@ TEST(BraveWalletUtilsUnitTest, SwapInfoToValueAndBack_RoundTrip) {
   swap_info->provider = mojom::SwapProvider::kJupiter;
   swap_info->route_id = "test-route-id";
 
-  base::Value::Dict value = SwapInfoToValue(swap_info);
+  base::DictValue value = SwapInfoToValue(swap_info);
   auto swap_info_from_value = ValueToSwapInfo(value);
 
   ASSERT_TRUE(swap_info_from_value);
@@ -325,7 +325,7 @@ TEST(BraveWalletUtilsUnitTest, SwapInfoToValueAndBack_RoundTrip) {
 
 TEST(BraveWalletUtilsUnitTest, SwapInfoToValue_NullPtr) {
   mojom::SwapInfoPtr null_swap_info;
-  base::Value::Dict value = SwapInfoToValue(null_swap_info);
+  base::DictValue value = SwapInfoToValue(null_swap_info);
   EXPECT_TRUE(value.empty());
 }
 
@@ -351,7 +351,7 @@ TEST(BraveWalletUtilsUnitTest, SwapInfoToValue_DifferentProviders) {
     swap_info->provider = provider;
     swap_info->route_id = "test-route-id";
 
-    base::Value::Dict value = SwapInfoToValue(swap_info);
+    base::DictValue value = SwapInfoToValue(swap_info);
     auto swap_info_from_value = ValueToSwapInfo(value);
 
     ASSERT_TRUE(swap_info_from_value);
@@ -360,7 +360,7 @@ TEST(BraveWalletUtilsUnitTest, SwapInfoToValue_DifferentProviders) {
 }
 
 TEST(BraveWalletUtilsUnitTest, ValueToSwapInfo_InvalidCoin) {
-  base::Value::Dict value;
+  base::DictValue value;
   value.Set("source_coin", "INVALID_COIN");
   value.Set("source_chain_id", mojom::kMainnetChainId);
   value.Set("source_token_address", "");
@@ -398,7 +398,7 @@ TEST(BraveWalletUtilsUnitTest, ValueToSwapInfo_MissingRequiredFields) {
                                    "recipient",
                                    "provider"};
 
-  base::Value::Dict base_value;
+  base::DictValue base_value;
   base_value.Set("source_coin", "ETH");
   base_value.Set("source_chain_id", mojom::kMainnetChainId);
   base_value.Set("source_token_address", "");
@@ -415,7 +415,7 @@ TEST(BraveWalletUtilsUnitTest, ValueToSwapInfo_MissingRequiredFields) {
   EXPECT_TRUE(ValueToSwapInfo(base_value));
 
   for (const auto* field : required_fields) {
-    base::Value::Dict value = base_value.Clone();
+    base::DictValue value = base_value.Clone();
     value.Remove(field);
     auto swap_info = ValueToSwapInfo(value);
     EXPECT_FALSE(swap_info) << "Field missing: " << field;
@@ -598,12 +598,17 @@ TEST(BraveWalletUtilsUnitTest, ZcashNativeAssets) {
       )"));
 }
 
-#if BUILDFLAG(ENABLE_ORCHARD)
 TEST(BraveWalletUtilsUnitTest, DefaultZCashShieldedAssets_FeatureEnabled) {
   base::test::ScopedFeatureList feature_list;
-  feature_list.InitAndEnableFeatureWithParameters(
-      features::kBraveWalletZCashFeature,
-      {{"zcash_shielded_transactions_enabled", "true"}});
+  feature_list.InitWithFeaturesAndParameters(
+      {{features::kBraveWalletZCashFeature,
+        {{"zcash_shielded_transactions_enabled", "true"}}},
+#if BUILDFLAG(IS_IOS)
+       {features::kBraveWalletWebUIFeature, {}}
+#endif
+      },
+      {}  // disabled features
+  );
 
   sync_preferences::TestingPrefServiceSyncable prefs;
   RegisterProfilePrefs(prefs.registry());
@@ -662,7 +667,6 @@ TEST(BraveWalletUtilsUnitTest, DefaultZCashShieldedAssets_FeatureDisabled) {
     EXPECT_EQ(2, count);
   }
 }
-#endif  // BUILDFLAG(ENABLE_ORCHARD)
 
 TEST(BraveWalletUtilsUnitTest, GetAllUserAssets) {
   base::test::ScopedFeatureList feature_list;
@@ -1016,13 +1020,8 @@ TEST_F(BraveWalletPolicyTest, PolicyDisablesWallet) {
   // Test that the policy preference is set correctly
   EXPECT_TRUE(prefs_.GetBoolean(kBraveWalletDisabledByPolicy));
 
-#if BUILDFLAG(IS_ANDROID)
-  // On android the policy is not enforced
-  EXPECT_TRUE(IsAllowed(&prefs_));
-#else
-  // On other platforms, policy should be enforced
+  // Policy should be enforced
   EXPECT_FALSE(IsAllowed(&prefs_));
-#endif  // BUILDFLAG(IS_ANDROID)
 }
 
 TEST_F(BraveWalletPolicyTest, PolicyEnablesWallet) {

@@ -8,6 +8,7 @@
 #include <string_view>
 
 #include "base/time/time.h"
+#include "brave/components/ai_chat/core/common/constants.h"
 #include "brave/components/ai_chat/core/common/features.h"
 #include "components/prefs/pref_registry_simple.h"
 
@@ -16,7 +17,12 @@ namespace ai_chat::prefs {
 void RegisterProfilePrefs(PrefRegistrySimple* registry) {
   if (ai_chat::features::IsAIChatEnabled()) {
     registry->RegisterTimePref(kLastAcceptedDisclaimer, {});
+#if BUILDFLAG(IS_IOS)
+    registry->RegisterBooleanPref(kBraveChatStorageEnabled,
+                                  ai_chat::features::IsAIChatWebUIEnabled());
+#else
     registry->RegisterBooleanPref(kBraveChatStorageEnabled, true);
+#endif
     registry->RegisterBooleanPref(kBraveChatAutocompleteProviderEnabled, true);
     registry->RegisterBooleanPref(kUserDismissedPremiumPrompt, false);
     registry->RegisterBooleanPref(kUserDismissedStorageNotice, false);
@@ -34,6 +40,8 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry) {
     registry->RegisterBooleanPref(kBraveAIChatToolbarButtonOpensFullPage,
                                   false);
     registry->RegisterBooleanPref(kBraveAIChatTabOrganizationEnabled, true);
+    registry->RegisterStringPref(kBraveAIChatTabOrganizationModelKey,
+                                 kChatAutomaticModelKey);
     registry->RegisterBooleanPref(kBraveAIChatUserCustomizationEnabled, true);
     registry->RegisterBooleanPref(kBraveAIChatUserMemoryEnabled, true);
     registry->RegisterDictionaryPref(kBraveAIChatUserCustomizations);

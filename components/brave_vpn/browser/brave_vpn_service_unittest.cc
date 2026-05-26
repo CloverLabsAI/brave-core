@@ -42,7 +42,6 @@
 #include "content/public/browser/browser_context.h"
 #include "content/public/test/browser_task_environment.h"
 #include "net/base/mock_network_change_notifier.h"
-#include "services/data_decoder/public/cpp/test_support/in_process_data_decoder.h"
 #include "services/network/public/cpp/weak_wrapper_shared_url_loader_factory.h"
 #include "services/network/test/test_url_loader_factory.h"
 #include "testing/gmock/include/gmock/gmock.h"
@@ -141,6 +140,17 @@ std::string GenerateTestingCreds(const std::string& domain,
 using ConnectionState = mojom::ConnectionState;
 using PurchasedState = mojom::PurchasedState;
 
+class MockBraveVpnService : public BraveVpnService {
+ public:
+  template <typename... Args>
+  explicit MockBraveVpnService(Args&&... args)
+      : BraveVpnService(std::forward<Args>(args)...) {}
+
+#if !BUILDFLAG(IS_ANDROID)
+  MOCK_METHOD(void, OnInstallSystemServicesCompleted, (bool), (override));
+#endif
+};
+
 class TestBraveVPNServiceObserver : public BraveVPNServiceObserver {
  public:
   TestBraveVPNServiceObserver() = default;
@@ -224,13 +234,7 @@ class BraveVPNServiceTest : public testing::Test {
     // Setup required for SKU (dependency of VPN)
     skus_service_ = std::make_unique<skus::SkusServiceImpl>(
         &local_pref_service_, url_loader_factory_.GetSafeWeakWrapper());
-#if !BUILDFLAG(IS_ANDROID)
-    connection_manager_ = std::make_unique<BraveVPNConnectionManager>(
-        shared_url_loader_factory_, &local_pref_service_, base::NullCallback());
-    connection_manager_->SetConnectionAPIImplForTesting(
-        std::make_unique<ConnectionAPIImplSim>(connection_manager_.get(),
-                                               shared_url_loader_factory_));
-#endif
+    CreateConnectionManager(base::NullCallback());
     ResetVpnService();
   }
 
@@ -244,11 +248,33 @@ class BraveVPNServiceTest : public testing::Test {
 #endif
   }
 
+  void CreateConnectionManager(
+      base::RepeatingCallback<bool()> service_installer) {
+    ASSERT_FALSE(service_)
+        << "Service must be destroyed before creating a new "
+           "ConnectionManager to avoid UAF in observer cleanup. "
+           "Call DestroyVpnService() first.";
+#if !BUILDFLAG(IS_ANDROID)
+    connection_manager_ = std::make_unique<BraveVPNConnectionManager>(
+        shared_url_loader_factory_, &local_pref_service_, service_installer);
+    connection_manager_->SetConnectionAPIImplForTesting(
+        std::make_unique<ConnectionAPIImplSim>(connection_manager_.get(),
+                                               shared_url_loader_factory_));
+#endif
+  }
+
+  void DestroyVpnService() {
+    if (service_) {
+      service_->Shutdown();
+      service_.reset();
+    }
+  }
+
   void ResetVpnService() {
     if (service_) {
       service_->Shutdown();
     }
-    service_ = std::make_unique<BraveVpnService>(
+    service_ = std::make_unique<testing::NiceMock<MockBraveVpnService>>(
 #if !BUILDFLAG(IS_ANDROID)
         connection_manager_.get(),
 #else
@@ -551,7 +577,7 @@ class BraveVPNServiceTest : public testing::Test {
                                       bool active_subscription = true) {
     std::string domain = skus::GetDomain("vpn", env);
     auto testing_payload = GenerateTestingCreds(domain, active_subscription);
-    base::Value::Dict state;
+    base::DictValue state;
     state.Set("skus:" + env, testing_payload);
     local_pref_service_.SetDict(skus::prefs::kSkusState, std::move(state));
     SetInterceptorResponse(GetRegionsData());
@@ -582,8 +608,7 @@ class BraveVPNServiceTest : public testing::Test {
   TestingPrefServiceSimple local_pref_service_;
   sync_preferences::TestingPrefServiceSyncable profile_pref_service_;
   std::unique_ptr<skus::SkusServiceImpl> skus_service_;
-  std::unique_ptr<BraveVpnService> service_;
-  data_decoder::test::InProcessDataDecoder in_process_data_decoder_;
+  std::unique_ptr<MockBraveVpnService> service_;
   network::TestURLLoaderFactory url_loader_factory_;
   scoped_refptr<network::SharedURLLoaderFactory> shared_url_loader_factory_;
 };
@@ -1137,5 +1162,80 @@ TEST_F(BraveVPNServiceTest, LoadPurchasedStateForAnotherEnv) {
   EXPECT_EQ(observer.GetPurchasedState().value(), PurchasedState::PURCHASED);
   EXPECT_EQ(GetCurrentEnvironment(), skus::kEnvStaging);
 }
+
+#if BUILDFLAG(IS_WIN)
+class BraveVPNServiceSystemInstallTest
+    : public BraveVPNServiceTest,
+      public testing::WithParamInterface<bool> {};
+
+TEST_P(BraveVPNServiceSystemInstallTest,
+       ReportsInstallSystemServicesCompleted) {
+  base::RunLoop run_loop;
+  std::string env = skus::GetDefaultEnvironment();
+  const bool is_success = GetParam();
+  DestroyVpnService();
+  CreateConnectionManager(
+      base::BindRepeating([](bool success) { return success; }, is_success));
+  ResetVpnService();
+
+  TestBraveVPNServiceObserver observer;
+  AddObserver(observer.GetReceiver());
+  EXPECT_CALL(*service_, OnInstallSystemServicesCompleted(is_success))
+      .WillOnce(testing::InvokeWithoutArgs([&run_loop]() { run_loop.Quit(); }));
+
+  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+      FROM_HERE,
+      base::BindOnce(&BraveVPNServiceSystemInstallTest::SetPurchasedState,
+                     base::Unretained(this), env, PurchasedState::PURCHASED));
+  run_loop.Run();
+}
+
+INSTANTIATE_TEST_SUITE_P(,
+                         BraveVPNServiceSystemInstallTest,
+                         testing::Values(false, true));
+
+TEST_F(BraveVPNServiceSystemInstallTest,
+       ReportsInstallSystemServicesCompletedMultipleTimes) {
+  std::string env = skus::GetDefaultEnvironment();
+  DestroyVpnService();
+  CreateConnectionManager(base::BindRepeating([]() { return false; }));
+  ResetVpnService();
+
+  TestBraveVPNServiceObserver observer;
+  AddObserver(observer.GetReceiver());
+  EXPECT_CALL(*service_, OnInstallSystemServicesCompleted(testing::_)).Times(2);
+  {
+    base::RunLoop loop;
+    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+        FROM_HERE,
+        base::BindOnce(&BraveVPNServiceSystemInstallTest::SetPurchasedState,
+                       base::Unretained(this), env, PurchasedState::PURCHASED));
+    observer.WaitPurchasedStateChange(loop.QuitClosure());
+    loop.Run();
+  }
+  task_environment_.FastForwardBy(base::Seconds(1));
+  {
+    base::RunLoop loop;
+    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+        FROM_HERE,
+        base::BindOnce(&BraveVPNServiceSystemInstallTest::SetPurchasedState,
+                       base::Unretained(this), env,
+                       PurchasedState::NOT_PURCHASED));
+    observer.WaitPurchasedStateChange(loop.QuitClosure());
+    loop.Run();
+  }
+  task_environment_.FastForwardBy(base::Seconds(1));
+  {
+    base::RunLoop loop;
+    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+        FROM_HERE,
+        base::BindOnce(&BraveVPNServiceSystemInstallTest::SetPurchasedState,
+                       base::Unretained(this), env, PurchasedState::PURCHASED));
+    observer.WaitPurchasedStateChange(loop.QuitClosure());
+    loop.Run();
+  }
+  task_environment_.FastForwardBy(base::Seconds(1));
+}
+#endif
 
 }  // namespace brave_vpn

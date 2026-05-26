@@ -8,6 +8,7 @@ import { skipToken } from '@reduxjs/toolkit/query'
 import ProgressRingReact from '@brave/leo/react/progressRing'
 import Input, { InputEventDetail } from '@brave/leo/react/input'
 import SegmentedControlItem from '@brave/leo/react/segmentedControlItem'
+import Button from '@brave/leo/react/button'
 
 // redux
 import { useDispatch, useSelector } from 'react-redux'
@@ -51,6 +52,8 @@ import { useIsMounted } from '../../../../common/hooks/useIsMounted'
 import { usePasswordAttempts } from '../../../../common/hooks/use-password-attempts'
 import { usePasswordStrength } from '../../../../common/hooks/use-password-strength'
 import {
+  useGetPolkadotAddressForNetworkQuery,
+  useGetPolkadotCompatibleNetworksQuery,
   useGetQrCodeImageQuery,
   useGetZCashAccountInfoQuery,
   useUpdateAccountNameMutation, //
@@ -58,6 +61,7 @@ import {
 import {
   useReceiveAddressQuery, //
 } from '../../../../common/slices/api.slice.extra'
+import { NetworksDropdown } from '../../../shared/dropdowns/networks_dropdown'
 
 // style
 import {
@@ -77,12 +81,7 @@ import {
   ControlsWrapper,
   SegmentedControl,
 } from './account-settings-modal.style'
-import {
-  Column,
-  LeoSquaredButton,
-  Text,
-  VerticalSpacer,
-} from '../../../shared/style'
+import { Column, Text, VerticalSpacer } from '../../../shared/style'
 import { Skeleton } from '../../../shared/loading-skeleton/styles'
 
 const zcashAddressOptions: zcashAddressOptionType[] = [
@@ -122,22 +121,69 @@ export const DepositModal = ({ selectedAccount }: DepositModalProps) => {
   // state
   const [selectedZCashAddressOption, setSelectedZCashAddressOption] =
     React.useState<string>('unified')
+  const [selectedPolkadotNetwork, setSelectedPolkadotNetwork] = React.useState<
+    BraveWallet.NetworkInfo | undefined
+  >(undefined)
 
   // redux
   const isZCashShieldedTransactionsEnabled = useSafeWalletSelector(
     WalletSelectors.isZCashShieldedTransactionsEnabled,
   )
+  const isPolkadotAccount =
+    selectedAccount.accountId.coin === BraveWallet.CoinType.DOT
 
   // queries and memos
-  const { receiveAddress } = useReceiveAddressQuery(selectedAccount.accountId)
+  const { receiveAddress, isFetchingAddress } = useReceiveAddressQuery(
+    isPolkadotAccount ? undefined : selectedAccount.accountId,
+  )
+  const { data: polkadotCompatibleNetworksResponse } =
+    useGetPolkadotCompatibleNetworksQuery(
+      isPolkadotAccount ? selectedAccount.accountId : skipToken,
+    )
+  const polkadotCompatibleNetworks = polkadotCompatibleNetworksResponse ?? []
+  const { data: polkadotAddress, isLoading: isLoadingPolkadotAddress } =
+    useGetPolkadotAddressForNetworkQuery(
+      isPolkadotAccount && selectedPolkadotNetwork
+        ? {
+            accountId: selectedAccount.accountId,
+            chainId: selectedPolkadotNetwork.chainId,
+          }
+        : skipToken,
+    )
   const { data: zcashAccountInfo } = useGetZCashAccountInfoQuery(
     isZCashShieldedTransactionsEnabled
       && selectedAccount.accountId.coin === BraveWallet.CoinType.ZEC
       ? selectedAccount.accountId
       : skipToken,
   )
+  const isLoadingAddress = isPolkadotAccount
+    ? isLoadingPolkadotAddress
+    : isFetchingAddress
+
+  React.useEffect(() => {
+    if (!isPolkadotAccount) {
+      setSelectedPolkadotNetwork(undefined)
+      return
+    }
+    setSelectedPolkadotNetwork((current) => {
+      if (
+        current
+        && polkadotCompatibleNetworks.some(
+          (network) =>
+            network.chainId === current.chainId
+            && network.coin === current.coin,
+        )
+      ) {
+        return current
+      }
+      return polkadotCompatibleNetworks[0]
+    })
+  }, [isPolkadotAccount, polkadotCompatibleNetworks])
 
   const displayAddress = React.useMemo(() => {
+    if (isPolkadotAccount) {
+      return polkadotAddress || ''
+    }
     if (
       isZCashShieldedTransactionsEnabled
       && selectedAccount.accountId.coin === BraveWallet.CoinType.ZEC
@@ -151,6 +197,8 @@ export const DepositModal = ({ selectedAccount }: DepositModalProps) => {
     }
     return receiveAddress
   }, [
+    isPolkadotAccount,
+    polkadotAddress,
     isZCashShieldedTransactionsEnabled,
     selectedAccount,
     receiveAddress,
@@ -204,12 +252,26 @@ export const DepositModal = ({ selectedAccount }: DepositModalProps) => {
       )}
 
       <QRCodeWrapper>
-        {isLoadingQrCode || !displayAddress ? (
+        {isLoadingQrCode || !displayAddress || isLoadingAddress ? (
           <ProgressRingReact mode='indeterminate' />
         ) : (
           <QRCodeImage src={qrCode} />
         )}
       </QRCodeWrapper>
+
+      {isPolkadotAccount
+        && selectedPolkadotNetwork
+        && polkadotCompatibleNetworks.length > 0 && (
+          <ControlsWrapper width='unset'>
+            <NetworksDropdown
+              networks={polkadotCompatibleNetworks}
+              selectedNetwork={selectedPolkadotNetwork}
+              onSelectNetwork={setSelectedPolkadotNetwork}
+              placeholder={getLocale('braveWalletSelectNetwork')}
+              label={getLocale('braveWalletSelectNetwork')}
+            />
+          </ControlsWrapper>
+        )}
 
       {displayAddress ? (
         <CopyTooltip text={displayAddress}>
@@ -511,13 +573,13 @@ export const AccountSettingsModal = () => {
             )}
 
             <ButtonRow>
-              <LeoSquaredButton
+              <Button
                 onClick={onSubmitUpdateName}
                 isDisabled={showNameInputErrors}
                 kind='filled'
               >
                 {getLocale('braveWalletAccountSettingsSave')}
-              </LeoSquaredButton>
+              </Button>
             </ButtonRow>
           </EditWrapper>
         )}
@@ -611,48 +673,48 @@ export const AccountSettingsModal = () => {
               && !privateKey ? (
                 // Show Cancel and Confirm buttons for encryption password
                 <ButtonRow>
-                  <LeoSquaredButton
+                  <Button
                     onClick={onCancelEncryptionPassword}
                     kind='outline'
                   >
                     {getLocale('braveWalletButtonCancel')}
-                  </LeoSquaredButton>
-                  <LeoSquaredButton
+                  </Button>
+                  <Button
                     onClick={onConfirmEncryptionPassword}
                     kind='filled'
                     isDisabled={!isEncryptionPasswordValid}
                   >
                     {getLocale('braveWalletAccountSettingsShowKey')}
-                  </LeoSquaredButton>
+                  </Button>
                 </ButtonRow>
               ) : privateKey ? (
                 // Show Download and Hide buttons when key is visible
                 <ButtonRow>
                   {selectedAccount?.accountId.coin
                     === BraveWallet.CoinType.DOT && (
-                    <LeoSquaredButton
+                    <Button
                       onClick={onDownloadPolkadotKey}
                       kind='outline'
                     >
                       {getLocale('braveWalletAccountSettingsDownloadKey')}
-                    </LeoSquaredButton>
+                    </Button>
                   )}
-                  <LeoSquaredButton
+                  <Button
                     onClick={onHidePrivateKey}
                     kind='filled'
                   >
                     {getLocale('braveWalletAccountSettingsHideKey')}
-                  </LeoSquaredButton>
+                  </Button>
                 </ButtonRow>
               ) : (
                 // Show "Show Key" button when no key is visible
-                <LeoSquaredButton
+                <Button
                   onClick={onShowPrivateKey}
                   kind='filled'
                   isDisabled={password ? !isCorrectPassword : true}
                 >
                   {getLocale('braveWalletAccountSettingsShowKey')}
-                </LeoSquaredButton>
+                </Button>
               )}
             </ButtonWrapper>
           </PrivateKeyWrapper>

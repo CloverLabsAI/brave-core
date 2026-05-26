@@ -13,7 +13,6 @@
 #include <string>
 #include <string_view>
 
-#include "base/containers/contains.h"
 #include "base/memory/ref_counted_memory.h"
 #include "base/strings/strcat.h"
 #include "base/strings/string_util.h"
@@ -24,7 +23,6 @@
 #include "brave/components/brave_private_cdn/private_cdn_helper.h"
 #include "components/image_fetcher/ios/ios_image_decoder_impl.h"
 #include "components/signin/public/identity_manager/primary_account_access_token_fetcher.h"
-#include "components/signin/public/identity_manager/scope_set.h"
 #include "google_apis/gaia/gaia_constants.h"
 #include "google_apis/gaia/google_service_auth_error.h"
 #include "ios/chrome/browser/shared/model/profile/profile_ios.h"
@@ -65,10 +63,9 @@ std::map<std::string, std::string> ParseParams(std::string_view param_string) {
   constexpr int kMaxUriDecodeLen = 2048;
   std::map<std::string, std::string> params;
   while (url::ExtractQueryKeyValue(param_string, &query, &key, &value)) {
-    url::RawCanonOutputW<kMaxUriDecodeLen> output;
-    url::DecodeURLEscapeSequences(param_string.substr(value.begin, value.len),
-                                  url::DecodeURLMode::kUTF8OrIsomorphic,
-                                  &output);
+    url::UrlEscapeDecoder<kMaxUriDecodeLen> output(
+        param_string.substr(value.begin, value.len),
+        url::DecodeUrlMode::kUtf8OrIsomorphic);
     params.insert({std::string(param_string.substr(key.begin, key.len)),
                    base::UTF16ToUTF8(output.view())});
   }
@@ -221,8 +218,7 @@ void SanitizedImageSource::StartDataRequest(
 
   // Request an auth token for downloading the image body.
   auto fetcher = std::make_unique<signin::PrimaryAccountAccessTokenFetcher>(
-      "sanitized_image_source", identity_manager_,
-      signin::ScopeSet({GaiaConstants::kPhotosModuleImageOAuth2Scope}),
+      signin::OAuthConsumerId::kSanitizedImageSource, identity_manager_,
       signin::PrimaryAccountAccessTokenFetcher::Mode::kImmediate,
       signin::ConsentLevel::kSignin);
   auto* fetcher_ptr = fetcher.get();

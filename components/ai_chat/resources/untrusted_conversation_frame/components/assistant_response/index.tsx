@@ -13,12 +13,17 @@ import MarkdownRenderer from '../markdown_renderer'
 import ToolEvent from './tool_event'
 import WebSourcesEvent from './web_sources_event'
 import MemoryToolEvent from './memory_tool_event'
+import Chart from './chart'
+import DeepResearchEvent from './deep_research_event'
+import { extractDeepResearchEvents } from './deep_research_utils'
 import styles from './style.module.scss'
 import {
   removeReasoning,
   removeCitationsWithMissingLinks,
+  normalizeCitationSpacing,
 } from '../conversation_entries/conversation_entries_utils'
 import RichSearchWidget from './rich_search_widget'
+import AssistantResponseContextProvider from './assistant_response_context'
 
 interface BaseProps {
   // Whether data is currently being received (generated)
@@ -49,13 +54,12 @@ function SearchSummary(props: { searchQueries: string[] }) {
     $1: props.searchQueries.map((query, i, a) => (
       <React.Fragment key={i}>
         "
-        <a
+        <button
           className={styles.searchQueryLink}
-          href='#'
           onClick={(e) => handleOpenSearchQuery(e, query)}
         >
           {query}
-        </a>
+        </button>
         "{i < a.length - 1 ? ', ' : null}
       </React.Fragment>
     )),
@@ -66,13 +70,12 @@ function SearchSummary(props: { searchQueries: string[] }) {
       <Icon name='brave-icon-search-color' />
       <span data-test-id='search-summary'>
         {message}{' '}
-        <a
+        <button
           className={styles.searchLearnMoreLink}
-          href='#'
           onClick={handleLearnMore}
         >
           {getLocale(S.CHAT_UI_LEARN_MORE)}
-        </a>
+        </button>
       </span>
     </div>
   )
@@ -88,6 +91,8 @@ function AssistantEvent(
   const context = useUntrustedConversationContext()
 
   if (event.completionEvent) {
+    const completion = event.completionEvent.completion
+
     const numberedLinks =
       allowedLinks.length > 0
         ? allowedLinks
@@ -95,21 +100,14 @@ function AssistantEvent(
             .join('\n') + '\n\n'
         : ''
 
-    // Remove citations with missing links
-    const filteredOutCitationsWithMissingLinks =
-      removeCitationsWithMissingLinks(
-        event.completionEvent.completion,
-        allowedLinks,
-      )
-
-    // Replaces 2 consecutive citations with a separator and also
-    // adds a space before the citation and the text.
-    const completion = filteredOutCitationsWithMissingLinks.replace(
-      /(\w|\S)\[(\d+)\]/g,
-      '$1 [$2]',
+    const filteredCompletion = removeCitationsWithMissingLinks(
+      completion,
+      allowedLinks,
     )
 
-    const fullText = `${numberedLinks}${removeReasoning(completion)}`
+    const processedCompletion = normalizeCitationSpacing(filteredCompletion)
+
+    const fullText = `${numberedLinks}${removeReasoning(processedCompletion)}`
 
     return (
       <MarkdownRenderer
@@ -159,51 +157,84 @@ function AssistantEvent(
 
 export type AssistantResponseProps = BaseProps & {
   events: Mojom.ConversationEntryEvent[]
+  toolArtifacts?: Mojom.ToolArtifact[] | null
 }
 
 export default function AssistantResponse(props: AssistantResponseProps) {
-  // Extract certain events which need to render at specific locations (e.g. end of the events)
-  const searchQueriesEvent = props.events?.find(
-    (event) => event.searchQueriesEvent,
-  )?.searchQueriesEvent
-  const sourcesEvent = props.events?.find(
-    (event) => !!event.sourcesEvent,
-  )?.sourcesEvent
+  // Aggregate sources/queries across all events since
+  // multiple tool results each emit their own event.
+  const allSources = props.events.flatMap(
+    (event) => event.sourcesEvent?.sources ?? [],
+  )
+  const allRichResults = props.events.flatMap(
+    (event) => event.sourcesEvent?.richResults?.filter((r) => !!r) ?? [],
+  )
+  const allSearchQueries = props.events.flatMap(
+    (event) => event.searchQueriesEvent?.searchQueries ?? [],
+  )
+
+  const deepResearch = React.useMemo(
+    () => extractDeepResearchEvents(props.events),
+    [props.events],
+  )
 
   const hasCompletionStarted =
     !props.isEntryInProgress
-    || (props.events?.some((event) => event.completionEvent) ?? false)
+    || props.events.some((event) => event.completionEvent)
 
   return (
-    <>
-      {sourcesEvent?.richResults
-        .filter((r) => r)
-        .map((r) => (
+    <AssistantResponseContextProvider events={props.events}>
+      <div className={styles.assistantResponse}>
+        {allRichResults.map((r) => (
           <RichSearchWidget
             key={r}
             jsonData={r}
           />
         ))}
-      {props.events?.map((event, i) => (
-        <AssistantEvent
-          key={i}
-          event={event}
-          hasCompletionStarted={hasCompletionStarted}
-          isEntryInProgress={props.isEntryInProgress}
-          isEntryInteractivityAllowed={props.isEntryInteractivityAllowed}
-          allowedLinks={props.allowedLinks}
-          isLeoModel={props.isLeoModel}
-        />
-      ))}
 
-      {!props.isEntryInProgress && (
-        <>
-          {sourcesEvent && <WebSourcesEvent sources={sourcesEvent.sources} />}
-          {searchQueriesEvent && (
-            <SearchSummary searchQueries={searchQueriesEvent.searchQueries} />
+        {props.events?.map((event, i) => (
+          <AssistantEvent
+            key={i}
+            event={event}
+            hasCompletionStarted={hasCompletionStarted}
+            isEntryInProgress={props.isEntryInProgress}
+            isEntryInteractivityAllowed={props.isEntryInteractivityAllowed}
+            allowedLinks={props.allowedLinks}
+            isLeoModel={props.isLeoModel}
+          />
+        ))}
+
+        {/* Render deep research progress while research is active.
+          Hide once the synthesis answer starts streaming in. Keep visible
+          during the synthesis phase (after completeEvent but before the
+          final completionEvent arrives), ignoring any pre-tool completion
+          text the LLM may have emitted before calling deep_research. */}
+        {deepResearch.hasDeepResearchEvents
+          && props.isEntryInProgress
+          && !deepResearch.hasSynthesisCompletion && (
+            <DeepResearchEvent
+              deepResearch={deepResearch}
+              isActive={props.isEntryInProgress}
+            />
           )}
-        </>
-      )}
-    </>
+
+        {!props.isEntryInProgress && allSources.length > 0 && (
+          <WebSourcesEvent sources={allSources} />
+        )}
+        {props.toolArtifacts
+          ?.filter(
+            (artifact) => artifact.type === Mojom.LINE_CHART_ARTIFACT_TYPE,
+          )
+          .map((artifact, i) => (
+            <Chart
+              key={i}
+              artifact={artifact}
+            />
+          ))}
+        {!props.isEntryInProgress && allSearchQueries.length > 0 && (
+          <SearchSummary searchQueries={allSearchQueries} />
+        )}
+      </div>
+    </AssistantResponseContextProvider>
   )
 }

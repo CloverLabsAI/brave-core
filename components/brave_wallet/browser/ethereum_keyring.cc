@@ -49,7 +49,10 @@ std::unique_ptr<HDKey> ConstructAccountsRootKey(
 
 }  // namespace
 
-EthereumKeyring::EthereumKeyring(base::span<const uint8_t> seed) {
+EthereumKeyring::EthereumKeyring(
+    base::span<const uint8_t> seed,
+    base::RepeatingCallback<bool(const std::string&)> is_address_allowed)
+    : Secp256k1HDKeyring(std::move(is_address_allowed)) {
   accounts_root_ = ConstructAccountsRootKey(seed);
 }
 
@@ -96,8 +99,8 @@ std::optional<std::string> EthereumKeyring::RecoverAddress(
     return std::nullopt;
   }
 
-  EthAddress addr =
-      EthAddress::FromPublicKey(base::span(*public_key).last(64u));
+  EthAddress addr = EthAddress::FromPublicKey(
+      base::span(*public_key).last<kEthPublicKeyLength>());
   return addr.ToChecksumAddress();
 }
 
@@ -138,18 +141,17 @@ std::optional<std::vector<uint8_t>> EthereumKeyring::SignMessage(
 }
 
 void EthereumKeyring::SignTransaction(const std::string& address,
-                                      EthTransaction* tx,
-                                      uint256_t chain_id) {
+                                      EthTransaction* tx) {
   HDKey* hd_key = GetHDKeyFromAddress(address);
   if (!hd_key || !tx) {
     return;
   }
 
-  auto signature = hd_key->SignCompact(tx->GetHashedMessageToSign(chain_id));
+  auto signature = hd_key->SignCompact(tx->GetHashedMessageToSign());
   if (!signature) {
     return;
   }
-  tx->ProcessSignature(*signature, chain_id);
+  tx->ProcessSignature(*signature);
 }
 
 std::string EthereumKeyring::GetAddressInternal(const HDKey& hd_key) const {
@@ -157,7 +159,10 @@ std::string EthereumKeyring::GetAddressInternal(const HDKey& hd_key) const {
   // trim the header byte 0x04
   const std::vector<uint8_t> pubkey_no_header(public_key.begin() + 1,
                                               public_key.end());
-  EthAddress addr = EthAddress::FromPublicKey(pubkey_no_header);
+  auto pubkey =
+      base::span(pubkey_no_header).to_fixed_extent<kEthPublicKeyLength>();
+  CHECK(pubkey);
+  auto addr = EthAddress::FromPublicKey(*pubkey);
 
   // TODO(darkdh): chain id op code
   return addr.ToChecksumAddress();

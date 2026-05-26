@@ -13,7 +13,6 @@
 #include <vector>
 
 #include "base/check.h"
-#include "base/containers/contains.h"
 #include "base/feature_list.h"
 #include "base/functional/bind.h"
 #include "base/task/sequenced_task_runner.h"
@@ -24,8 +23,8 @@
 #include "brave/browser/ui/color/brave_color_id.h"
 #include "brave/browser/ui/commands/accelerator_service.h"
 #include "brave/browser/ui/commands/accelerator_service_factory.h"
-#include "brave/browser/ui/page_action/brave_page_action_icon_type.h"
 #include "brave/browser/ui/page_info/features.h"
+#include "brave/browser/ui/sidebar/features.h"
 #include "brave/browser/ui/sidebar/sidebar_controller.h"
 #include "brave/browser/ui/sidebar/sidebar_utils.h"
 #include "brave/browser/ui/sidebar/sidebar_web_panel_controller.h"
@@ -50,6 +49,7 @@
 #include "brave/components/brave_wallet/common/buildflags/buildflags.h"
 #include "brave/components/commands/common/features.h"
 #include "brave/components/constants/pref_names.h"
+#include "brave/components/sidebar/browser/constants.h"
 #include "brave/components/sidebar/common/features.h"
 #include "brave/components/speedreader/common/buildflags/buildflags.h"
 #include "brave/ui/color/nala/nala_color_id.h"
@@ -65,14 +65,16 @@
 #include "chrome/browser/ui/exclusive_access/exclusive_access_manager.h"
 #include "chrome/browser/ui/exclusive_access/fullscreen_controller.h"
 #include "chrome/browser/ui/frame/window_frame_util.h"
+#include "chrome/browser/ui/tab_search_feature.h"
 #include "chrome/browser/ui/tabs/features.h"
-#include "chrome/browser/ui/ui_features.h"
+#include "chrome/browser/ui/views/frame/browser_frame_view.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
 #include "chrome/browser/ui/views/frame/browser_widget.h"
 #include "chrome/browser/ui/views/frame/contents_layout_manager.h"
 #include "chrome/browser/ui/views/frame/contents_web_view.h"
+#include "chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.h"
+#include "chrome/browser/ui/views/frame/layout/browser_view_layout.h"
 #include "chrome/browser/ui/views/frame/multi_contents_view.h"
-#include "chrome/browser/ui/views/frame/tab_strip_region_view.h"
 #include "chrome/browser/ui/views/frame/top_container_view.h"
 #include "chrome/browser/ui/views/interaction/browser_elements_views.h"
 #include "chrome/browser/ui/views/side_panel/side_panel_coordinator.h"
@@ -126,6 +128,9 @@
 #endif
 
 namespace {
+
+// Exposed for testing.
+constexpr float kBraveMinimumContrastRatioForOutlines = 1.0816f;
 
 std::optional<bool> g_download_confirm_return_allow_for_testing;
 
@@ -285,10 +290,6 @@ bool BraveBrowserView::ShouldUseBraveWebViewRoundedCornersForContents(
     return true;
   }
 
-  if (!base::FeatureList::IsEnabled(features::kSideBySide)) {
-    return false;
-  }
-
   auto* model = browser->tab_strip_model();
   if (model->empty()) {
     return false;
@@ -304,23 +305,15 @@ bool BraveBrowserView::ShouldUseBraveWebViewRoundedCornersForContents(
 }
 
 BraveBrowserView::BraveBrowserView(Browser* browser) : BrowserView(browser) {
-#if BUILDFLAG(ENABLE_SPEEDREADER)
-  // When SideBySide is enabled, each ContentsContainerView in MultiContentsView
-  // own ReaderModeToolbarView.
-  if (!base::FeatureList::IsEnabled(features::kSideBySide)) {
-    reader_mode_toolbar_ = contents_container_->AddChildView(
-        std::make_unique<ReaderModeToolbarView>(browser_->profile()));
-    contents_container_->SetLayoutManager(
-        std::make_unique<BraveContentsLayoutManager>(
-            contents_container_view_, lens_overlay_view_, reader_mode_toolbar_,
-            /*scrim_view=*/nullptr));
-  }
-#endif
-
   // Need this background view always as we have contents margin/rounded corners
   // when split view is active regardless of rounded corners feature.
   contents_background_view_ =
       AddChildViewAt(std::make_unique<ContentsBackground>(), 0);
+
+#if BUILDFLAG(IS_MAC)
+  vertical_tabs_on_at_startup_ =
+      tabs::utils::ShouldShowBraveVerticalTabs(browser_);
+#endif
 
   pref_change_registrar_.Init(GetProfile()->GetPrefs());
   pref_change_registrar_.Add(
@@ -345,14 +338,20 @@ BraveBrowserView::BraveBrowserView(Browser* browser) : BrowserView(browser) {
   // Only normal window (tabbed) should have sidebar.
   const bool can_have_sidebar = sidebar::CanUseSidebar(browser_);
   if (can_have_sidebar) {
-    // Wrap chromium side panel with our sidebar container
-    auto original_side_panel =
-        RemoveChildViewT(contents_height_side_panel_.get());
-    sidebar_container_view_ =
-        AddChildView(std::make_unique<SidebarContainerView>(
-            browser_, browser_->GetFeatures().side_panel_coordinator(),
-            std::move(original_side_panel)));
-    contents_height_side_panel_ = sidebar_container_view_->side_panel();
+    if (base::FeatureList::IsEnabled(sidebar::features::kSidebarV2)) {
+      sidebar_container_view_ =
+          AddChildView(std::make_unique<SidebarContainerView>(
+              browser_, SidePanelCoordinator::From(browser_), nullptr));
+    } else {
+      // V1: wrap chromium's side panel inside SidebarContainerView.
+      auto original_side_panel =
+          RemoveChildViewT(contents_height_side_panel_.get());
+      sidebar_container_view_ =
+          AddChildView(std::make_unique<SidebarContainerView>(
+              browser_, SidePanelCoordinator::From(browser_),
+              std::move(original_side_panel)));
+      contents_height_side_panel_ = sidebar_container_view_->side_panel();
+    }
 
     if (IsBraveWebViewRoundedCornersEnabled()) {
       sidebar_separator_view_ =
@@ -455,7 +454,7 @@ sidebar::Sidebar* BraveBrowserView::InitSidebar() {
   if (multi_contents_view_ &&
       base::FeatureList::IsEnabled(sidebar::features::kSidebarWebPanel)) {
     GetBraveMultiContentsView()->SetWebPanelWidth(
-        sidebar_container_view_->side_panel()->GetPreferredSize().width());
+        sidebar::kDefaultSidePanelWidth);
     GetBraveMultiContentsView()->UseContentsContainerViewForWebPanel();
   }
 
@@ -527,13 +526,9 @@ void BraveBrowserView::SetStarredState(bool is_starred) {
 
 #if BUILDFLAG(ENABLE_SPEEDREADER)
 ReaderModeToolbarView* BraveBrowserView::reader_mode_toolbar() {
-  if (base::FeatureList::IsEnabled(features::kSideBySide)) {
     return BraveContentsContainerView::From(
                GetBraveMultiContentsView()->GetActiveContentsContainerView())
         ->reader_mode_toolbar();
-  }
-
-  return reader_mode_toolbar_;
 }
 
 speedreader::SpeedreaderBubbleView* BraveBrowserView::ShowSpeedreaderBubble(
@@ -574,7 +569,6 @@ void BraveBrowserView::UpdateReaderModeToolbar() {
   reader_mode_toolbar()->SetVisible(
       is_distilled(browser()->tab_strip_model()->GetActiveWebContents()));
 
-  if (base::FeatureList::IsEnabled(features::kSideBySide)) {
     // Need to update inactive split tabs' reader mode toolbar because
     // it's also visible.
     auto* contents_container = BraveContentsContainerView::From(
@@ -582,7 +576,6 @@ void BraveBrowserView::UpdateReaderModeToolbar() {
     auto* reader_mode_toolbar = contents_container->reader_mode_toolbar();
     reader_mode_toolbar->SetVisible(
         is_distilled(contents_container->contents_view()->web_contents()));
-  }
 }
 #endif  // BUILDFLAG(ENABLE_SPEEDREADER)
 
@@ -651,10 +644,6 @@ views::View* BraveBrowserView::GetWalletButtonAnchorView() {
 }
 #endif
 
-void BraveBrowserView::NotifyDialogPositionRequiresUpdate() {
-  GetBrowserViewLayout()->NotifyDialogPositionRequiresUpdate();
-}
-
 void BraveBrowserView::OnAcceleratorsChanged(
     const commands::AcceleratorPrefManager::Accelerators& changed) {
   DCHECK(base::FeatureList::IsEnabled(commands::features::kBraveCommands));
@@ -677,7 +666,7 @@ void BraveBrowserView::OnAcceleratorsChanged(
 
     // Register current accelerators
     for (const auto& accelerator : accelerators) {
-      if (focus_manager->IsAcceleratorRegistered(accelerator)) {
+      if (focus_manager->IsAcceleratorRegistered(accelerator, this)) {
         focus_manager->UnregisterAccelerator(accelerator, this);
       }
 
@@ -688,7 +677,7 @@ void BraveBrowserView::OnAcceleratorsChanged(
 
     // Unregister removed accelerators
     for (const auto& old_accelerator : old_accelerators) {
-      if (base::Contains(accelerators, old_accelerator)) {
+      if (std::ranges::contains(accelerators, old_accelerator)) {
         continue;
       }
       focus_manager->UnregisterAccelerator(old_accelerator, this);
@@ -973,6 +962,40 @@ void BraveBrowserView::ReparentTopContainerForEndOfImmersive() {
   BrowserView::ReparentTopContainerForEndOfImmersive();
 }
 
+bool BraveBrowserView::ShouldDrawTabStrokes() const {
+  // TODO(simonhong): We can return false always here as horizontal tab design
+  // doesn't need additional stroke.
+  // Delete all below code when horizontal tab feature flag is removed.
+  if (tabs::HorizontalTabsUpdateEnabled()) {
+    // We never automatically draw strokes around tabs. For pinned tabs, we draw
+    // the stroke when generating the tab drawing path.
+    return false;
+  }
+
+  if (!BrowserView::ShouldDrawTabStrokes()) {
+    return false;
+  }
+
+  // Use a little bit lower minimum contrast ratio as our ratio is 1.08162
+  // between default tab background and frame color of light theme.
+  // With upstream's 1.3f minimum ratio, strokes are drawn and it causes weird
+  // border lines in the tab group.
+  // Set 1.0816f as a minimum ratio to prevent drawing stroke.
+  // We don't need the stroke for our default light theme.
+  // NOTE: We don't need to check features::kTabOutlinesInLowContrastThemes
+  // enabled state. Although TabStrip::ShouldDrawTabStrokes() has related code,
+  // that feature is already expired since cr82. See
+  // chrome/browser/flag-metadata.json.
+  const SkColor background_color = TabStyle::Get()->GetTabBackgroundColor(
+      TabStyle::TabSelectionState::kActive, /*hovered=*/false,
+      /*frame_active*/ true, GetColorProvider());
+  const SkColor frame_color =
+      GetFrameView()->GetFrameColor(BrowserFrameActiveState::kActive);
+  const float contrast_ratio =
+      color_utils::GetContrastRatio(background_color, frame_color);
+  return contrast_ratio < kBraveMinimumContrastRatioForOutlines;
+}
+
 BraveMultiContentsView* BraveBrowserView::GetBraveMultiContentsView() const {
   return BraveMultiContentsView::From(multi_contents_view_);
 }
@@ -1000,7 +1023,6 @@ void BraveBrowserView::OnThemeChanged() {
 
 void BraveBrowserView::UpdateRoundedCornersUI() {
   // Update various UI that can be affected by rounded corners.
-  UpdateContentsSeparatorVisibility();
   UpdateContentsShadowVisibility();
   UpdateWebViewRoundedCorners();
   UpdateVerticalTabStripBorder();
@@ -1082,17 +1104,6 @@ void BraveBrowserView::OnActiveTabChanged(content::WebContents* old_contents,
   }
 }
 
-void BraveBrowserView::UpdateContentsSeparatorVisibility() {
-  // It's not shown with rounded corners mode always.
-  if (ShouldUseBraveWebViewRoundedCornersForContents(browser_.get())) {
-    top_container_separator_->SetPreferredSize({});
-    return;
-  }
-
-  top_container_separator_->SetPreferredSize(
-      gfx::Size(views::Separator::kThickness, views::Separator::kThickness));
-}
-
 bool BraveBrowserView::AcceleratorPressed(const ui::Accelerator& accelerator) {
   if (base::FeatureList::IsEnabled(tabs::kBraveSharedPinnedTabs) &&
       browser()->profile()->GetPrefs()->GetBoolean(
@@ -1167,6 +1178,39 @@ bool BraveBrowserView::IsWebPanelContents(content::WebContents* contents) {
 
   return false;
 }
+
+ClientFrameElementInfo BraveBrowserView::GetFrameElementInfo() const {
+  ClientFrameElementInfo info = BrowserView::GetFrameElementInfo();
+  if (tabs::utils::ShouldShowBraveVerticalTabs(browser())) {
+    // In case of Brave vertical tabs, we don't want to show the tabstrip.
+    info.tabstrip_preferred_height = 0;
+  }
+  return info;
+}
+
+#if BUILDFLAG(IS_MAC)
+bool BraveBrowserView::UsesImmersiveFullscreenMode() const {
+  // Disable immersive when vertical tabs were on at startup overlay_widget_ is
+  // not created in that case, so immersive would crash.
+  if (vertical_tabs_on_at_startup_) {
+    return false;
+  }
+  // Immersive is also incompatible with vertical tabs at runtime.
+  if (tabs::utils::ShouldShowBraveVerticalTabs(browser())) {
+    return false;
+  }
+
+  return BrowserView::UsesImmersiveFullscreenMode();
+}
+
+bool BraveBrowserView::UsesImmersiveFullscreenTabbedMode() const {
+  if (tabs::utils::ShouldShowBraveVerticalTabs(browser())) {
+    return false;
+  }
+
+  return BrowserView::UsesImmersiveFullscreenTabbedMode();
+}
+#endif
 
 bool BraveBrowserView::IsSidebarVisible() const {
   return sidebar_container_view_ && sidebar_container_view_->IsSidebarVisible();
@@ -1253,10 +1297,11 @@ void BraveBrowserView::UpdateWebViewRoundedCorners() {
         }
       };
 
-  if (contents_container_view_) {
-    update_corner_radius(contents_container_view_->contents_view(),
-                         contents_container_view_->devtools_web_view(),
-                         contents_container_view_->devtools_docked_placement(),
+  auto* contents_container_view = GetActiveContentsContainerView();
+  if (contents_container_view) {
+    update_corner_radius(contents_container_view->contents_view(),
+                         contents_container_view->devtools_web_view(),
+                         contents_container_view->devtools_docked_placement(),
                          corners);
   }
 }

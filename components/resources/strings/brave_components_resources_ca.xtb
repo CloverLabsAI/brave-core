@@ -484,14 +484,25 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="1518915449477235311">Voleu permetre que <ph name="URL"/> obri converses d'IA Leo a Brave?</translation>
 <translation id="4355784577209159847">Permet l'ús de galetes de tercers per a l'inici de sessió de Google anterior</translation>
 <translation id="5770656036486891920"><ph name="URL"/> vol utilitzar galetes de tercers per a l'antic inici de sessió de Google</translation>
-<translation id="6053826678715267477">Permetre l'accés als recursos del host local</translation>
-<translation id="2973562729984406132"><ph name="URL"/> vol accedir als recursos del localhost</translation>
+<translation id="5582087890067572966">🎉 Ja estàs guanyant!</translation>
+<translation id="4364336119478610380">Guanya sempre que aparegui una notificació com aquesta a la pantalla. No cal que cliquis per guanyar.</translation>
+<translation id="5893017172751072752">Guanya quan apareix una notificació d'Anuncis de Brave</translation>
+<translation id="3447730462826640312">No cal que cliquis per guanyar, però fes clic si estàs interessat!</translation>
 <translation id="2104347391516032700">Servei de recompenses BAT</translation>
 <translation id="5939518447894949180">Restableix</translation>
 <translation id="3349204812119681938">Reinicia Recompenses de Brave</translation>
 <translation id="4915997950539925115">Si reinicies, se suprimirà el perfil actual de Recompenses de Brave i ja no s'habilitaran. Si tornes a habilitar les Recompenses de Brave més tard, començaràs amb un nou perfil. Llegeix el nostre <ph name="LINK_BEGIN"/>article de suport sobre restabliment<ph name="LINK_END"/> per a més detalls.</translation>
 <translation id="4806029412510565611">Entenc que el meu perfil actual de Recompenses de Brave i les dades de Recompenses de Brave s'eliminaran del meu dispositiu, i he llegit <ph name="LINK_BEGIN"/>l'article de suport sobre el restabliment<ph name="LINK_END"/>.</translation>
 <translation id="8835777704176513489">Desactivar i reiniciar Recompenses</translation>
+<translation id="1570055891464728855">Restableix ara</translation>
+<translation id="6431824580671230473">No et preocupis: els BAT que ja tens al teu compte de <ph name="PROVIDER"/> no es veuran afectats pel restabliment.</translation>
+<translation id="2881473942058010900">No obtindràs guanys pels anuncis mentre estiguis connectat a <ph name="PROVIDER"/>. Restableix les Recompenses de Brave i connecta un compte de pagament diferent per continuar obtenint guanys. <ph name="LINK_BEGIN"/>Més informació<ph name="LINK_END"/></translation>
+<translation id="5803444802570526678">Compte de <ph name="PROVIDER"/> ja no compatible.</translation>
+<translation id="3794463124070392793">Confirma la teva regió</translation>
+<translation id="4620879582500359234">Els BAT que ja tens al teu compte de <ph name="PROVIDER"/> hi continuaran.</translation>
+<translation id="935303782545595866">L’historial de 30 dies d’anuncis i altres opcions de Brave Rewards es restabliran.</translation>
+<translation id="6279637499952804615">Pots escollir un compte de pagament diferent després d’aquest pas.</translation>
+<translation id="5419770758409992826">El teu compte de <ph name="PROVIDER"/> es desconnectarà i el teu perfil de Recompenses de Brave es restablirà.</translation>
 <translation id="7717357606512850995">Comprova l'estat</translation>
 <translation id="6473937687348632190">S'ha completat el pagament de les recompeneses de l'<ph name="MONTH"/>.</translation>
 <translation id="1711367267038576241">El pagament de les recompenses de l'<ph name="MONTH"/> es començarà a processar el dia <ph name="DATE"/>.</translation>
@@ -516,12 +527,12 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
     }</translation>
 <translation id="3264975266761862670">Preparat per començar a guanyar?</translation>
 <translation id="2784412028126205842">Connecta un compte de pagament</translation>
-<translation id="766126983336630294">{ADS_VIEWED, plural,
-      =0 {Heu vist <ph name="COUNT_BEGIN"/># anuncis<ph name="COUNT_END"/> aquest mes}
+<translation id="1789518312567918588">{ADS_VIEWED, plural,
+      =0 {Heu vist <ph name="COUNT_BEGIN"/> # anuncis<ph name="COUNT_END"/> aquest mes}
       =1 {Podríeu cobrar per <ph name="COUNT_BEGIN"/>l'anunci<ph name="COUNT_END"/> que heu vist aquest mes.}
       other {Podríeu cobrar pels <ph name="COUNT_BEGIN"/># anuncis<ph name="COUNT_END"/> que heu vist aquest mes.}
     }</translation>
-<translation id="8611388433418909120">{ADS_VIEWED, plural,
+<translation id="1100743684843603297">{ADS_VIEWED, plural,
       =0 {Has vist <ph name="COUNT_BEGIN"/># anuncis<ph name="COUNT_END"/> aquest mes}
       =1 {Rebràs recompenses per veure <ph name="COUNT_BEGIN"/># anunci<ph name="COUNT_END"/> aquest mes}
       other {Rebràs recompenses per veure <ph name="COUNT_BEGIN"/># anuncis<ph name="COUNT_END"/> aquest mes}
@@ -602,7 +613,7 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="5802986777701714573">Hem afegit una nova manera de rebre les recompenses mensuals de BAT. Connecta un compte d'un dels nostres socis o utilitza la nova opció d'autocustòdia per a començar a guanyar ara mateix.</translation>
 <translation id="3251885322612056119">Condicions de servei actualitzades</translation>
 <translation id="7454675823870922788">Hem actualitzat les condicions de servei per a les Recompenses de Brave. Hem fet aquestes actualitzacions per aclarir els nostres termes i assegurar-nos que cobreixen noves funcionalitats. Si continues utilitzant aquest lloc, assumirem que hi estàs d'acord. Si no hi estàs d'acord, pots <ph name="LINK_BEGIN"/>restablir<ph name="LINK_END"/>les Recompenses de Brave, que desactivarà la característica.</translation>
-<translation id="56057964000416013">Hem actualitzat les nostres Condicions de servei. Per continuar utilitzant les Recompenses de Brave, revisa i accepta les condicions actualitzades.</translation>
+<translation id="616595399243298960">Hem actualitzat les nostres Condicions de servei. Per continuar utilitzant les Recompenses de Brave, revisa i accepta les condicions actualitzades.</translation>
 <translation id="5192526308598085294">Consulta les <ph name="LINK_BEGIN"/>condicions de servei de les Recompenses de Brave<ph name="LINK_END"/></translation>
 <translation id="4130750466177569591">Hi estic d'acord</translation>
 <translation id="343114360276812078">Revisar Condicions</translation>
@@ -650,6 +661,8 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="6751803821780922506">Tria on t'agradaria rebre els BAT</translation>
 <translation id="3162035476318501831">Saber-ne més sobre les regions i l'assistència.</translation>
 <translation id="7329170127335794328">Actualment no està disponible a la teva regió</translation>
+<translation id="1947910788470806100">Encara no disposem d'opcions de pagament a la teva regió. Torna-ho a comprovar més tard per si ha canviat la disponibilitat.</translation>
+<translation id="271689813824682404">Opcions de pagament no disponibles</translation>
 <translation id="966956302643313970">Per començar a guanyar les recompenses de Basic Attention Token (BAT), connecta-hi un compte. Els BAT que guanyis es transferiran automàticament al teucompte tots els mesos.</translation>
 <translation id="4009439571146350519">O d'alguna altra cartera compatible amb Solana</translation>
 <translation id="333231090524745752"><ph name="TOS_LINK_BEGIN"/>Condicions d'ús<ph name="TOS_LINK_END"/> i <ph name="PP_LINK_BEGIN"/>Política de privacitat<ph name="PP_LINK_END"/>.</translation>
@@ -859,7 +872,10 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="646023614746251785">Confirma l'intercanvi</translation>
 <translation id="6264944956989873014">Confirma el pont</translation>
 <translation id="7067917728851842589">Confirma l'enviament</translation>
+<translation id="2841837950101800123">Proveïdor</translation>
+<translation id="1114725160772317155">Estat del proveïdor</translation>
 <translation id="2351357639951873714">Confirma l'escut</translation>
+<translation id="7480044382160806610">Confirma la desprotecció</translation>
 <translation id="8332923694292360653">Gasta</translation>
 <translation id="3735740477244556633">Ordena per</translation>
 <translation id="6484605214219822434">Revisa el pont</translation>
@@ -881,6 +897,8 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="7465227658364622464">Júpiter processarà l'adreça Solana i l'adreça IP per dur a terme una transacció (incloent-hi l'obtenció de pressupostos). Júpiter NOMÉS utilitzarà aquestes dades amb finalitats de processament de transaccions.</translation>
 <translation id="712738518060477110">El pressupost inclou una tarifa de Brave de <ph name="SWAP_FEE_PERCENTAGE"/>.</translation>
 <translation id="8368540604723748428">Massa xifres decimals</translation>
+<translation id="4797709125717981664">El mínim requerit és 1 ADA</translation>
+<translation id="3826737479910350533">L’import a enviar és massa petit</translation>
 <translation id="6575120282593094155">Encara no tens un compte <ph name="ACCOUNT_TYPE"/>. Vols crear-ne un ara?</translation>
 <translation id="1426410128494586442">Sí</translation>
 <translation id="4250680216510889253">No</translation>
@@ -927,7 +945,7 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="2274014756904854136">Fes doble toc a la pantalla per continuar</translation>
 <translation id="7795718119973968770">La teva cartera està bloquejada per seguretat. Desbloqueja la cartera per continuar.</translation>
 <translation id="9175546523521600401">Bloqueja la cartera</translation>
-<translation id="765834632354589737">Còpia de seguretat del moneder</translation>
+<translation id="7117128722034148989">Còpia de seguretat de la cartera</translation>
 <translation id="1108298724135935307">Webs connectats</translation>
 <translation id="5716350339763180836">Saldos</translation>
 <translation id="5538251867290702601">Gràfic</translation>
@@ -983,6 +1001,7 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="2795015351889043417">Fitxer JSON</translation>
 <translation id="5468881191994555667">Tria un fitxer</translation>
 <translation id="795667975304826397">No s'ha seleccionat cap fitxer</translation>
+<translation id="6720675936326555106">Fitxer seleccionat</translation>
 <translation id="5891811606602061966">No ha estat possible importar el compte. Torneu-ho a provar.</translation>
 <translation id="6566535583781706170">Importa el compte</translation>
 <translation id="5051929972046200722">Selecciona el teu dispositiu de cartera física (hardware)</translation>
@@ -1029,13 +1048,21 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="2416098547200943834">NOTA: La clau privada es proporciona com un JSON codificat hexadecimal que conté una clau privada i informació de protocol. <ph name="LINK_START"/>Saber-ne més<ph name="LINK_END"/>.</translation>
 <translation id="7657130382217527063">NOTA: La clau privada s'ha de proporcionar com un JSON codificat hexadecimal que conté una clau privada i informació de protocol.<ph name="LINK_START"/>Saber-ne més<ph name="LINK_END"/>.</translation>
 <translation id="4482913669726886926">ATENCIÓ: Només són compatibles les claus ampliades <ph name="FORMAT"/>.</translation>
+<translation id="6457746820359933716">Importar utilitzant un fitxer JSON exportat de Polkadot.js o carteres compatibles. Introdueix la contrasenya utilitzada per xifrar l'exportació.</translation>
+<translation id="9133762451347918196">Comptes Testnet</translation>
 <translation id="42126664696688958">Exporta</translation>
 <translation id="1366855498335432549">Diposita</translation>
 <translation id="790104325876206743">Configuracions del compte</translation>
+<translation id="8856844353253421399">Última actualització fa <ph name="TIME_AGO"/></translation>
 <translation id="6322030314101903925">No hi ha cap actiu disponible</translation>
 <translation id="836614343069504000">Diposita o compra tokens per començar. Si no veus els tokens d'un compte importat, comprova els filtres i la configuració de visualització. Pot ser que calgui afegir els tokens desconeguts com a actius personalitzats.</translation>
 <translation id="2902856457593699108">Mostra la clau</translation>
 <translation id="8033497299373164724">Amaga la clau</translation>
+<translation id="7514365320538308">Descarrega</translation>
+<translation id="4505811804838254812">Introduïu una contrasenya per xifrar el vostre fitxer d'exportació de compte.</translation>
+<translation id="4664684820522660564">Introduïu la contrasenya de xifratge</translation>
+<translation id="6873030689896652259">Confirmeu la contrasenya de xifratge</translation>
+<translation id="5148285448107770349">La contrasenya ha de tenir com a mínim 8 caràcters</translation>
 <translation id="2702143907607790516">No ha estat possible actualitzar el nom del compte. Torna-ho a provar.</translation>
 <translation id="3318280255740629162">25%</translation>
 <translation id="2636487255623744079">50%</translation>
@@ -1056,9 +1083,6 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="1506421160138798546">estimació</translation>
 <translation id="59223531494896848">Límit</translation>
 <translation id="8569380433211549748">Preu en</translation>
-<translation id="2490428413101944234">Verifica l'aixeta</translation>
-<translation id="3352959425838279177">Aconsegueix Ether d'una aixeta per a <ph name="SELECTED_NETWORK"/></translation>
-<translation id="6449626816252815844">Selecciona el mètode de compra</translation>
 <translation id="8009571545960303544">Es necessita la teva firma</translation>
 <translation id="5294062982587710720">Tingues en compte que Brave no pot verificar què passarà si signes. Una signatura podria autoritzar gairebé qualsevol operació al teu compte o en nom vostre, incloent-hi, però sense limitar-se a, la cessió del control total del teu compte i actius en criptomoneda al lloc que fa la sol·licitud. Signa únicament si estàs segur que vols realitzar aquesta acció i confia en el lloc sol·licitant.</translation>
 <translation id="3474375934783434676">Signa sota la teva responsabilitat</translation>
@@ -1066,6 +1090,7 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="3586931643579894722">Oculta els detalls</translation>
 <translation id="7702907602086592255">Domini</translation>
 <translation id="3586752056660754651">Signa</translation>
+<translation id="4217653732094303705">Clau pública de xifratge</translation>
 <translation id="3484981968509595506">Una DApp està sol·licitant la teva clau pública de xifratge</translation>
 <translation id="2300240008330189182"><ph name="URL"/> sol·licita la clau de xifratge pública de la teva cartera. Si accedeixes a proporcionar aquesta clau, el lloc podrà compondre missatges xifrats per a tu.</translation>
 <translation id="3340247553212049934">Proporciona</translation>
@@ -1147,10 +1172,10 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="4324239559624557455">Durant 24 hores</translation>
 <translation id="9139452553033760558">Durant 1 setmana</translation>
 <translation id="1658834457013045127">Per sempre</translation>
-<translation id="6344138931392227467"><ph name="DEVICE_NAME"/> connectat</translation>
-<translation id="7051244143160304048"><ph name="DEVICE_NAME"/> desconnectat</translation>
-<translation id="5317781812114905957">Instruccions</translation>
-<translation id="1178198982208000092">Connecta el teu <ph name="DEVICE_NAME"/></translation>
+<translation id="5571630233760536706"><ph name="DEVICE_NAME"/> connectat</translation>
+<translation id="7058480232601314508"><ph name="DEVICE_NAME"/> desconnectat</translation>
+<translation id="434328838837168401">Veure instruccions</translation>
+<translation id="6739517232898494646">Connecta <ph name="DEVICE_NAME"/> per continuar</translation>
 <translation id="6941881257520473899">La cartera física (hardware) requereix confirmació al dispositiu.</translation>
 <translation id="2288190100157580461">La cartera física (hardware) requereix l'aplicació <ph name="NETWORK"/>oberta a <ph name="DEVICE_NAME"/></translation>
 <translation id="8687869982094542529">enviada</translation>
@@ -1212,12 +1237,12 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="4932382283590063268">L'adreça de recepció és la teva pròpia.</translation>
 <translation id="3124753063207986114">L'adreça de recepció és l'adreça de contracte d'un token.</translation>
 <translation id="7029817408221097939">Adreça unificada no vàlida</translation>
-<translation id="6370376419663123629">L'adreça no sembla correcta</translation>
-<translation id="3767148796886402380">Comprova la teva adreça per assegurar-te que és l'adreça correcta (p. ex., lletres amb minúscules o majúscules).</translation>
+<translation id="5749543778008369411">L'adreça no té suma de verificació</translation>
+<translation id="8225310967627152630">No es pot verificar la validesa d'aquesta adreça. Per evitar una possible pèrdua de fons, reviseu l'adreça cuidadosament abans d'enviar.</translation>
+<translation id="5139218857087774333">L'adreça no sembla correcta (suma de verificació no vàlida)</translation>
+<translation id="6551446819927864899">Aquesta adreça sembla tenir una errata. Si us plau, reviseu l'adreça i escriviu-la de nou.</translation>
 <translation id="2585599787090762065">Com ho puc resoldre?</translation>
 <translation id="5517732667776806421">Falta la informació de la suma de verificació</translation>
-<translation id="2975056993833847787">Aquesta adreça no es pot verificar (falta la suma de comprovació). Vols continuar?</translation>
-<translation id="6320252966164556855">L'adreça no ha passat la verificació (suma de comprovació no vàlida). Torna-ho a provar substituint les lletres minúscules per majúscules.</translation>
 <translation id="4667144295226514387">Manca el límit de gas</translation>
 <translation id="2021522108838444624">La quantitat ha de ser superior a 0</translation>
 <translation id="8464365289405373974">Es requereix l'adreça de destinació</translation>
@@ -1243,6 +1268,8 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="471055802670233033">Heu gastat</translation>
 <translation id="7916618590403748182">Rebràs</translation>
 <translation id="8328657208304368165">Confirma la comanda</translation>
+<translation id="3784821115971261512">Adreça del programa</translation>
+<translation id="6302865118026274740">Adreça de dipòsit</translation>
 <translation id="8220255674527598378">Intercanvi de Solana</translation>
 <translation id="5071303414930953888">Compte <ph name="ACCOUNT_NUMBER"/></translation>
 <translation id="2330177808960134000">La cartera s'ha de desbloquejar primer</translation>
@@ -1302,9 +1329,7 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="4312994183947987913">Compra/Diposita</translation>
 <translation id="5133421763709317473">No s'ha trobat cap recurs que coincideixi amb la cerca o el filtre</translation>
 <translation id="6423985584914773314">No és una adreça FIL vàlida</translation>
-<translation id="5522073372365069684">Compra amb Ramp</translation>
 <translation id="6153197326949684688">Ven amb <ph name="OFFRAMP_PROVIDER"/></translation>
-<translation id="3301984548406568819">Les dades financeres i de transaccions les tracten els nostres socis d'accés. Brave no recopila ni té accés a aquestes dades.</translation>
 <translation id="5795821518596541838">Soci de transaccions</translation>
 <translation id="1916136859742693273">La Cartera de Brave utilitza Meld.io per ajudar a afegir i descobrir diversos proveïdors de cripto a la teva zona. Per completar la transacció, compartirem algunes dades amb Meld.io, incloses l'adreça de la teva cartera i el codi de país. Per a més informació, llegeix les Condicions d'ús de Meld.</translation>
 <translation id="245827814248186739">He llegit i accepto les<ph name="LINK_BEFORE"/>Condicions d'ús de Meld<ph name="LINK_AFTER"/></translation>
@@ -1325,17 +1350,8 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="4196022627437957774">Vols crear un compte <ph name="ACCOUNT_TYPE"/>?</translation>
 <translation id="5982914754413312620">Per poder rebre <ph name="TOKEN_SYMBOL"/>, necessitaràs un compte <ph name="ACCOUNT_TYPE"/>.</translation>
 <translation id="3067168166931605141">Nom del compte</translation>
-<translation id="6534275647567011533">Compra amb Transak</translation>
-<translation id="5973390321030037823">Compra amb Link</translation>
-<translation id="1932640759496708012">Compra amb Coinbase Pay</translation>
-<translation id="8725252491405767337">Ramp.Network</translation>
-<translation id="503018546142690471">Transak</translation>
-<translation id="7295150312737713113">Enllaç de Stripe</translation>
-<translation id="7191335763519723663">Coinbase Pay</translation>
-<translation id="7667423728712601865">Compra criptomonedes amb Visa o Mastercard.</translation>
-<translation id="3101839349578102016">Compra instantània amb el teu compte bancari. Tarifes més baixes.</translation>
-<translation id="8280898387224328221">Paga amb una targeta de crèdit o de dèbit o amb un compte bancari</translation>
-<translation id="2218174283683424104">Compra amb el nom més fiable en criptomonedes.</translation>
+<translation id="1213870770696612739">Import mínim: <ph name="AMOUNT"/></translation>
+<translation id="3041074161036535192">Import màxim: <ph name="AMOUNT"/></translation>
 <translation id="8528916244724490964">Totes les xarxes</translation>
 <translation id="7721139939763655123">Ascendent</translation>
 <translation id="5458608274117818139">Descendent</translation>
@@ -1380,8 +1396,13 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="7694836973509310467">Ponts</translation>
 <translation id="8419958386475786929"><ph name="SWAPPING_OR_BRIDGING"/> a <ph name="NETWORK"/></translation>
 <translation id="7903225589949400974">Hi ha hagut un error intentant <ph name="SWAP_OR_BRIDGE"/> a <ph name="NETWORK"/></translation>
+<translation id="7220786058474068424">Processant</translation>
+<translation id="3248185426436836442">Pendent</translation>
+<translation id="5503843345634715425">Reemborsat</translation>
 <translation id="1778601041100951971">Protegint <ph name="AMOUNT"/></translation>
+<translation id="6439110433198887239">Desprotegint <ph name="AMOUNT"/></translation>
 <translation id="5549369333299694936"><ph name="AMOUNT"/> ha estat protegit</translation>
+<translation id="3860973324426281816"><ph name="AMOUNT"/> ha estat desprotegit</translation>
 <translation id="6622332794280225311">{PENDING_TRANSACTIONS, plural,
       =1 {{PENDING_TRANSACTIONS} transacció més pendent.}      other {{PENDING_TRANSACTIONS} transaccions més pendents.}
     }</translation>
@@ -1405,6 +1426,7 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="5601436886921227795">Interacció Dapp</translation>
 <translation id="9104177294757104789">Envia <ph name="VALUE"/></translation>
 <translation id="4048336522751528394">Canvia de <ph name="MAKER"/> a <ph name="TAKER"/></translation>
+<translation id="5140590056890937774">Connecta <ph name="SOURCE"/> a <ph name="DESTINATION"/></translation>
 <translation id="1748114617341025015">Crear compte de token associat</translation>
 <translation id="4418115887224983240">No s'ha pogut crear compte de token associat</translation>
 <translation id="7165697599360786670">S'ha creat un compte de token associat</translation>
@@ -1575,8 +1597,6 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="1422451606553326863">Compra Crypto</translation>
 <translation id="3887541341068007345">S'estan buscant extensions de cartera...</translation>
 <translation id="8407091560429310499">Selecciona un actiu</translation>
-<translation id="756590380936155533">Per finalitzar la compra de <ph name="ASSET_TICKER"/>, selecciona un dels nostres socis</translation>
-<translation id="7880860489474966219">Per acabar, els teus fons es transferiran a la teva Cartera de Brave</translation>
 <translation id="6182661078713714878">Dipòsit criptogràfic</translation>
 <translation id="3683305208314702347">Diposita <ph name="VALUE"/></translation>
 <translation id="5768739294929936862">Diposita tokens Solana o SPL</translation>
@@ -1633,12 +1653,16 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="3356580495013324916">Introdueix la contrasenya de la Cartera de Brave per començar a fer una còpia de seguretat de la cartera.</translation>
 <translation id="7545441766078366279">Aprova <ph name="TOKEN"/></translation>
 <translation id="3115303896544539834">Saldo <ph name="TOKEN"/> insuficient</translation>
+<translation id="6612125470074657311">La quantitat és massa baixa</translation>
+<translation id="5838312420826727653">Token(s) no compatible(s)</translation>
+<translation id="4930106154893104117">Sol·licitud no vàlida</translation>
 <translation id="3453833142586986467">Selecciona el token</translation>
 <translation id="4937657825850660613">Meitat</translation>
 <translation id="7639814793732182496">Max</translation>
 <translation id="6584782231358487640">Introdueix un import</translation>
 <translation id="477281933640372562">Recuperació de cotitzacions</translation>
 <translation id="5450317966495183014">Rep (est.)</translation>
+<translation id="387870937508841726">Rep (mín.)</translation>
 <translation id="8747614139273050577">Des d'un token</translation>
 <translation id="1726158192333401896">A un token</translation>
 <translation id="1817370679212109974">Nova cotització en <ph name="COUNTDOWN"/></translation>
@@ -1749,7 +1773,6 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="2410455471299328417">Aquest servei l'ofereix <ph name="BOLD_BEFORE"/>Blowfish.xyz<ph name="BOLD_AFTER"/> i està subjecte a les <ph name="TERMS_LINK_BEFORE"/>Condicions de servei<ph name="TERMS_LINK_AFTER"/> i la <ph name="PRIVACY_POLICY_LINK_BEFORE"/>Política de privacitat<ph name="PRIVACY_POLICY_LINK_AFTER"/></translation>
 <translation id="8688672835843460752">Disponible</translation>
 <translation id="5296640085393149413">Fons disponibles pel seu ús.</translation>
-<translation id="3248185426436836442">Pendent</translation>
 <translation id="2515906149804238711">Un canvi pendent al saldo de la teva cartera.</translation>
 <translation id="7700365440186054030">Els teus fons disponibles més les transaccions encara per confirmar.</translation>
 <translation id="4118601537508887039">Alguns saldos podrien no estar disponibles</translation>
@@ -1815,10 +1838,15 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="7747318989577709780">El compte s'està sincronitzant</translation>
 <translation id="9086302186042011942">Sincronitzant</translation>
 <translation id="99991973626409495">Revisa l'escut</translation>
+<translation id="6779429520470417361">Revisa la desprotecció</translation>
 <translation id="3114681061018999547">Protegint</translation>
+<translation id="1564172583156967455">Desprotegint</translation>
 <translation id="8897189056319316783">Escut ZEC</translation>
+<translation id="508249542337194541">Desprotegeix ZEC</translation>
 <translation id="3382275793825152362">Fons protegits</translation>
+<translation id="617149752238892649">Desprotegir fons</translation>
 <translation id="8631765320256788981">Estàs enviant fons des del teu compte transparent al teu compte protegit.</translation>
+<translation id="3860364671495430495">Estàs enviant fons des del teu compte protegit al teu compte transparent.</translation>
 <translation id="7144878232160441200">Torna-ho a intentar</translation>
 <translation id="9094621390791852268">Error en la vista prèvia de la transacció.</translation>
 <translation id="4982713341035600933">Canvi en el saldo calculat</translation>
@@ -1867,6 +1895,7 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="4150336849480030462">Transferència de token SPL amb creació de compte de token associat</translation>
 <translation id="2244921323472112851">No podem trobar la pàgina que busques ara mateix.</translation>
 <translation id="6277237872689140644">Pot ser que s'hagi mogut a un altre lloc o que l'URL contingui una errada tipogràfica.</translation>
+<translation id="1788572014530152502">Hi ha hagut un error en processar la teva transacció. En molts casos, això significa que no tens prou <ph name="SYMBOL"/> per cobrir la comissió de la xarxa. Prova amb una quantitat més petita.</translation>
 <translation id="2737084171727561244">Anar a la carpeta</translation>
 <translation id="3499452861061048987">Afegir token</translation>
 <translation id="5046066249040287308">Serveis de la Cartera de Brave</translation>
@@ -2095,6 +2124,8 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="4292565651642921086">Enfocar el següent grup de pestanyes</translation>
 <translation id="874783686573493196">Enfocar l'anterior grup de pestanyes</translation>
 <translation id="9169594135889675189">Afegir nova pestanya al grup</translation>
+<translation id="1722567105086139392">Enllaça</translation>
+<translation id="4729794914864902904">Desenllaça</translation>
 <translation id="1926106318101432555">Obre l'adreça d'interès...</translation>
 <translation id="6118819645013156507">Canvia a una altra finestra...</translation>
 <translation id="1623204575967809688">Fusiona la finestra actual a...</translation>
@@ -2164,6 +2195,7 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
     }</translation>
 <translation id="6961721183181597848">En què et puc ajudar?</translation>
 <translation id="2966135729673253768">Demanar seguiment</translation>
+<translation id="5923170497201832190">Desplaça la pestanya a la part inferior</translation>
 <translation id="6219262425964000211">Deixar anar els arxius aquí</translation>
 <translation id="4313763911013851687">Arrossega qualsevol arxiu fins aquí per afegir-lo a la conversa</translation>
 <translation id="4524675003624341892">Suggerir preguntes...</translation>
@@ -2184,26 +2216,26 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="8151638057146502721">Configurar</translation>
 <translation id="999273441077650169">El model canvia dinàmicament per utilitzar el millor per a la tasca.<ph name="LINK_BEFORE"/>Aprèn més<ph name="LINK_AFTER"/></translation>
 <translation id="1238020084128916796">Hola, soc en Leo, un assistent d'IA de Brave. Tinc la tecnologia Llama 3.1 8B, un model creat per Meta per ser eficient i aplicable a molts casos d'ús. Llama s'allotja als servidors de Brave mitjançant la nostra pròpia infraestructura segura.<ph name="LINK_BEFORE"/>Més informació<ph name="LINK_AFTER"/></translation>
-<translation id="7127671672828944579">Hola, soc en Leo, un assistent d'IA de Brave. Tinc la tecnologia Qwen 14B, un model creat per Alibaba Cloud per ser eficient i aplicable a molts casos d'ús. Qwen s'allotja als servidors de Brave mitjançant la nostra pròpia infraestructura segura.<ph name="LINK_BEFORE"/>Més informació<ph name="LINK_AFTER"/></translation>
-<translation id="2328524194917949829">Hola, soc en Leo, un assistent d'IA de Brave. Tinc la tecnologia Gemma 3 12B, un model creat per Google DeepMind per ser eficient i aplicable a molts casos d'ús. Gemma s'allotja als servidors de Brave mitjançant la nostra pròpia infraestructura segura.<ph name="LINK_BEFORE"/>Més informació<ph name="LINK_AFTER"/></translation>
-<translation id="634682910381645550">Hola, soc en Leo, un assistent d'IA de Brave. Tinc la tecnologia DeepSeek R1, un model creat per DeepSeek per realitzar tasques de raonament profund. DeepSeek R1 s'allotja als servidors de Brave mitjançant la nostra pròpia infraestructura segura.<ph name="LINK_BEFORE"/>Més informació<ph name="LINK_AFTER"/></translation>
-<translation id="1021134081694325196">Hola, soc en Leo, un assistent d'IA de Brave. Tinc la tecnologia DeepSeek V3.1, un model creat per DeepSeek per ser eficient i aplicable a molts casos d'ús. DeepSeek V3.1 s'allotja als servidors de Brave mitjançant la nostra pròpia infraestructura segura.<ph name="LINK_BEFORE"/>Més informació<ph name="LINK_AFTER"/></translation>
+<translation id="3852808100039989429">Hola, soc en Leo, un assistent d'IA de Brave. Tinc la tecnologia Qwen VL 30B, un model creat per Alibaba Cloud per ser eficient i aplicable a molts casos d'ús. Qwen s’allotja als servidors de Brave mitjançant la nostra pròpia infraestructura segura.<ph name="LINK_BEFORE"/>Més informació<ph name="LINK_AFTER"/></translation>
+<translation id="3812564134126884433">Hola, soc en Leo, un assistent d'IA de Brave. Tinc la tecnologia DeepSeek V3.1, un model creat per DeepSeek per ser eficient i aplicable a molts casos d'ús. DeepSeek V3.1 s'allotja a través de la seva pròpia infraestructura segura verificable de NEAR.<ph name="LINK_BEFORE"/>Més informació<ph name="LINK_AFTER"/></translation>
 <translation id="8932568551552504373">Hola, soc en Leo. Soc un assistent amb IA de Brave. Funciono amb Claude Instant, un model creat per Anthropic per gestionar tasques de conversa i processament de text. Claude Instant s'allotja a Brave mitjançant la nostra infraestructura segura.<ph name="LINK_BEFORE"/>Més informació<ph name="LINK_AFTER"/></translation>
 <translation id="3789772321824682783">Hola, soc en Leo. Estic en un servidor intermedi de Brave i funciono amb Claude Haiku, un model creat per Anthropic per permetre tasques de conversa i de processament de textos. Claude Haiku s'allotja als servidors de Brave mitjançant la nostra pròpia infraestructura segura.<ph name="LINK_BEFORE"/>Per a més informació<ph name="LINK_AFTER"/></translation>
 <translation id="1778885220602472158">Hola, soc en Leo. Estic en un servidor intermedi de Brave i funciono amb Claude Sonnet, un model creat per Anthropic per permetre tasques de conversa i de processament de textos. Claude Sonnet s'allotja als servidors de Brave mitjançant la nostra pròpia infraestructura segura.<ph name="LINK_BEFORE"/>Per a més informació<ph name="LINK_AFTER"/></translation>
-<translation id="1058830842518828124">Hola, soc en Leo, un assistent d'IA de Brave. Tinc la tecnologia Llama 4 Scout, un model creat per Meta per ser eficient i aplicable a molts casos d'ús. Llama 4 Scout s'allotja als servidors de Brave mitjançant la nostra pròpia infraestructura segura.<ph name="LINK_BEFORE"/>Més informació<ph name="LINK_AFTER"/></translation>
 <translation id="6277330815126859513">Hola, soc en Leo, un assistent d'IA de Brave. Tinc la tecnologia Llama 4 Maverick, un model creat per Meta per ser eficient i aplicable a molts casos d'ús. Llama 4 Maverick s'allotja als servidors de Brave mitjançant la nostra pròpia infraestructura segura.<ph name="LINK_BEFORE"/>Més informació<ph name="LINK_AFTER"/></translation>
 <translation id="5833148755396048122">Hola, soc en Leo, un assistent d'IA de Brave. Tinc la tecnologia GPT OSS 20B, un model creat per OpenAI per ser eficient i aplicable a molts casos d'ús. GPT OSS 20B s'allotja als servidors de Brave mitjançant la nostra pròpia infraestructura segura.<ph name="LINK_BEFORE"/>Més informació<ph name="LINK_AFTER"/></translation>
 <translation id="5414593137581221307">Hola, soc en Leo, un assistent d'IA de Brave. Tinc la tecnologia GPT OSS 120B, un model creat per OpenAI per ser eficient i aplicable a molts casos d'ús. GPT OSS 120B s'allotja als servidors de Brave mitjançant la nostra pròpia infraestructura segura.<ph name="LINK_BEFORE"/>Més informació<ph name="LINK_AFTER"/></translation>
 <translation id="5037359072717016032">Hola, soc en Leo, un assistent d'IA de Brave. Tinc la tecnologia Mistral Large, un model creat per Mistral per ser eficient i aplicable a molts casos d'ús. Mistral Large s'allotja als servidors de Brave mitjançant la nostra pròpia infraestructura segura.<ph name="LINK_BEFORE"/>Més informació<ph name="LINK_AFTER"/></translation>
-<translation id="8947618429500471804">Hola, soc en Leo, un assistent d'IA de Brave. Tinc la tecnologia Pixtral Large, un model creat per Mistral per ser eficient i aplicable a molts casos d'ús. Pixtral Large s'allotja als servidors de Brave mitjançant la nostra pròpia infraestructura segura.<ph name="LINK_BEFORE"/>Més informació<ph name="LINK_AFTER"/></translation>
 <translation id="4026902371301997261">Hola, soc en Leo, un assistent d'IA de Brave. Tinc la tecnologia Qwen 3 235B, un model creat per Alibaba Cloud per ser eficient i aplicable a molts casos d'ús. Qwen 3 235B s'allotja als servidors de Brave mitjançant la nostra pròpia infraestructura segura.<ph name="LINK_BEFORE"/>Més informació<ph name="LINK_AFTER"/></translation>
-<translation id="768541432895104346">Hola, soc en Leo, un assistent d'IA de Brave. Tinc la tecnologia Deepseek V3.1, un model creat per Deepseek per ser eficient i aplicable a molts casos d'ús. Deepseek V3.1 s'allotja als servidors de Brave mitjançant la nostra pròpia infraestructura segura.<ph name="LINK_BEFORE"/>Més informació<ph name="LINK_AFTER"/></translation>
+<translation id="8720758690351028307">Hola, soc en Leo, un assistent d'IA de Brave. Tinc la tecnologia Deepseek V3.2, un model creat per Deepseek per ser eficient i aplicable a molts casos d'ús. Deepseek V3.2 s'allotja als servidors de Brave mitjançant la nostra pròpia infraestructura segura.<ph name="LINK_BEFORE"/>Més informació<ph name="LINK_AFTER"/></translation>
 <translation id="3767678495358551728">Hola, soc en Leo, un assistent d'IA de Brave. Tinc la tecnologia Qwen 3 Coder 480B, un model creat per Alibaba Cloud per ser eficient i aplicable a molts casos d'ús. Qwen 3 Coder 480B s'allotja als servidors de Brave mitjançant la nostra pròpia infraestructura segura.<ph name="LINK_BEFORE"/>Més informació<ph name="LINK_AFTER"/></translation>
 <translation id="3369866806475938617">Hola, soc en Leo. Estic en un servidor intermedi de Brave i funciono amb Claude Opus, un model creat per Anthropic per permetre tasques de conversa i de processament de textos. Claude Opus s'allotja als servidors de Brave mitjançant la nostra pròpia infraestructura segura.<ph name="LINK_BEFORE"/>Per a més informació<ph name="LINK_AFTER"/></translation>
+<translation id="7238858567393403597">Hola, soc en Leo, un assistent d'IA de Brave. Tinc la tecnologia GPT OSS 120B, un model creat per OpenAI per ser eficient i aplicable a molts casos d'ús. GPT OSS 120B s'allotja als servidors de Brave mitjançant la nostra pròpia infraestructura segura.<ph name="LINK_BEFORE"/>Més informació<ph name="LINK_AFTER"/></translation>
+<translation id="6983410749026920122">Hola, soc en Leo, un assistent d'IA de Brave. Tinc la tecnologia Kimi K2.5, un model creat per Moonshot AI per ser eficient i aplicable a molts casos d'ús. Kimi K2.5 s'allotja als servidors de Brave mitjançant la nostra pròpia infraestructura segura.<ph name="LINK_BEFORE"/>Més informació<ph name="LINK_AFTER"/></translation>
+<translation id="2965634373697869601">Hola, soc en Leo, un assistent d'IA de Brave. Tinc la tecnologia Brave Ocelot, un model creat per Brave per resumir pàgines web. Brave Ocelot s'allotja als servidors de Brave mitjançant la nostra pròpia infraestructura segura.<ph name="LINK_BEFORE"/>Més informació<ph name="LINK_AFTER"/></translation>
 <translation id="963346402440669081">Premium</translation>
 <translation id="5807427080183870259">Local</translation>
 <translation id="830868413617744215">Beta</translation>
+<translation id="4773408460773097271">Ollama</translation>
 <translation id="631371844654031449">Models recomanats</translation>
 <translation id="6568044140836233369">Mostrar tots els models</translation>
 <translation id="6187065185557150870">Xat</translation>
@@ -2237,6 +2269,7 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="9109355817507033196">No us ha agradat la resposta</translation>
 <translation id="4049425842478222936">Us ha agradat la resposta</translation>
 <translation id="6393149565874086128">Afegiu suggeriments</translation>
+<translation id="4621961534325272682">Conversa copiada al porta-retalls</translation>
 <translation id="3521125531016408657">Fes "M'agrada" a la resposta</translation>
 <translation id="8202517001427388906">Fes "No m'agrada" a la resposta</translation>
 <translation id="1379399209929302811">Envia suggeriments sobre la IA de Brave</translation>
@@ -2281,6 +2314,8 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="6495402307502950726">Esborrar la conversa</translation>
 <translation id="903201991022343217">Començar una nova conversa</translation>
 <translation id="8171760814579050200">Canviar el nom de la conversa</translation>
+<translation id="402386227879573975">Copia tota la conversa</translation>
+<translation id="5397794290049113714">Usuari</translation>
 <translation id="7754678742055438573">Esborra conversa</translation>
 <translation id="1946267518364740045">Processant resposta...</translation>
 <translation id="4198859185714743678">Processament completat</translation>
@@ -2292,7 +2327,8 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="1243966363662220847">Comentaris sobre la resposta</translation>
 <translation id="7417895556119762861">Indicar si una resposta t'agrada o no enviarà valoracions, converses, model, idioma, versió i estatus premium a Brave per tal de millorar Leo.<ph name="LINK_BEFORE"/>Més informació<ph name="LINK_AFTER"/></translation>
 <translation id="7494736170250048402">Envia un missatge a Leo</translation>
-<translation id="4084869091337186002">L'agent de contingut de la IA Leo sempre està activat en aquest perfil</translation>
+<translation id="6222803935921999130">Obre la finestra del perfil de navegació amb IA</translation>
+<translation id="1530903352777607099">El mode de navegació amb IA sempre està activat en aquest perfil</translation>
 <translation id="8650874793377330048">Aturar les respostes</translation>
 <translation id="8712637175834984815">D'acord</translation>
 <translation id="1093419424466417703">La pàgina és massa llarga per a Leo. Podria faltar part del context de la conversa. Leo ha pogut llegir el <ph name="PERCENTAGE"/> dels continguts de la pàgina.</translation>
@@ -2315,9 +2351,7 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="1602382615168212961">Envia el contingut de la pàgina des de les pestanyes dins les adreces d'interès per tal que Leo tingui més context per a la conversa.</translation>
 <translation id="4808122506413075135">Envia el contingut de la pàgina des del teu historial del navegador perquè Leo tingui més context per a la conversa.</translation>
 <translation id="220541218939267992">El contingut de la pàgina s'enviarà a en Leo juntament amb els teus missatges.</translation>
-<translation id="8164365899016970783">Afegeix contingut de pestanyes i adreces d'interès per contextualitzar. El contingut s'enviarà a Leo juntament amb els teus missatges.</translation>
-<translation id="6237410387937453423">No hi ha annexos coincidents</translation>
-<translation id="8076492880354921740">Pestanyes</translation>
+<translation id="2152389270152475874">Afegeix pestanyes, adreces d'interès o l'historial per proporcionar context. Els continguts seleccionats s'enviaran a Leo juntament amb els teus missatges.</translation>
 <translation id="2315654674554095762">A partir d'ara, Leo recordarà les vostres converses perquè puguis consultar-les de nou. S'emmagatzemen xifrades al teu aparell i pots esborrar-les quan vulguis.</translation>
 <translation id="7821251979960635244">Un cop comencis una conversa, el teu historial de converses apareixerà aquí.</translation>
 <translation id="887511360213807449">L'historial està deshabilitat</translation>
@@ -2326,10 +2360,12 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="3185367320601718531">Conversa i generació de text</translation>
 <translation id="2793458212460902934">Ràpid • Cercador • Eines</translation>
 <translation id="8506027496671575183">Cercador • Visió • Eines</translation>
-<translation id="3213834013136637671">Cercador • Visió</translation>
-<translation id="7697693533305615127">Cercador • Pensament</translation>
+<translation id="3184606955650139158">Ràpid • Cercador • Visió</translation>
 <translation id="7465032796278724624">Verificadament privat amb NEAR AI TEE</translation>
 <translation id="8782867266498869301">El model canvia dinàmicament per utilitzar el més adequat per a la tasca</translation>
+<translation id="3213834013136637671">Cercador • Visió</translation>
+<translation id="5276681919620506371">Cercador • Eines</translation>
+<translation id="7434375176361995333">Resums • Ràpid</translation>
 <translation id="3965507912994218570">Configuració de Leo</translation>
 <translation id="3754337604877048671">Presentem en Leo IA</translation>
 <translation id="5295261408976371809">El teu assistent amb IA <ph name="TEXT_BEFORE"/>privat<ph name="TEXT_AFTER"/>, integrat directament al navegador.</translation>
@@ -2385,6 +2421,8 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="4572010449071015143">Inicia una conversa nova</translation>
 <translation id="345901077335355561">Tornar a la conversa activa</translation>
 <translation id="6287023598025162715">Nova conversa</translation>
+<translation id="7230502562132448519">Filtra les converses</translation>
+<translation id="821070843380699990">Prova una altra consulta</translation>
 <translation id="7097822247923237815">Xat temporal</translation>
 <translation id="7481750859362986254">Aquest xat no es guardarà al teu historial ni utilitzarà cap de les personalitzacions o records de Leo.</translation>
 <translation id="4238305333951712482">Memòria actualitzada: <ph name="MEMORY_CONTENT"/></translation>
@@ -2407,27 +2445,46 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="4798146464408730445">No s'han trobat habilitats. Crea'n una de nova fent clic al botó "Nova".</translation>
 <translation id="271033894570825754">Nova</translation>
 <translation id="8266605059880650542">Anotant informació sobre la pàgina per a més tard</translation>
-<translation id="7049849063044248805">El mode agent funciona amb models que admeten eines. Els models no compatibles s’amaguen d’aquesta llista.</translation>
+<translation id="5103625298494362646">El mode agent funciona amb models que admeten eines. Els models no compatibles s’amaguen d’aquesta llista.</translation>
 <translation id="3397808797783614750">Habilitar la navegació automàtica mitjançant IA pot causar conseqüències perjudicials i no desitjades per a la vostra privadesa, finances i comunicacions en línia. <ph name="LINK_BEFORE"/>Més informació<ph name="LINK_AFTER"/></translation>
 <translation id="4522025297473237294">Avís de seguretat</translation>
 <translation id="6077070599873946984">Brave IA necessita el teu permís per a: <ph name="TOOL_LABEL"/></translation>
 <translation id="4163837693685963037">S'ha detectat que l'operació podria no coincidir amb la vostra sol·licitud:</translation>
 <translation id="3927932062596804919">Rebutja</translation>
 <translation id="4569155249847375786">Verificat</translation>
-<translation id="3240988198391588806">Mode agent</translation>
-<translation id="538066983058750776">Quant al perfil de Leo</translation>
-<translation id="1577570612997320961">Per protegir les teves dades, aquest perfil aïllat de Brave limita l'accés de la IA al teu perfil de navegació principal. Leo IA té permisos addicionals aquí per visitar i interactuar amb els llocs, així que pots intentar donar-li tasques i navegar conjuntament per augmentar la productivitat.</translation>
+<translation id="8200772114523450471">Reprèn</translation>
+<translation id="7607002721634913082">Pausa</translation>
+<translation id="4773299976671772492">Aturat</translation>
+<translation id="6946722113367118030">Pensant</translation>
+<translation id="2113810663179257944">Execució de codi</translation>
+<translation id="6338250692384725496">Codi executat en sandbox per ajudar amb la vostra consulta</translation>
+<translation id="4379566111233326721">Codi:</translation>
+<translation id="3542130965673205258">Sortida:</translation>
+<translation id="5382076391290708074">Moviment de pestanyes</translation>
+<translation id="3862123464576147769">Permetre-ho enviarà l'<ph name="URL_FORMAT_START"/>URL<ph name="URL_FORMAT_END"/> i el <ph name="TITLE_FORMAT_START"/>Títol<ph name="TITLE_FORMAT_END"/> de totes les teves Pestanyes i Grups de Pestanyes a l'IA de Brave, i permetrà que l'IA de Brave les mogui. Aquest permís s'aplica només a aquesta conversa.</translation>
+<translation id="396165714586708444">Investigació profunda</translation>
+<translation id="577747221882855891">Cercant: "<ph name="QUERY"/>"</translation>
+<translation id="5061713007774798338">Analitzant <ph name="COUNT"/> fonts per a "<ph name="QUERY"/>"</translation>
+<translation id="1202264349398113062">Processant <ph name="COUNT"/> URLs nous per a "<ph name="QUERY"/>"</translation>
+<translation id="6189479600023022289">S'han trobat <ph name="COUNT"/> URLs per a "<ph name="QUERY"/>"</translation>
+<translation id="5150674341374247355">Obtenint <ph name="FETCHED"/>/<ph name="TOTAL"/> URLs</translation>
+<translation id="1075606740174445363">Analitzades <ph name="COUNT"/> URLs per a "<ph name="QUERY"/>"</translation>
+<translation id="6220878652174655112">Cercant <ph name="COUNT"/> consultes</translation>
+<translation id="3571450204565012512">Analitzades <ph name="URL_COUNT"/> URLs de <ph name="QUERY_COUNT"/> cerques</translation>
+<translation id="5733200563889491347">Processament completat</translation>
+<translation id="9164915383881032549"><ph name="MINUTES"/>m <ph name="SECONDS"/>s</translation>
+<translation id="6219719719991016422"><ph name="SECONDS"/>s</translation>
+<translation id="5067194014665306881">Error de processament: <ph name="ERROR"/></translation>
+<translation id="3428245742224818842">Navegació IA</translation>
+<translation id="2854657728271352435">Quant al perfil de navegació IA</translation>
+<translation id="2301685062527585986">Per protegir les teves dades, aquest perfil de navegació IA aïllat garanteix que l’agent d’IA no tingui accés al teu perfil de navegació principal, amb permisos només per visitar i interactuar amb llocs si cal. Pots augmentar la productivitat donant-li tasques i deixant-lo navegar per tu.</translation>
 <translation id="648116453147783450">Les teves dades i sessions</translation>
-<translation id="3906161204878017619">Quan inicies sessió en un lloc web amb aquest perfil, Leo pot veure la informació d’aquest lloc si està obert, tant si el visita ell directament com si li demanes que hi faci alguna acció.</translation>
+<translation id="4879348540868082026">Quan inicies sessió en un lloc web amb aquest perfil, l'agent de navegació IA de Brave pot veure la informació d'aquest lloc si està obert, tant si el visita ell mateix com si li demanes que hi faci alguna acció.</translation>
 <translation id="5583803492921648196">Canviar al perfil habitual</translation>
-<translation id="8068929004144221259">Pots tornar al teu perfil habitual en qualsevol moment des del menú principal o l’avatar de Leo de la barra d'eines. El mode agent sempre s’obrirà amb aquest perfil.</translation>
+<translation id="864117099189791993">Pots tornar al teu perfil habitual en qualsevol moment des del menú principal o amb el menú de perfil de la barra d'eines. La navegació IA sempre s’obrirà al perfil de navegació IA.</translation>
 <translation id="3486480638399578250">Mantingues privada la teva adreça de correu electrònic</translation>
 <translation id="7765422154906712751">Crea adreces úniques i aleatòries que es reenvien al correu electrònic del teu compte de Brave i que es poden eliminar en qualsevol moment. Mantingues la teva adreça de correu electrònic real fora de l’abast dels anunciants.</translation>
-<translation id="5222676887888702881">Tancar sessió</translation>
-<translation id="8090292425230843109">Tancar sessió de correu electrònic alternatiu</translation>
-<translation id="8471990782451394141">Connectant al compte de Brave...</translation>
 <translation id="71316462802471551">Correus electrònics alternatius</translation>
-<translation id="5713644099811900409">Compte de Brave</translation>
 <translation id="6002159997868894136">Clica per copiar el correu electrònic alternatiu</translation>
 <translation id="8105770564756958406">Utilitzat per <ph name="DOMAINS"/></translation>
 <translation id="5006956315579221642">Crea fins a 5 adreces de correu alternatives gratuïtes per protegir la teva adreça de correu real.</translation>
@@ -2451,8 +2508,8 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="646524615209870492">Si elimines <ph name="ALIAS"/> com a correu electrònic alternatiu, perdràs la teva capacitat per rebre correus electrònics.</translation>
 <translation id="8133100642915054515">Error en eliminar correu electrònic alternatiu. Comprova la teva connexió a internet i torna-ho a provar.</translation>
 <translation id="8465742443901727718">Aquesta acció és irreversible. Segur que vols continuar?</translation>
-<translation id="8662104432574824754">Per començar, inicia sessió o crea un compte de Brave</translation>
-<translation id="8069030342700068465">Introdueix la teva adreça de correu perquè se't pugui enviar un enllaç segur d'inici de sessió. En clicar aquest enllaç, es crearà o s'accedirà a un compte de Brave i podràs utilitzar el servei gratuït de correus electrònics alternatius.</translation>
+<translation id="9162685486229945876">Inicia sessió o crea un compte de Brave</translation>
+<translation id="1335007417599138852">Un compte de Brave us permetrà accedir a certs productes de Brave i sincronitzar fàcilment la vostra informació en tots els vostres dispositius.</translation>
 <translation id="2133391407495495735">Obtenir enllaç d'inici de sessió</translation>
 <translation id="2650906829817220223">Error en sol·licitar autentificació. Comprova la teva connexió a internet i torna-ho a provar.</translation>
 <translation id="3699624789011381381">Adreça de correu electrònic</translation>
@@ -2482,11 +2539,14 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="7847477075635510673">Ocultar Notícies</translation>
 <translation id="9173319813356700250">NOTÍCIES</translation>
 <translation id="6543799171249004861">Foto de <ph name="AUTHOR"/></translation>
+<translation id="2361906291514218784">IA Leo</translation>
 <translation id="466214682712474574">Accedeix al teu <ph name="PROVIDER"/> compte per veure el teu saldo</translation>
 <translation id="8332875111286275890">Inici sessió per veure el teu saldo</translation>
 <translation id="5430001801813715388">RECOMPENSES</translation>
-<translation id="5966055668402779222">Preguntar al Cercador de Brave</translation>
+<translation id="988042349921505128">Cercador i IA</translation>
+<translation id="2430295257226173518">Pregunta el que vulguis, troba el que busquis…</translation>
 <translation id="167018310108390163">Personalitzar la pàgina de Nova Pestaña</translation>
+<translation id="3500134717967948757">Mostra el giny de Leo IA a les noves pestanyes</translation>
 <translation id="6851426306697017546">Mostrar el rellotge</translation>
 <translation id="4844370919312937270">Mostra el widget de cerca a les noves pestanyes</translation>
 <translation id="7328310113820087094">Amb <ph name="LINK_BEGIN"/>Recompenses de Brave<ph name="LINK_END"/>, pots obtenir recompenses veient publicitat a la pàgina de nova pestanya.</translation>
@@ -2515,25 +2575,35 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="8458987127502506209">Activa els Escuts de Brave</translation>
 <translation id="8443488493738411048"><ph name="STATUS_BEFORE"/>Els Escuts estan ACTIVATS<ph name="STATUS_AFTER"/> per a aquest lloc</translation>
 <translation id="2458631245058451506"><ph name="STATUS_BEFORE"/>Els Escuts estan DESACTIVATS<ph name="STATUS_AFTER"/> per a aquest lloc</translation>
+<translation id="8426214145426269584">Escuts <ph name="UP_BEFORE"/>activats<ph name="UP_AFTER"/> per a aquest lloc</translation>
+<translation id="3325367578778625743">Escuts <ph name="DOWN_BEFORE"/>desactivats<ph name="DOWN_AFTER"/> per a aquest lloc</translation>
 <translation id="4724752924364329714">Si aquest lloc sembla que estigui trencat, prova de desactivar Escuts.</translation>
 <translation id="3992385019509961907"><ph name="NOTE_BEFORE"/>Nota: això pot reduir les proteccions de privadesa de Brave.<ph name="NOTE_AFTER"/></translation>
+<translation id="4329860807937715445">Això pot reduir les proteccions de privacitat de Brave. <ph name="LINK_BEFORE"/>Més informació<ph name="LINK_AFTER"/></translation>
+<translation id="3889333301730272023"><ph name="BLOCK_COUNT"/> rastrejadors, anuncis i més bloquejats</translation>
+<translation id="2275121279487164685">Rastrejadors i anuncis</translation>
+<translation id="4968268657895673116">El lloc no funciona correctament amb Escuts activat?</translation>
+<translation id="5412004902081180614">Informar</translation>
 <translation id="3620004479054499575">Tens problemes amb aquest lloc?</translation>
 <translation id="9176447766421988172">Estem provant un experiment per augmentar la compatibilitat web, on mantenim activa només la protecció contra anuncis. Avís: elimina totes les proteccions de privadesa. Vols provar-ho? <ph name="LINK_BEFORE"/>Més informació<ph name="LINK_AFTER"/>.</translation>
 <translation id="5372101283158221516">Tingues en compte que per llocs individuals trencats per les proteccions de privadesa de Brave, pots posar Escuts en ABAIX.</translation>
-<translation id="1836572675775891780">Activa el mode Només Bloqueig d'Anuncis</translation>
+<translation id="2850777974644218370">Activa el mode Només Bloc d'Anuncis</translation>
 <translation id="6623668214089604469">Aquest lloc funciona correctament ara?</translation>
 <translation id="8978860854770042258">Si el lloc encara està trencat, considera enviar un informe.</translation>
 <translation id="4677356505199464553">Sembla correcte</translation>
 <translation id="1992750560347846445">Informa del lloc</translation>
-<translation id="2887186586339544116">S'ha activat el mode Només Bloqueig d'Anuncis</translation>
-<translation id="673665019618844072">Actualment estàs utilitzant el mode Només Bloqueig d'Anuncis. Aquest mode només ofereix protecció contra anuncis. Si vols tornar al mode complet d'Escuts, desactiva aquest mode des de la configuració.</translation>
+<translation id="2863270180245144869">S'ha activat el mode Només Bloqueig d'Anuncis</translation>
+<translation id="3773808439655997805">Actualment esteu utilitzant el mode només bloqueig d'anuncis. Aquest mode només ofereix protecció de bloqueig d'anuncis (si els Escuts estan actius). Si desitjeu tornar al mode Escuts complet, desactiveu aquest mode des de la configuració.</translation>
 <translation id="4820891023903368625">Anuncis bloquejats <ph name="LINK_BEFORE"/>Més informació<ph name="LINK_AFTER"/></translation>
 <translation id="8377155647357436161">Rastrejadors, anuncis i més <ph name="LINK_BEFORE"/>bloquejats. Saber-ne més<ph name="LINK_AFTER"/></translation>
 <translation id="7604553853176833536">No està protegit pels Escuts de Brave <ph name="LINK_BEFORE"/>Més informació<ph name="LINK_AFTER"/></translation>
 <translation id="650318023204990401">Controls avançats</translation>
+<translation id="7939062555109487992">Opcions avançades</translation>
 <translation id="5799940914270080805">Si canvies aquests paràmetres és possible que els llocs no funcionin.</translation>
 <translation id="9204041448536398473">Paràmetres de l'escut global</translation>
 <translation id="2108334320919763866">Paràmetres per defecte globals</translation>
+<translation id="1896472873031845605">Configuració global</translation>
+<translation id="8324318899000695659">Bloqueja elements</translation>
 <translation id="7205939464631857223">Esborrar tots els elements bloquejats</translation>
 <translation id="3440043456924990296">Paràmetres gestionats per l'organització</translation>
 <translation id="7053983685419859001">Bloqueja</translation>
@@ -2559,6 +2629,8 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="6975864539539353406">Esborra les galetes i altres dades dels llocs quan tanquis un lloc</translation>
 <translation id="6486971767955110687">Desar informació de contacte per a futurs informes d'errors del lloc</translation>
 <translation id="4085787265464238844">Si introdueixes la teva informació de contacte, aquesta serà emmagatzemada per a futurs informes</translation>
+<translation id="7740929262043547697">Permet el bloqueig d'elements a les finestres d'incògnit</translation>
+<translation id="1260864846935682371">Activa la característica Bloca Elements dels Escuts a les finestres d'incògnit. Tingues en compte que els elements blocats a les finestres d'incògnit també es blocaran a les finestres no privades.</translation>
 <translation id="6883611015375728278">Bloqueja totes les galetes</translation>
 <translation id="5657156137487675418">Permet totes les galetes</translation>
 <translation id="8366221601425141146">Empremtes digitals bloquejades</translation>
@@ -2571,9 +2643,11 @@ condicions d'ús <ph name="END_PROVIDER_TOU_LINK"/> i <ph name="BEGIN_PROVIDER_P
 <translation id="3795015906457257780">Estàs veient aquest lloc sense les proteccions de privadesa de Brave.</translation>
 <translation id="7194012750329511146">Escuts de Brave
 <ph name="NUMBER"/> Rastrejadors, anuncis i més bloquejats</translation>
+<translation id="2900068182947574679">Scripts</translation>
 <translation id="4292121526390005808">Seqüències d'ordres bloquejades</translation>
 <translation id="5046271170844958713">Seqüències d'ordres permeses</translation>
 <translation id="199862531047218413">S'ha aplicat la protecció contra la identificació per empremtes dactilars</translation>
+<translation id="896105002981074545">Proteccions contra l'emprenta digital</translation>
 <translation id="5032505924781383272">Les proteccions aplicades no indiquen necessàriament que aquesta pàgina web estigui intentant la identificació per empremtes dactilars del teu navegador.</translation>
 <translation id="1905384713982899903">Empremtes digitals bloquejades</translation>
 <translation id="314364527871618241">Empremtes digitals permeses</translation>
@@ -2584,6 +2658,9 @@ other {Escuts de Brave ha bloquejat {BLOCKED_COUNT} rastrejadors a <ph name="SIT
 }</translation>
 <translation id="2540598191934725677">Clica a la icona de Brave per veure els Escuts de Brave.</translation>
 <translation id="542789539047208469">Informació del lloc</translation>
+<translation id="7586067492365979844">Els Escuts de Brave tenen una nova ubicació i disseny. Ara s'integra amb la informació del lloc per a una experiència d'una única parada.</translation>
+<translation id="9114542678887529043">Els Escuts de Brave tenen una nova ubicació i disseny. Accediu-hi fent clic a la icona del lloc a la barra d'adreces.</translation>
+<translation id="4242533952199664413">Obre configuració</translation>
 <translation id="6294662480095808915">Privadesa. Per defecte.</translation>
 <translation id="4366423156486478559">Obtingues protecció de Brave en cada enllaç que cliquis. Simplement estableix Brave com a predeterminat i navega-hi. De manera privada.</translation>
 <translation id="3830912418080848377">Importa la configuració</translation>
@@ -2595,6 +2672,7 @@ other {Escuts de Brave ha bloquejat {BLOCKED_COUNT} rastrejadors a <ph name="SIT
 <translation id="2273851479262317744">Defineix Brave com a navegador predeterminat</translation>
 <translation id="5037676449506322593">Selecciona-ho tot</translation>
 <translation id="5148943178722443958">Ajuda a millorar Brave.</translation>
+<translation id="479535542793009168">Estabilitat i diagnòstics</translation>
 <translation id="1097073572755862978">Envia informes de diagnòstic si es produeix un bloqueig o una congelació. <ph name="LINK_BEFORE"/>Més informació.<ph name="LINK_AFTER"/></translation>
 <translation id="6629244688368006959">Compartiu la informació privada i anònima de productes sobre quines funcions fan servir els usuaris de Brave. <ph name="LINK_BEFORE"/>Més informació.<ph name="LINK_AFTER"/></translation>
 <translation id="7415454883318062233">S'ha completat la configuració</translation>
@@ -2611,14 +2689,15 @@ other {Escuts de Brave ha bloquejat {BLOCKED_COUNT} rastrejadors a <ph name="SIT
 <translation id="6764845498618413165">Més informació.</translation>
 <translation id="7818938154803162778">És clar que ajudaré</translation>
 <translation id="7207456302801184289">Benvingut a Brave</translation>
-<translation id="293854220404217065">Tema de mitjanit</translation>
+<translation id="4988030440045495002">Tema ultra fosc</translation>
 <translation id="2422927186524098759">Barra lateral</translation>
-<translation id="2361906291514218784">IA Leo</translation>
 <translation id="7705524343798198388">VPN</translation>
 <translation id="8000020256436988724">Barra d'eines</translation>
 <translation id="6225572914528673855">Barra d'adreces</translation>
 <translation id="6821966107067356137">Afegeix font RSS</translation>
+<translation id="2478076885740497414">Instal·la l'aplicació</translation>
 <translation id="8293206222192510085">Afegeix una adreça d'interès</translation>
+<translation id="1010029336854254368">Menú de comparteix</translation>
 <translation id="7758460733045216901">Panell d'adreces d'interès</translation>
 <translation id="958268166261124668">VPN de Brave: connectada</translation>
 <translation id="6021669293402055982">VPN de Brave: desconnectada</translation>
@@ -2722,4 +2801,19 @@ Connecteu-vos-hi ara mateix!</translation>
 <translation id="1602850501393095406">Prem ↑ per destacar</translation>
 <translation id="8367705492654390392">Pregunta el que vulguis</translation>
 <translation id="8525248723479742219">Reprodueix-ho més tard</translation>
+<translation id="2935698011275148880">Brave Origin</translation>
+<translation id="3983844925615091103">Benvingut a Brave Origin. Per continuar, compra o restaura la teva compra de Brave Origin.</translation>
+<translation id="4801175670604644729">Necessites una compra activa de Brave Origin per utilitzar aquest navegador.</translation>
+<translation id="4144294274624829008">Restaura la compra de Brave Origin</translation>
+<translation id="6080178356113101120">Compra Brave Origin</translation>
+<translation id="1009496146858538651">Restaura la compra</translation>
+<translation id="3461564061600681423">Introdueix el teu ID de compra per activar la teva compra de Brave Origin.</translation>
+<translation id="2036379724374431790">ID de compra</translation>
+<translation id="4348430971280118761">Introdueix el teu ID de compra</translation>
+<translation id="7451866456310404779">Verifica ID de compra</translation>
+<translation id="8853195592604941919">Verificant… Això pot trigar un minut.</translation>
+<translation id="4633706444004110760">Gràcies per instal·lar Brave Origin, una versió del navegador per a usuaris que no necessiten totes les funcions que suporten Brave com a negoci, però que encara volen la privacitat que només Brave ofereix. Els usuaris de Brave Origin continuaran beneficiant-se de la nostra privacitat líder del sector, bloqueig de publicitat i velocitat (mitjançant Escuts), així com actualitzacions de programari regulars, pegats de Chromium i millores de seguretat i privacitat. Origin eliminarà la majoria de les altres funcions del navegador.</translation>
+<translation id="5816720995022674532">Origin és gratuït per utilitzar en dispositius Linux, però segueix <ph name="BEGIN_LINK"/>disponible per a compra<ph name="END_LINK"/> si vols suportar Brave com a negoci. Comprar també desbloquearia la capacitat d'utilitzar Origin a dispositius Android, iOS, macOS i Windows.</translation>
+<translation id="3065220545261045367">Suporta Brave comprant Origin</translation>
+<translation id="2069499076031488636">Continua amb Origin gratuïtament a Linux</translation>
 </translationbundle>

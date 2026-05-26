@@ -9,7 +9,7 @@
 
 #include "base/test/values_test_util.h"
 #include "brave/components/brave_ads/core/internal/account/tokens/payment_tokens/payment_token_info.h"
-#include "brave/components/brave_ads/core/internal/account/tokens/payment_tokens/payment_tokens_test_util.h"
+#include "brave/components/brave_ads/core/internal/account/tokens/payment_tokens/test/payment_tokens_test_util.h"
 #include "brave/components/brave_ads/core/internal/common/test/test_base.h"
 
 // npm run test -- brave_unit_tests --filter=BraveAds*
@@ -43,7 +43,7 @@ class BraveAdsPaymentTokenValueUtilTest : public test::TestBase {};
 
 TEST_F(BraveAdsPaymentTokenValueUtilTest, PaymentTokensToValue) {
   // Act
-  const base::Value::List list =
+  const base::ListValue list =
       PaymentTokensToValue(test::BuildPaymentTokens(/*count=*/2));
 
   // Assert
@@ -57,8 +57,7 @@ TEST_F(BraveAdsPaymentTokenValueUtilTest, EmptyPaymentTokensToValue) {
 
 TEST_F(BraveAdsPaymentTokenValueUtilTest, PaymentTokensFromValue) {
   // Arrange
-  const base::Value::List list =
-      base::test::ParseJsonList(kPaymentTokensAsJson);
+  const base::ListValue list = base::test::ParseJsonList(kPaymentTokensAsJson);
 
   // Act
   const PaymentTokenList payment_tokens = PaymentTokensFromValue(list);

@@ -3,10 +3,10 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 
-/* eslint-disable @typescript-eslint/key-spacing */
 import * as React from 'react'
 import { skipToken } from '@reduxjs/toolkit/query/react'
 import { useHistory, useLocation } from 'react-router'
+import Button from '@brave/leo/react/button'
 
 // Selectors
 import {
@@ -68,20 +68,19 @@ import {
 import {
   useIsAccountSyncing, //
 } from '../../../../common/hooks/use_is_account_syncing'
+import {
+  useIsKeyboardVisible, //
+} from '../../../../common/hooks/use_is_keyboard_visible'
 
 // Styled Components
-import { InputRow, ToText, ToRow, ShieldingFundsAlert } from './send.style'
+import { InputRow, ToText, ToRow, AlertMessage } from './send.style'
 import {
   ToSectionWrapper,
   ReviewButtonRow,
   ToSectionBackground,
   ReviewButtonBackground,
 } from '../../composer_ui/shared_composer.style'
-import {
-  Column,
-  LeoSquaredButton,
-  Row,
-} from '../../../../components/shared/style'
+import { Column, Row } from '../../../../components/shared/style'
 
 // Components
 import {
@@ -152,11 +151,15 @@ export const SendScreen = React.memo(() => {
   const [isWarningAcknowledged, setIsWarningAcknowledged] =
     React.useState<boolean>(false)
   const [memoText, setMemoText] = React.useState<string>('')
+  const [transactionProcessFailedMessage, setTransactionProcessFailedMessage] =
+    React.useState<string>()
 
   // Selectors
   const isPanel = useSafeUISelector(UISelectors.isPanel)
   const isMobile = useSafeUISelector(UISelectors.isMobile)
   const isMobileOrPanel = isMobile || isPanel
+  const isIOS = useSafeUISelector(UISelectors.isIOS)
+  const isKeyboardVisible = useIsKeyboardVisible()
   const isZCashShieldedTransactionsEnabled = useSafeWalletSelector(
     WalletSelectors.isZCashShieldedTransactionsEnabled,
   )
@@ -301,9 +304,9 @@ export const SendScreen = React.memo(() => {
     return amountWei.gt(sendAssetBalance)
   }, [sendAssetBalance, sendAmount, tokenFromParams])
 
-  const tokenColor = React.useMemo(() => {
-    return getDominantColorFromImageURL(tokenFromParams?.logo ?? '')
-  }, [tokenFromParams?.logo])
+  const tokenColor = isIOS
+    ? undefined
+    : getDominantColorFromImageURL(tokenFromParams?.logo ?? '')
 
   const needsAccountSelected =
     accountIdFromParams === undefined
@@ -328,6 +331,7 @@ export const SendScreen = React.memo(() => {
       if (account) {
         history.replace(makeSendRoute(asset, account))
       }
+      setTransactionProcessFailedMessage(undefined)
     },
     [history, needsAccountSelected, toAddressOrUrl],
   )
@@ -372,16 +376,27 @@ export const SendScreen = React.memo(() => {
 
     switch (fromAccount.accountId.coin) {
       case BraveWallet.CoinType.BTC: {
-        await sendBtcTransaction({
-          network: networkFromParams,
-          fromAccount,
-          to: toAddress,
-          sendingMaxAmount,
-          value: new Amount(sendAmount)
-            .multiplyByDecimals(tokenFromParams.decimals)
-            .toHex(),
-        })
-        resetSendFields()
+        setTransactionProcessFailedMessage(undefined)
+        try {
+          await sendBtcTransaction({
+            network: networkFromParams,
+            fromAccount,
+            to: toAddress,
+            sendingMaxAmount,
+            value: new Amount(sendAmount)
+              .multiplyByDecimals(tokenFromParams.decimals)
+              .toHex(),
+          }).unwrap()
+          resetSendFields()
+        } catch (error) {
+          console.error('Btc send failed:', error)
+          setTransactionProcessFailedMessage(
+            getLocale('braveWalletProcessTransactionErrorMessage').replace(
+              '$1',
+              tokenFromParams.symbol,
+            ),
+          )
+        }
         return
       }
 
@@ -498,34 +513,57 @@ export const SendScreen = React.memo(() => {
       }
 
       case BraveWallet.CoinType.ZEC: {
-        const memoArray =
-          memoText !== '' ? new TextEncoder().encode(memoText) : undefined
-        await sendZecTransaction({
-          useShieldedPool: tokenFromParams.isShielded,
-          network: networkFromParams,
-          fromAccount,
-          to: toAddress,
-          sendingMaxAmount,
-          value: new Amount(sendAmount)
-            .multiplyByDecimals(tokenFromParams.decimals)
-            .toHex(),
-          memo: memoArray ? Array.from(memoArray) : undefined,
-        })
-        resetSendFields()
+        setTransactionProcessFailedMessage(undefined)
+        try {
+          const memoArray =
+            memoText !== '' ? new TextEncoder().encode(memoText) : undefined
+          await sendZecTransaction({
+            useShieldedPool: tokenFromParams.isShielded,
+            network: networkFromParams,
+            fromAccount,
+            to: toAddress,
+            sendingMaxAmount,
+            value: new Amount(sendAmount)
+              .multiplyByDecimals(tokenFromParams.decimals)
+              .toHex(),
+            memo: memoArray ? Array.from(memoArray) : undefined,
+          }).unwrap()
+          resetSendFields()
+        } catch (error) {
+          console.error('Zec send failed:', error)
+          setTransactionProcessFailedMessage(
+            getLocale('braveWalletProcessTransactionErrorMessage').replace(
+              '$1',
+              tokenFromParams.symbol,
+            ),
+          )
+        }
         return
       }
 
       case BraveWallet.CoinType.ADA: {
-        await sendCardanoTransaction({
-          network: networkFromParams,
-          fromAccount,
-          to: toAddress,
-          sendingMaxAmount,
-          value: new Amount(sendAmount)
-            .multiplyByDecimals(tokenFromParams.decimals)
-            .toHex(),
-        })
-        resetSendFields()
+        setTransactionProcessFailedMessage(undefined)
+        try {
+          await sendCardanoTransaction({
+            network: networkFromParams,
+            fromAccount,
+            to: toAddress,
+            sendingMaxAmount,
+            value: new Amount(sendAmount)
+              .multiplyByDecimals(tokenFromParams.decimals)
+              .toHex(),
+            tokenId: tokenFromParams.contractAddress || undefined,
+          }).unwrap()
+          resetSendFields()
+        } catch (error) {
+          console.error('Cardano send failed:', error)
+          setTransactionProcessFailedMessage(
+            getLocale('braveWalletProcessTransactionErrorMessage').replace(
+              '$1',
+              tokenFromParams.symbol,
+            ),
+          )
+        }
         return
       }
 
@@ -612,6 +650,28 @@ export const SendScreen = React.memo(() => {
       openSelectTokenModal()
     }
   }, [needsAccountSelected, openSelectTokenModal])
+
+  React.useEffect(() => {
+    // If transactionProcessFailedMessage is set and tokenFromParams becomes undefined,
+    // user has likely cleared the state by re-navigating to the send screen,
+    // so reset the transactionProcessFailedMessage and sendAmount.
+    if (transactionProcessFailedMessage && !tokenFromParams) {
+      setTransactionProcessFailedMessage(undefined)
+      setSendAmount('')
+    }
+  }, [tokenFromParams, transactionProcessFailedMessage])
+
+  // Computed
+  const isReviewButtonDisabled =
+    memoText.length > MAX_ZCASH_MEMO_LENGTH
+    || !toAddressOrUrl
+    || insufficientFundsError
+    || sendAmount === ''
+    || parseFloat(sendAmount) === 0
+    || Boolean(sendAmountValidationError)
+    || (tokenFromParams?.coin === BraveWallet.CoinType.BTC
+      && !isWarningAcknowledged)
+    || isAccountSyncing
 
   // render
   return (
@@ -704,9 +764,9 @@ export const SendScreen = React.memo(() => {
                     width='100%'
                     padding='16px 0px 0px 0px'
                   >
-                    <ShieldingFundsAlert type='info'>
+                    <AlertMessage type='info'>
                       {getLocale('braveWalletShieldingFundsAlertDescription')}
-                    </ShieldingFundsAlert>
+                    </AlertMessage>
                   </Row>
                 )}
                 {isUnshieldingFunds && (
@@ -714,29 +774,37 @@ export const SendScreen = React.memo(() => {
                     width='100%'
                     padding='16px 0px 0px 0px'
                   >
-                    <ShieldingFundsAlert type='info'>
+                    <AlertMessage type='info'>
                       {getLocale('braveWalletUnshieldingFundsAlertDescription')}
-                    </ShieldingFundsAlert>
+                    </AlertMessage>
+                  </Row>
+                )}
+                {transactionProcessFailedMessage && (
+                  <Row
+                    width='100%'
+                    padding={
+                      tokenFromParams?.coin === BraveWallet.CoinType.BTC
+                        ? '0px'
+                        : '16px 0px 0px 0px'
+                    }
+                  >
+                    <AlertMessage type='warning'>
+                      {transactionProcessFailedMessage}
+                    </AlertMessage>
                   </Row>
                 )}
               </Column>
             </ToSectionWrapper>
-            <ReviewButtonRow isMobile={isMobile}>
+            <ReviewButtonRow
+              isMobile={
+                isMobile && !isKeyboardVisible && !isReviewButtonDisabled
+              }
+            >
               <ReviewButtonBackground>
-                <LeoSquaredButton
+                <Button
                   onClick={submitSend}
                   size='large'
-                  isDisabled={
-                    memoText.length > MAX_ZCASH_MEMO_LENGTH
-                    || !toAddressOrUrl
-                    || insufficientFundsError
-                    || sendAmount === ''
-                    || parseFloat(sendAmount) === 0
-                    || Boolean(sendAmountValidationError)
-                    || (tokenFromParams?.coin === BraveWallet.CoinType.BTC
-                      && !isWarningAcknowledged)
-                    || isAccountSyncing
-                  }
+                  isDisabled={isReviewButtonDisabled}
                 >
                   {getLocale(
                     getReviewButtonText(
@@ -747,7 +815,7 @@ export const SendScreen = React.memo(() => {
                       isUnshieldingFunds,
                     ),
                   ).replace('$1', CoinTypesMap[networkFromParams?.coin ?? 0])}
-                </LeoSquaredButton>
+                </Button>
               </ReviewButtonBackground>
             </ReviewButtonRow>
           </ToSectionBackground>

@@ -21,7 +21,6 @@
 #include "base/strings/string_util.h"
 #include "base/strings/string_view_util.h"
 #include "base/threading/thread_restrictions.h"
-#include "base/types/cxx23_to_underlying.h"
 #include "brave/components/ai_chat/core/common/mojom/ai_chat.mojom.h"
 #include "brave/components/ai_chat/core/common/mojom/common.mojom.h"
 #include "brave/components/ai_chat/core/common/proto_conversion.h"
@@ -570,6 +569,34 @@ std::vector<mojom::ConversationTurnPtr> AIChatDatabase::GetConversationEntries(
       }
     }
 
+    // Inline search events
+    {
+      sql::Statement event_statement(GetDB().GetUniqueStatement(
+          "SELECT event_order, search_serialized"
+          " FROM conversation_entry_event_inline_search"
+          " WHERE conversation_entry_uuid=?"
+          " ORDER BY event_order ASC"));
+      event_statement.BindString(0, entry_uuid);
+
+      while (event_statement.Step()) {
+        int event_order = event_statement.ColumnInt(0);
+        auto data = DecryptColumnToString(event_statement, 1);
+        store::InlineSearchEventProto proto_event;
+        if (proto_event.ParseFromString(data)) {
+          mojom::InlineSearchEventPtr mojom_event =
+              DeserializeInlineSearchEvent(proto_event);
+          if (mojom_event->query.empty()) {
+            DVLOG(0) << "Empty InlineSearchEvent found in database for entry "
+                     << entry_uuid;
+            continue;
+          }
+          events.emplace_back(Event{
+              event_order, mojom::ConversationEntryEvent::NewInlineSearchEvent(
+                               std::move(mojom_event))});
+        }
+      }
+    }
+
     // Tool use events
     {
       sql::Statement event_statement(
@@ -843,7 +870,7 @@ bool AIChatDatabase::AddOrUpdateAssociatedContent(
     BindAndEncryptOptionalString(insert_or_update_statement, index++,
                                  content->url.spec());
     insert_or_update_statement.BindInt(
-        index++, base::to_underlying(content->content_type));
+        index++, std::to_underlying(content->content_type));
     BindAndEncryptOptionalString(insert_or_update_statement, index++,
                                  content_text);
     insert_or_update_statement.BindInt(index++,
@@ -943,9 +970,9 @@ bool AIChatDatabase::AddConversationEntry(
   BindAndEncryptOptionalString(insert_conversation_entry_statement, index++,
                                entry->prompt);
   insert_conversation_entry_statement.BindInt(
-      index++, base::to_underlying(entry->character_type));
+      index++, std::to_underlying(entry->character_type));
   insert_conversation_entry_statement.BindInt(
-      index++, base::to_underlying(entry->action_type));
+      index++, std::to_underlying(entry->action_type));
   BindAndEncryptOptionalString(insert_conversation_entry_statement, index++,
                                entry->selected_text);
   BindOptionalString(insert_conversation_entry_statement, index++,
@@ -1029,7 +1056,31 @@ bool AIChatDatabase::AddConversationEntry(
           store::WebSourcesEventProto proto_event;
           SerializeWebSourcesEvent(event->get_sources_event(), &proto_event);
           if (proto_event.sources().empty()) {
-            DVLOG(0) << "Empty WebSourcesEvent found for persistence";
+            DVLOG(1) << "Empty WebSourcesEvent found for persistence";
+            break;
+          }
+          event_statement.BindInt(0, static_cast<int>(i));
+          if (!BindAndEncryptString(event_statement, 1,
+                                    proto_event.SerializeAsString())) {
+            return false;
+          }
+          event_statement.BindString(2, entry->uuid.value());
+          event_statement.Run();
+          break;
+        }
+        case mojom::ConversationEntryEvent::Tag::kInlineSearchEvent: {
+          sql::Statement event_statement(GetDB().GetCachedStatement(
+              SQL_FROM_HERE,
+              "INSERT INTO conversation_entry_event_inline_search"
+              " (event_order, search_serialized, conversation_entry_uuid)"
+              " VALUES(?, ?, ?)"));
+          CHECK(event_statement.is_valid());
+
+          store::InlineSearchEventProto proto_event;
+          SerializeInlineSearchEvent(event->get_inline_search_event(),
+                                     &proto_event);
+          if (proto_event.query().empty()) {
+            DVLOG(1) << "Empty InlineSearchEvent found for persistence";
             break;
           }
           event_statement.BindInt(0, static_cast<int>(i));
@@ -1692,6 +1743,19 @@ bool AIChatDatabase::CreateSchema() {
       ")";
   CHECK(GetDB().IsSQLValid(kCreateWebSourcesTableQuery));
   if (!GetDB().Execute(kCreateWebSourcesTableQuery)) {
+    return false;
+  }
+
+  static constexpr char kCreateInlineSearchTableQuery[] =
+      "CREATE TABLE IF NOT EXISTS conversation_entry_event_inline_search("
+      "conversation_entry_uuid INTEGER NOT NULL,"
+      "event_order INTEGER NOT NULL,"
+      // encrypted serialized inline search data
+      "search_serialized BLOB NOT NULL,"
+      "PRIMARY KEY(conversation_entry_uuid, event_order)"
+      ")";
+  CHECK(GetDB().IsSQLValid(kCreateInlineSearchTableQuery));
+  if (!GetDB().Execute(kCreateInlineSearchTableQuery)) {
     return false;
   }
 

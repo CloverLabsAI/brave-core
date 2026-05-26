@@ -61,10 +61,6 @@ void GeoTargets::Insert(
   mojom_db_transaction->actions.push_back(std::move(mojom_db_action));
 }
 
-std::string GeoTargets::GetTableName() const {
-  return kTableName;
-}
-
 void GeoTargets::Create(
     const mojom::DBTransactionInfoPtr& mojom_db_transaction) {
   CHECK(mojom_db_transaction);
@@ -109,7 +105,15 @@ void GeoTargets::MigrateToV48(
   // should not drop the table as it will store catalog and non-catalog ad units
   // and maintain relationships with other tables.
   DropTable(mojom_db_transaction, "geo_targets");
-  Create(mojom_db_transaction);
+  Execute(mojom_db_transaction, R"(
+      CREATE TABLE geo_targets (
+        campaign_id TEXT NOT NULL,
+        geo_target TEXT NOT NULL,
+        PRIMARY KEY (
+          campaign_id,
+          geo_target
+        ) ON CONFLICT REPLACE
+      ))");
 }
 
 std::string GeoTargets::BuildInsertSql(
@@ -127,8 +131,7 @@ std::string GeoTargets::BuildInsertSql(
             campaign_id,
             geo_target
           ) VALUES $2)",
-      {GetTableName(),
-       BuildBindColumnPlaceholders(/*column_count=*/2, row_count)},
+      {kTableName, BuildBindColumnPlaceholders(/*column_count=*/2, row_count)},
       nullptr);
 }
 

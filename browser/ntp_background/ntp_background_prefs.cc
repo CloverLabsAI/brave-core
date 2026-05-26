@@ -10,6 +10,7 @@
 #include <utility>
 
 #include "base/check.h"
+#include "base/values.h"
 #include "brave/components/constants/pref_names.h"
 #include "components/pref_registry/pref_registry_syncable.h"
 #include "components/prefs/pref_service.h"
@@ -59,7 +60,7 @@ NTPBackgroundPrefs::~NTPBackgroundPrefs() = default;
 // static
 void NTPBackgroundPrefs::RegisterPref(
     user_prefs::PrefRegistrySyncable* registry) {
-  base::Value::Dict dict;
+  base::DictValue dict;
   dict.Set(kTypeKey, TypeToString(Type::kBrave));
   dict.Set(kRandomKey, false);
   dict.Set(kSelectedValueKey, "");
@@ -158,6 +159,6 @@ std::vector<std::string> NTPBackgroundPrefs::GetCustomImageList() const {
   return result;
 }
 
-const base::Value::Dict* NTPBackgroundPrefs::GetPrefValue() const {
+const base::DictValue* NTPBackgroundPrefs::GetPrefValue() const {
   return &service_->GetDict(kPrefName);
 }

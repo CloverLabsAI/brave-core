@@ -9,9 +9,12 @@ import android.content.Context;
 import android.view.View;
 
 import org.chromium.base.supplier.OneshotSupplier;
+import org.chromium.build.annotations.NullMarked;
+import org.chromium.build.annotations.Nullable;
 import org.chromium.chrome.browser.profiles.Profile;
+import org.chromium.chrome.browser.ui.messages.snackbar.SnackbarManager;
 import org.chromium.components.bookmarks.BookmarkId;
-import org.chromium.components.browser_ui.widget.dragreorder.DragReorderableRecyclerViewAdapter;
+import org.chromium.components.browser_ui.widget.dragreorder.DragTouchHandler;
 import org.chromium.components.browser_ui.widget.selectable_list.SelectableListLayout;
 import org.chromium.components.browser_ui.widget.selectable_list.SelectableListToolbar.SearchDelegate;
 import org.chromium.components.browser_ui.widget.selectable_list.SelectionDelegate;
@@ -19,9 +22,10 @@ import org.chromium.ui.modaldialog.ModalDialogManager;
 
 import java.util.function.BooleanSupplier;
 
+@NullMarked
 class BraveBookmarkToolbarCoordinator extends BookmarkToolbarCoordinator {
     // Overridden Chromium's BookmarkToolbarCoordinator.mToolbar
-    private BookmarkToolbar mToolbar;
+    private @Nullable BookmarkToolbar mToolbar;
 
     BraveBookmarkToolbarCoordinator(
             Context context,
@@ -29,7 +33,7 @@ class BraveBookmarkToolbarCoordinator extends BookmarkToolbarCoordinator {
             SelectableListLayout<BookmarkId> selectableListLayout,
             SelectionDelegate<BookmarkId> selectionDelegate,
             SearchDelegate searchDelegate,
-            DragReorderableRecyclerViewAdapter dragReorderableRecyclerViewAdapter,
+            DragTouchHandler dragTouchHandler,
             boolean isDialogUi,
             OneshotSupplier<BookmarkDelegate> bookmarkDelegateSupplier,
             BookmarkModel bookmarkModel,
@@ -39,6 +43,7 @@ class BraveBookmarkToolbarCoordinator extends BookmarkToolbarCoordinator {
             Runnable endSearchRunnable,
             BooleanSupplier incognitoEnabledSupplier,
             BookmarkManagerOpener bookmarkManagerOpener,
+            SnackbarManager snackbarManager,
             View nextFocusableView) {
         super(
                 context,
@@ -46,7 +51,7 @@ class BraveBookmarkToolbarCoordinator extends BookmarkToolbarCoordinator {
                 selectableListLayout,
                 selectionDelegate,
                 searchDelegate,
-                dragReorderableRecyclerViewAdapter,
+                dragTouchHandler,
                 isDialogUi,
                 bookmarkDelegateSupplier,
                 bookmarkModel,
@@ -56,9 +61,10 @@ class BraveBookmarkToolbarCoordinator extends BookmarkToolbarCoordinator {
                 endSearchRunnable,
                 incognitoEnabledSupplier,
                 bookmarkManagerOpener,
+                snackbarManager,
                 nextFocusableView);
 
-        if (mToolbar instanceof BraveBookmarkToolbar) {
+        if (mToolbar != null && mToolbar instanceof BraveBookmarkToolbar) {
             ((BraveBookmarkToolbar) mToolbar).setBraveBookmarkDelegate(bookmarkDelegateSupplier);
         }
     }

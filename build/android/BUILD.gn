@@ -3,7 +3,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at https://mozilla.org/MPL/2.0/.
 
-import("//brave/android/brave_xml_preprocessor.gni")
 import("//brave/build/config.gni")
 import("//brave/components/brave_wallet/common/buildflags/buildflags.gni")
 import("//build/config/android/rules.gni")
@@ -53,10 +52,8 @@ action("sign_app") {
 
   if (target_android_output_format == "aab") {
     target_sign_app_path = "$root_out_dir/apks/ChromePublic.aab"
-  } else if (target_cpu == "arm" || target_cpu == "x86") {
-    target_sign_app_path = "$root_out_dir/apks/ChromePublic.apk"
   } else {
-    target_sign_app_path = "$root_out_dir/apks/MonochromePublic64.apk"
+    target_sign_app_path = "$root_out_dir/apks/ChromePublic.apk"
   }
 
   outputs = [ "$brave_android_output-sign-result" ]
@@ -112,18 +109,9 @@ if (needs_mapping_rename) {
         outputs += [ "$root_out_dir/apks/MonochromePublic.aab.mapping" ]
       }
     } else {
-      if (target_cpu == "arm" || target_cpu == "x86") {
-        deps += [ "//chrome/android:chrome_public_apk__final_dex${dep_suffix}" ]
-        sources += [ "$root_out_dir/apks/ChromePublic.apk.mapping" ]
-        outputs += [ "$root_out_dir/apks/MonochromePublic.apk.mapping" ]
-      } else {
-        # apk arm64 or x64
-        deps += [
-          "//chrome/android:monochrome_64_public_apk__final_dex${dep_suffix}",
-        ]
-        sources += [ "$root_out_dir/apks/MonochromePublic64.apk.mapping" ]
-        outputs += [ "$root_out_dir/apks/MonochromePublic.apk.mapping" ]
-      }
+      deps += [ "//chrome/android:chrome_public_apk__final_dex${dep_suffix}" ]
+      sources += [ "$root_out_dir/apks/ChromePublic.apk.mapping" ]
+      outputs += [ "$root_out_dir/apks/MonochromePublic.apk.mapping" ]
     }
   }
 }
@@ -141,13 +129,8 @@ copy("brave") {
     deps += [ "//chrome/android:chrome_public_bundle" ]
     sources += [ "$root_out_dir/apks/ChromePublic.aab" ]
   } else {
-    if (target_cpu == "arm64" || target_cpu == "x64") {
-      deps += [ "//chrome/android:monochrome_64_public_apk" ]
-      sources += [ "$root_out_dir/apks/MonochromePublic64.apk" ]
-    } else {
-      deps += [ "//chrome/android:chrome_public_apk" ]
-      sources += [ "$root_out_dir/apks/ChromePublic.apk" ]
-    }
+    deps += [ "//chrome/android:chrome_public_apk" ]
+    sources += [ "$root_out_dir/apks/ChromePublic.apk" ]
   }
 
   outputs = [ brave_android_output ]
@@ -246,7 +229,6 @@ generate_jni("jni_headers") {
     "//brave/android/java/org/chromium/chrome/browser/informers/BraveSyncAccountDeletedInformer.java",
     "//brave/android/java/org/chromium/chrome/browser/notifications/channels/BraveSiteChannelsManagerBridge.java",
     "//brave/android/java/org/chromium/chrome/browser/preferences/BravePrefServiceBridge.java",
-    "//brave/android/java/org/chromium/chrome/browser/signin/BraveSigninManager.java",
     "//brave/android/java/org/chromium/chrome/browser/util/TabUtils.java",
   ]
 
@@ -256,6 +238,7 @@ generate_jni("jni_headers") {
 
   public_deps = [
     "//brave/android/java/org/chromium/chrome/browser/search_engines:jni_headers",
+    "//brave/browser/signin/services/android:jni_headers",
     "//chrome/android:chrome_jni_headers",
   ]
 }

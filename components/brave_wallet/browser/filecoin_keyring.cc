@@ -11,7 +11,6 @@
 
 #include "base/base64.h"
 #include "base/check.h"
-#include "base/containers/contains.h"
 #include "base/containers/map_util.h"
 #include "base/containers/span_rust.h"
 #include "base/containers/to_vector.h"
@@ -90,9 +89,12 @@ std::unique_ptr<HDKey> ConstructAccountsRootKey(base::span<const uint8_t> seed,
 
 FilecoinKeyring::~FilecoinKeyring() = default;
 
-FilecoinKeyring::FilecoinKeyring(base::span<const uint8_t> seed,
-                                 mojom::KeyringId keyring_id)
-    : keyring_id_(keyring_id) {
+FilecoinKeyring::FilecoinKeyring(
+    base::span<const uint8_t> seed,
+    mojom::KeyringId keyring_id,
+    base::RepeatingCallback<bool(const std::string&)> is_address_allowed)
+    : Secp256k1HDKeyring(std::move(is_address_allowed)),
+      keyring_id_(keyring_id) {
   DCHECK(IsFilecoinKeyring(keyring_id));
   accounts_root_ = ConstructAccountsRootKey(
       seed, keyring_id == mojom::KeyringId::kFilecoinTestnet);
@@ -113,12 +115,11 @@ bool FilecoinKeyring::DecodeImportPayload(
   if (!base::HexStringToString(payload_hex, &key_payload)) {
     return false;
   }
-  std::optional<base::Value::Dict> records_v = base::JSONReader::ReadDict(
+  std::optional<base::DictValue> records_v = base::JSONReader::ReadDict(
       key_payload, base::JSON_PARSE_CHROMIUM_EXTENSIONS |
                        base::JSONParserOptions::JSON_PARSE_RFC);
   if (!records_v) {
-    VLOG(1) << "Invalid payload, could not parse JSON, JSON is: "
-            << key_payload;
+    VLOG(1) << "Invalid payload, could not parse JSON";
     return false;
   }
 
@@ -217,8 +218,11 @@ std::optional<std::string> FilecoinKeyring::ImportBlsAccount(
     return std::nullopt;
   }
   std::string address = fil_address.EncodeAsString();
+  if (!is_address_allowed_.Run(address)) {
+    return std::nullopt;
+  }
 
-  if (base::Contains(imported_bls_accounts_, address)) {
+  if (imported_bls_accounts_.contains(address)) {
     return std::nullopt;
   }
 

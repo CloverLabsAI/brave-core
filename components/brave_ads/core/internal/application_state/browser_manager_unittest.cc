@@ -5,7 +5,7 @@
 
 #include "brave/components/brave_ads/core/internal/application_state/browser_manager.h"
 
-#include "brave/components/brave_ads/core/internal/application_state/browser_manager_observer_mock.h"
+#include "brave/components/brave_ads/core/internal/application_state/test/browser_manager_observer_mock.h"
 #include "brave/components/brave_ads/core/internal/common/test/mock_test_util.h"
 #include "brave/components/brave_ads/core/internal/common/test/test_base.h"
 
@@ -85,6 +85,7 @@ TEST_F(BraveAdsBrowserManagerTest,
   NotifyDidInitializeAds();
 
   // Assert
+  EXPECT_TRUE(BrowserManager::GetInstance().IsActive());
   EXPECT_TRUE(BrowserManager::GetInstance().IsInForeground());
 }
 
@@ -97,6 +98,7 @@ TEST_F(BraveAdsBrowserManagerTest,
   NotifyDidInitializeAds();
 
   // Assert
+  EXPECT_FALSE(BrowserManager::GetInstance().IsActive());
   EXPECT_FALSE(BrowserManager::GetInstance().IsInForeground());
 }
 

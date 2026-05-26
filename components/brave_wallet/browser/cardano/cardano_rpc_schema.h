@@ -10,6 +10,7 @@
 
 #include <array>
 #include <optional>
+#include <string_view>
 #include <vector>
 
 #include "base/containers/flat_map.h"
@@ -27,6 +28,8 @@ struct Asset;
 
 using TokenId = std::vector<uint8_t>;  // 28-bytes policy_id and non-empty name.
 using Tokens = base::flat_map<TokenId, uint64_t>;
+
+std::optional<TokenId> TokenIdFromHex(std::string_view hex);
 
 // Adapter of Blockfrost's EpochParameters struct for wallet's use.
 struct EpochParameters {
@@ -54,7 +57,7 @@ struct Block {
 
 // Adapter of Blockfrost's UnspentOutput struct for wallet's use.
 struct UnspentOutput {
-  UnspentOutput();
+  explicit UnspentOutput(CardanoAddress address_to);
   UnspentOutput(const UnspentOutput&);
   UnspentOutput(UnspentOutput&&);
   UnspentOutput& operator=(const UnspentOutput&);

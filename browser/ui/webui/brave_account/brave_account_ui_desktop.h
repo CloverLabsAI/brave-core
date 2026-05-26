@@ -6,13 +6,18 @@
 #ifndef BRAVE_BROWSER_UI_WEBUI_BRAVE_ACCOUNT_BRAVE_ACCOUNT_UI_DESKTOP_H_
 #define BRAVE_BROWSER_UI_WEBUI_BRAVE_ACCOUNT_BRAVE_ACCOUNT_UI_DESKTOP_H_
 
+#include <string>
+
 #include "brave/browser/brave_account/brave_account_service_factory.h"
 #include "brave/components/brave_account/brave_account_ui_base.h"
+#include "brave/components/brave_account/mojom/brave_account.mojom.h"
 #include "chrome/browser/ui/webui/constrained_web_dialog_ui.h"
 #include "components/prefs/pref_change_registrar.h"
 #include "content/public/browser/web_ui_controller.h"
 #include "content/public/browser/web_ui_data_source.h"
 #include "content/public/browser/webui_config.h"
+#include "mojo/public/cpp/bindings/pending_receiver.h"
+#include "mojo/public/cpp/bindings/receiver.h"
 
 namespace content {
 class WebUI;
@@ -21,16 +26,28 @@ class WebUI;
 class BraveAccountUIDesktop
     : public BraveAccountUIBase<content::WebUIDataSource,
                                 brave_account::BraveAccountServiceFactory>,
-      public ConstrainedWebDialogUI {
+      public ConstrainedWebDialogUI,
+      public brave_account::mojom::DialogController {
  public:
+  using BraveAccountUIBase::BindInterface;
+
   explicit BraveAccountUIDesktop(content::WebUI* web_ui);
 
   ~BraveAccountUIDesktop() override;
 
+  void BindInterface(
+      mojo::PendingReceiver<brave_account::mojom::DialogController>
+          pending_receiver);
+
  private:
+  // brave_account::mojom::DialogController:
+  void CloseDialog() override;
+
   void OnTokensChanged();
 
   PrefChangeRegistrar pref_change_registrar_;
+
+  mojo::Receiver<brave_account::mojom::DialogController> receiver_{this};
 
   WEB_UI_CONTROLLER_TYPE_DECL();
 };
@@ -41,6 +58,7 @@ class BraveAccountUIDesktopConfig
   BraveAccountUIDesktopConfig();
 };
 
-void ShowBraveAccountDialog(content::WebUI* web_ui);
+void ShowBraveAccountDialog(content::WebUI* web_ui,
+                            const std::string& initiating_service_name);
 
 #endif  // BRAVE_BROWSER_UI_WEBUI_BRAVE_ACCOUNT_BRAVE_ACCOUNT_UI_DESKTOP_H_

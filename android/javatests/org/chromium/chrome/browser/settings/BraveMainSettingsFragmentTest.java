@@ -5,6 +5,7 @@
 
 package org.chromium.chrome.browser.settings;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -29,6 +30,8 @@ import org.chromium.base.test.util.Features.EnableFeatures;
 import org.chromium.chrome.browser.flags.ChromeFeatureList;
 import org.chromium.chrome.browser.tracing.settings.DeveloperSettings;
 import org.chromium.chrome.test.ChromeJUnit4ClassRunner;
+
+import java.util.stream.IntStream;
 
 /** Test for {@link MainSettings}. Main purpose is to have a quick confidence check on the xml. */
 @RunWith(ChromeJUnit4ClassRunner.class)
@@ -161,6 +164,37 @@ public class BraveMainSettingsFragmentTest {
         Preference braveOriginPref =
                 mMainSettings.getPreferenceScreen().findPreference(PREF_BRAVE_ORIGIN);
         assertNotNull("PREF_BRAVE_ORIGIN should be shown when feature is enabled", braveOriginPref);
+    }
+
+    @Test
+    @SmallTest
+    public void testPreferenceCount() {
+        startSettings();
+
+        final int preferenceCount = mMainSettings.getPreferenceScreen().getPreferenceCount();
+
+        // VPN prefs (brave_vpn, pref_vpn_callout) are only present when VPN is supported,
+        // which depends on BraveRewards being enabled (disabled on x86 official/Release builds).
+        // Exclude them so the assertion is stable across build types.
+        long nonVpnCount =
+                IntStream.range(0, preferenceCount)
+                        .mapToObj(i -> mMainSettings.getPreferenceScreen().getPreference(i))
+                        .filter(
+                                p ->
+                                        !p.getKey().equals("brave_vpn")
+                                                && !p.getKey().equals("pref_vpn_callout"))
+                        .count();
+
+        assertEquals(
+                "Number of preferences has changed, please check and update preferenceCount"
+                    + " expectation here or modify BraveMainPreferencesBase.updateBravePreferences"
+                    + " to remove it and BraveMainPreferencesBase.SEARCH_"
+                        // Split that static field no to trigger presubmit CheckSettingsChanges
+                        // check
+                        + "INDEX_DATA_PROVIDER.updateDynamicPreferences"
+                        + " to exclude new from indexing.",
+                34,
+                nonVpnCount);
     }
 
     private void startSettings() {

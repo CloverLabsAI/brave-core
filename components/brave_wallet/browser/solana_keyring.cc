@@ -11,7 +11,6 @@
 #include <optional>
 #include <utility>
 
-#include "base/containers/contains.h"
 #include "base/containers/span.h"
 #include "base/containers/span_rust.h"
 #include "brave/components/brave_wallet/browser/brave_wallet_utils.h"
@@ -30,8 +29,11 @@ constexpr size_t kMaxSeedLen = 32;
 
 }  // namespace
 
-SolanaKeyring::SolanaKeyring(base::span<const uint8_t> seed)
-    : root_(ConstructRootHDKey(seed)) {}
+SolanaKeyring::SolanaKeyring(
+    base::span<const uint8_t> seed,
+    base::RepeatingCallback<bool(const std::string&)> is_address_allowed)
+    : root_(ConstructRootHDKey(seed)),
+      is_address_allowed_(std::move(is_address_allowed)) {}
 SolanaKeyring::~SolanaKeyring() = default;
 
 // static
@@ -71,8 +73,11 @@ std::optional<std::string> SolanaKeyring::AddNewHDAccount(uint32_t index) {
   }
 
   auto address = GetAddressInternal(*new_account);
-  accounts_.push_back(std::move(new_account));
+  if (!is_address_allowed_.Run(address)) {
+    return std::nullopt;
+  }
 
+  accounts_.push_back(std::move(new_account));
   return address;
 }
 
@@ -96,8 +101,11 @@ std::optional<std::string> SolanaKeyring::ImportAccount(
   }
 
   std::string address = GetAddressInternal(*hd_key);
+  if (!is_address_allowed_.Run(address)) {
+    return std::nullopt;
+  }
 
-  if (base::Contains(imported_accounts_, address)) {
+  if (imported_accounts_.contains(address)) {
     return std::nullopt;
   }
 

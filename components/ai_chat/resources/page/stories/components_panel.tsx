@@ -9,24 +9,10 @@ import * as React from 'react'
 import { useArgs } from '@storybook/preview-api'
 import { Meta, StoryObj } from '@storybook/react'
 import '@brave/leo/tokens/css/variables.css'
-import '$web-components/app.global.scss'
 import { getKeysForMojomEnum } from '$web-common/mojomUtils'
 import { Url } from 'gen/url/mojom/url.mojom.m.js'
 import { InferControlsFromArgs } from '../../../../../.storybook/utils'
 import * as Mojom from '../../common/mojom'
-import {
-  ActiveChatContext,
-  SelectedChatDetails,
-} from '../state/active_chat_context'
-import {
-  AIChatContext,
-  AIChatReactContext,
-  useIsSmall,
-} from '../state/ai_chat_context'
-import {
-  ConversationContext,
-  ConversationReactContext,
-} from '../state/conversation_context'
 import FeedbackForm from '../components/feedback_form'
 import FullPage from '../components/full_page'
 import Loading from '../components/loading'
@@ -34,28 +20,27 @@ import Main from '../components/main'
 import ACTIONS_LIST from './story_utils/actions'
 import styles from './style.module.scss'
 import StorybookConversationEntries from './story_utils/ConversationEntries'
-import {
-  UntrustedConversationContext,
-  UntrustedConversationReactContext,
-} from '../../untrusted_conversation_frame/untrusted_conversation_context'
-import ErrorConnection from '../components/alerts/error_connection'
-import ErrorConversationEnd from '../components/alerts/error_conversation_end'
-import ErrorInvalidAPIKey from '../components/alerts/error_invalid_api_key'
-import ErrorInvalidEndpointURL from '../components/alerts/error_invalid_endpoint_url'
-import ErrorRateLimit from '../components/alerts/error_rate_limit'
-import ErrorServiceOverloaded from '../components/alerts/error_service_overloaded'
-import LongConversationInfo from '../components/alerts/long_conversation_info'
-import WarningPremiumDisconnected from '../components/alerts/warning_premium_disconnected'
+import UntrustedMockContext from '../../untrusted_conversation_frame/mock_untrusted_conversation_context'
+import ErrorConnection from '../../untrusted_conversation_frame/components/alerts/error_connection'
+import ErrorConversationEnd from '../../untrusted_conversation_frame/components/alerts/error_conversation_end'
+import ErrorInvalidAPIKey from '../../untrusted_conversation_frame/components/alerts/error_invalid_api_key'
+import ErrorInvalidEndpointURL from '../../untrusted_conversation_frame/components/alerts/error_invalid_endpoint_url'
+import ErrorRateLimit from '../../untrusted_conversation_frame/components/alerts/error_rate_limit'
+import ErrorServiceOverloaded from '../../untrusted_conversation_frame/components/alerts/error_service_overloaded'
+import LongConversationInfo from '../../untrusted_conversation_frame/components/alerts/long_conversation_info'
+import WarningPremiumDisconnected from '../../untrusted_conversation_frame/components/alerts/warning_premium_disconnected'
 import Attachments from '../components/attachments'
 import { createTextContentBlock } from '../../common/content_block'
 import ToolEvent from '../../untrusted_conversation_frame/components/assistant_response/tool_event'
 import { taskConversationEntries } from './story_utils/history'
 import { toolUseCompleteAssistantDetailStorage } from './story_utils/events'
-import {
-  Content,
-  stringifyContent,
-} from '../components/input_box/editable_content'
+import { Content } from '../components/input_box/editable_content'
 import { getToolUseEvent } from '../../common/test_data_utils'
+import { MockContext } from '../state/mock_context'
+import {
+  ActiveChatContext,
+  SelectedChatDetails,
+} from '../state/active_chat_context'
 
 // TODO(https://github.com/brave/brave-browser/issues/47810): Attempt to split this file up
 
@@ -63,11 +48,12 @@ const eventTemplate: Mojom.ConversationEntryEvent = {
   completionEvent: undefined,
   searchQueriesEvent: undefined,
   searchStatusEvent: undefined,
-  selectedLanguageEvent: undefined,
   conversationTitleEvent: undefined,
   sourcesEvent: undefined,
   contentReceiptEvent: undefined,
   toolUseEvent: undefined,
+  inlineSearchEvent: undefined,
+  deepResearchEvent: undefined,
 }
 
 function getCompletionEvent(text: string): Mojom.ConversationEntryEvent {
@@ -561,16 +547,22 @@ const HISTORY: Mojom.ConversationTurn[] = [
           url: { url: 'https://www.example.com' },
           title: 'Pointer Compression',
           faviconUrl: { url: 'https://www.example.com/favicon.ico' },
+          pageContent: undefined,
+          extraSnippets: undefined,
         },
         {
           title: 'LTT Store',
           faviconUrl: { url: 'https://lttstore.com/favicon.ico' },
           url: { url: 'https://lttstore.com' },
+          pageContent: undefined,
+          extraSnippets: undefined,
         },
         {
           title: 'Tesla Model Y',
           faviconUrl: { url: 'https://www.tesla.com/favicon.ico' },
           url: { url: 'https://www.tesla.com/modely' },
+          pageContent: undefined,
+          extraSnippets: undefined,
         },
       ]),
     ],
@@ -860,13 +852,17 @@ const MODELS: Mojom.Model[] = [
     key: '1',
     displayName: 'Model One',
     visionSupport: false,
+    audioSupport: false,
+    videoSupport: false,
     supportsTools: false,
+    supportedCapabilities: [Mojom.ConversationCapability.CHAT],
     isSuggestedModel: true,
     isNearModel: false,
     options: {
       leoModelOptions: {
         name: 'model-one',
         displayMaker: 'Company',
+        description: '',
         category: Mojom.ModelCategory.CHAT,
         access: Mojom.ModelAccess.BASIC,
         maxAssociatedContentLength: 10000,
@@ -879,13 +875,20 @@ const MODELS: Mojom.Model[] = [
     key: '2',
     displayName: 'Model Two',
     visionSupport: true,
+    audioSupport: false,
+    videoSupport: false,
     supportsTools: true,
+    supportedCapabilities: [
+      Mojom.ConversationCapability.CHAT,
+      Mojom.ConversationCapability.CONTENT_AGENT,
+    ],
     isSuggestedModel: true,
     isNearModel: false,
     options: {
       leoModelOptions: {
         name: 'model-two-premium',
         displayMaker: 'Company',
+        description: '',
         category: Mojom.ModelCategory.CHAT,
         access: Mojom.ModelAccess.PREMIUM,
         maxAssociatedContentLength: 10000,
@@ -898,13 +901,17 @@ const MODELS: Mojom.Model[] = [
     key: '3',
     displayName: 'Model Three',
     visionSupport: false,
+    audioSupport: false,
+    videoSupport: false,
     supportsTools: false,
+    supportedCapabilities: [Mojom.ConversationCapability.CHAT],
     isSuggestedModel: false,
     isNearModel: false,
     options: {
       leoModelOptions: {
         name: 'model-three-freemium',
         displayMaker: 'Company',
+        description: '',
         category: Mojom.ModelCategory.CHAT,
         access: Mojom.ModelAccess.BASIC_AND_PREMIUM,
         maxAssociatedContentLength: 10000,
@@ -917,7 +924,10 @@ const MODELS: Mojom.Model[] = [
     key: '4',
     displayName: 'Microsoft Phi-3',
     visionSupport: false,
+    audioSupport: false,
+    videoSupport: false,
     supportsTools: true,
+    supportedCapabilities: [Mojom.ConversationCapability.CHAT],
     isSuggestedModel: false,
     isNearModel: false,
     options: {
@@ -959,6 +969,86 @@ const ASSOCIATED_CONTENT: Mojom.AssociatedContent = {
   contentId: 1,
   conversationTurnUuid: 'turn-uuid',
 }
+
+const SAMPLE_SKILLS: Mojom.Skill[] = [
+  {
+    id: 'translate-mode',
+    shortcut: 'translate',
+    prompt: 'Translate the following text to English',
+    model: 'claude-3-haiku',
+    createdTime: { internalValue: BigInt(Date.now() * 1000) },
+    lastUsed: { internalValue: BigInt(Date.now() * 1000) },
+  },
+  {
+    id: 'simplify-mode',
+    shortcut: 'simplify',
+    prompt: 'Simplify the following concept in simple terms',
+    model: undefined,
+    createdTime: { internalValue: BigInt(Date.now() * 1000) },
+    lastUsed: { internalValue: BigInt((Date.now() - 86400000) * 1000) },
+  },
+  {
+    id: 'summarize-mode',
+    shortcut: 'summarize',
+    prompt: 'Summarize the following content in bullet points',
+    model: undefined,
+    createdTime: { internalValue: BigInt(Date.now() * 1000) },
+    lastUsed: { internalValue: BigInt((Date.now() - 3600000) * 1000) },
+  },
+]
+
+const SAMPLE_TABS: Mojom.TabData[] = [
+  {
+    id: 1,
+    contentId: 1,
+    url: { url: 'https://www.example.com' },
+    title: 'Example',
+  },
+  {
+    id: 2,
+    contentId: 2,
+    url: { url: 'https://topos.nz' },
+    title: 'NZ Topo',
+  },
+  {
+    id: 3,
+    contentId: 3,
+    url: { url: 'https://brave.com' },
+    title: 'Brave',
+  },
+  {
+    id: 4,
+    contentId: 4,
+    url: { url: 'https://search.brave.com' },
+    title: 'Brave Search',
+  },
+]
+
+const SAMPLE_BOOKMARKS: Mojom.Bookmark[] = [
+  {
+    id: BigInt(1),
+    url: { url: 'https://www.example.com' },
+    title: 'Example',
+  },
+  {
+    id: BigInt(2),
+    url: { url: 'https://topos.nz' },
+    title: 'NZ Topo',
+  },
+]
+
+const SAMPLE_HISTORY_ENTRIES: Mojom.HistoryEntry[] = [
+  {
+    id: BigInt(1),
+    url: { url: 'https://w3.org' },
+    title: 'W3',
+  },
+  {
+    id: BigInt(2),
+    url: { url: 'https://readr.nz' },
+    title: 'RSS Reader',
+  },
+]
 
 type CustomArgs = {
   initialized: boolean
@@ -1099,10 +1189,10 @@ const meta: Meta<CustomArgs> = {
   args,
   decorators: [
     (Story, options) => {
-      const [, setArgs] = useArgs()
+      const [args, setArgs] = useArgs<CustomArgs>()
       return (
         <StoryContext
-          args={options.args}
+          args={args}
           setArgs={setArgs}
         >
           <Story />
@@ -1118,326 +1208,201 @@ function StoryContext(
     setArgs: (newArgs: Partial<CustomArgs>) => void
   }>,
 ) {
-  const isSmall = useIsSmall()
+  const { args } = props
+  // Ref holds current args - for inside function lookup
+  const argsRef = React.useRef(args)
+  argsRef.current = args
 
-  const options = { args: props.args }
-  const { setArgs } = props
-
-  const associatedContent = options.args.hasAssociatedContent
-    ? ASSOCIATED_CONTENT
-    : new Mojom.AssociatedContent()
-  const suggestedQuestions = options.args.hasSuggestedQuestions
-    ? SAMPLE_QUESTIONS
-    : associatedContent
-      ? [SAMPLE_QUESTIONS[0]]
-      : []
-
-  const currentError = Mojom.APIError[options.args.currentErrorState]
-  const apiHasError = currentError !== Mojom.APIError.None
-  const currentModel = MODELS.find((m) => m.displayName === options.args.model)
-
-  const switchToBasicModel = () => {
-    const nonPremiumModel = MODELS.find(
-      (model) =>
-        model.options.leoModelOptions?.access === Mojom.ModelAccess.BASIC,
-    )
-    setArgs({ model: nonPremiumModel?.key })
-  }
-
-  const [showSidebar, setShowSidebar] = React.useState(isSmall)
-  const [isToolsMenuOpen, setIsToolsMenuOpen] = React.useState(false)
-
-  let conversations: typeof CONVERSATIONS = []
-
-  if (CONVERSATIONS.length <= options.args.conversationListCount) {
-    conversations = conversations.concat(CONVERSATIONS)
-  } else {
-    const remainingConversationsCount =
-      options.args.conversationListCount - conversations.length
-    conversations = conversations.concat(
-      CONVERSATIONS.slice(0, remainingConversationsCount),
-    )
-  }
-
-  const aiChatContext: AIChatContext = {
-    conversationEntriesComponent: StorybookConversationEntries,
-    initialized: options.args.initialized,
-    editingConversationId: options.args.editingConversationId,
-    deletingConversationId: options.args.deletingConversationId,
-    conversations,
-    isStoragePrefEnabled: options.args.isStoragePrefEnabled,
-    hasAcceptedAgreement: options.args.hasAcceptedAgreement,
-    isPremiumStatusFetching: false,
-    isPremiumUser: options.args.isPremiumUser,
-    isPremiumUserDisconnected: options.args.isPremiumUserDisconnected,
-    isStorageNoticeDismissed: options.args.isStorageNoticeDismissed,
-    canShowPremiumPrompt: options.args.canShowPremiumPrompt,
-    isMobile: options.args.isMobile,
-    isHistoryFeatureEnabled: options.args.isHistoryEnabled,
-    isAIChatAgentProfileFeatureEnabled:
-      options.args.isAIChatAgentProfileFeatureEnabled,
-    isAIChatAgentProfile: options.args.isAIChatAgentProfile,
-    isStandalone: options.args.isStandalone,
-    skills: [
-      {
-        id: 'translate-mode',
-        shortcut: 'translate',
-        prompt: 'Translate the following text to English',
-        model: 'claude-3-haiku',
-        createdTime: { internalValue: BigInt(Date.now() * 1000) },
-        lastUsed: { internalValue: BigInt(Date.now() * 1000) },
-      },
-      {
-        id: 'simplify-mode',
-        shortcut: 'simplify',
-        prompt: 'Simplify the following concept in simple terms',
-        model: undefined,
-        createdTime: { internalValue: BigInt(Date.now() * 1000) },
-        lastUsed: { internalValue: BigInt((Date.now() - 86400000) * 1000) },
-      },
-      {
-        id: 'summarize-mode',
-        shortcut: 'summarize',
-        prompt: 'Summarize the following content in bullet points',
-        model: undefined,
-        createdTime: { internalValue: BigInt(Date.now() * 1000) },
-        lastUsed: { internalValue: BigInt((Date.now() - 3600000) * 1000) },
-      },
-    ],
-    actionList: ACTIONS_LIST,
-    tabs: [
-      {
-        id: 1,
-        contentId: 1,
-        url: { url: 'https://www.example.com' },
-        title: 'Example',
-      },
-      {
-        id: 2,
-        contentId: 2,
-        url: { url: 'https://topos.nz' },
-        title: 'NZ Topo',
-      },
-      {
-        id: 3,
-        contentId: 3,
-        url: { url: 'https://brave.com' },
-        title: 'Brave',
-      },
-      {
-        id: 4,
-        contentId: 4,
-        url: { url: 'https://search.brave.com' },
-        title: 'Brave Search',
-      },
-    ],
-    getPluralString: () => Promise.resolve(''),
-    goPremium: () => {},
-    managePremium: () => {},
-    handleAgreeClick: () => {},
-    enableStoragePref: () => {},
-    dismissStorageNotice: () => {},
-    dismissPremiumPrompt: () => {},
-    userRefreshPremiumSession: () => {},
-    openAIChatAgentProfile: () => {},
-    setEditingConversationId: (id: string | null) =>
-      setArgs({ editingConversationId: id }),
-    setDeletingConversationId: (id: string | null) =>
-      setArgs({ deletingConversationId: id }),
-    skillDialog: options.args.skillDialog,
-    setSkillDialog: () => {},
-    showSidebar: showSidebar,
-    toggleSidebar: () => setShowSidebar((s) => !s),
-    getBookmarks: async () => [
-      {
-        id: BigInt(1),
-        url: { url: 'https://www.example.com' },
-        title: 'Example',
-        createdTime: { internalValue: BigInt(Date.now() * 1000) },
-        lastUsed: { internalValue: BigInt(Date.now() * 1000) },
-      },
-      {
-        id: BigInt(2),
-        url: { url: 'https://topos.nz' },
-        title: 'NZ Topo',
-        createdTime: { internalValue: BigInt(Date.now() * 1000) },
-        lastUsed: { internalValue: BigInt(Date.now() * 1000) },
-      },
-    ],
-    getHistory: async () => [
-      {
-        id: BigInt(1),
-        url: { url: 'https://w3.org' },
-        title: 'W3',
-        createdTime: { internalValue: BigInt(Date.now() * 1000) },
-        lastUsed: { internalValue: BigInt(Date.now() * 1000) },
-      },
-      {
-        id: BigInt(2),
-        url: { url: 'https://readr.nz' },
-        title: 'RSS Reader',
-        createdTime: { internalValue: BigInt(Date.now() * 1000) },
-        lastUsed: { internalValue: BigInt(Date.now() * 1000) },
-      },
-    ],
-  }
+  // Compute derived values from args for UntrustedConversationContext
+  const getAssociatedContent = () =>
+    argsRef.current.hasAssociatedContent
+      ? ASSOCIATED_CONTENT
+      : new Mojom.AssociatedContent()
 
   const activeChatContext: SelectedChatDetails = {
+    // api instance not needed when we're providing ConversationContext directly
+    api: undefined!,
     selectedConversationId: CONVERSATIONS[0].uuid,
     updateSelectedConversationId: () => {},
-    callbackRouter: undefined!,
-    conversationHandler: undefined!,
     createNewConversation: () => {},
-    isTabAssociated: options.args.isDefaultConversation,
+    isTabAssociated: argsRef.current.isDefaultConversation,
   }
 
-  const inputText = options.args.inputText
+  const currentError = Mojom.APIError[args.currentErrorState]
+  const currentModel =
+    MODELS.find((m) => m.displayName === argsRef.current.model) ?? MODELS[0]
 
-  const conversationContext: ConversationContext = {
-    historyInitialized: true,
-    conversationUuid: options.args.isNewConversation
-      ? 'new-conversation'
-      : CONVERSATIONS[1].uuid,
-    conversationHistory: options.args.hasConversation
-      ? options.args.useMemoryHistory
+  const getConversationHistory = () =>
+    argsRef.current.hasConversation
+      ? argsRef.current.useMemoryHistory
         ? MEMORY_HISTORY
         : HISTORY
-      : [],
-    associatedContentInfo: [associatedContent],
-    allModels: MODELS,
-    currentModel,
-    suggestedQuestions,
-    isGenerating: options.args.isGenerating,
-    toolUseTaskState: Mojom.TaskState[options.args.toolUseTaskState],
-    suggestionStatus:
-      Mojom.SuggestionGenerationStatus[options.args.suggestionStatus],
-    currentError,
-    apiHasError,
-    isFeedbackFormVisible: options.args.isFeedbackFormVisible,
-    shouldDisableUserInput: false,
-    shouldShowLongPageWarning: options.args.shouldShowLongPageWarning,
-    shouldShowLongConversationInfo: options.args.shouldShowLongConversationInfo,
-    inputText,
-    selectedActionType: options.args.selectedActionType,
-    selectedSkill: options.args.selectedSkill,
-    isToolsMenuOpen,
-    isCurrentModelLeo: true,
-    isCharLimitApproaching: inputText.length > 64,
-    isCharLimitExceeded: inputText.length > 70,
-    inputTextCharCountDisplay: `${inputText.length} / 70`,
-    pendingMessageFiles: [],
-    generatedUrlToBeOpened: options.args.generatedUrlToBeOpened,
-    ratingTurnUuid: options.args.ratingTurnUuid,
-    isUploadingFiles: false,
-    isTemporaryChat: options.args.isTemporaryChat,
-    showPremiumSuggestionForRegenerate: false,
-    setInputText: (content) => setArgs({ inputText: content }),
-    setCurrentModel: () => {},
-    switchToBasicModel,
-    generateSuggestedQuestions: () => {},
-    dismissLongConversationInfo: () => {},
-    retryAPIRequest: () => {},
-    handleResetError: () => {},
-    handleStopGenerating: async () => {},
-    submitInputTextToAPI: () => {},
-    resetSelectedActionType: () => setArgs({ selectedActionType: undefined }),
-    handleActionTypeClick: (actionType: Mojom.ActionType) => {
-      const update: Partial<CustomArgs> = {
-        selectedActionType: actionType,
-        selectedSkill: undefined,
-      }
-
-      const content = stringifyContent(options.args.inputText)
-      if (content.startsWith('/')) {
-        update.inputText = ['']
-      }
-
-      setArgs(update)
-      setIsToolsMenuOpen(false)
-    },
-    handleSkillClick: (skill: any) => {
-      setArgs({
-        selectedSkill: skill,
-        selectedActionType: undefined,
-        inputText: [
-          { type: 'skill', id: skill.shortcut, text: `/${skill.shortcut}` },
-        ],
-      })
-      setIsToolsMenuOpen(false)
-    },
-    handleSkillEdit: () => {},
-    setIsToolsMenuOpen,
-    handleFeedbackFormCancel: () => {},
-    handleFeedbackFormSubmit: () => Promise.resolve(),
-    setAttachmentsDialog: (attachmentsDialog) => setArgs({ attachmentsDialog }),
-    attachmentsDialog: options.args.attachmentsDialog,
-    removeFile: () => {},
-    uploadFile: () => {},
-    getScreenshots: () => {},
-    setGeneratedUrlToBeOpened: (url?: Url) =>
-      setArgs({ generatedUrlToBeOpened: url }),
-    setIgnoreExternalLinkWarning: () => {},
-    handleCloseRateMessagePrivacyModal: () =>
-      setArgs({ ratingTurnUuid: undefined }),
-    handleRateMessage: () => Promise.resolve(),
-    setTemporary: (temporary: boolean) => {
-      setArgs({ isTemporaryChat: temporary })
-    },
-    disassociateContent: () => {},
-    isDragActive: options.args.isDragActive,
-    isDragOver: options.args.isDragOver,
-    clearDragState: () => {},
-    attachImages: (images: Mojom.UploadedFile[]) => {},
-    pauseTask: () => {},
-    resumeTask: () => {},
-    stopTask: () => {},
-    unassociatedTabs: aiChatContext.tabs,
-    associateDefaultContent: async () => {},
-  }
-
-  const conversationEntriesContext: UntrustedConversationContext = {
-    conversationHistory: conversationContext.conversationHistory,
-    conversationCapability: Mojom.ConversationCapability.CONTENT_AGENT,
-    isGenerating: conversationContext.isGenerating,
-    isToolExecuting: args.isToolExecuting,
-    toolUseTaskState: conversationContext.toolUseTaskState,
-    isLeoModel: conversationContext.isCurrentModelLeo,
-    contentUsedPercentage: options.args.shouldShowLongPageWarning ? 48 : 100,
-    visualContentUsedPercentage: options.args.shouldShowLongVisualContentWarning
-      ? 75
-      : undefined,
-    totalTokens: BigInt(options.args.totalTokens),
-    trimmedTokens: BigInt(options.args.trimmedTokens),
-    canSubmitUserEntries: !conversationContext.shouldDisableUserInput,
-    isMobile: aiChatContext.isMobile,
-    allModels: MODELS,
-    currentModelKey: currentModel?.key ?? '',
-    associatedContent: [associatedContent],
-    isPremiumUser: options.args.isPremiumUser,
-    uiHandler: {
-      hasMemory: (memory: string) => {
-        // Return false for the "undone" example to show undone state
-        if (memory === 'Likes cats') {
-          return Promise.resolve({ exists: false })
-        }
-        // Return true for others to show success state
-        return Promise.resolve({ exists: true })
-      },
-    } as unknown as Mojom.UntrustedUIHandlerRemote,
-  }
+      : []
 
   return (
-    <AIChatReactContext.Provider value={aiChatContext}>
+    <MockContext
+      service={{
+        getConversations: () => {
+          const count = argsRef.current.conversationListCount
+          const conversations =
+            CONVERSATIONS.length <= count
+              ? CONVERSATIONS
+              : CONVERSATIONS.slice(0, count)
+          return Promise.resolve({ conversations })
+        },
+        getActionMenuList: () => Promise.resolve({ actionList: ACTIONS_LIST }),
+        getSkills: () => Promise.resolve({ skills: SAMPLE_SKILLS }),
+        getPremiumStatus: () =>
+          Promise.resolve({
+            status: argsRef.current.isPremiumUser
+              ? argsRef.current.isPremiumUserDisconnected
+                ? Mojom.PremiumStatus.ActiveDisconnected
+                : Mojom.PremiumStatus.Active
+              : Mojom.PremiumStatus.Inactive,
+            info: null,
+          }),
+      }}
+      bookmarksService={{
+        getBookmarks: () => Promise.resolve({ bookmarks: SAMPLE_BOOKMARKS }),
+      }}
+      historyService={{
+        getHistory: () =>
+          Promise.resolve({
+            history: argsRef.current.isHistoryEnabled
+              ? SAMPLE_HISTORY_ENTRIES
+              : [],
+          }),
+      }}
+      initialState={React.useMemo(
+        () => ({
+          tabs: SAMPLE_TABS,
+          isStandalone: args.isStandalone,
+          serviceState: {
+            hasAcceptedAgreement: args.hasAcceptedAgreement,
+            isStoragePrefEnabled: args.isStoragePrefEnabled,
+            isStorageNoticeDismissed: args.isStorageNoticeDismissed,
+            canShowPremiumPrompt: args.canShowPremiumPrompt,
+          },
+        }),
+        [args],
+      )}
+      conversationHandler={{
+        getState: () => {
+          return Promise.resolve({
+            conversationState: {
+              conversationUuid: argsRef.current.isNewConversation
+                ? 'new-conversation'
+                : CONVERSATIONS[1].uuid,
+              isRequestInProgress: argsRef.current.isGenerating,
+              currentModelKey: currentModel.key,
+              defaultModelKey: MODELS[0].key,
+              allModels: MODELS,
+              suggestedQuestions: argsRef.current.hasSuggestedQuestions
+                ? SAMPLE_QUESTIONS
+                : argsRef.current.hasAssociatedContent
+                  ? [SAMPLE_QUESTIONS[0]]
+                  : [],
+              suggestionStatus:
+                Mojom.SuggestionGenerationStatus[
+                  argsRef.current.suggestionStatus
+                ],
+              associatedContent: [
+                argsRef.current.hasAssociatedContent
+                  ? ASSOCIATED_CONTENT
+                  : new Mojom.AssociatedContent(),
+              ],
+              error: currentError,
+              temporary: argsRef.current.isTemporaryChat,
+              toolUseTaskState:
+                Mojom.TaskState[argsRef.current.toolUseTaskState],
+            },
+          })
+        },
+        getConversationHistory: () =>
+          Promise.resolve({
+            conversationHistory: getConversationHistory(),
+          }),
+      }}
+      conversationProps={{
+        selectedConversationId: activeChatContext.selectedConversationId,
+        isTabAssociated: activeChatContext.isTabAssociated,
+      }}
+      // Overrides for values that come from internal hooks (useState, etc.)
+      // and can't be controlled via API mocks
+
+      aiChatOverrides={{
+        conversationEntriesComponent: StorybookConversationEntries,
+        editingConversationId: args.editingConversationId,
+        deletingConversationId: args.deletingConversationId,
+        initialized: args.initialized,
+        isAIChatAgentProfileFeatureEnabled:
+          args.isAIChatAgentProfileFeatureEnabled,
+        isAIChatAgentProfile: args.isAIChatAgentProfile,
+        isMobile: args.isMobile,
+        isHistoryFeatureEnabled: args.isHistoryEnabled,
+        skillDialog: args.skillDialog,
+      }}
+      conversationOverrides={{
+        isFeedbackFormVisible: args.isFeedbackFormVisible,
+        ratingTurnUuid: args.ratingTurnUuid,
+        inputText: args.inputText,
+        selectedActionType: args.selectedActionType,
+        selectedSkill: args.selectedSkill,
+        attachmentsDialog: args.attachmentsDialog,
+        isDragActive: args.isDragActive,
+        isDragOver: args.isDragOver,
+        generatedUrlToBeOpened: args.generatedUrlToBeOpened,
+      }}
+      deps={[...Object.values(args)]}
+    >
       <ActiveChatContext.Provider value={activeChatContext}>
-        <ConversationReactContext.Provider value={conversationContext}>
-          <UntrustedConversationReactContext.Provider
-            value={conversationEntriesContext}
-          >
-            {props.children}
-          </UntrustedConversationReactContext.Provider>
-        </ConversationReactContext.Provider>
+        <UntrustedMockContext
+          conversationHandler={{
+            getConversationHistory: () =>
+              Promise.resolve({
+                conversationHistory: getConversationHistory(),
+              }),
+          }}
+          uiHandler={{
+            hasMemory: (memory: string) => {
+              // Return false for the "undone" example to show undone state
+              if (memory === 'Likes cats') {
+                return Promise.resolve({ exists: false })
+              }
+              // Return true for others to show success state
+              return Promise.resolve({ exists: true })
+            },
+          }}
+          initialState={{
+            conversationEntriesState: {
+              isGenerating: args.isGenerating,
+              isToolExecuting: args.isToolExecuting,
+              toolUseTaskState: Mojom.TaskState[args.toolUseTaskState],
+              isLeoModel: true,
+              contentUsedPercentage: args.shouldShowLongPageWarning ? 48 : 100,
+              visualContentUsedPercentage:
+                args.shouldShowLongVisualContentWarning ? 75 : undefined,
+              totalTokens: BigInt(args.totalTokens),
+              trimmedTokens: BigInt(args.trimmedTokens),
+              canSubmitUserEntries: currentError === Mojom.APIError.None,
+              allModels: MODELS,
+              currentModelKey: currentModel?.key ?? '',
+              conversationCapabilities: [
+                Mojom.ConversationCapability.CONTENT_AGENT,
+              ],
+            },
+          }}
+          overrides={{
+            isMobile: args.isMobile,
+            isHistoryFeatureEnabled: args.isHistoryEnabled,
+            associatedContent: [getAssociatedContent()],
+          }}
+          deps={[...Object.values(args)]}
+        >
+          {props.children}
+        </UntrustedMockContext>
       </ActiveChatContext.Provider>
-    </AIChatReactContext.Provider>
+    </MockContext>
   )
 }
 
@@ -1446,7 +1411,7 @@ export default meta
 type Story = StoryObj<CustomArgs>
 
 export const _Panel: Story = {
-  render: (args) => {
+  render: () => {
     return (
       <div className={styles.container}>
         <Main />
@@ -1458,17 +1423,18 @@ export const _Panel: Story = {
 export const _Alerts = {
   render: () => {
     return (
-      <div className={`${styles.container} ${styles.containerAlerts}`}>
-        <ErrorConnection />
-        <ErrorConversationEnd />
-        <ErrorInvalidAPIKey />
-        <ErrorInvalidEndpointURL />
-        <ErrorRateLimit />
-        <ErrorRateLimit _testIsCurrentModelLeo={false} />
-        <ErrorServiceOverloaded />
-        <LongConversationInfo />
-        <WarningPremiumDisconnected />
-      </div>
+      <UntrustedMockContext>
+        <div className={`${styles.container} ${styles.containerAlerts}`}>
+          <ErrorConnection />
+          <ErrorConversationEnd />
+          <ErrorInvalidAPIKey />
+          <ErrorInvalidEndpointURL />
+          <ErrorRateLimit />
+          <ErrorServiceOverloaded />
+          <LongConversationInfo />
+          <WarningPremiumDisconnected />
+        </div>
+      </UntrustedMockContext>
     )
   },
 }
@@ -1476,9 +1442,11 @@ export const _Alerts = {
 export const _FeedbackForm = {
   render: () => {
     return (
-      <div className={styles.container}>
-        <FeedbackForm />
-      </div>
+      <UntrustedMockContext>
+        <div className={styles.container}>
+          <FeedbackForm />
+        </div>
+      </UntrustedMockContext>
     )
   },
 }

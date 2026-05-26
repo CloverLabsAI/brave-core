@@ -11,10 +11,13 @@
 #include "base/functional/callback.h"
 #include "base/types/optional_ref.h"
 #include "base/values.h"
+#include "brave/components/brave_ads/buildflags/buildflags.h"
 #include "brave/components/brave_ads/core/mojom/brave_ads.mojom-forward.h"
 #include "brave/components/brave_ads/core/public/ad_units/new_tab_page_ad/new_tab_page_ad_info.h"
 #include "brave/components/brave_ads/core/public/ad_units/notification_ad/notification_ad_info.h"
 #include "brave/components/brave_ads/core/public/history/ad_history_item_info.h"
+
+static_assert(BUILDFLAG(ENABLE_BRAVE_ADS));
 
 namespace brave_ads {
 
@@ -24,10 +27,10 @@ using InitializeCallback = base::OnceCallback<void(bool success)>;
 using ShutdownCallback = base::OnceCallback<void(bool success)>;
 
 using GetInternalsCallback =
-    base::OnceCallback<void(std::optional<base::Value::Dict> internals)>;
+    base::OnceCallback<void(std::optional<base::DictValue> internals)>;
 
 using GetDiagnosticsCallback =
-    base::OnceCallback<void(std::optional<base::Value::List> diagnostics)>;
+    base::OnceCallback<void(std::optional<base::ListValue> diagnostics)>;
 
 using GetStatementOfAccountsCallback =
     base::OnceCallback<void(mojom::StatementInfoPtr mojom_statement)>;
@@ -54,7 +57,7 @@ using GetAdHistoryCallback =
 // TODO(https://github.com/brave/brave-browser/issues/24595): Transition
 // GetAdHistory from base::Value to a mojom data structure.
 using GetAdHistoryForUICallback =
-    base::OnceCallback<void(std::optional<base::Value::List> ad_history)>;
+    base::OnceCallback<void(std::optional<base::ListValue> ad_history)>;
 
 using ToggleReactionCallback = base::OnceCallback<void(bool success)>;
 

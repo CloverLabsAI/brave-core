@@ -15,6 +15,7 @@ const mockModels = [
     displayName: 'Model One',
     visionSupport: false,
     supportsTools: false,
+    supportedCapabilities: [Mojom.ConversationCapability.CHAT],
     isSuggestedModel: false,
     isNearModel: false,
     options: {
@@ -34,6 +35,7 @@ const mockModels = [
     displayName: 'Model Two',
     visionSupport: true,
     supportsTools: true,
+    supportedCapabilities: [Mojom.ConversationCapability.CHAT],
     isSuggestedModel: false,
     isNearModel: false,
     options: {
@@ -231,20 +233,21 @@ describe('regenerate answer menu', () => {
     })
     expect(onRegenerateMock).not.toHaveBeenCalled()
 
-    // Select a valid model
+    // Reopen the menu (ButtonMenu may auto-close on item click)
+    await clickAnchorButton(anchorButton)
+    await getAndTestMenu()
+
+    // Select a valid model - clicking it should call onRegenerate
+    const modelOneOptionRefresh = getAndTestModelOption('1')
     await act(async () => {
-      modelOneOption.click()
+      modelOneOptionRefresh.click()
     })
 
     await waitFor(() => {
       expect(modelOneOption).toHaveAttribute('aria-selected', 'true')
     })
 
-    // Click the regenerate button again and make sure the onRegenerate
-    // function is called with model one
-    await act(async () => {
-      regenerateButton.click()
-    })
+    // Verify onRegenerate was called when clicking the model option
     expect(onRegenerateMock).toHaveBeenCalledWith('1')
   })
 })

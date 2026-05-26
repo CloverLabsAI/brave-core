@@ -26,12 +26,12 @@ namespace {
 constexpr char kChangeOuputType[] = "change";
 constexpr char kTargetOutputType[] = "target";
 
-std::optional<std::string> ReadString(const base::Value::Dict& dict,
+std::optional<std::string> ReadString(const base::DictValue& dict,
                                       std::string_view key) {
   return base::OptionalFromPtr(dict.FindString(key));
 }
 
-std::optional<CardanoAddress> ReadCardanoAddress(const base::Value::Dict& dict,
+std::optional<CardanoAddress> ReadCardanoAddress(const base::DictValue& dict,
                                                  std::string_view key) {
   auto address_string = ReadString(dict, key);
   if (!address_string) {
@@ -41,7 +41,7 @@ std::optional<CardanoAddress> ReadCardanoAddress(const base::Value::Dict& dict,
   return CardanoAddress::FromString(*address_string);
 }
 
-std::optional<uint64_t> ReadUint64String(const base::Value::Dict& dict,
+std::optional<uint64_t> ReadUint64String(const base::DictValue& dict,
                                          std::string_view key) {
   auto* str = dict.FindString(key);
   if (!str) {
@@ -55,22 +55,8 @@ std::optional<uint64_t> ReadUint64String(const base::Value::Dict& dict,
   return result;
 }
 
-std::optional<uint32_t> ReadUint32String(const base::Value::Dict& dict,
-                                         std::string_view key) {
-  auto* str = dict.FindString(key);
-  if (!str) {
-    return std::nullopt;
-  }
-
-  uint32_t result = 0;
-  if (!base::StringToUint(*str, &result)) {
-    return std::nullopt;
-  }
-  return result;
-}
-
 template <class T>
-std::optional<T> ReadDict(const base::Value::Dict& dict, std::string_view key) {
+std::optional<T> ReadDict(const base::DictValue& dict, std::string_view key) {
   auto* key_dict = dict.FindDict(key);
   if (!key_dict) {
     return std::nullopt;
@@ -80,7 +66,7 @@ std::optional<T> ReadDict(const base::Value::Dict& dict, std::string_view key) {
 
 template <size_t SZ>
 std::optional<std::array<uint8_t, SZ>> ReadHexByteArray(
-    const base::Value::Dict& dict,
+    const base::DictValue& dict,
     std::string_view key) {
   auto* str = dict.FindString(key);
   if (!str) {
@@ -94,7 +80,7 @@ std::optional<std::array<uint8_t, SZ>> ReadHexByteArray(
 }
 
 std::optional<std::vector<uint8_t>> ReadHexByteVector(
-    const base::Value::Dict& dict,
+    const base::DictValue& dict,
     std::string_view key) {
   auto* str = dict.FindString(key);
   if (!str) {
@@ -107,10 +93,10 @@ std::optional<std::vector<uint8_t>> ReadHexByteVector(
   return result;
 }
 
-base::Value::List TokensToValue(const cardano_rpc::Tokens& tokens) {
-  base::Value::List result;
+base::ListValue TokensToValue(const cardano_rpc::Tokens& tokens) {
+  base::ListValue result;
   for (auto& token : tokens) {
-    base::Value::Dict token_value;
+    base::DictValue token_value;
     token_value.Set("token_id", base::HexEncode(token.first));
     token_value.Set("amount", base::NumberToString(token.second));
     result.Append(std::move(token_value));
@@ -119,7 +105,7 @@ base::Value::List TokensToValue(const cardano_rpc::Tokens& tokens) {
 }
 
 std::optional<cardano_rpc::Tokens> TokensFromValue(
-    const base::Value::List* tokens_list) {
+    const base::ListValue* tokens_list) {
   if (!tokens_list) {
     return std::nullopt;
   }
@@ -131,7 +117,7 @@ std::optional<cardano_rpc::Tokens> TokensFromValue(
       return std::nullopt;
     }
 
-    const base::Value::Dict& token_value = item.GetDict();
+    const base::DictValue& token_value = item.GetDict();
 
     cardano_rpc::TokenId token_id;
 
@@ -155,7 +141,37 @@ std::optional<cardano_rpc::Tokens> TokensFromValue(
   return result;
 }
 
+// For each token do `from[token] -= tokens[token]` ensuring no overflows.
+bool SubtractTokens(cardano_rpc::Tokens& from,
+                    const cardano_rpc::Tokens& tokens) {
+  for (auto& token : tokens) {
+    auto from_token = from.find(token);
+    if (from_token == from.end()) {
+      return false;
+    }
+    if (!base::CheckSub<uint64_t>(from_token->second, token.second)
+             .AssignIfValid(&from_token->second)) {
+      return false;
+    }
+    if (from_token->second == 0u) {
+      from.erase(from_token);
+    }
+  }
+
+  return true;
+}
+
 }  // namespace
+
+TxBuilderParms::TxBuilderParms(CardanoAddress send_to_address,
+                               CardanoAddress change_address)
+    : send_to_address(std::move(send_to_address)),
+      change_address(std::move(change_address)) {}
+TxBuilderParms::~TxBuilderParms() = default;
+TxBuilderParms::TxBuilderParms(const TxBuilderParms&) = default;
+TxBuilderParms& TxBuilderParms::operator=(const TxBuilderParms&) = default;
+TxBuilderParms::TxBuilderParms(TxBuilderParms&&) = default;
+TxBuilderParms& TxBuilderParms::operator=(TxBuilderParms&&) = default;
 
 CardanoTransaction::CardanoTransaction() = default;
 CardanoTransaction::~CardanoTransaction() = default;
@@ -178,8 +194,8 @@ CardanoTransaction::Outpoint::Outpoint(Outpoint&& other) = default;
 CardanoTransaction::Outpoint& CardanoTransaction::Outpoint::operator=(
     Outpoint&& other) = default;
 
-base::Value::Dict CardanoTransaction::Outpoint::ToValue() const {
-  base::Value::Dict dict;
+base::DictValue CardanoTransaction::Outpoint::ToValue() const {
+  base::DictValue dict;
 
   dict.Set("txid", base::HexEncode(txid));
   dict.Set("index", base::checked_cast<int>(index));
@@ -189,7 +205,7 @@ base::Value::Dict CardanoTransaction::Outpoint::ToValue() const {
 
 // static
 std::optional<CardanoTransaction::Outpoint>
-CardanoTransaction::Outpoint::FromValue(const base::Value::Dict& value) {
+CardanoTransaction::Outpoint::FromValue(const base::DictValue& value) {
   Outpoint result;
 
   auto* txid_hex = value.FindString("txid");
@@ -209,7 +225,8 @@ CardanoTransaction::Outpoint::FromValue(const base::Value::Dict& value) {
   return result;
 }
 
-CardanoTransaction::TxInput::TxInput() = default;
+CardanoTransaction::TxInput::TxInput(CardanoAddress utxo_address)
+    : utxo_address(std::move(utxo_address)) {}
 CardanoTransaction::TxInput::~TxInput() = default;
 CardanoTransaction::TxInput::TxInput(const CardanoTransaction::TxInput& other) =
     default;
@@ -220,8 +237,8 @@ CardanoTransaction::TxInput::TxInput(CardanoTransaction::TxInput&& other) =
 CardanoTransaction::TxInput& CardanoTransaction::TxInput::operator=(
     CardanoTransaction::TxInput&& other) = default;
 
-base::Value::Dict CardanoTransaction::TxInput::ToValue() const {
-  base::Value::Dict dict;
+base::DictValue CardanoTransaction::TxInput::ToValue() const {
+  base::DictValue dict;
 
   // TODO(https://github.com/brave/brave-browser/issues/45411): implement with
   // json_schema_compiler.
@@ -235,13 +252,14 @@ base::Value::Dict CardanoTransaction::TxInput::ToValue() const {
 
 // static
 std::optional<CardanoTransaction::TxInput>
-CardanoTransaction::TxInput::FromValue(const base::Value::Dict& value) {
-  CardanoTransaction::TxInput result;
-
-  if (!base::OptionalUnwrapTo(ReadCardanoAddress(value, "utxo_address"),
-                              result.utxo_address)) {
+CardanoTransaction::TxInput::FromValue(const base::DictValue& value) {
+  std::optional<CardanoAddress> utxo_address =
+      ReadCardanoAddress(value, "utxo_address");
+  if (!utxo_address) {
     return std::nullopt;
   }
+
+  CardanoTransaction::TxInput result(std::move(*utxo_address));
 
   if (!base::OptionalUnwrapTo(ReadDict<Outpoint>(value, "utxo_outpoint"),
                               result.utxo_outpoint)) {
@@ -264,9 +282,8 @@ CardanoTransaction::TxInput::FromValue(const base::Value::Dict& value) {
 // static
 CardanoTransaction::TxInput CardanoTransaction::TxInput::FromRpcUtxo(
     const cardano_rpc::UnspentOutput& utxo) {
-  CardanoTransaction::TxInput result;
+  CardanoTransaction::TxInput result(utxo.address_to);
 
-  result.utxo_address = utxo.address_to;
   result.utxo_outpoint.txid = utxo.tx_hash;
   result.utxo_outpoint.index = utxo.output_index;
   result.utxo_value = utxo.lovelace_amount;
@@ -290,8 +307,8 @@ CardanoTransaction::TxWitness::TxWitness(
 CardanoTransaction::TxWitness& CardanoTransaction::TxWitness::operator=(
     CardanoTransaction::TxWitness&& other) = default;
 
-base::Value::Dict CardanoTransaction::TxWitness::ToValue() const {
-  base::Value::Dict dict;
+base::DictValue CardanoTransaction::TxWitness::ToValue() const {
+  base::DictValue dict;
 
   dict.Set("public_key", base::HexEncode(public_key));
   dict.Set("signature", base::HexEncode(signature));
@@ -301,7 +318,7 @@ base::Value::Dict CardanoTransaction::TxWitness::ToValue() const {
 
 // static
 std::optional<CardanoTransaction::TxWitness>
-CardanoTransaction::TxWitness::FromValue(const base::Value::Dict& value) {
+CardanoTransaction::TxWitness::FromValue(const base::DictValue& value) {
   CardanoTransaction::TxWitness result;
 
   // Try to read from legacy witness_bytes first.
@@ -336,7 +353,8 @@ CardanoTransaction::TxWitness::FromValue(const base::Value::Dict& value) {
   return result;
 }
 
-CardanoTransaction::TxOutput::TxOutput() = default;
+CardanoTransaction::TxOutput::TxOutput(CardanoAddress address)
+    : address(std::move(address)) {}
 CardanoTransaction::TxOutput::~TxOutput() = default;
 CardanoTransaction::TxOutput::TxOutput(
     const CardanoTransaction::TxOutput& other) = default;
@@ -347,8 +365,8 @@ CardanoTransaction::TxOutput::TxOutput(CardanoTransaction::TxOutput&& other) =
 CardanoTransaction::TxOutput& CardanoTransaction::TxOutput::operator=(
     CardanoTransaction::TxOutput&& other) = default;
 
-base::Value::Dict CardanoTransaction::TxOutput::ToValue() const {
-  base::Value::Dict dict;
+base::DictValue CardanoTransaction::TxOutput::ToValue() const {
+  base::DictValue dict;
 
   dict.Set("type", type == TxOutputType::kTarget ? kTargetOutputType
                                                  : kChangeOuputType);
@@ -361,8 +379,13 @@ base::Value::Dict CardanoTransaction::TxOutput::ToValue() const {
 
 // static
 std::optional<CardanoTransaction::TxOutput>
-CardanoTransaction::TxOutput::FromValue(const base::Value::Dict& value) {
-  CardanoTransaction::TxOutput result;
+CardanoTransaction::TxOutput::FromValue(const base::DictValue& value) {
+  auto address = ReadCardanoAddress(value, "address");
+  if (!address) {
+    return std::nullopt;
+  }
+
+  CardanoTransaction::TxOutput result(std::move(*address));
 
   if (auto type = ReadString(value, "type")) {
     if (*type != kChangeOuputType && *type != kTargetOutputType) {
@@ -371,11 +394,6 @@ CardanoTransaction::TxOutput::FromValue(const base::Value::Dict& value) {
     result.type = *type == kTargetOutputType ? TxOutputType::kTarget
                                              : TxOutputType::kChange;
   } else {
-    return std::nullopt;
-  }
-
-  if (!base::OptionalUnwrapTo(ReadCardanoAddress(value, "address"),
-                              result.address)) {
     return std::nullopt;
   }
 
@@ -409,36 +427,33 @@ CardanoTransaction::TxOutput::ToSerializableTxOutput() const {
   return result;
 }
 
-base::Value::Dict CardanoTransaction::ToValue() const {
-  base::Value::Dict dict;
+base::DictValue CardanoTransaction::ToValue() const {
+  base::DictValue dict;
 
-  auto& inputs_value = dict.Set("inputs", base::Value::List())->GetList();
+  auto& inputs_value = dict.Set("inputs", base::ListValue())->GetList();
   for (const auto& input : inputs_) {
     inputs_value.Append(input.ToValue());
   }
 
-  auto& outputs_value = dict.Set("outputs", base::Value::List())->GetList();
+  auto& outputs_value = dict.Set("outputs", base::ListValue())->GetList();
   for (const auto& output : outputs_) {
     outputs_value.Append(output.ToValue());
   }
 
-  auto& witnesses_value = dict.Set("witnesses", base::Value::List())->GetList();
+  auto& witnesses_value = dict.Set("witnesses", base::ListValue())->GetList();
   for (const auto& witness : witnesses_) {
     witnesses_value.Append(witness.ToValue());
   }
 
   dict.Set("invalid_after", base::NumberToString(invalid_after_));
-  dict.Set("to", to_.ToString());
-  dict.Set("amount", base::NumberToString(amount_));
   dict.Set("fee", base::NumberToString(fee_));
-  dict.Set("sending_max_amount", sending_max_amount_);
 
   return dict;
 }
 
 // static
 std::optional<CardanoTransaction> CardanoTransaction::FromValue(
-    const base::Value::Dict& value) {
+    const base::DictValue& value) {
   CardanoTransaction result;
 
   auto* inputs_list = value.FindList("inputs");
@@ -486,17 +501,8 @@ std::optional<CardanoTransaction> CardanoTransaction::FromValue(
     result.witnesses_.push_back(std::move(*output_opt));
   }
 
-  if (!base::OptionalUnwrapTo(ReadUint32String(value, "invalid_after"),
+  if (!base::OptionalUnwrapTo(ReadUint64String(value, "invalid_after"),
                               result.invalid_after_)) {
-    return std::nullopt;
-  }
-
-  if (!base::OptionalUnwrapTo(ReadCardanoAddress(value, "to"), result.to_)) {
-    return std::nullopt;
-  }
-
-  if (!base::OptionalUnwrapTo(ReadUint64String(value, "amount"),
-                              result.amount_)) {
     return std::nullopt;
   }
 
@@ -508,18 +514,23 @@ std::optional<CardanoTransaction> CardanoTransaction::FromValue(
     }
   }
 
-  result.sending_max_amount_ =
-      value.FindBool("sending_max_amount").value_or(false);
-
   return result;
+}
+
+void CardanoTransaction::SetupTargetOutput(CardanoAddress target_address) {
+  CHECK(!TargetOutput());
+  CardanoTransaction::TxOutput target_output(std::move(target_address));
+  target_output.type = CardanoTransaction::TxOutputType::kTarget;
+  target_output.amount = 0;
+
+  AddOutput(std::move(target_output));
 }
 
 void CardanoTransaction::SetupChangeOutput(CardanoAddress change_address) {
   CHECK(!ChangeOutput());
-  CardanoTransaction::TxOutput change_output;
+  CardanoTransaction::TxOutput change_output(std::move(change_address));
   change_output.type = CardanoTransaction::TxOutputType::kChange;
   change_output.amount = 0;
-  change_output.address = std::move(change_address);
 
   AddOutput(std::move(change_output));
 }
@@ -572,6 +583,22 @@ CardanoTransaction::GetTotalOutputTokensAmount() const {
     }
   }
   return result;
+}
+
+std::optional<CardanoAddress> CardanoTransaction::GetToAddress() const {
+  if (auto* target_output = TargetOutput()) {
+    return target_output->address;
+  }
+
+  return std::nullopt;
+}
+
+bool CardanoTransaction::IsSendTokenTransaction() const {
+  if (auto* target_output = TargetOutput()) {
+    return !target_output->tokens.empty();
+  }
+
+  return false;
 }
 
 void CardanoTransaction::AddInput(TxInput input) {
@@ -660,7 +687,16 @@ bool CardanoTransaction::EnsureTokensInChangeOutput() {
     return false;
   }
 
+  // We already assigned some input tokens to target output, should not move
+  // them to change.
+  CHECK(TargetOutput());
+  if (!SubtractTokens(*input_tokens, TargetOutput()->tokens)) {
+    return false;
+  }
+
+  // OK if there is no tokens which must be assigned to change.
   if (input_tokens->empty()) {
+    DCHECK(GetTotalInputTokensAmount() == GetTotalOutputTokensAmount());
     return true;
   }
 
@@ -672,20 +708,9 @@ bool CardanoTransaction::EnsureTokensInChangeOutput() {
 
   ChangeOutput()->tokens = std::move(*input_tokens);
 
+  DCHECK(GetTotalInputTokensAmount() == GetTotalOutputTokensAmount());
+
   return true;
-}
-
-void CardanoTransaction::ArrangeTransactionForTesting() {
-  std::sort(inputs_.begin(), inputs_.end(),
-            [](const auto& input1, const auto& input2) {
-              return input1.utxo_outpoint < input2.utxo_outpoint;
-            });
-
-  DCHECK_LE(outputs_.size(), 2u);
-  std::sort(outputs_.begin(), outputs_.end(),
-            [](const auto& output1, const auto& output2) {
-              return output1.type < output2.type;
-            });
 }
 
 std::optional<CardanoTxDecoder::SerializableTx>

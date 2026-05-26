@@ -134,7 +134,6 @@ export function useGate3(params: SwapParams) {
                 jupiterTransactionParams: undefined,
                 lifiTransactionParams: undefined,
                 zeroExTransactionParams: undefined,
-                squidTransactionParams: undefined,
               },
               'gate3TransactionParams',
             ),
@@ -174,7 +173,6 @@ export function useGate3(params: SwapParams) {
           jupiterError: undefined,
           zeroExError: undefined,
           lifiError: undefined,
-          squidError: undefined,
           gate3Error: {
             message,
             kind: BraveWallet.Gate3SwapErrorKind.kUnknown,
@@ -209,7 +207,8 @@ export function useGate3(params: SwapParams) {
         }
 
         if (transactionParams.evmTransactionParams) {
-          const { data, to, value } = transactionParams.evmTransactionParams
+          const { data, to, value, gasLimit } =
+            transactionParams.evmTransactionParams
 
           await sendEvmTransaction({
             fromAccount,
@@ -217,7 +216,7 @@ export function useGate3(params: SwapParams) {
             value: new Amount(value).toHex(),
             data: hexStrToNumberArray(data),
             network: fromNetwork,
-            gasLimit: new Amount(21000).toHex(),
+            gasLimit: new Amount(gasLimit).toHex(),
             swapInfo: {
               sourceCoin: fromToken.coin,
               sourceChainId: fromToken.chainId,
@@ -232,7 +231,7 @@ export function useGate3(params: SwapParams) {
               provider: firmRoute.provider,
               routeId: firmRoute.id,
             } satisfies BraveWallet.SwapInfo,
-          })
+          }).unwrap()
           return
         }
 
@@ -266,7 +265,7 @@ export function useGate3(params: SwapParams) {
                 provider: firmRoute.provider,
                 routeId: firmRoute.id,
               } satisfies BraveWallet.SwapInfo,
-            })
+            }).unwrap()
             return
           }
 
@@ -294,7 +293,7 @@ export function useGate3(params: SwapParams) {
                 provider: firmRoute.provider,
                 routeId: firmRoute.id,
               } satisfies BraveWallet.SwapInfo,
-            })
+            }).unwrap()
             return
           }
 
@@ -318,7 +317,7 @@ export function useGate3(params: SwapParams) {
               provider: firmRoute.provider,
               routeId: firmRoute.id,
             } satisfies BraveWallet.SwapInfo,
-          })
+          }).unwrap()
           return
         }
 
@@ -345,7 +344,7 @@ export function useGate3(params: SwapParams) {
               provider: firmRoute.provider,
               routeId: firmRoute.id,
             } satisfies BraveWallet.SwapInfo,
-          })
+          }).unwrap()
           return
         }
 
@@ -358,6 +357,7 @@ export function useGate3(params: SwapParams) {
             to,
             value: new Amount(value).toHex(),
             sendingMaxAmount: false,
+            tokenId: undefined,
             swapInfo: {
               sourceCoin: fromToken.coin,
               sourceChainId: fromToken.chainId,
@@ -372,7 +372,7 @@ export function useGate3(params: SwapParams) {
               provider: firmRoute.provider,
               routeId: firmRoute.id,
             } satisfies BraveWallet.SwapInfo,
-          })
+          }).unwrap()
           return
         }
 
@@ -385,7 +385,7 @@ export function useGate3(params: SwapParams) {
             to,
             value: new Amount(value).toHex(),
             sendingMaxAmount: false,
-            useShieldedPool: false,
+            useShieldedPool: fromToken.isShielded,
             memo: undefined,
             swapInfo: {
               sourceCoin: fromToken.coin,
@@ -401,7 +401,8 @@ export function useGate3(params: SwapParams) {
               provider: firmRoute.provider,
               routeId: firmRoute.id,
             } satisfies BraveWallet.SwapInfo,
-          })
+          }).unwrap()
+          return
         }
 
         throw new Error('Unsupported transaction params')

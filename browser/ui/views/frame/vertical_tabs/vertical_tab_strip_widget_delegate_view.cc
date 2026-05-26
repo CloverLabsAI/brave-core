@@ -41,6 +41,16 @@ class VerticalTabStripWidget : public ThemeCopyingWidget {
     return new VerticalTabStripRootView(browser_view_, this);
   }
 
+  // views::Widget:
+  bool ShouldViewsStyleFollowWidgetActivation() const override {
+    // Want to make view consider widget activation state.
+    // Ex, some controls apply disabled state when its widget is inactive.
+    // As this widget is created as not-activatable,
+    // need to explicitely give true by overriding this method.
+    // Default impl is "return CanActivate()". So we need this override.
+    return true;
+  }
+
  private:
   raw_ptr<BrowserView> browser_view_;
 };
@@ -89,8 +99,11 @@ VerticalTabStripWidgetDelegateView::VerticalTabStripWidgetDelegateView(
       region_view_(
           AddChildView(std::make_unique<BraveVerticalTabStripRegionView>(
               browser_view_,
-              views::AsViewClass<TabStripRegionView>(
+              views::AsViewClass<HorizontalTabStripRegionView>(
                   browser_view_->tab_strip_view())))) {
+  // As we follow user's choice for vertical tab alignment,
+  // we don't need to mirror this view.
+  SetMirrored(false);
   SetLayoutManager(std::make_unique<views::FillLayout>());
 
   host_view_observation_.Observe(host_);
@@ -206,16 +219,10 @@ void VerticalTabStripWidgetDelegateView::UpdateWidgetBounds() {
     widget_bounds.set_x(host_bounds.right() - widget_bounds.width());
   }
 
-  const bool need_to_call_layout =
-      widget->GetWindowBoundsInScreen().size() != widget_bounds.size();
   widget->SetBounds(widget_bounds);
 
   if (!widget->IsVisible()) {
     widget->Show();
-  }
-
-  if (need_to_call_layout) {
-    DeprecatedLayoutImmediately();
   }
 
 #if BUILDFLAG(IS_MAC)

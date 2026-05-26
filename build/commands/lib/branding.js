@@ -3,14 +3,14 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 
-const path = require('path')
-const config = require('./config')
-const fs = require('fs-extra')
-const l10nUtil = require('./l10nUtil')
-const util = require('./util')
-const Log = require('./logging')
+import fs from 'fs-extra'
+import path from 'node:path'
+import config from './config.js'
+import l10nUtil from './l10nUtil.js'
+import Log from './logging.js'
+import util from './util.js'
 
-exports.update = () => {
+const update = () => {
   Log.progressStart('update branding')
   const chromeComponentsDir = path.join(config.srcDir, 'components')
   const braveComponentsDir = path.join(config.braveCoreDir, 'components')
@@ -242,72 +242,60 @@ exports.update = () => {
     ),
   ])
 
-  let explicitSourceFiles = new Set()
-  if (config.targetOS === 'mac') {
-    // Set proper branding file name based on channel.
-    let brandingFileName = 'BRANDING'
-    if (config.channel) {
-      brandingFileName = brandingFileName + '.' + config.channel
-    }
+  // When the channel is set, we need to copy the channel-specific files.
+  let channelSpecificSourceFiles = new Set()
+  for (const branding of ['brave', 'brave_origin']) {
+    // Set proper branding file.
+    const brandingSource = path.join(
+      braveAppDir,
+      'theme',
+      branding,
+      'BRANDING' + (config.channel ? `.${config.channel}` : ''),
+    )
+    const brandingDest = path.join(chromeAppDir, 'theme', branding, 'BRANDING')
+    channelSpecificSourceFiles[brandingDest] = brandingSource
 
-    for (const branding of ['brave', 'brave_origin']) {
-      // Set proper mac app icon for channel to chrome/app/theme/mac/app.icns.
-      // Each channel's app icons are stored in
-      // brave/app/theme/$channel/app.icns.
-      // With this copying, we don't need to modify chrome/BUILD.gn for this.
-      const iconSource = path.join(
-        braveAppDir,
-        'theme',
-        branding,
-        'mac',
-        config.channel,
-        'app.icns',
-      )
-      const iconDest = path.join(
-        chromeAppDir,
-        'theme',
-        branding,
-        'mac',
-        'app.icns',
-      )
-      explicitSourceFiles[iconDest] = iconSource
+    // Set proper mac app icon for channel to chrome/app/theme/mac/app.icns.
+    // Each channel's app icons are stored in
+    // brave/app/theme/$channel/app.icns.
+    // With this copying, we don't need to modify chrome/BUILD.gn for this.
+    const iconSource = path.join(
+      braveAppDir,
+      'theme',
+      branding,
+      'mac',
+      config.channel,
+      'app.icns',
+    )
+    const iconDest = path.join(
+      chromeAppDir,
+      'theme',
+      branding,
+      'mac',
+      'app.icns',
+    )
+    channelSpecificSourceFiles[iconDest] = iconSource
 
-      // Set proper mac app asset catalog for channel to
-      // chrome/app/theme/mac/Assets.car. Each channel's resource catalog is
-      // stored in brave/app/theme/$channel/Assets.car. With this copying, we
-      // don't need to modify chrome/BUILD.gn for this.
-      const assetCatalogSource = path.join(
-        braveAppDir,
-        'theme',
-        branding,
-        'mac',
-        config.channel,
-        'Assets.car',
-      )
-      const assetCatalogDest = path.join(
-        chromeAppDir,
-        'theme',
-        branding,
-        'mac',
-        'Assets.car',
-      )
-      explicitSourceFiles[assetCatalogDest] = assetCatalogSource
-
-      // Set proper branding file.
-      const brandingSource = path.join(
-        braveAppDir,
-        'theme',
-        branding,
-        brandingFileName,
-      )
-      const brandingDest = path.join(
-        chromeAppDir,
-        'theme',
-        branding,
-        'BRANDING',
-      )
-      explicitSourceFiles[brandingDest] = brandingSource
-    }
+    // Set proper mac app asset catalog for channel to
+    // chrome/app/theme/mac/Assets.car. Each channel's resource catalog is
+    // stored in brave/app/theme/$channel/Assets.car. With this copying, we
+    // don't need to modify chrome/BUILD.gn for this.
+    const assetCatalogSource = path.join(
+      braveAppDir,
+      'theme',
+      branding,
+      'mac',
+      config.channel,
+      'Assets.car',
+    )
+    const assetCatalogDest = path.join(
+      chromeAppDir,
+      'theme',
+      branding,
+      'mac',
+      'Assets.car',
+    )
+    channelSpecificSourceFiles[assetCatalogDest] = assetCatalogSource
   }
 
   for (const [source, output] of fileMap) {
@@ -335,7 +323,7 @@ exports.update = () => {
         output,
         path.relative(source, sourceFile),
       )
-      sourceFile = explicitSourceFiles[destinationFile] || sourceFile
+      sourceFile = channelSpecificSourceFiles[destinationFile] || sourceFile
       if (
         !fs.existsSync(destinationFile)
         || util.calculateFileChecksum(sourceFile)
@@ -367,7 +355,10 @@ exports.update = () => {
         .split('\n')
       let untrackedChromiumPaths = []
       for (const untrackedChromiumFile of untrackedChromiumFiles) {
-        untrackedChromiumPath = path.join(suspectedDir, untrackedChromiumFile)
+        const untrackedChromiumPath = path.join(
+          suspectedDir,
+          untrackedChromiumFile,
+        )
 
         if (!fs.statSync(untrackedChromiumPath).isDirectory()) {
           untrackedChromiumPaths.push(untrackedChromiumPath)
@@ -524,3 +515,5 @@ exports.update = () => {
   }
   Log.progressFinish('update branding')
 }
+
+export default { update }

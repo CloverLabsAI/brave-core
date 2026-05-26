@@ -23,13 +23,15 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.materialswitch.MaterialSwitch;
 
-import org.chromium.base.supplier.ObservableSupplier;
-import org.chromium.base.supplier.ObservableSupplierImpl;
+import org.chromium.base.supplier.MonotonicObservableSupplier;
+import org.chromium.base.supplier.ObservableSuppliers;
+import org.chromium.base.supplier.SettableMonotonicObservableSupplier;
 import org.chromium.brave.browser.quick_search_engines.ItemTouchHelperCallback;
 import org.chromium.brave.browser.quick_search_engines.R;
 import org.chromium.brave.browser.quick_search_engines.utils.QuickSearchEnginesUtil;
 import org.chromium.chrome.browser.search_engines.TemplateUrlServiceFactory;
 import org.chromium.chrome.browser.settings.ChromeBaseSettingsFragment;
+import org.chromium.components.browser_ui.settings.search.BaseSearchIndexProvider;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -44,7 +46,8 @@ public class QuickSearchEnginesFragment extends ChromeBaseSettingsFragment
     private MenuItem mCloseItem;
     private MenuItem mSaveItem;
 
-    private final ObservableSupplierImpl<String> mPageTitle = new ObservableSupplierImpl<>();
+    private final SettableMonotonicObservableSupplier<String> mPageTitle =
+            ObservableSuppliers.createMonotonic();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -137,7 +140,7 @@ public class QuickSearchEnginesFragment extends ChromeBaseSettingsFragment
     }
 
     @Override
-    public ObservableSupplier<String> getPageTitle() {
+    public MonotonicObservableSupplier<String> getPageTitle() {
         return mPageTitle;
     }
 
@@ -209,4 +212,11 @@ public class QuickSearchEnginesFragment extends ChromeBaseSettingsFragment
         QuickSearchEnginesUtil.loadSearchEngineLogo(
                 getProfile(), logoView, quickSearchEnginesModel.getKeyword());
     }
+
+    // This fragment displays a dynamic RecyclerView of search engines; there are no static
+    // preferences to index.
+    public static final BaseSearchIndexProvider SEARCH_INDEX_DATA_PROVIDER =
+            new BaseSearchIndexProvider(
+                    QuickSearchEnginesFragment.class.getName(),
+                    BaseSearchIndexProvider.INDEX_OPT_OUT);
 }

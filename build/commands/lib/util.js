@@ -3,18 +3,22 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 
-const path = require('path')
-const { spawn, spawnSync } = require('child_process')
-const readline = require('readline')
-const os = require('os')
-const config = require('./config')
-const fs = require('fs-extra')
-const {glob, writeFile} = require('fs/promises')
-const crypto = require('crypto')
-const Log = require('./logging')
-const assert = require('assert')
-const updateChromeVersion = require('./updateChromeVersion')
-const ActionGuard = require('./actionGuard')
+import path from 'node:path'
+import { spawn, spawnSync } from 'node:child_process'
+import readline from 'node:readline'
+import os from 'node:os'
+import config from './config.js'
+import fs from 'fs-extra'
+import { glob, writeFile } from 'node:fs/promises'
+import crypto from 'node:crypto'
+import Log from './logging.js'
+import assert from 'node:assert'
+import updateChromeVersion from './updateChromeVersion.js'
+import ActionGuard from './actionGuard.js'
+import { GitPatcher } from './gitPatcher.js'
+import { getBuildArgs } from './buildArgs.ts'
+import { isCI, isTeamcity } from './ciDetect.ts'
+import { dumpBuildHangDiagnostics } from './buildDiagnostics.ts'
 
 // Do not limit the number of listeners to avoid warnings from EventEmitter.
 process.setMaxListeners(0)
@@ -22,13 +26,12 @@ process.setMaxListeners(0)
 async function generateInstrumentationFile(instrumentationFile) {
   const files = await Array.fromAsync(glob(`**/*.{cc,c,h,cpp,hpp,m,mm}`))
 
-  const paths = files.map(x => `../../brave/${x}`)
-  await fs.mkdirp(path.dirname(instrumentationFile));
+  const paths = files.map((x) => `../../brave/${x}`)
+  await fs.mkdirp(path.dirname(instrumentationFile))
   await writeFile(instrumentationFile, paths.join('\n'), 'utf-8')
 }
 
 async function applyPatches(printPatchFailuresInJson) {
-  const GitPatcher = require('./gitPatcher')
   Log.progressStart('apply patches')
   // Always detect if we need to apply patches, since user may have modified
   // either chromium source files, or .patch files manually
@@ -159,25 +162,31 @@ const getAdditionalGenLocation = () => {
       return 'android_clang_x86'
     }
   } else if (
-    (process.platform === 'darwin' || process.platform === 'linux') &&
-    config.targetArch === 'arm64'
+    (process.platform === 'darwin' || process.platform === 'linux')
+    && config.targetArch === 'arm64'
   ) {
     return 'clang_x64_v8_arm64'
   }
   return ''
 }
 
+/** @returns {[string, string[]]} */
 const normalizeCommand = (cmd, args) => {
   if (process.platform === 'win32') {
     args = ['/c', cmd, ...args]
     cmd = 'cmd'
   }
-  return [ cmd, args ]
+  return [cmd, args]
 }
 
 const util = {
   generateInstrumentationFile,
-  runProcess: (cmd, args = [], options = {}, skipLogging = false) => {
+  runProcess: (
+    cmd,
+    args = [],
+    options = /** @type {Record<string, any>} */ ({}),
+    skipLogging = false,
+  ) => {
     if (!skipLogging) {
       Log.command(options.cwd, cmd, args)
     }
@@ -202,23 +211,40 @@ const util = {
   },
 
   runGit: (repoPath, gitArgs, continueOnFail = false, options = {}) => {
-    let prog = util.run('git', gitArgs, { cwd: repoPath, continueOnFail, ...options})
+    let prog = util.run('git', gitArgs, {
+      cwd: repoPath,
+      continueOnFail,
+      ...options,
+    })
 
     if (prog.status !== 0) {
-      return null
+      return ''
     } else {
       return prog.stdout.toString().trim()
     }
   },
 
-  runAsync: (cmd, args = [], options = {}) => {
-    let { continueOnFail, verbose, onStdErrLine, onStdOutLine, ...cmdOptions } =
-      options
+  runAsync: (
+    cmd,
+    args = [],
+    options = /** @type {Record<string, any>} */ ({}),
+  ) => {
+    let {
+      continueOnFail,
+      verbose,
+      onSpawn,
+      onStdErrLine,
+      onStdOutLine,
+      ...cmdOptions
+    } = options
     if (verbose !== false) {
       Log.command(cmdOptions.cwd, cmd, args)
     }
     return new Promise((resolve, reject) => {
       const prog = spawn(...normalizeCommand(cmd, args), cmdOptions)
+      if (onSpawn) {
+        onSpawn(prog)
+      }
       const signalsToForward = ['SIGINT', 'SIGTERM', 'SIGQUIT', 'SIGHUP']
       const signalHandler = (s) => {
         prog.kill(s)
@@ -270,9 +296,10 @@ const util = {
           }
         }
         if (hasFailed) {
-          const err = new Error(
-            `Program ${cmd} exited with error code ${statusCode}.`,
-          )
+          const err =
+            /** @type {Error & {stderr: string, stdout: string, statusCode: number}} */ (
+              new Error(`Program ${cmd} exited with error code ${statusCode}.`)
+            )
           err.stderr = stderr
           err.stdout = stdout
           err.statusCode = statusCode
@@ -291,7 +318,7 @@ const util = {
         resolve(stdout)
       }
       prog.on('close', (statusCode, signal) => {
-        if (config.isCI && (statusCode || signal)) {
+        if (isCI && (statusCode || signal)) {
           // When running in CI, we delay handling process termination by 1
           // second to distinguish between two scenarios:
           // 1. A build failure (where autoninja exits with code 1)
@@ -384,6 +411,7 @@ const util = {
     }
 
     const chromiumSrcDir = path.join(config.srcDir, 'brave', 'chromium_src')
+    // @ts-ignore
     const sourceFiles = util.walkSync(chromiumSrcDir, applyFileFilter)
     const additionalGen = getAdditionalGenLocation()
 
@@ -412,10 +440,9 @@ const util = {
 
       if (fs.existsSync(overriddenFile)) {
         // If overriddenFile is older than file in chromium_src, touch it to trigger rebuild.
-        isDirty |= updateFileUTimesIfOverrideIsNewer(
-          overriddenFile,
-          chromiumSrcFile,
-        )
+        isDirty =
+          updateFileUTimesIfOverrideIsNewer(overriddenFile, chromiumSrcFile)
+          || isDirty
       } else {
         // If the original file doesn't exist, assume that it's in the gen dir.
         overriddenFile = path.join(
@@ -423,7 +450,9 @@ const util = {
           'gen',
           relativeChromiumSrcFile,
         )
-        isDirty |= deleteFileIfOverrideIsNewer(overriddenFile, chromiumSrcFile)
+        isDirty =
+          deleteFileIfOverrideIsNewer(overriddenFile, chromiumSrcFile)
+          || isDirty
         // Also check the secondary gen dir, if exists
         if (additionalGen) {
           overriddenFile = path.join(
@@ -432,10 +461,9 @@ const util = {
             'gen',
             relativeChromiumSrcFile,
           )
-          isDirty |= deleteFileIfOverrideIsNewer(
-            overriddenFile,
-            chromiumSrcFile,
-          )
+          isDirty =
+            deleteFileIfOverrideIsNewer(overriddenFile, chromiumSrcFile)
+            || isDirty
         }
       }
     })
@@ -446,37 +474,13 @@ const util = {
         const cacheFileFilter = (file) => {
           return file.endsWith('.cache') || file.endsWith('.cache.sha256')
         }
+        // @ts-ignore
         for (const file of util.walkSync(reproxyCacheDir, cacheFileFilter)) {
           fs.rmSync(file)
         }
       }
     }
     Log.progressFinish('touch original files overridden by chromium_src')
-  },
-
-  touchGsutilChangeLogFile: () => {
-    // Chromium team confirmed that ChangeLog file was likely removed by accident
-    // https://chromium-review.googlesource.com/c/catapult/+/4567074?tab=comments
-
-    // However this is just a temp solution. This file is not
-    // used in Chromium tests, so eventually we should find out what is the
-    // difference in the way we run the tests. Follow up issue
-    // https://github.com/brave/brave-browser/issues/31641
-    console.log('touch gsutil ChangeLog file...')
-
-    const changeLogFile = path.join(
-      config.srcDir,
-      'third_party',
-      'catapult',
-      'third_party',
-      'gsutil',
-      'third_party',
-      'mock',
-      'ChangeLog',
-    )
-    if (!fs.existsSync(changeLogFile)) {
-      fs.writeFileSync(changeLogFile, '')
-    }
   },
 
   mergeWithDefault: (options) => {
@@ -497,9 +501,9 @@ const util = {
 
     // Only build if the source has changed.
     if (
-      fs.existsSync(redirectCC) &&
-      fs.statSync(redirectCC).mtime >=
-        fs.statSync(
+      fs.existsSync(redirectCC)
+      && fs.statSync(redirectCC).mtime
+        >= fs.statSync(
           path.join(
             config.braveCoreDir,
             'tools',
@@ -551,15 +555,15 @@ const util = {
         path.join(outputDir, 'build.ninja'),
       )
       const hasBuildArgsUpdated = util.writeGnBuildArgs(outputDir, buildArgs)
-      const shouldCheck = config.isCI
+      const shouldCheck = isCI
       const internalOpts = shouldCheck ? ['--check'] : []
 
       const shouldRunGnGen =
-        config.force_gn_gen ||
-        !doesBuildNinjaExist ||
-        hasBuildArgsUpdated ||
-        shouldCheck ||
-        wasInterrupted
+        config.force_gn_gen
+        || !doesBuildNinjaExist
+        || hasBuildArgsUpdated
+        || shouldCheck
+        || wasInterrupted
 
       if (shouldRunGnGen) {
         util.run(
@@ -642,7 +646,7 @@ const util = {
         : []
       util.runGnGen(
         config.outputDir,
-        config.buildArgs(),
+        getBuildArgs(config),
         extraGnGenOpts,
         options,
       )
@@ -689,11 +693,14 @@ const util = {
     // Collect build statistics into this variable to display in a separate TC
     // block.
     let buildStats = ''
+    // Updated on every autoninja log line when CI pipes output (idle watchdog).
+    let lastBuildLogTime = Date.now()
 
     // Parse output to display the build progress on Teamcity.
-    if (config.isTeamcity) {
+    if (isTeamcity) {
       let lastStatusTime = Date.now()
       options.onStdOutLine = (line) => {
+        lastBuildLogTime = Date.now()
         if (
           buildStats
           || /^(RBE Stats:|metric\s+count|build finished)\s+/.test(line)
@@ -713,6 +720,14 @@ const util = {
       }
       options.onStdErrLine = options.onStdOutLine
       options.stdio = 'pipe'
+    } else if (isCI) {
+      const onLine = (line) => {
+        lastBuildLogTime = Date.now()
+        console.log(line)
+      }
+      options.onStdOutLine = onLine
+      options.onStdErrLine = onLine
+      options.stdio = 'pipe'
     }
 
     // Enable to allow error post-processing after autoninja/siso failure.
@@ -724,29 +739,66 @@ const util = {
       fs.unlinkSync(sisoOutputFile)
     }
 
+    let buildIdleWatchdogInterval = null
+    const clearBuildIdleWatchdog = () => {
+      if (buildIdleWatchdogInterval) {
+        clearInterval(buildIdleWatchdogInterval)
+        buildIdleWatchdogInterval = null
+      }
+    }
+
     const buildGuard = new ActionGuard(path.join(outputDir, 'build.guard'))
     try {
       if (
-        config.isCI &&
+        isCI
         // Release builds can have steps that can be interrupted by timeouts. We
         // don't want to clean the build in this case.
-        !config.isBraveReleaseBuild() &&
-        buildGuard.wasInterrupted()
+        && !config.isBraveReleaseBuild()
+        && buildGuard.wasInterrupted()
       ) {
         await util.runAsync('gn', ['clean', outputDir], options)
       }
       buildGuard.markStarted()
-      await util.runAsync('autoninja', ninjaOpts, options)
+
+      let buildProcess = null
+      const autoninjaOptions = {
+        ...options,
+        onSpawn: (prog) => {
+          buildProcess = prog
+        },
+      }
+
+      if (isCI) {
+        const idleTimeoutMs = 90 * 60 * 1000 // 90 minutes
+        lastBuildLogTime = Date.now()
+        buildIdleWatchdogInterval = setInterval(() => {
+          if (Date.now() - lastBuildLogTime <= idleTimeoutMs) {
+            return
+          }
+          clearBuildIdleWatchdog()
+          Log.error(
+            `Build aborted: no autoninja output for ${idleTimeoutMs / 1000}s `,
+          )
+          dumpBuildHangDiagnostics(outputDir)
+          util.killProcessTree(buildProcess)
+        }, 10 * 1000)
+      }
+
+      await util.runAsync('autoninja', ninjaOpts, autoninjaOptions)
+      clearBuildIdleWatchdog()
       buildGuard.markFinished()
     } catch (e) {
+      clearBuildIdleWatchdog()
       // Display siso_output on CI after a build failure.
-      if (config.isCI && fs.existsSync(sisoOutputFile)) {
+      if (isCI && fs.existsSync(sisoOutputFile)) {
         const sisoOutput = fs.readFileSync(sisoOutputFile, 'utf8')
         Log.error(`Siso output from ${sisoOutputFile}:`)
         // Split the output into lines to correctly display on Teamcity.
         const lines = sisoOutput.split('\n')
         // Output starting from the first "FAILED:" line, or full file.
-        const failedIndex = lines.findIndex(line => line.startsWith('FAILED:'))
+        const failedIndex = lines.findIndex((line) =>
+          line.startsWith('FAILED:'),
+        )
         const startIndex = failedIndex !== -1 ? failedIndex : 0
         for (let i = startIndex; i < lines.length; i++) {
           Log.error(lines[i])
@@ -764,7 +816,7 @@ const util = {
 
     Log.progressFinish(progressMessage)
 
-    if (config.isTeamcity) {
+    if (isTeamcity) {
       if (buildStats) {
         Log.progressScope('report build stats', () => {
           console.log(buildStats)
@@ -806,7 +858,7 @@ const util = {
       '--filters="' + config.xcode_gen_target + '"',
     ]
 
-    util.runGnGen(config.outputDir + '_Xcode', config.buildArgs(), genArgs)
+    util.runGnGen(config.outputDir + '_Xcode', getBuildArgs(config), genArgs)
   },
 
   // Get the files that have been changed in the current diff with base branch.
@@ -826,41 +878,7 @@ const util = {
       .split('\n')
   },
 
-  presubmit: (options = {}) => {
-    if (!options.base) {
-      options.base = 'origin/master'
-    }
-    // Temporary cleanup call, should be removed when everyone will remove
-    // 'gerrit.host' from their brave checkout.
-    util.runGit(
-      config.braveCoreDir,
-      ['config', '--unset-all', 'gerrit.host'],
-      true,
-    )
-    let cmdOptions = config.defaultOptions
-    cmdOptions.cwd = config.braveCoreDir
-    cmdOptions = util.mergeWithDefault(cmdOptions)
-    cmd = 'git'
-    // --upload mode is similar to `git cl upload`. Non-upload mode covers less
-    // checks.
-    args = ['cl', 'presubmit', options.base, '--force', '--upload']
-    if (options.all) args.push('--all')
-    if (options.files) args.push('--files', `"${options.files}"`)
-    if (options.verbose) {
-      args.push(...Array(options.verbose).fill('--verbose'))
-    }
-    if (options.json) {
-      args.push('-j')
-      args.push(options.json)
-    }
-
-    if (options.fix) {
-      cmdOptions.env.PRESUBMIT_FIX = '1'
-    }
-    util.run(cmd, args, cmdOptions)
-  },
-
-  massRename: (options = {}) => {
+  massRename: () => {
     let cmdOptions = config.defaultOptions
     cmdOptions.cwd = config.braveCoreDir
     util.run(
@@ -888,6 +906,7 @@ const util = {
     fs.readdirSync(dir).forEach((file) => {
       if (fs.statSync(path.join(dir, file)).isDirectory()) {
         filelist = util.walkSync(path.join(dir, file), filter, filelist)
+        // @ts-ignore
       } else if (!filter || filter.call(null, file)) {
         filelist = filelist.concat(path.join(dir, file))
       }
@@ -924,7 +943,14 @@ const util = {
       return dotGitPath
     }
     // Returns the actual .git dir in case a worktree is used.
-    gitDir = util.runGit(repoDir, ['rev-parse', '--git-common-dir'], false)
+    const gitDir = util.runGit(
+      repoDir,
+      ['rev-parse', '--git-common-dir'],
+      false,
+    )
+    if (!gitDir) {
+      return null
+    }
     if (!path.isAbsolute(gitDir)) {
       return path.join(repoDir, gitDir)
     }
@@ -966,13 +992,15 @@ const util = {
   },
 
   modifyGitExclusions: (repoDir, { add = [], remove = [] }) => {
-    const excludeFileName =
-        util.getGitInfoExcludeFileName(repoDir, add.length > 0)
+    const excludeFileName = util.getGitInfoExcludeFileName(
+      repoDir,
+      add.length > 0,
+    )
     if (!excludeFileName) {
       return
     }
     let lines = fs.readFileSync(excludeFileName).toString().split(/\r?\n/)
-    lines = lines.filter(line => !remove.includes(line))
+    lines = lines.filter((line) => !remove.includes(line))
     for (const exclusion of add) {
       if (!lines.includes(exclusion)) {
         lines.push(exclusion)
@@ -992,8 +1020,10 @@ const util = {
   },
 
   writeFileIfModified: (filePath, content) => {
-    fs.ensureFileSync(filePath)
-    if (fs.readFileSync(filePath, { encoding: 'utf-8' }) !== content) {
+    if (
+      !fs.existsSync(filePath)
+      || fs.readFileSync(filePath, { encoding: 'utf-8' }) !== content
+    ) {
       // Write file atomically.
       const tmpFilePath = `${filePath}.tmp`
       fs.writeFileSync(tmpFilePath, content)
@@ -1030,6 +1060,29 @@ const util = {
       config.defaultOptions,
     )
   },
+
+  /**
+   * Stop a process and its descendants. On Windows, `child.kill()` often only
+   * affects `cmd.exe`; `taskkill /T` tears down the full tree.
+   * @param {import('node:child_process').ChildProcess | null} child
+   */
+  killProcessTree: (child) => {
+    if (!child?.pid) {
+      return
+    }
+    if (process.platform === 'win32') {
+      spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], {
+        stdio: 'ignore',
+        windowsHide: true,
+      })
+      return
+    }
+    try {
+      child.kill('SIGKILL')
+    } catch {
+      // Process may already have exited.
+    }
+  },
 }
 
-module.exports = util
+export default util

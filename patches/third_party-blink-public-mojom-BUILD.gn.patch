@@ -1,13 +1,12 @@
 diff --git a/third_party/blink/public/mojom/BUILD.gn b/third_party/blink/public/mojom/BUILD.gn
-index f46dd56949f96cddc85c5753bbae809f25efb446..aa7d19decb58d326cd889d9e3d548a957080f3a7 100644
+index 09bfe8c9373231a348132fcbf7ef08fa3a6377cb..27abb3e664c495a4051ef7960b64cd6ead99f5ff 100644
 --- a/third_party/blink/public/mojom/BUILD.gn
 +++ b/third_party/blink/public/mojom/BUILD.gn
-@@ -1098,6 +1098,8 @@ mojom("mojom_platform") {
+@@ -1158,6 +1158,7 @@ mojom("mojom_platform") {
    ]
    cpp_typemaps += shared_cpp_typemaps
    blink_cpp_typemaps += shared_cpp_typemaps
-+  import("//brave/third_party/blink/public/mojom/sources.gni")
-+  public_deps += brave_third_party_blink_public_mojom_platform_public_deps
++  import("//brave/third_party/blink/public/mojom/sources.gni") public_deps += brave_third_party_blink_public_mojom_platform_public_deps
  
    export_class_attribute = "BLINK_COMMON_EXPORT"
    export_define = "BLINK_COMMON_IMPLEMENTATION=1"

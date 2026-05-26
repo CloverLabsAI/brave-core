@@ -5,7 +5,7 @@
 
 import { html } from '//resources/lit/v3_0/lit.rollup.js'
 
-import { SettingsBraveContentContainersBackgroundChipElement } from './containers_background_chip'
+import {SettingsBraveContentContainersBackgroundChipElement} from './containers_background_chip.js'
 
 export function getHtml(
   this: SettingsBraveContentContainersBackgroundChipElement,
@@ -13,7 +13,7 @@ export function getHtml(
   return html`
     <div
       class="chip-container ${this.selected ? 'selected' : ''}"
-      @click="${this.handleChipClick_}"
+      @click="${this.onChipClick_}"
     >
       <div
         class="chip-content"

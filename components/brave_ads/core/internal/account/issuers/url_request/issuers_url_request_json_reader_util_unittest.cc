@@ -6,7 +6,7 @@
 #include "brave/components/brave_ads/core/internal/account/issuers/url_request/issuers_url_request_json_reader_util.h"
 
 #include "base/test/values_test_util.h"
-#include "brave/components/brave_ads/core/internal/account/issuers/issuers_test_util.h"
+#include "brave/components/brave_ads/core/internal/account/issuers/test/issuers_test_util.h"
 #include "brave/components/brave_ads/core/internal/common/test/test_base.h"
 
 // npm run test -- brave_unit_tests --filter=BraveAds*
@@ -16,7 +16,7 @@ class BraveAdsIssuersUrlRequestJsonReaderUtilTest : public test::TestBase {};
 
 TEST_F(BraveAdsIssuersUrlRequestJsonReaderUtilTest, ParsePing) {
   // Arrange
-  const base::Value::Dict dict = base::test::ParseJsonDict(R"JSON(
+  const base::DictValue dict = base::test::ParseJsonDict(R"JSON(
     {
       "ping": 7200000
     })JSON");
@@ -32,7 +32,7 @@ TEST_F(BraveAdsIssuersUrlRequestJsonReaderUtilTest, DoNotParseMissingPing) {
 
 TEST_F(BraveAdsIssuersUrlRequestJsonReaderUtilTest, ParseTokenIssuers) {
   // Arrange
-  const base::Value::Dict dict = base::test::ParseJsonDict(R"JSON(
+  const base::DictValue dict = base::test::ParseJsonDict(R"JSON(
     {
       "issuers": [
         {

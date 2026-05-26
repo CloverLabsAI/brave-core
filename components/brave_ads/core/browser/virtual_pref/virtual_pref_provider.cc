@@ -10,6 +10,7 @@
 
 #include "base/check.h"
 #include "base/json/json_reader.h"
+#include "base/values.h"
 #include "base/version_info/version_info.h"
 #include "brave/components/brave_ads/core/browser/virtual_pref/virtual_pref_provider_util.h"
 #include "brave/components/brave_ads/core/public/common/locale/locale_util.h"
@@ -40,8 +41,8 @@ std::string NormalizeSkuStatus(const std::string& status) {
   return status == "cancelled" ? "canceled" : status;
 }
 
-base::Value::Dict ParseSkuOrder(const base::Value::Dict& dict) {
-  base::Value::Dict order;
+base::DictValue ParseSkuOrder(const base::DictValue& dict) {
+  base::DictValue order;
 
   if (const std::string* const created_at =
           dict.FindString(kSkuOrderCreatedAtKey)) {
@@ -66,11 +67,11 @@ base::Value::Dict ParseSkuOrder(const base::Value::Dict& dict) {
   return order;
 }
 
-base::Value::Dict ParseSkuOrders(const base::Value::Dict& dict) {
-  base::Value::Dict orders;
+base::DictValue ParseSkuOrders(const base::DictValue& dict) {
+  base::DictValue orders;
 
   for (const auto [/*id*/ _, value] : dict) {
-    const base::Value::Dict* const order = value.GetIfDict();
+    const base::DictValue* const order = value.GetIfDict();
     if (!order) {
       continue;
     }
@@ -86,17 +87,17 @@ base::Value::Dict ParseSkuOrders(const base::Value::Dict& dict) {
   return orders;
 }
 
-base::Value::Dict GetSkus(PrefService* local_state) {
+base::DictValue GetSkus(PrefService* local_state) {
   CHECK(local_state);
 
-  base::Value::Dict skus;
+  base::DictValue skus;
 
   if (!local_state->FindPreference(skus::prefs::kSkusState)) {
     // No SKUs in local state.
     return skus;
   }
 
-  const base::Value::Dict& skus_state =
+  const base::DictValue& skus_state =
       local_state->GetDict(skus::prefs::kSkusState);
   for (const auto [environment, value] : skus_state) {
     if (!environment.starts_with(kSkuEnvironmentPrefix)) {
@@ -105,13 +106,13 @@ base::Value::Dict GetSkus(PrefService* local_state) {
 
     // Deserialize the SKUs data from a JSON string stored in local state into a
     // dictionary object for further processing.
-    std::optional<base::Value::Dict> sku_state =
+    std::optional<base::DictValue> sku_state =
         base::JSONReader::ReadDict(value.GetString(), base::JSON_PARSE_RFC);
     if (!sku_state) {
       continue;
     }
 
-    const base::Value::Dict* const orders = sku_state->FindDict(kSkuOrdersKey);
+    const base::DictValue* const orders = sku_state->FindDict(kSkuOrdersKey);
     if (!orders) {
       continue;
     }
@@ -142,10 +143,10 @@ VirtualPrefProvider::VirtualPrefProvider(PrefService* prefs,
 
 VirtualPrefProvider::~VirtualPrefProvider() = default;
 
-base::Value::Dict VirtualPrefProvider::GetPrefs() const {
-  return base::Value::Dict()
+base::DictValue VirtualPrefProvider::GetPrefs() const {
+  return base::DictValue()
       .Set("[virtual]:browser",
-           base::Value::Dict()
+           base::DictValue()
                .Set("build_channel", delegate_->GetChannel())
                .Set("version", version_info::GetVersionNumber())
                .Set("major_version", GetMajorVersion())
@@ -153,15 +154,16 @@ base::Value::Dict VirtualPrefProvider::GetPrefs() const {
                .Set("build_version", GetBuildVersion())
                .Set("patch_version", GetPatchVersion()))
       .Set("[virtual]:operating_system",
-           base::Value::Dict()
-               .Set("locale", base::Value::Dict()
+           base::DictValue()
+               .Set("locale", base::DictValue()
                                   .Set("language", CurrentLanguageCode())
                                   .Set("region", CurrentCountryCode()))
                .Set("name", version_info::GetOSType()))
       .Set("[virtual]:is_survey_panelist", IsSurveyPanelist(prefs_))
       .Set("[virtual]:search_engine",
-           base::Value::Dict().Set("default_name",
-                                   delegate_->GetDefaultSearchEngineName()))
+           base::DictValue().Set("default_name",
+                                 delegate_->GetDefaultSearchEngineName()))
+      .Set("[virtual]:serp_metrics", delegate_->GetSerpMetrics())
       .Set("[virtual]:skus", GetSkus(local_state_));
 }
 

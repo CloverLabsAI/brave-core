@@ -5,6 +5,7 @@
 
 #include "brave/browser/net/search_ads_header_network_delegate_helper.h"
 
+#include "base/check.h"
 #include "brave/components/brave_ads/core/public/prefs/pref_names.h"
 #include "brave/components/brave_rewards/core/pref_names.h"
 #include "brave/components/brave_search/common/brave_search_utils.h"
@@ -41,10 +42,12 @@ bool ShouldSetHeaderForProfile(Profile* profile) {
 
 namespace brave {
 
+template <template <typename> class T>
 int OnBeforeStartTransaction_SearchAdsHeader(
     net::HttpRequestHeaders* headers,
     const ResponseCallback& next_callback,
-    std::shared_ptr<BraveRequestInfo> request) {
+    T<BraveRequestInfo> request) {
+  CHECK(request);
   // The header should be set if (to disable search ads):
   // - any of the following are true:
   //   - Rewards is enabled and not connected, and opted out of search ads.
@@ -62,16 +65,26 @@ int OnBeforeStartTransaction_SearchAdsHeader(
   // - `request_url` host is disallowed.
   // - `tab_origin` and `initiator_url` hosts are disallowed.
 
-  Profile* profile = Profile::FromBrowserContext(request->browser_context);
+  Profile* profile = Profile::FromBrowserContext(request->browser_context());
   if (ShouldSetHeaderForProfile(profile) &&
-      brave_search::IsAllowedHost(request->request_url) &&
-      (brave_search::IsAllowedHost(request->tab_origin) ||
-       brave_search::IsAllowedHost(request->initiator_url))) {
+      brave_search::IsAllowedHost(request->request_url()) &&
+      (brave_search::IsAllowedHost(request->tab_origin()) ||
+       brave_search::IsAllowedHost(request->initiator_url()))) {
     headers->SetHeader(kSearchAdsHeader, kSearchAdsDisabledValue);
-    request->set_headers.insert(kSearchAdsHeader);
+    request->mutable_modified_headers().insert(kSearchAdsHeader);
   }
 
   return net::OK;
 }
+
+template int OnBeforeStartTransaction_SearchAdsHeader<std::shared_ptr>(
+    net::HttpRequestHeaders* headers,
+    const ResponseCallback& next_callback,
+    std::shared_ptr<BraveRequestInfo> request);
+
+template int OnBeforeStartTransaction_SearchAdsHeader<base::WeakPtr>(
+    net::HttpRequestHeaders* headers,
+    const ResponseCallback& next_callback,
+    base::WeakPtr<BraveRequestInfo> request);
 
 }  // namespace brave

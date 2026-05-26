@@ -10,6 +10,9 @@
     <message name="IDS_GEOLOCATION_INFOBAR_TEXT" desc="Mobile: Text requesting permission for a site to access the user's physical location">
       <ph name="URL">$1<ex>maps.google.com</ex></ph> wants to use your device's location
     </message>
+    <message name="IDS_GEOLOCATION_APPROXIMATE_INFOBAR_TEXT" desc="Mobile: Text requesting permission for a site to access the user's approximate location">
+      <ph name="URL">$1<ex>maps.google.com</ex></ph> wants to use your approximate location
+    </message>
     <message name="IDS_ACCESSIBILITY_EVENTS_INFOBAR_TEXT" desc="Text requesting permission for a site to listen to accessibility events, for example if the user has a screen reader or braille device enabled">
       <ph name="URL">$1<ex>maps.google.com</ex></ph> wants to respond to accessibility events
     </message>
@@ -33,6 +36,12 @@
     </message>
     <message name="IDS_LOCAL_NETWORK_ACCESS_INFOBAR_TEXT" desc="Text requesting permission for a site to access the user's local network.">
       <ph name="URL">$1<ex>google.com</ex></ph> wants to look for and connect to any device on your local network
+    </message>
+    <message name="IDS_LOCAL_NETWORK_INFOBAR_TEXT" desc="Text requesting permission for a site to access devices on the user's local network.">
+      <ph name="URL">$1<ex>google.com</ex></ph> wants to access other devices on your local network
+    </message>
+    <message name="IDS_LOOPBACK_NETWORK_INFOBAR_TEXT" desc="Text requesting permission for a site to access the current device.">
+      <ph name="URL">$1<ex>google.com</ex></ph> wants to access other apps and services on this device
     </message>
     <message name="IDS_NOTIFICATION_QUIET_PERMISSION_PROMPT_TITLE" desc="Text used as notification title when requesting permission for Web Notifications via a notification.">
       Notifications for <ph name="ORIGIN">$1<ex>example.com</ex></ph> are blocked
@@ -95,6 +104,12 @@
     <message name="IDS_MESSAGE_MISSING_MICROPHONE_CAMERA_PERMISSION_TITLE" desc="Title text shown in a prompt ui to ask whether user agrees to grant Android microphone and camera permission when a website has requested access to microphone and camera, but Brave is missing the Android microphone and camera permission.">
       Allow 2 permissions?
     </message>
+    <message name="IDS_MOTION_AND_LIGHT_SENSORS_INFOBAR_TEXT" desc="Text requesting permission for a site to access the device's sensors">
+      <ph name="URL">$1<ex>google.com</ex></ph> wants to use your motion and light sensors
+    </message>
+    <message name="IDS_MOTION_SENSORS_INFOBAR_TEXT" desc="Text requesting permission for a site to access the device's sensors">
+      <ph name="URL">$1<ex>google.com</ex></ph> wants to use your motion sensors
+    </message>
     <message name="IDS_IDENTITY_PROVIDER_INFOBAR_TEXT" desc="Text requesting permission for a site to register itself as an Federated Identity Provider." translateable="false">
       Would you like to use your <ph name="URL">$1<ex>google.com</ex></ph> accounts to login to websites?
     </message>
@@ -112,6 +127,12 @@
   </if>
   <message name="IDS_GEOLOCATION_INFOBAR_PERMISSION_FRAGMENT" desc="Permission fragment used in the permission bubble, after 'This site wants to:' asking for permission to access the user's physical location.">
     Know your location
+  </message>
+  <message name="IDS_MOTION_AND_LIGHT_SENSORS_PERMISSION_FRAGMENT" desc="Permission fragment used in the permission bubble, after 'This site wants to:' asking for permission to access the device's sensors.">
+    Use your motion and light sensors
+  </message>
+  <message name="IDS_MOTION_SENSORS_PERMISSION_FRAGMENT" desc="Permission fragment used in the permission bubble, after 'This site wants to:' asking for permission to access the device's sensors.">
+    Use your motion sensors
   </message>
   <message name="IDS_NOTIFICATION_PERMISSIONS_FRAGMENT" desc="Permission sentence fragment to show following the prompt 'This site wants to:' in a permissions request">
     Show notifications
@@ -196,8 +217,14 @@ This will otherwise be blocked by your privacy settings. This will allow the con
   <message name="IDS_WEB_APP_INSTALLATION_PERMISSION_FRAGMENT" desc="Permission fragment shown in the permissions bubble when a web page requests to install a web app.">
     Be able to install web apps
   </message>
-  <message name="IDS_LOCAL_NETWORK_ACCESS_PERMISSION_FRAGMENT" desc="Permission fragment shown in the permissions bubble when a web page requests to access the user's local network.">
+  <message name="IDS_LOCAL_NETWORK_ACCESS_PERMISSION_FRAGMENT" desc="Permission fragment shown in the permissions bubble when a web page requests to access the devices on the user's local network.">
     Look for and connect to any device on your local network
+  </message>
+  <message name="IDS_LOCAL_NETWORK_PERMISSION_FRAGMENT" desc="Permission fragment shown in the permissions bubble when a web page requests to access other devices on the user's local network.">
+    Access other devices on your local network
+  </message>
+  <message name="IDS_LOOPBACK_NETWORK_PERMISSION_FRAGMENT" desc="Permission fragment shown in the permissions bubble when a web page requests to access the user's current device.">
+    Access other apps and services on this device
   </message>
   <message name="IDS_PERMISSION_ALLOW" desc="Label on button to allow a permissions request.">
     Allow
@@ -205,37 +232,37 @@ This will otherwise be blocked by your privacy settings. This will allow the con
   <message name="IDS_PERMISSION_DENY" desc="Label on button to deny a permissions request.">
     Block
   </message>
-  <message name="IDS_PERMISSION_ALLOW_THIS_TIME" desc="Label on button to one time grant in a one-time granting use case">
+  <message name="IDS_PERMISSION_ALLOW_THIS_TIME" desc="Label on button to one time grant in a one-time granting use case" formatter_data="android_java">
     Allow this time
   </message>
-  <message name="IDS_PERMISSION_ALLOW_EVERY_VISIT" desc="Label on button to permanent grant in a one-time granting use case">
+  <message name="IDS_PERMISSION_ALLOW_EVERY_VISIT" desc="Label on button to permanent grant in a one-time granting use case" formatter_data="android_java">
     Allow on every visit
   </message>
   <message name="IDS_PERMISSION_ALLOW_WHILE_VISITING" desc="Label on button to grant a permission to a site to do X permanently, that is, on the user's current visit and subsequent visits. This contrasts with the temporary grant through a button labeled [Allow this time], which only allows the site to do X on the current visit. The context for this choice is a prompt that says [The site wants to do X]. Therefore, for some languages it might be possible to drop the _the site_ suffix if it is evident from this context and its absensce does not feel dangling in the language.">
     Allow while visiting the site
   </message>
-  <message name="IDS_PERMISSION_DONT_ALLOW" desc="Label on button to permanent deny in a one-time granting use case">
+  <message name="IDS_PERMISSION_DONT_ALLOW" desc="Label on button to permanent deny in a one-time granting use case" formatter_data="android_java">
     Don't allow
   </message>
   <message name="IDS_PERMISSION_NEVER_ALLOW" desc="(Alternative label, to compare) label on button to permanent deny in a one-time granting use case.">
     Never allow
   </message>
-  <message name="IDS_PERMISSION_ALLOW_APPROXIMATE_GEO" desc="Label on a radio button to select approximate geolocation permission for a site." translateable="false" formatter_data="android_java">
+  <message name="IDS_PERMISSION_ALLOW_APPROXIMATE_GEO" desc="Label on a radio button to select approximate geolocation permission for a site." formatter_data="android_java">
     Approximate
   </message>
-  <message name="IDS_PERMISSION_ALLOW_PRECISE_GEO" desc="Label on a radio button to select precise geolocation permission for a site." translateable="false" formatter_data="android_java">
+  <message name="IDS_PERMISSION_ALLOW_PRECISE_GEO" desc="Label on a radio button to select precise geolocation permission for a site." formatter_data="android_java">
     Precise
   </message>
-  <message name="IDS_PERMISSION_ALLOW_PRECISE_GEO_DESCRIPTION" desc="Description for a radio button to select precise geolocation permission for a site." translateable="false" formatter_data="android_java">
+  <message name="IDS_PERMISSION_ALLOW_PRECISE_GEO_DESCRIPTION" desc="Description for a radio button to select precise geolocation permission for a site." formatter_data="android_java">
     Exact location
   </message>
-  <message name="IDS_PERMISSION_ALLOW_APPROXIMATE_GEO_DESCRIPTION" desc="Description for a radio button to select approximate geolocation permission for a site." translateable="false" formatter_data="android_java">
+  <message name="IDS_PERMISSION_ALLOW_APPROXIMATE_GEO_DESCRIPTION" desc="Description for a radio button to select approximate geolocation permission for a site." formatter_data="android_java">
     Neighborhood
   </message>
-  <message name="IDS_PERMISSION_ALLOW_PRECISE_GEO_LONG_DESCRIPTION" desc="Description for a radio button to select precise geolocation permission for a site. This is a longer version of the description used for experimentation." translateable="false" formatter_data="android_java">
+  <message name="IDS_PERMISSION_ALLOW_PRECISE_GEO_LONG_DESCRIPTION" desc="Description for a radio button to select precise geolocation permission for a site. This is a longer version of the description used for experimentation." formatter_data="android_java">
     Often used for directions, deliveries, and more
   </message>
-  <message name="IDS_PERMISSION_ALLOW_APPROXIMATE_GEO_LONG_DESCRIPTION" desc="Description for a radio button to select approximate geolocation permission for a site. This is a longer version of the description used for experimentation." translateable="false" formatter_data="android_java">
+  <message name="IDS_PERMISSION_ALLOW_APPROXIMATE_GEO_LONG_DESCRIPTION" desc="Description for a radio button to select approximate geolocation permission for a site. This is a longer version of the description used for experimentation." formatter_data="android_java">
     Often used for weather, local news, and more
   </message>
   <!-- Device Chooser -->
@@ -346,6 +373,12 @@ This will otherwise be blocked by your privacy settings. This will allow the con
     </message>
     <message name="IDS_WEB_APP_INSTALLATION_PERMISSION_CHIP" desc="Chip UI text representing a request from a website to install web apps.">
       Install web apps?
+    </message>
+    <message name="IDS_MOTION_AND_LIGHT_SENSORS_PERMISSION_CHIP" desc="Button text representing a request for using motion sensors from a website. When clicked, shows a permission prompt bubble with more information. This string is displayed in a constrained space, so we do not distinguish between motion and light sensors here. The dialog hanging off of this chip will make that distinction.">
+      Use sensors?
+    </message>
+    <message name="IDS_MOTION_SENSORS_PERMISSION_CHIP" desc="Button text representing a request for using motion sensors from a website. When clicked, shows a permission prompt bubble with more information.">
+      Use motion sensors?
     </message>
 
     <message name="IDS_AR_PERMISSION_CHIP" desc="Button text representing a request for using AR from a website. When clicked, shows a permission prompt bubble with more information.">
@@ -485,6 +518,24 @@ This will otherwise be blocked by your privacy settings. This will allow the con
     </message>
     <message name="IDS_PERMISSIONS_WEB_INSTALL_NOT_ALLOWED_CONFIRMATION_SCREENREADER_ANNOUNCEMENT" is_accessibility_with_no_ui="true" desc="Announcement to screen readers confirming that a web app installation permission requested has been denied.">
       Install web apps not allowed
+    </message>
+    <message name="IDS_PERMISSIONS_MOTION_AND_LIGHT_SENSORS_ALLOWED_CONFIRMATION_SCREENREADER_ANNOUNCEMENT" is_accessibility_with_no_ui="true" desc="Announcement to screen readers confirming that a motion sensors permission requested has been granted.">
+      Motion and light sensors allowed
+    </message>
+    <message name="IDS_PERMISSIONS_MOTION_AND_LIGHT_SENSORS_ALLOWED_ONCE_CONFIRMATION_SCREENREADER_ANNOUNCEMENT" is_accessibility_with_no_ui="true" desc="Announcement to screen readers confirming that a motion sensors permission requested has been granted for one time.">
+     Motion and light sensors allowed for now
+    </message>
+    <message name="IDS_PERMISSIONS_MOTION_AND_LIGHT_SENSORS_NOT_ALLOWED_CONFIRMATION_SCREENREADER_ANNOUNCEMENT" is_accessibility_with_no_ui="true" desc="Announcement to screen readers confirming that a motion sensors permission requested has been denied.">
+     Motion and light sensors not allowed
+    </message>
+    <message name="IDS_PERMISSIONS_MOTION_SENSORS_ALLOWED_CONFIRMATION_SCREENREADER_ANNOUNCEMENT" is_accessibility_with_no_ui="true" desc="Announcement to screen readers confirming that a motion sensors permission requested has been granted.">
+      Motion sensors allowed
+    </message>
+    <message name="IDS_PERMISSIONS_MOTION_SENSORS_ALLOWED_ONCE_CONFIRMATION_SCREENREADER_ANNOUNCEMENT" is_accessibility_with_no_ui="true" desc="Announcement to screen readers confirming that a motion sensors permission requested has been granted for one time.">
+     Motion sensors allowed for now
+    </message>
+    <message name="IDS_PERMISSIONS_MOTION_SENSORS_NOT_ALLOWED_CONFIRMATION_SCREENREADER_ANNOUNCEMENT" is_accessibility_with_no_ui="true" desc="Announcement to screen readers confirming that a motion sensors permission requested has been denied.">
+     Motion sensors not allowed
     </message>
   </if>
   <if expr="is_chromeos">

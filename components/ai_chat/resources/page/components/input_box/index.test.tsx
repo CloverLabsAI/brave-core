@@ -3,11 +3,14 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 
+/* eslint-disable jest/no-conditional-expect, import/first */
+
 import * as React from 'react'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { clearAllDataForTesting } from '$web-common/api'
+import { ContentType, UploadedFileType, TaskState } from '../../../common/mojom'
+import { MockContext } from '../../state/mock_context'
 import InputBox, { InputBoxProps } from '.'
-import { ContentType, UploadedFileType } from '../../../common/mojom'
-import { defaultContext } from '../../state/conversation_context'
 
 // Mock the convertFileToUploadedFile function
 jest.mock('../../utils/file_utils', () => ({
@@ -28,38 +31,85 @@ Object.defineProperty(URL, 'createObjectURL', {
 })
 
 const testContext: InputBoxProps['context'] = {
-  ...defaultContext,
-  // Override specific properties for testing
   isMobile: false,
   hasAcceptedAgreement: true,
   getPluralString: () => Promise.resolve(''),
-  tabs: [],
   attachImages: jest.fn(),
   isAIChatAgentProfileFeatureEnabled: false,
   isAIChatAgentProfile: false,
   openAIChatAgentProfile: () => {},
+  associatedContentInfo: [],
+  inputText: [''],
+  isGenerating: false,
+  pendingMessageFiles: [],
+  conversationHistory: [],
+  unassociatedTabs: [],
+  setAttachmentsDialog: () => {},
+  uploadFile: jest.fn(),
+  getScreenshots: jest.fn(),
+  setInputText: () => {},
+  submitInputTextToAPI: jest.fn(),
+  selectedActionType: undefined,
+  resetSelectedActionType: () => {},
+  isCharLimitApproaching: false,
+  isCharLimitExceeded: false,
+  inputTextCharCountDisplay: '',
+  isToolsMenuOpen: false,
+  setIsToolsMenuOpen: () => {},
+  toolUseTaskState: TaskState.kNone,
+  shouldDisableUserInput: false,
+  handleVoiceRecognition: () => {},
+  handleStopGenerating: () => Promise.resolve(),
+  removeFile: () => {},
+  isUploadingFiles: false,
+  disassociateContent: () => {},
+  associateDefaultContent: undefined,
+  pauseTask: () => {},
+  resumeTask: () => {},
+  stopTask: () => {},
+  handleSkillClick: () => {},
+  selectedSkill: undefined,
+  processImageFile: jest.fn(),
+  skills: [],
+}
+
+// Render InputBox and flush async state updates from usePromise.
+async function renderInputBox(
+  ...args: Parameters<typeof render>
+): Promise<ReturnType<typeof render>> {
+  let result: ReturnType<typeof render>
+  await act(async () => {
+    result = render(...args)
+  })
+  return result!
 }
 
 describe('input box', () => {
-  it('associated content is rendered in input box when not associated with a turn', () => {
-    const { container } = render(
-      <InputBox
-        context={{
-          ...testContext,
-          associatedContentInfo: [
-            {
-              contentId: 1,
-              contentType: ContentType.PageContent,
-              contentUsedPercentage: 0.5,
-              title: 'Associated Content',
-              url: { url: 'https://example.com' },
-              uuid: '1234',
-              conversationTurnUuid: undefined,
-            },
-          ],
-        }}
-        conversationStarted={false}
-      />,
+  beforeEach(() => {
+    clearAllDataForTesting()
+  })
+
+  it('associated content is rendered in input box when not associated with a turn', async () => {
+    const { container } = await renderInputBox(
+      <MockContext>
+        <InputBox
+          context={{
+            ...testContext,
+            associatedContentInfo: [
+              {
+                contentId: 1,
+                contentType: ContentType.PageContent,
+                contentUsedPercentage: 0.5,
+                title: 'Associated Content',
+                url: { url: 'https://example.com' },
+                uuid: '1234',
+                conversationTurnUuid: undefined,
+              },
+            ],
+          }}
+          conversationStarted={false}
+        />
+      </MockContext>,
     )
 
     expect(
@@ -70,15 +120,17 @@ describe('input box', () => {
     ).toBeInTheDocument()
   })
 
-  it('associated content is not rendered in input box when there is no associated content', () => {
-    const { container } = render(
-      <InputBox
-        context={{
-          ...testContext,
-          associatedContentInfo: [],
-        }}
-        conversationStarted={false}
-      />,
+  it('associated content is not rendered in input box when there is no associated content', async () => {
+    const { container } = await renderInputBox(
+      <MockContext>
+        <InputBox
+          context={{
+            ...testContext,
+            associatedContentInfo: [],
+          }}
+          conversationStarted={false}
+        />
+      </MockContext>,
     )
 
     expect(screen.queryByText('Associated Content')).not.toBeInTheDocument()
@@ -87,25 +139,27 @@ describe('input box', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('associated content is not rendered in input box after being associated with a turn', () => {
-    const { container } = render(
-      <InputBox
-        context={{
-          ...testContext,
-          associatedContentInfo: [
-            {
-              contentId: 1,
-              contentType: ContentType.PageContent,
-              contentUsedPercentage: 0.5,
-              title: 'Associated Content',
-              url: { url: 'https://example.com' },
-              uuid: '1234',
-              conversationTurnUuid: 'turn-1',
-            },
-          ],
-        }}
-        conversationStarted
-      />,
+  it('associated content is not rendered in input box after being associated with a turn', async () => {
+    const { container } = await renderInputBox(
+      <MockContext>
+        <InputBox
+          context={{
+            ...testContext,
+            associatedContentInfo: [
+              {
+                contentId: 1,
+                contentType: ContentType.PageContent,
+                contentUsedPercentage: 0.5,
+                title: 'Associated Content',
+                url: { url: 'https://example.com' },
+                uuid: '1234',
+                conversationTurnUuid: 'turn-1',
+              },
+            ],
+          }}
+          conversationStarted
+        />
+      </MockContext>,
     )
 
     expect(screen.queryByText('Associated Content')).not.toBeInTheDocument()
@@ -114,15 +168,17 @@ describe('input box', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('send button is disabled when the input text is empty', () => {
-    const { container } = render(
-      <InputBox
-        context={{
-          ...testContext,
-          inputText: [''],
-        }}
-        conversationStarted={false}
-      />,
+  it('send button is disabled when the input text is empty', async () => {
+    const { container } = await renderInputBox(
+      <MockContext>
+        <InputBox
+          context={{
+            ...testContext,
+            inputText: [''],
+          }}
+          conversationStarted={false}
+        />
+      </MockContext>,
     )
 
     const sendButton = container.querySelector('.sendButtonDisabled')
@@ -130,15 +186,17 @@ describe('input box', () => {
     expect(sendButton).toHaveClass('sendButtonDisabled')
   })
 
-  it('send button is enabled when the input text is not empty', () => {
-    const { container } = render(
-      <InputBox
-        context={{
-          ...testContext,
-          inputText: ['test'],
-        }}
-        conversationStarted={false}
-      />,
+  it('send button is enabled when the input text is not empty', async () => {
+    const { container } = await renderInputBox(
+      <MockContext>
+        <InputBox
+          context={{
+            ...testContext,
+            inputText: ['test'],
+          }}
+          conversationStarted={false}
+        />
+      </MockContext>,
     )
 
     const sendButton = container.querySelector('.button')
@@ -146,12 +204,14 @@ describe('input box', () => {
     expect(sendButton).not.toHaveClass('sendButtonDisabled')
   })
 
-  it('streaming button is shown while generating', () => {
-    const { container } = render(
-      <InputBox
-        context={{ ...testContext, isGenerating: true }}
-        conversationStarted={false}
-      />,
+  it('streaming button is shown while generating', async () => {
+    const { container } = await renderInputBox(
+      <MockContext>
+        <InputBox
+          context={{ ...testContext, isGenerating: true }}
+          conversationStarted={false}
+        />
+      </MockContext>,
     )
 
     const streamingButton = container.querySelector('.streamingButton')
@@ -210,17 +270,19 @@ describe('input box', () => {
 
   it.each(contentAgentParams)(
     'Content Agent button is shown only if the feature is enabled',
-    (params: ContentAgentParams) => {
-      render(
-        <InputBox
-          context={{
-            ...testContext,
-            isAIChatAgentProfileFeatureEnabled:
-              params.isAgentProfileFeatureEnabled,
-            isAIChatAgentProfile: params.isAgentProfile,
-          }}
-          conversationStarted={params.isConversationStarted}
-        />,
+    async (params: ContentAgentParams) => {
+      await renderInputBox(
+        <MockContext>
+          <InputBox
+            context={{
+              ...testContext,
+              isAIChatAgentProfileFeatureEnabled:
+                params.isAgentProfileFeatureEnabled,
+              isAIChatAgentProfile: params.isAgentProfile,
+            }}
+            conversationStarted={params.isConversationStarted}
+          />
+        </MockContext>,
       )
 
       const contentAgentLaunchButton = screen.queryByTitle(
@@ -244,22 +306,24 @@ describe('input box', () => {
     },
   )
 
-  it('documents show up in attachment wrapper', () => {
-    const { container } = render(
-      <InputBox
-        context={{
-          ...testContext,
-          pendingMessageFiles: [
-            {
-              filename: 'test.pdf',
-              data: new ArrayBuffer(0),
-              type: UploadedFileType.kPdf,
-              filesize: BigInt(1024),
-            },
-          ],
-        }}
-        conversationStarted={false}
-      />,
+  it('documents show up in attachment wrapper', async () => {
+    const { container } = await renderInputBox(
+      <MockContext>
+        <InputBox
+          context={{
+            ...testContext,
+            pendingMessageFiles: [
+              {
+                filename: 'test.pdf',
+                data: [],
+                type: UploadedFileType.kPdf,
+                filesize: 1024,
+              },
+            ],
+          }}
+          conversationStarted={false}
+        />
+      </MockContext>,
     )
 
     expect(screen.getByText('test.pdf')).toBeInTheDocument()
@@ -267,28 +331,30 @@ describe('input box', () => {
     expect(attachmentWrapper).toBeInTheDocument()
   })
 
-  it('attachments are shown if only documents are available', () => {
-    const { container } = render(
-      <InputBox
-        context={{
-          ...testContext,
-          pendingMessageFiles: [
-            {
-              filename: 'document1.pdf',
-              data: new ArrayBuffer(0),
-              type: UploadedFileType.kPdf,
-              filesize: BigInt(2048),
-            },
-            {
-              filename: 'document2.pdf',
-              data: new ArrayBuffer(0),
-              type: UploadedFileType.kPdf,
-              filesize: BigInt(1536),
-            },
-          ],
-        }}
-        conversationStarted={false}
-      />,
+  it('attachments are shown if only documents are available', async () => {
+    const { container } = await renderInputBox(
+      <MockContext>
+        <InputBox
+          context={{
+            ...testContext,
+            pendingMessageFiles: [
+              {
+                filename: 'document1.pdf',
+                data: [],
+                type: UploadedFileType.kPdf,
+                filesize: 2048,
+              },
+              {
+                filename: 'document2.pdf',
+                data: [],
+                type: UploadedFileType.kPdf,
+                filesize: 1536,
+              },
+            ],
+          }}
+          conversationStarted={false}
+        />
+      </MockContext>,
     )
 
     const attachmentWrapper = container.querySelector('.attachmentWrapper')
@@ -300,38 +366,41 @@ describe('input box', () => {
     expect(attachmentItems.length).toBeGreaterThanOrEqual(2)
   })
 
-  it('combinations of associated content, images and documents show up', () => {
-    const { container } = render(
-      <InputBox
-        context={{
-          ...testContext,
-          associatedContentInfo: [
-            {
-              contentId: 1,
-              contentType: ContentType.PageContent,
-              contentUsedPercentage: 0.5,
-              title: 'Page Content',
-              url: { url: 'https://example.com' },
-              uuid: '1234',
-            },
-          ],
-          pendingMessageFiles: [
-            {
-              filename: 'image.jpg',
-              data: new ArrayBuffer(0),
-              type: UploadedFileType.kImage,
-              filesize: BigInt(1024),
-            },
-            {
-              filename: 'document.pdf',
-              data: new ArrayBuffer(0),
-              type: UploadedFileType.kPdf,
-              filesize: BigInt(2048),
-            },
-          ],
-        }}
-        conversationStarted={false}
-      />,
+  it('combinations of associated content, images and documents show up', async () => {
+    const { container } = await renderInputBox(
+      <MockContext>
+        <InputBox
+          context={{
+            ...testContext,
+            associatedContentInfo: [
+              {
+                conversationTurnUuid: undefined,
+                contentId: 1,
+                contentType: ContentType.PageContent,
+                contentUsedPercentage: 0.5,
+                title: 'Page Content',
+                url: { url: 'https://example.com' },
+                uuid: '1234',
+              },
+            ],
+            pendingMessageFiles: [
+              {
+                filename: 'image.jpg',
+                data: [],
+                type: UploadedFileType.kImage,
+                filesize: 1024,
+              },
+              {
+                filename: 'document.pdf',
+                data: [],
+                type: UploadedFileType.kPdf,
+                filesize: 2048,
+              },
+            ],
+          }}
+          conversationStarted={false}
+        />
+      </MockContext>,
     )
 
     const attachmentWrapper = container.querySelector('.attachmentWrapper')
@@ -377,14 +446,16 @@ describe('input box', () => {
 
     it('filters image files and calls attachImages on paste', async () => {
       const mockAttachImages = jest.fn()
-      const { container } = render(
-        <InputBox
-          context={{
-            ...testContext,
-            attachImages: mockAttachImages,
-          }}
-          conversationStarted={false}
-        />,
+      const { container } = await renderInputBox(
+        <MockContext>
+          <InputBox
+            context={{
+              ...testContext,
+              attachImages: mockAttachImages,
+            }}
+            conversationStarted={false}
+          />
+        </MockContext>,
       )
 
       const textarea = container.querySelector('[data-editor]')!
@@ -424,16 +495,18 @@ describe('input box', () => {
   it(
     'Content Agent warning is shown if the conversation has not started'
       + ' and isAIChatAgentProfile is true',
-    () => {
-      const { container } = render(
-        <InputBox
-          context={{
-            ...testContext,
-            isAIChatAgentProfileFeatureEnabled: true,
-            isAIChatAgentProfile: true,
-          }}
-          conversationStarted={false}
-        />,
+    async () => {
+      const { container } = await renderInputBox(
+        <MockContext>
+          <InputBox
+            context={{
+              ...testContext,
+              isAIChatAgentProfileFeatureEnabled: true,
+              isAIChatAgentProfile: true,
+            }}
+            conversationStarted={false}
+          />
+        </MockContext>,
       )
       expect(
         container.querySelector('.contentAgentWarning'),
@@ -444,16 +517,18 @@ describe('input box', () => {
   it(
     'Content Agent warning is not shown after the conversation has started'
       + ' and isAIChatAgentProfile is true',
-    () => {
-      const { container } = render(
-        <InputBox
-          context={{
-            ...testContext,
-            isAIChatAgentProfileFeatureEnabled: true,
-            isAIChatAgentProfile: true,
-          }}
-          conversationStarted={true}
-        />,
+    async () => {
+      const { container } = await renderInputBox(
+        <MockContext>
+          <InputBox
+            context={{
+              ...testContext,
+              isAIChatAgentProfileFeatureEnabled: true,
+              isAIChatAgentProfile: true,
+            }}
+            conversationStarted={true}
+          />
+        </MockContext>,
       )
       expect(
         container.querySelector('.contentAgentWarning'),
@@ -464,14 +539,16 @@ describe('input box', () => {
   it(
     'Content Agent warning is not shown if isAIChatAgentProfile'
       + 'is not true',
-    () => {
-      const { container } = render(
-        <InputBox
-          context={{
-            ...testContext,
-          }}
-          conversationStarted={true}
-        />,
+    async () => {
+      const { container } = await renderInputBox(
+        <MockContext>
+          <InputBox
+            context={{
+              ...testContext,
+            }}
+            conversationStarted={true}
+          />
+        </MockContext>,
       )
       expect(
         container.querySelector('.contentAgentWarning'),

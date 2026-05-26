@@ -39,7 +39,7 @@ std::string_view SelectTool::Description() const {
          "The value should match the 'value' attribute of the desired option.";
 }
 
-std::optional<base::Value::Dict> SelectTool::InputProperties() const {
+std::optional<base::DictValue> SelectTool::InputProperties() const {
   return CreateInputProperties(
       {{kPropertyNameTarget,
         target_util::TargetProperty("Dropdown element to select from")},
@@ -59,7 +59,7 @@ void SelectTool::UseTool(const std::string& input_json,
 
   if (!input.has_value()) {
     std::move(callback).Run(
-        CreateContentBlocksForText("Error: failed to parse input JSON"));
+        CreateContentBlocksForText("Error: failed to parse input JSON"), {});
     return;
   }
 
@@ -67,22 +67,24 @@ void SelectTool::UseTool(const std::string& input_json,
   const auto* value = input->FindString(kPropertyNameValue);
   if (!value) {
     std::move(callback).Run(
-        CreateContentBlocksForText("Error: missing required 'value' property"));
+        CreateContentBlocksForText("Error: missing required 'value' property"),
+        {});
     return;
   }
 
   // Extract and parse target object
-  const base::Value::Dict* target_dict = input->FindDict(kPropertyNameTarget);
+  const base::DictValue* target_dict = input->FindDict(kPropertyNameTarget);
   if (!target_dict) {
     std::move(callback).Run(
-        CreateContentBlocksForText("Error: missing 'target' property"));
+        CreateContentBlocksForText("Error: missing 'target' property"), {});
     return;
   }
 
   auto target = target_util::ParseTargetInput(*target_dict);
   if (!target.has_value()) {
-    std::move(callback).Run(CreateContentBlocksForText(
-        base::StrCat({"Invalid 'target': ", target.error()})));
+    std::move(callback).Run(CreateContentBlocksForText(base::StrCat(
+                                {"Invalid 'target': ", target.error()})),
+                            {});
     return;
   }
 

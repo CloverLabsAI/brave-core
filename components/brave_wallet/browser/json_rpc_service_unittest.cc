@@ -68,7 +68,6 @@
 #include "components/prefs/scoped_user_pref_update.h"
 #include "components/sync_preferences/testing_pref_service_syncable.h"
 #include "mojo/public/cpp/bindings/self_owned_receiver.h"
-#include "services/data_decoder/public/cpp/test_support/in_process_data_decoder.h"
 #include "services/network/public/cpp/weak_wrapper_shared_url_loader_factory.h"
 #include "services/network/test/test_url_loader_factory.h"
 #include "testing/gmock/include/gmock/gmock.h"
@@ -169,9 +168,9 @@ std::string GetFilStateSearchMsgLimitedResponse(int64_t value) {
 }
 
 void UpdateCustomNetworks(PrefService* prefs,
-                          std::vector<base::Value::Dict>* values) {
+                          std::vector<base::DictValue>* values) {
   ScopedDictPrefUpdate update(prefs, kBraveWalletCustomNetworks);
-  base::Value::List* list = update->EnsureList(kEthereumPrefKey);
+  base::ListValue* list = update->EnsureList(kEthereumPrefKey);
   list->clear();
   for (auto& it : *values) {
     list->Append(std::move(it));
@@ -289,7 +288,7 @@ class TestJsonRpcServiceObserver
 constexpr char https_metadata_response[] =
     R"({"attributes":[{"trait_type":"Feet","value":"Green Shoes"},{"trait_type":"Legs","value":"Tan Pants"},{"trait_type":"Suspenders","value":"White Suspenders"},{"trait_type":"Upper Body","value":"Indigo Turtleneck"},{"trait_type":"Sleeves","value":"Long Sleeves"},{"trait_type":"Hat","value":"Yellow / Blue Pointy Beanie"},{"trait_type":"Eyes","value":"White Nerd Glasses"},{"trait_type":"Mouth","value":"Toothpick"},{"trait_type":"Ears","value":"Bing Bong Stick"},{"trait_type":"Right Arm","value":"Swinging"},{"trait_type":"Left Arm","value":"Diamond Hand"},{"trait_type":"Background","value":"Blue"}],"description":"5,000 animated Invisible Friends hiding in the metaverse. A collection by Markus Magnusson & Random Character Collective.","image":"https://rcc.mypinata.cloud/ipfs/QmXmuSenZRnofhGMz2NyT3Yc4Zrty1TypuiBKDcaBsNw9V/1817.gif","name":"Invisible Friends #1817"})";
 
-std::optional<base::Value::Dict> ToValue(
+std::optional<base::DictValue> ToValue(
     const network::ResourceRequest& request) {
   std::string_view request_string(request.request_body->elements()
                                       ->at(0)
@@ -337,9 +336,9 @@ class SolRpcCallHandler {
  public:
   virtual ~SolRpcCallHandler() = default;
 
-  virtual bool CallSupported(const base::Value::Dict& dict) = 0;
+  virtual bool CallSupported(const base::DictValue& dict) = 0;
   virtual std::optional<std::string> HandleCall(
-      const base::Value::Dict& dict) = 0;
+      const base::DictValue& dict) = 0;
 
   void FailWithTimeout(bool fail_with_timeout = true) {
     fail_with_timeout_ = fail_with_timeout;
@@ -347,8 +346,7 @@ class SolRpcCallHandler {
   void Disable(bool disabled = true) { disabled_ = disabled; }
   void Enable() { disabled_ = false; }
 
-  std::optional<SolanaAddress> AddressFromParams(
-      const base::Value::Dict& dict) {
+  std::optional<SolanaAddress> AddressFromParams(const base::DictValue& dict) {
     auto* params_list = dict.FindList("params");
     if (!params_list || params_list->size() == 0) {
       return std::nullopt;
@@ -378,7 +376,7 @@ class GetAccountInfoHandler : public SolRpcCallHandler {
     data_ = std::move(data);
   }
 
-  bool CallSupported(const base::Value::Dict& dict) override {
+  bool CallSupported(const base::DictValue& dict) override {
     if (disabled_) {
       return false;
     }
@@ -536,8 +534,7 @@ class GetAccountInfoHandler : public SolRpcCallHandler {
     return result;
   }
 
-  std::optional<std::string> HandleCall(
-      const base::Value::Dict& dict) override {
+  std::optional<std::string> HandleCall(const base::DictValue& dict) override {
     if (fail_with_timeout_) {
       return "timeout";
     }
@@ -546,8 +543,8 @@ class GetAccountInfoHandler : public SolRpcCallHandler {
       return MakeJsonRpcValueResponse(base::Value());
     }
 
-    base::Value::Dict value;
-    base::Value::List data_array;
+    base::DictValue value;
+    base::ListValue data_array;
     data_array.Append(base::Value(base::Base64Encode(data_)));
     data_array.Append(base::Value("base64"));
     value.Set("data", std::move(data_array));
@@ -577,7 +574,7 @@ class GetProgramAccountsHandler : public SolRpcCallHandler {
         token_account_address_(token_account_address),
         token_account_data_(token_account_data) {}
 
-  bool CallSupported(const base::Value::Dict& dict) override {
+  bool CallSupported(const base::DictValue& dict) override {
     if (disabled_) {
       return false;
     }
@@ -601,8 +598,7 @@ class GetProgramAccountsHandler : public SolRpcCallHandler {
     return data;
   }
 
-  std::optional<std::string> HandleCall(
-      const base::Value::Dict& dict) override {
+  std::optional<std::string> HandleCall(const base::DictValue& dict) override {
     if (fail_with_timeout_) {
       return "timeout";
     }
@@ -611,25 +607,25 @@ class GetProgramAccountsHandler : public SolRpcCallHandler {
     EXPECT_TRUE(filters);
 
     auto data_span = base::span(token_account_data_);
-    base::Value::List expected_filters;
-    expected_filters.Append(base::Value::Dict());
+    base::ListValue expected_filters;
+    expected_filters.Append(base::DictValue());
     expected_filters.back().GetDict().SetByDottedPath("memcmp.offset", 0);
     expected_filters.back().GetDict().SetByDottedPath(
         "memcmp.bytes", Base58Encode(data_span.first<32>()));
-    expected_filters.Append(base::Value::Dict());
+    expected_filters.Append(base::DictValue());
     expected_filters.back().GetDict().SetByDottedPath("memcmp.offset", 64);
     expected_filters.back().GetDict().SetByDottedPath(
         "memcmp.bytes", Base58Encode(data_span.subspan(64u, 1u)));
-    expected_filters.Append(base::Value::Dict());
+    expected_filters.Append(base::DictValue());
     expected_filters.back().GetDict().Set("dataSize", 165);
 
     EXPECT_EQ(expected_filters, *filters);
 
-    base::Value::Dict item;
+    base::DictValue item;
 
-    base::Value::Dict account_dict;
+    base::DictValue account_dict;
 
-    base::Value::List data_array;
+    base::ListValue data_array;
     data_array.Append(base::Base64Encode(token_account_data_));
     data_array.Append("base64");
     account_dict.Set("data", std::move(data_array));
@@ -643,7 +639,7 @@ class GetProgramAccountsHandler : public SolRpcCallHandler {
 
     item.Set("pubkey", token_account_address_.ToBase58());
 
-    base::Value::List items;
+    base::ListValue items;
     items.Append(std::move(item));
 
     return MakeJsonRpcResultResponse(base::Value(std::move(items)));
@@ -685,7 +681,7 @@ class JsonRpcEndpointHandler {
   }
 
  protected:
-  std::optional<std::string> HandleCall(const base::Value::Dict& dict) {
+  std::optional<std::string> HandleCall(const base::DictValue& dict) {
     auto* method = dict.FindString("method");
     if (!method) {
       return std::nullopt;
@@ -697,7 +693,7 @@ class JsonRpcEndpointHandler {
     return HandleSolRpcCall(dict);
   }
 
-  std::optional<std::string> HandleEthCall(const base::Value::Dict& dict) {
+  std::optional<std::string> HandleEthCall(const base::DictValue& dict) {
     auto* params_list = dict.FindList("params");
     if (!params_list || params_list->size() == 0 ||
         !params_list->begin()->is_dict()) {
@@ -707,7 +703,7 @@ class JsonRpcEndpointHandler {
     auto& transaction_params = params_list->begin()->GetDict();
     auto* data_param = transaction_params.FindString("data");
     auto* to_param = transaction_params.FindString("to");
-    if (!data_param || !to_param || !EthAddress::FromHex(*to_param).IsValid()) {
+    if (!data_param || !to_param || !EthAddress::From0xHex(*to_param)) {
       return std::nullopt;
     }
 
@@ -716,8 +712,9 @@ class JsonRpcEndpointHandler {
       return std::nullopt;
     }
 
+    auto hex_to = EthAddress::From0xHex(*to_param).value();
     for (auto* handler : eth_call_handlers_) {
-      if (!handler->CallSupported(EthAddress::FromHex(*to_param), *call_data)) {
+      if (!handler->CallSupported(hex_to, *call_data)) {
         continue;
       }
 
@@ -729,7 +726,7 @@ class JsonRpcEndpointHandler {
     return std::nullopt;
   }
 
-  std::optional<std::string> HandleSolRpcCall(const base::Value::Dict& dict) {
+  std::optional<std::string> HandleSolRpcCall(const base::DictValue& dict) {
     for (auto* handler : sol_rpc_call_handlers_) {
       if (!handler->CallSupported(dict)) {
         continue;
@@ -768,9 +765,6 @@ class JsonRpcServiceUnitTest : public testing::Test {
 
   void SetUp() override {
     Test::SetUp();
-    shared_url_loader_factory_ =
-        base::MakeRefCounted<network::WeakWrapperSharedURLLoaderFactory>(
-            &url_loader_factory_);
     url_loader_factory_.SetInterceptor(base::BindLambdaForTesting(
         [this](const network::ResourceRequest& request) {
           url_loader_factory_.ClearResponses();
@@ -792,18 +786,14 @@ class JsonRpcServiceUnitTest : public testing::Test {
     brave_wallet::RegisterProfilePrefsForMigration(prefs_.registry());
     network_manager_ = std::make_unique<NetworkManager>(&prefs_);
     json_rpc_service_ = std::make_unique<JsonRpcService>(
-        shared_url_loader_factory_, network_manager_.get(), &prefs_,
-        &local_state_prefs_);
+        url_loader_factory_.GetSafeWeakWrapper(), network_manager_.get(),
+        &prefs_, &local_state_prefs_);
     SetNetwork(mojom::kLocalhostChainId, mojom::CoinType::ETH, std::nullopt);
     SetNetwork(mojom::kLocalhostChainId, mojom::CoinType::SOL, std::nullopt);
     SetNetwork(mojom::kLocalhostChainId, mojom::CoinType::FIL, std::nullopt);
   }
 
   ~JsonRpcServiceUnitTest() override = default;
-
-  scoped_refptr<network::SharedURLLoaderFactory> shared_url_loader_factory() {
-    return shared_url_loader_factory_;
-  }
 
   PrefService* prefs() { return &prefs_; }
   PrefService* local_state_prefs() { return &local_state_prefs_; }
@@ -1362,13 +1352,13 @@ class JsonRpcServiceUnitTest : public testing::Test {
   void TestEthGetLogs(const std::string& chain_id,
                       const std::string& from_block,
                       const std::string& to_block,
-                      base::Value::List contract_addresses,
-                      base::Value::List topics,
+                      base::ListValue contract_addresses,
+                      base::ListValue topics,
                       const std::vector<Log>& expected_logs,
                       mojom::ProviderError expected_error,
                       const std::string& expected_error_message) {
     base::RunLoop run_loop;
-    base::Value::Dict params;
+    base::DictValue params;
     params.Set("fromBlock", from_block);
     params.Set("toBlock", to_block);
     params.Set("address", std::move(contract_addresses));
@@ -1944,8 +1934,6 @@ class JsonRpcServiceUnitTest : public testing::Test {
  private:
   sync_preferences::TestingPrefServiceSyncable prefs_;
   sync_preferences::TestingPrefServiceSyncable local_state_prefs_;
-  scoped_refptr<network::SharedURLLoaderFactory> shared_url_loader_factory_;
-  data_decoder::test::InProcessDataDecoder in_process_data_decoder_;
 };
 
 TEST_F(JsonRpcServiceUnitTest, SetNetwork) {
@@ -2020,7 +2008,7 @@ TEST_F(JsonRpcServiceUnitTest, SetCustomNetwork) {
   const auto& origin_a = url::Origin::Create(GURL("https://a.com"));
   const auto& origin_b = url::Origin::Create(GURL("https://b.com"));
 
-  std::vector<base::Value::Dict> values;
+  std::vector<base::DictValue> values;
   mojom::NetworkInfo chain1 = GetTestNetworkInfo1();
   values.push_back(NetworkInfoToValue(chain1));
 
@@ -2044,7 +2032,7 @@ TEST_F(JsonRpcServiceUnitTest, SetCustomNetwork) {
 }
 
 TEST_F(JsonRpcServiceUnitTest, GetAllNetworks) {
-  std::vector<base::Value::Dict> values;
+  std::vector<base::DictValue> values;
   const auto& origin_a = url::Origin::Create(GURL("https://a.com"));
   const auto& origin_b = url::Origin::Create(GURL("https://b.com"));
   mojom::NetworkInfo chain1 = GetTestNetworkInfo1();
@@ -2073,7 +2061,7 @@ TEST_F(JsonRpcServiceUnitTest, GetAllNetworks) {
 
 TEST_F(JsonRpcServiceUnitTest, GetCustomNetworks) {
   base::MockCallback<mojom::JsonRpcService::GetCustomNetworksCallback> callback;
-  std::vector<base::Value::Dict> values;
+  std::vector<base::DictValue> values;
   mojom::NetworkInfo chain1 = GetTestNetworkInfo1(mojom::kMainnetChainId);
   values.push_back(NetworkInfoToValue(chain1));
 
@@ -2091,7 +2079,7 @@ TEST_F(JsonRpcServiceUnitTest, GetCustomNetworks) {
 
 TEST_F(JsonRpcServiceUnitTest, GetKnownNetworks) {
   base::MockCallback<mojom::JsonRpcService::GetKnownNetworksCallback> callback;
-  std::vector<base::Value::Dict> values;
+  std::vector<base::DictValue> values;
   mojom::NetworkInfo chain1 = GetTestNetworkInfo1(mojom::kMainnetChainId);
   values.push_back(NetworkInfoToValue(chain1));
   UpdateCustomNetworks(prefs(), &values);
@@ -3205,33 +3193,36 @@ class UnstoppableDomainsUnitTest : public JsonRpcServiceUnitTest {
     JsonRpcServiceUnitTest::SetUp();
     eth_mainnet_endpoint_handler_ = std::make_unique<JsonRpcEndpointHandler>(
         NetworkManager::GetUnstoppableDomainsRpcUrl(mojom::kMainnetChainId));
-    eth_mainnet_getmany_call_handler_ =
-        std::make_unique<UDGetManyCallHandler>(EthAddress::FromHex(
+    eth_mainnet_getmany_call_handler_ = std::make_unique<UDGetManyCallHandler>(
+        EthAddress::From0xHex(
             JsonRpcService::
                 GetUnstoppableDomainsProxyReaderContractAddressForTesting(
-                    mojom::kMainnetChainId)));
+                    mojom::kMainnetChainId))
+            .value());
     eth_mainnet_endpoint_handler_->AddEthCallHandler(
         eth_mainnet_getmany_call_handler_.get());
 
     polygon_endpoint_handler_ = std::make_unique<JsonRpcEndpointHandler>(
         NetworkManager::GetUnstoppableDomainsRpcUrl(
             mojom::kPolygonMainnetChainId));
-    polygon_getmany_call_handler_ =
-        std::make_unique<UDGetManyCallHandler>(EthAddress::FromHex(
+    polygon_getmany_call_handler_ = std::make_unique<UDGetManyCallHandler>(
+        EthAddress::From0xHex(
             JsonRpcService::
                 GetUnstoppableDomainsProxyReaderContractAddressForTesting(
-                    mojom::kPolygonMainnetChainId)));
+                    mojom::kPolygonMainnetChainId))
+            .value());
     polygon_endpoint_handler_->AddEthCallHandler(
         polygon_getmany_call_handler_.get());
 
     base_endpoint_handler_ = std::make_unique<JsonRpcEndpointHandler>(
         NetworkManager::GetUnstoppableDomainsRpcUrl(
             mojom::kBaseMainnetChainId));
-    base_getmany_call_handler_ =
-        std::make_unique<UDGetManyCallHandler>(EthAddress::FromHex(
+    base_getmany_call_handler_ = std::make_unique<UDGetManyCallHandler>(
+        EthAddress::From0xHex(
             JsonRpcService::
                 GetUnstoppableDomainsProxyReaderContractAddressForTesting(
-                    mojom::kBaseMainnetChainId)));
+                    mojom::kBaseMainnetChainId))
+            .value());
     base_endpoint_handler_->AddEthCallHandler(base_getmany_call_handler_.get());
 
     url_loader_factory_.SetInterceptor(base::BindRepeating(
@@ -3650,8 +3641,9 @@ TEST_F(UnstoppableDomainsUnitTest, ResolveDns_FallbackToEthMainnet) {
   base::MockCallback<ResolveDnsCallback> callback;
   EXPECT_CALL(
       callback,
-      Run(std::optional<GURL>("https://ipfs.io/ipfs/"
-                              "QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR"),
+      Run(std::optional<GURL>("https://"
+                              "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3ocl"
+                              "gtqy55fbzdi.ipfs.inbrowser.link/"),
           mojom::ProviderError::kSuccess, ""));
   SetEthRawResponse(DnsIpfsResponse());
   SetPolygonRawResponse(DnsEmptyResponse());
@@ -3710,8 +3702,9 @@ TEST_F(UnstoppableDomainsUnitTest, ResolveDns_ManyCalls) {
   base::MockCallback<ResolveDnsCallback> callback3;
   EXPECT_CALL(
       callback3,
-      Run(std::optional<GURL>("https://ipfs.io/ipfs/"
-                              "QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR"),
+      Run(std::optional<GURL>("https://"
+                              "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3ocl"
+                              "gtqy55fbzdi.ipfs.inbrowser.link/"),
           mojom::ProviderError::kSuccess, ""));
 
   ASSERT_EQ(6u, unstoppable_domains::kRecordKeys.size());
@@ -3866,7 +3859,7 @@ TEST_F(JsonRpcServiceUnitTest, UpdateIsEip1559LocalhostChain) {
 }
 
 TEST_F(JsonRpcServiceUnitTest, UpdateIsEip1559CustomChain) {
-  std::vector<base::Value::Dict> values;
+  std::vector<base::DictValue> values;
   mojom::NetworkInfo chain1 = GetTestNetworkInfo1();
   values.push_back(brave_wallet::NetworkInfoToValue(chain1));
 
@@ -4039,13 +4032,20 @@ TEST_F(JsonRpcServiceUnitTest, IsValidUnstoppableDomain) {
       "test.blockchain",
       "test.bitcoin",
       "test.brave",
+      "brave.agent",
+      "brave.ai4",
       "brave.altimist",
+      "brave.amped",
       "brave.anime",
+      "brave.anyone",
+      "brave.arculus",
       "brave.ask",
+      "brave.ath",
       "brave.austin",
       "brave.bald",
       "brave.basenji",
       "brave.bay",
+      "brave.bch",
       "brave.benji",
       "brave.binanceus",
       "brave.bitcoin",
@@ -4054,64 +4054,98 @@ TEST_F(JsonRpcServiceUnitTest, IsValidUnstoppableDomain) {
       "brave.blockchain",
       "brave.boomer",
       "brave.brave",
+      "brave.bunni",
       "brave.calicoin",
+      "brave.carbon",
       "brave.caw",
+      "brave.cgai",
+      "brave.chip",
       "brave.chomp",
       "brave.clay",
+      "brave.collect",
       "brave.crypto",
       "brave.dao",
+      "brave.dejay",
+      "brave.depin",
+      "brave.derad",
       "brave.dfz",
+      "brave.digibyte",
       "brave.doga",
       "brave.donut",
       "brave.dream",
+      "brave.dsci",
       "brave.emir",
       "brave.ethermail",
       "brave.farms",
+      "brave.goblin",
+      "brave.gotchi",
       "brave.grow",
       "brave.her",
+      "brave.hub",
+      "brave.imtoken",
       "brave.kingdom",
       "brave.klever",
       "brave.kresus",
       "brave.kryptic",
+      "brave.learn",
       "brave.lfg",
       "brave.ltc",
+      "brave.lunar",
       "brave.manga",
+      "brave.marketer",
       "brave.metropolis",
       "brave.miku",
       "brave.ministry",
+      "brave.mobix",
       "brave.moon",
+      "brave.mooncat",
       "brave.mumu",
+      "brave.mycircle",
       "brave.nft",
       "brave.nibi",
       "brave.npc",
+      "brave.ohm",
       "brave.onchain",
+      "brave.pack",
       "brave.pastor",
+      "brave.pbdx",
+      "brave.pendle",
+      "brave.pilot",
       "brave.podcast",
       "brave.pog",
+      "brave.pokt",
       "brave.polygon",
+      "brave.presearch",
       "brave.privacy",
       "brave.propykeys",
       "brave.pudgy",
+      "brave.pundi",
       "brave.quantum",
       "brave.rad",
       "brave.raiin",
       "brave.secret",
       "brave.smobler",
       "brave.south",
+      "brave.spend",
       "brave.stepn",
+      "brave.supernova",
       "brave.tball",
       "brave.tea",
       "brave.tribe",
+      "brave.twin",
       "brave.u",
       "brave.ubu",
       "brave.unstoppable",
       "brave.wallet",
+      "brave.web3",
       "brave.wifi",
       "brave.witg",
       "brave.wrkx",
       "brave.x",
       "brave.xec",
       "brave.xmr",
+      "brave.xyo",
+      "brave.zano",
       "brave.zil",
       "a.crypto",
       "1.crypto",
@@ -4512,7 +4546,7 @@ TEST_F(JsonRpcServiceUnitTest, GetSupportsInterface) {
 }
 
 TEST_F(JsonRpcServiceUnitTest, Reset) {
-  std::vector<base::Value::Dict> values;
+  std::vector<base::DictValue> values;
   mojom::NetworkInfo chain = GetTestNetworkInfo1("0x1");
   values.push_back(brave_wallet::NetworkInfoToValue(chain));
   UpdateCustomNetworks(prefs(), &values);
@@ -5625,8 +5659,9 @@ class EnsGetResolverHandler : public EthCallHandler {
  public:
   EnsGetResolverHandler(const std::string& host_name,
                         const EthAddress& resolver_address)
-      : EthCallHandler(EthAddress::FromHex(GetEnsRegistryContractAddress(
-                           mojom::kMainnetChainId)),
+      : EthCallHandler(EthAddress::From0xHex(GetEnsRegistryContractAddress(
+                                                 mojom::kMainnetChainId))
+                           .value(),
                        GetFunctionHashBytes4("resolver(bytes32)")),
         host_name_(host_name),
         resolver_address_(resolver_address) {}
@@ -5845,7 +5880,7 @@ class OffchainGatewayHandler {
       return std::nullopt;
     }
     auto* sender = payload->FindString("sender");
-    EXPECT_EQ(EthAddress::FromHex(*sender), resolver_address_);
+    EXPECT_EQ(EthAddress::From0xHex(*sender), resolver_address_);
 
     auto* data = payload->FindString("data");
     auto bytes = PrefixedHexStringToBytes(*data);
@@ -5912,7 +5947,7 @@ class OffchainGatewayHandler {
       data_value = eth_abi::TupleEncoder().AddBytes(data_value).Encode();
     }
 
-    base::Value::Dict result;
+    base::DictValue result;
     result.Set("data", ToHex(data_value));
     std::string response;
     base::JSONWriter::Write(result, &response);
@@ -5937,19 +5972,22 @@ class ENSL2JsonRpcServiceUnitTest : public JsonRpcServiceUnitTest {
 
   void SetUp() override {
     JsonRpcServiceUnitTest::SetUp();
-
     json_rpc_endpoint_handler_ = std::make_unique<JsonRpcEndpointHandler>(
         GetNetwork(mojom::kMainnetChainId, mojom::CoinType::ETH));
 
     ens_resolver_handler_ =
         std::make_unique<EnsGetResolverHandler>(ens_host(), resolver_address());
+
     ens_get_record_handler_ = std::make_unique<EnsGetRecordHandler>(
         resolver_address(), ens_host(), onchain_eth_addr(),
         onchain_contenthash());
+
     ensip10_support_handler_ =
         std::make_unique<Ensip10SupportHandler>(resolver_address());
+
     ensip10_resolve_handler_ = std::make_unique<Ensip10ResolveHandler>(
         resolver_address(), ens_host(), gateway_url());
+
     ensip10_resolve_callback_handler_ =
         std::make_unique<OffchainCallbackHandler>(resolver_address());
 
@@ -5981,17 +6019,21 @@ class ENSL2JsonRpcServiceUnitTest : public JsonRpcServiceUnitTest {
   std::string ens_subdomain_host() { return "test.offchainexample.eth"; }
   GURL gateway_url() { return GURL("https://gateway.brave.com/"); }
   EthAddress resolver_address() {
-    return EthAddress::FromHex("0xc1735677a60884abbcf72295e88d47764beda282");
+    return EthAddress::From0xHex("0xc1735677a60884abbcf72295e88d47764beda282")
+        .value();
   }
   EthAddress offchain_eth_addr() {
-    return EthAddress::FromHex("0xaabbccddeeaabbccddeeaabbccddeeaabbccddee");
+    return EthAddress::From0xHex("0xaabbccddeeaabbccddeeaabbccddeeaabbccddee")
+        .value();
   }
   EthAddress offchain_subdomain_eth_addr() {
-    return EthAddress::FromHex("0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
+    return EthAddress::From0xHex("0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
+        .value();
   }
 
   EthAddress onchain_eth_addr() {
-    return EthAddress::FromHex("0x1234567890123456789012345678901234567890");
+    return EthAddress::From0xHex("0x1234567890123456789012345678901234567890")
+        .value();
   }
 
   std::vector<uint8_t> offchain_contenthash() {
@@ -6209,9 +6251,12 @@ TEST_F(ENSL2JsonRpcServiceUnitTest, GetContentHash) {
       decentralized_dns::EnsOffchainResolveMethod::kEnabled);
 
   base::MockCallback<JsonRpcService::EnsGetContentHashCallback> callback;
+
   EXPECT_CALL(callback, Run(offchain_contenthash(), false,
                             mojom::ProviderError::kSuccess, ""));
+
   json_rpc_service_->EnsGetContentHash(ens_host(), callback.Get());
+
   task_environment_.RunUntilIdle();
 }
 
@@ -7103,8 +7148,8 @@ TEST_F(SnsJsonRpcServiceUnitTest, ResolveHost_V2Records_NetworkError) {
 }
 
 TEST_F(JsonRpcServiceUnitTest, EthGetLogs) {
-  base::Value::List contract_addresses;
-  base::Value::List topics;
+  base::ListValue contract_addresses;
+  base::ListValue topics;
 
   // Invalid network ID yields internal error
   TestEthGetLogs("0xinvalid", "earliest", "latest", contract_addresses.Clone(),
@@ -8235,10 +8280,10 @@ TEST_F(JsonRpcServiceUnitTest, GetNftMetadatas) {
     nft_identifier->token_id = "";
     nft_identifiers.push_back(std::move(nft_identifier));
   }
+
   TestGetNftMetadatas(std::move(nft_identifiers), {},
                       l10n_util::GetStringUTF8(IDS_WALLET_INVALID_PARAMETERS));
   nft_identifiers = std::vector<mojom::NftIdentifierPtr>();
-
   // Add Ethereum NFT identifiers with non-checksum addresses
   auto eth_nft_identifier1 = mojom::NftIdentifier::New();
   eth_nft_identifier1->chain_id = EthMainnetChainId();
@@ -8318,7 +8363,7 @@ TEST_F(JsonRpcServiceUnitTest, GetNftMetadatas) {
       },
       {
         "chain": "ethereum",
-        "contract_address": "0xAbC1230000000000000000000000000000000000",
+        "contract_address": "0xAbc1230000000000000000000000000000000000",
         "token_id": "1234",
         "name": "NFT #1234",
         "description": "Description of NFT #1234",

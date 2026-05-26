@@ -6,11 +6,12 @@
 #include "brave/components/brave_ads/core/internal/account/issuers/issuers.h"
 
 #include <memory>
+#include <string>
 
-#include "brave/components/brave_ads/core/internal/account/issuers/issuers_delegate_mock.h"
 #include "brave/components/brave_ads/core/internal/account/issuers/issuers_info.h"
-#include "brave/components/brave_ads/core/internal/account/issuers/issuers_test_util.h"
 #include "brave/components/brave_ads/core/internal/account/issuers/issuers_util.h"
+#include "brave/components/brave_ads/core/internal/account/issuers/test/issuers_delegate_mock.h"
+#include "brave/components/brave_ads/core/internal/account/issuers/test/issuers_test_util.h"
 #include "brave/components/brave_ads/core/internal/account/issuers/url_request/issuers_url_request_builder_util.h"
 #include "brave/components/brave_ads/core/internal/common/test/mock_test_util.h"
 #include "brave/components/brave_ads/core/internal/common/test/test_base.h"
@@ -72,8 +73,8 @@ TEST_F(BraveAdsIssuersTest,
   const test::URLResponseMap url_responses = {
       {BuildIssuersUrlPath(),
        {{net::HTTP_INTERNAL_SERVER_ERROR,
-         /*response_body=*/net::GetHttpReasonPhrase(
-             net::HTTP_INTERNAL_SERVER_ERROR)},
+         /*response_body=*/std::string(
+             net::GetHttpReasonPhrase(net::HTTP_INTERNAL_SERVER_ERROR))},
         {net::HTTP_OK, test::BuildIssuersUrlResponseBody()}}}};
   test::MockUrlResponses(ads_client_mock_, url_responses);
 
@@ -99,7 +100,8 @@ TEST_F(BraveAdsIssuersTest, DoNotRetryAfterHttpForbiddenResponseStatusCode) {
   const test::URLResponseMap url_responses = {
       {BuildIssuersUrlPath(),
        {{net::HTTP_FORBIDDEN,
-         /*response_body=*/net::GetHttpReasonPhrase(net::HTTP_FORBIDDEN)},
+         /*response_body=*/std::string(
+             net::GetHttpReasonPhrase(net::HTTP_FORBIDDEN))},
         {net::HTTP_OK, test::BuildIssuersUrlResponseBody()}}}};
   test::MockUrlResponses(ads_client_mock_, url_responses);
   test::MockUrlResponses(ads_client_mock_, url_responses);

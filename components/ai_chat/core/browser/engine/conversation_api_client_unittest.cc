@@ -108,10 +108,10 @@ GetMockEventsAndExpectedEventsBody() {
   events.emplace_back(
       ConversationEventRole::kUser, ConversationEventType::kUserMemory,
       std::vector<std::string>{}, "",
-      base::Value::Dict()
+      base::DictValue()
           .Set("name", "Jane")
           .Set("memories",
-               base::Value::List().Append("memory1").Append("memory2")));
+               base::ListValue().Append("memory1").Append("memory2")));
   events.emplace_back(
       ConversationEventRole::kUser, ConversationEventType::kPageText,
       std::vector<std::string>{"This is a page about The Mandalorian."});
@@ -126,12 +126,13 @@ GetMockEventsAndExpectedEventsBody() {
   events.emplace_back(
       ConversationEventRole::kAssistant, ConversationEventType::kChatMessage,
       std::vector<std::string>{"Going to use a tool..."}, "", std::nullopt,
-      MakeToolUseEvents({mojom::ToolUseEvent::New("get_weather", "123",
-                                                  "{\"location\":\"New York\"}",
-                                                  std::nullopt, nullptr),
-                         mojom::ToolUseEvent::New("get_screenshot", "456",
-                                                  "{\"type\":\"tab\"}",
-                                                  std::nullopt, nullptr)}));
+      MakeToolUseEvents(
+          {mojom::ToolUseEvent::New("get_weather", "123",
+                                    "{\"location\":\"New York\"}", std::nullopt,
+                                    std::nullopt, nullptr, false),
+           mojom::ToolUseEvent::New("get_screenshot", "456",
+                                    "{\"type\":\"tab\"}", std::nullopt,
+                                    std::nullopt, nullptr, false)}));
 
   // First answer from a tool
   events.emplace_back(
@@ -339,8 +340,8 @@ class ConversationAPIUnitTest : public testing::Test {
 
   void TearDown() override {}
 
-  base::Value::List& GetEvents(base::Value::Dict& body) {
-    base::Value::List* events = body.FindList("events");
+  base::ListValue& GetEvents(base::DictValue& body) {
+    base::ListValue* events = body.FindList("events");
     EXPECT_TRUE(events);
     return *events;
   }
@@ -349,18 +350,11 @@ class ConversationAPIUnitTest : public testing::Test {
   // The system language is the OS locale.
   // The selected language is the language the server side determined the
   // conversation is in
-  std::pair<std::string, std::optional<std::string>> GetLanguage(
-      const base::Value::Dict& body) {
+  std::string GetSystemLanguage(const base::DictValue& body) {
     const std::string* system_language = body.FindString("system_language");
     // The system language should always be present
     EXPECT_TRUE(system_language != nullptr);
-
-    const std::string* selected_language = body.FindString("selected_language");
-    if (selected_language) {
-      return {*system_language, *selected_language};
-    } else {
-      return {*system_language, std::nullopt};
-    }
+    return *system_language;
   }
 
  protected:
@@ -386,7 +380,6 @@ TEST_F(ConversationAPIUnitTest, PerformRequest_PremiumHeaders) {
   const brave_l10n::test::ScopedDefaultLocale scoped_default_locale(
       expected_system_language);
   std::string expected_completion_response = "Yes, Star Wars";
-  std::string expected_selected_language = "fr";
   std::string expected_capability = "chat";
 
   MockAPIRequestHelper* mock_request_helper =
@@ -417,18 +410,16 @@ TEST_F(ConversationAPIUnitTest, PerformRequest_PremiumHeaders) {
                   "__Secure-sku#brave-leo-premium=" + expected_crediential);
         EXPECT_NE(headers.find("x-brave-key"), headers.end());
 
-        base::Value::Dict body_dict = base::test::ParseJsonDict(body);
+        base::DictValue body_dict = base::test::ParseJsonDict(body);
         EXPECT_TRUE(!body_dict.empty());
 
         // Verify input body contains input events in expected json format
         EXPECT_THAT(expected_events_body,
                     base::test::IsJson(GetEvents(body_dict)));
 
-        // Verify body contains the language
-        auto [system_language, selected_language] = GetLanguage(body_dict);
+        // Verify body contains the system language
+        auto system_language = GetSystemLanguage(body_dict);
         EXPECT_EQ(system_language, expected_system_language);
-        EXPECT_TRUE(selected_language.has_value());
-        EXPECT_TRUE(selected_language.value().empty());
 
         // Verify body contains the capability
         const std::string* capability = body_dict.FindString("capability");
@@ -505,13 +496,6 @@ TEST_F(ConversationAPIUnitTest, PerformRequest_PremiumHeaders) {
           result.GetDict().Set("completion", expected_completion_response);
           data_received_callback.Run(base::ok(std::move(result)));
         }
-        {
-          base::Value result(base::Value::Type::DICT);
-          result.GetDict().Set("type", "selectedLanguage");
-          result.GetDict().Set("model", "chat-claude-sonnet");
-          result.GetDict().Set("language", expected_selected_language);
-          data_received_callback.Run(base::ok(std::move(result)));
-        }
 
         std::move(result_callback)
             .Run(api_request_helper::APIRequestResult(200, {}, {}, net::OK,
@@ -564,15 +548,6 @@ TEST_F(ConversationAPIUnitTest, PerformRequest_PremiumHeaders) {
         EXPECT_EQ(result.event->get_completion_event()->completion,
                   expected_completion_response);
       });
-  EXPECT_CALL(mock_callbacks, OnDataReceived(_))
-      .InSequence(seq)
-      .WillOnce([&](EngineConsumer::GenerationResultData result) {
-        ASSERT_TRUE(result.event);
-        EXPECT_TRUE(result.event->is_selected_language_event());
-        EXPECT_EQ(
-            result.event->get_selected_language_event()->selected_language,
-            expected_selected_language);
-      });
   EXPECT_CALL(mock_callbacks, OnCompleted(_))
       .WillOnce([&](EngineConsumer::GenerationResult result) {
         ASSERT_TRUE(result.has_value());
@@ -584,10 +559,9 @@ TEST_F(ConversationAPIUnitTest, PerformRequest_PremiumHeaders) {
 
   // Begin request
   client_->PerformRequest(
-      std::move(events), "" /* selected_language */,
-      std::nullopt, /* oai_tool_definitions */
-      std::nullopt, /* preferred_tool_name */
-      mojom::ConversationCapability::CHAT,
+      std::move(events), std::nullopt, /* oai_tool_definitions */
+      std::nullopt,                    /* preferred_tool_name */
+      {mojom::ConversationCapability::CHAT},
       base::BindRepeating(&MockCallbacks::OnDataReceived,
                           base::Unretained(&mock_callbacks)),
       base::BindOnce(&MockCallbacks::OnCompleted,
@@ -615,7 +589,6 @@ TEST_F(ConversationAPIUnitTest, PerformRequest_NonPremium) {
   const brave_l10n::test::ScopedDefaultLocale scoped_default_locale(
       expected_system_language);
   std::string expected_completion_response = "Yes, Star Wars";
-  std::string expected_selected_language = "fr";
   std::string expected_capability = "content_agent";
 
   MockAPIRequestHelper* mock_request_helper =
@@ -640,15 +613,13 @@ TEST_F(ConversationAPIUnitTest, PerformRequest_NonPremium) {
         EXPECT_NE(headers.find("x-brave-key"), headers.end());
 
         // Verify body contains events in expected json format
-        base::Value::Dict body_dict = base::test::ParseJsonDict(body);
+        base::DictValue body_dict = base::test::ParseJsonDict(body);
         EXPECT_THAT(expected_events_body,
                     base::test::IsJson(GetEvents(body_dict)));
 
-        // Verify body contains the language
-        auto [system_language, selected_language] = GetLanguage(body_dict);
+        // Verify body contains the system language
+        auto system_language = GetSystemLanguage(body_dict);
         EXPECT_EQ(system_language, expected_system_language);
-        EXPECT_TRUE(selected_language.has_value());
-        EXPECT_TRUE(selected_language.value().empty());
 
         // Verify body contains the capability
         const std::string* capability = body_dict.FindString("capability");
@@ -659,19 +630,10 @@ TEST_F(ConversationAPIUnitTest, PerformRequest_NonPremium) {
         // through to the PerformRequest callbacks.
         {
           base::Value result(base::Value::Type::DICT);
-          base::Value::Dict& result_dict = result.GetDict();
+          base::DictValue& result_dict = result.GetDict();
           result_dict.Set("type", "completion");
           result_dict.Set("model", "llama-3-8b-instruct");
           result_dict.Set("completion", expected_completion_response);
-          data_received_callback.Run(base::ok(std::move(result)));
-        }
-
-        // Send a selected language event
-        {
-          base::Value result(base::Value::Type::DICT);
-          result.GetDict().Set("type", "selectedLanguage");
-          result.GetDict().Set("model", "llama-3-8b-instruct");
-          result.GetDict().Set("language", expected_selected_language);
           data_received_callback.Run(base::ok(std::move(result)));
         }
 
@@ -693,15 +655,6 @@ TEST_F(ConversationAPIUnitTest, PerformRequest_NonPremium) {
         EXPECT_EQ(result.event->get_completion_event()->completion,
                   expected_completion_response);
       });
-  EXPECT_CALL(mock_callbacks, OnDataReceived(_))
-      .InSequence(seq)
-      .WillOnce([&](EngineConsumer::GenerationResultData result) {
-        ASSERT_TRUE(result.event);
-        EXPECT_TRUE(result.event->is_selected_language_event());
-        EXPECT_EQ(
-            result.event->get_selected_language_event()->selected_language,
-            expected_selected_language);
-      });
   EXPECT_CALL(mock_callbacks, OnCompleted(_))
       .WillOnce([](EngineConsumer::GenerationResult result) {
         ASSERT_TRUE(result.has_value());
@@ -711,10 +664,9 @@ TEST_F(ConversationAPIUnitTest, PerformRequest_NonPremium) {
 
   // Begin request
   client_->PerformRequest(
-      std::move(events), "" /* selected_language */,
-      std::nullopt, /* oai_tool_definitions */
-      std::nullopt, /* preferred_tool_name */
-      mojom::ConversationCapability::CONTENT_AGENT,
+      std::move(events), std::nullopt, /* oai_tool_definitions */
+      std::nullopt,                    /* preferred_tool_name */
+      {mojom::ConversationCapability::CONTENT_AGENT},
       base::BindRepeating(&MockCallbacks::OnDataReceived,
                           base::Unretained(&mock_callbacks)),
       base::BindOnce(&MockCallbacks::OnCompleted,
@@ -799,7 +751,8 @@ TEST_F(ConversationAPIUnitTest, PerformRequest_WithToolUseResponse) {
         EXPECT_MOJOM_EQ(result.event->get_tool_use_event(),
                         mojom::ToolUseEvent::New("get_weather", "call_123",
                                                  "{\"location\":\"New York\"}",
-                                                 std::nullopt, nullptr));
+                                                 std::nullopt, std::nullopt,
+                                                 nullptr, false));
       });
 
   EXPECT_CALL(mock_callbacks, OnDataReceived)
@@ -809,9 +762,9 @@ TEST_F(ConversationAPIUnitTest, PerformRequest_WithToolUseResponse) {
         ASSERT_TRUE(result.event->is_tool_use_event());
         EXPECT_MOJOM_EQ(
             result.event->get_tool_use_event(),
-            mojom::ToolUseEvent::New("search_web", "call_456",
-                                     "{\"query\":\"Hello, world!\"}",
-                                     std::nullopt, nullptr));
+            mojom::ToolUseEvent::New(
+                "search_web", "call_456", "{\"query\":\"Hello, world!\"}",
+                std::nullopt, std::nullopt, nullptr, false));
       });
 
   EXPECT_CALL(mock_callbacks, OnCompleted(_))
@@ -823,10 +776,9 @@ TEST_F(ConversationAPIUnitTest, PerformRequest_WithToolUseResponse) {
 
   // The payload of the request is not important for this test
   client_->PerformRequest(
-      std::move(events), "" /* selected_language */,
-      std::nullopt, /* oai_tool_definitions */
-      std::nullopt, /* preferred_tool_name */
-      mojom::ConversationCapability::CHAT,
+      std::move(events), std::nullopt, /* oai_tool_definitions */
+      std::nullopt,                    /* preferred_tool_name */
+      {mojom::ConversationCapability::CHAT},
       base::BindRepeating(&MockCallbacks::OnDataReceived,
                           base::Unretained(&mock_callbacks)),
       base::BindOnce(&MockCallbacks::OnCompleted,
@@ -889,14 +841,15 @@ TEST_F(ConversationAPIUnitTest, PerformRequest_PermissionChallenge) {
   auto expected_tool_use_event_1 =
       mojom::ConversationEntryEvent::NewToolUseEvent(mojom::ToolUseEvent::New(
           "search_web", "call_123", "{\"query\":\"Hello, world!\"}",
-          std::nullopt,
+          std::nullopt, std::nullopt,
           mojom::PermissionChallenge::New(
-              "Server determined this tool use is off-topic", std::nullopt)));
+              "Server determined this tool use is off-topic", std::nullopt),
+          false));
 
   auto expected_tool_use_event_2 =
       mojom::ConversationEntryEvent::NewToolUseEvent(mojom::ToolUseEvent::New(
           "get_weather", "call_456", "{\"location\":\"New York\"}",
-          std::nullopt, nullptr));
+          std::nullopt, std::nullopt, nullptr, false));
 
   // This test is focused on the correctness of the ToolUseEvent,
   // we can leave verifying other events are also sent in another test.
@@ -915,10 +868,9 @@ TEST_F(ConversationAPIUnitTest, PerformRequest_PermissionChallenge) {
       .Times(1);
 
   client_->PerformRequest(
-      std::move(events), "" /* selected_language */,
-      std::nullopt /* oai_tool_definitions */,
+      std::move(events), std::nullopt /* oai_tool_definitions */,
       std::nullopt /* preferred_tool_name */,
-      mojom::ConversationCapability::CHAT,
+      {mojom::ConversationCapability::CHAT},
       base::BindRepeating(&MockCallbacks::OnDataReceived,
                           base::Unretained(&mock_callbacks)),
       base::BindOnce(&MockCallbacks::OnCompleted,
@@ -979,12 +931,12 @@ TEST_F(ConversationAPIUnitTest, PerformRequest_PermissionChallenge_Allowed) {
   auto expected_tool_use_event_1 =
       mojom::ConversationEntryEvent::NewToolUseEvent(mojom::ToolUseEvent::New(
           "search_web", "call_123", "{\"query\":\"Hello, world!\"}",
-          std::nullopt, nullptr));
+          std::nullopt, std::nullopt, nullptr, false));
 
   auto expected_tool_use_event_2 =
       mojom::ConversationEntryEvent::NewToolUseEvent(mojom::ToolUseEvent::New(
           "get_weather", "call_456", "{\"location\":\"New York\"}",
-          std::nullopt, nullptr));
+          std::nullopt, std::nullopt, nullptr, false));
 
   // This test is focused on the correctness of the ToolUseEvent,
   // we can leave verifying other events are also sent in another test.
@@ -1003,10 +955,9 @@ TEST_F(ConversationAPIUnitTest, PerformRequest_PermissionChallenge_Allowed) {
       .Times(1);
 
   client_->PerformRequest(
-      std::move(events), "" /* selected_language */,
-      std::nullopt /* oai_tool_definitions */,
+      std::move(events), std::nullopt /* oai_tool_definitions */,
       std::nullopt /* preferred_tool_name */,
-      mojom::ConversationCapability::CHAT,
+      {mojom::ConversationCapability::CHAT},
       base::BindRepeating(&MockCallbacks::OnDataReceived,
                           base::Unretained(&mock_callbacks)),
       base::BindOnce(&MockCallbacks::OnCompleted,
@@ -1067,12 +1018,12 @@ TEST_F(ConversationAPIUnitTest,
   auto expected_tool_use_event_1 =
       mojom::ConversationEntryEvent::NewToolUseEvent(mojom::ToolUseEvent::New(
           "search_web", "call_123", "{\"query\":\"Hello, world!\"}",
-          std::nullopt, nullptr));
+          std::nullopt, std::nullopt, nullptr, false));
 
   auto expected_tool_use_event_2 =
       mojom::ConversationEntryEvent::NewToolUseEvent(mojom::ToolUseEvent::New(
           "get_weather", "call_456", "{\"location\":\"New York\"}",
-          std::nullopt, nullptr));
+          std::nullopt, std::nullopt, nullptr, false));
 
   // This test is focused on the correctness of the ToolUseEvent,
   // we can leave verifying other events are also sent in another test.
@@ -1091,10 +1042,9 @@ TEST_F(ConversationAPIUnitTest,
       .Times(1);
 
   client_->PerformRequest(
-      std::move(events), "" /* selected_language */,
-      std::nullopt /* oai_tool_definitions */,
+      std::move(events), std::nullopt /* oai_tool_definitions */,
       std::nullopt /* preferred_tool_name */,
-      mojom::ConversationCapability::CHAT,
+      {mojom::ConversationCapability::CHAT},
       base::BindRepeating(&MockCallbacks::OnDataReceived,
                           base::Unretained(&mock_callbacks)),
       base::BindOnce(&MockCallbacks::OnCompleted,
@@ -1156,13 +1106,13 @@ TEST_F(ConversationAPIUnitTest,
   auto expected_tool_use_event_1 =
       mojom::ConversationEntryEvent::NewToolUseEvent(mojom::ToolUseEvent::New(
           "search_web", "call_123", "{\"query\":\"Hello, world!\"}",
-          std::nullopt,
-          mojom::PermissionChallenge::New(std::nullopt, std::nullopt)));
+          std::nullopt, std::nullopt,
+          mojom::PermissionChallenge::New(std::nullopt, std::nullopt), false));
 
   auto expected_tool_use_event_2 =
       mojom::ConversationEntryEvent::NewToolUseEvent(mojom::ToolUseEvent::New(
           "get_weather", "call_456", "{\"location\":\"New York\"}",
-          std::nullopt, nullptr));
+          std::nullopt, std::nullopt, nullptr, false));
 
   // This test is focused on the correctness of the ToolUseEvent,
   // we can leave verifying other events are also sent in another test.
@@ -1179,10 +1129,9 @@ TEST_F(ConversationAPIUnitTest,
       .Times(1);
 
   client_->PerformRequest(
-      std::move(events), "" /* selected_language */,
-      std::nullopt /* oai_tool_definitions */,
+      std::move(events), std::nullopt /* oai_tool_definitions */,
       std::nullopt /* preferred_tool_name */,
-      mojom::ConversationCapability::CHAT,
+      {mojom::ConversationCapability::CHAT},
       base::BindRepeating(&MockCallbacks::OnDataReceived,
                           base::Unretained(&mock_callbacks)),
       base::BindOnce(&MockCallbacks::OnCompleted,
@@ -1253,10 +1202,9 @@ TEST_F(ConversationAPIUnitTest,
 
   // Begin request with model override
   client_->PerformRequest(
-      std::move(events), "" /* selected_language */,
-      std::nullopt, /* oai_tool_definitions */
-      std::nullopt, /* preferred_tool_name */
-      mojom::ConversationCapability::CHAT,
+      std::move(events), std::nullopt, /* oai_tool_definitions */
+      std::nullopt,                    /* preferred_tool_name */
+      {mojom::ConversationCapability::CHAT},
       base::BindRepeating(&MockCallbacks::OnDataReceived,
                           base::Unretained(&mock_callbacks)),
       base::BindOnce(&MockCallbacks::OnCompleted,
@@ -1325,14 +1273,13 @@ TEST_F(ConversationAPIUnitTest,
       });
 
   // Begin request with model override but NULL data_received_callback
-  client_->PerformRequest(std::move(events), "" /* selected_language */,
-                          std::nullopt, /* oai_tool_definitions */
-                          std::nullopt, /* preferred_tool_name */
-                          mojom::ConversationCapability::CHAT,
-                          base::NullCallback(),
-                          base::BindOnce(&MockCallbacks::OnCompleted,
-                                         base::Unretained(&mock_callbacks)),
-                          override_model_name);
+  client_->PerformRequest(
+      std::move(events), std::nullopt, /* oai_tool_definitions */
+      std::nullopt,                    /* preferred_tool_name */
+      {mojom::ConversationCapability::CHAT}, base::NullCallback(),
+      base::BindOnce(&MockCallbacks::OnCompleted,
+                     base::Unretained(&mock_callbacks)),
+      override_model_name);
 
   run_loop.Run();
   testing::Mock::VerifyAndClearExpectations(client_.get());
@@ -1389,10 +1336,9 @@ TEST_F(ConversationAPIUnitTest, PerformRequest_NEARVerification) {
       });
 
   client_->PerformRequest(
-      std::move(events), "" /* selected_language */,
-      std::nullopt, /* oai_tool_definitions */
-      std::nullopt, /* preferred_tool_name */
-      mojom::ConversationCapability::CONTENT_AGENT,
+      std::move(events), std::nullopt, /* oai_tool_definitions */
+      std::nullopt,                    /* preferred_tool_name */
+      {mojom::ConversationCapability::CONTENT_AGENT},
       base::BindRepeating(&MockCallbacks::OnDataReceived,
                           base::Unretained(&mock_callbacks)),
       base::BindOnce(&MockCallbacks::OnCompleted,
@@ -1424,10 +1370,9 @@ TEST_F(ConversationAPIUnitTest, FailNoConversationEvents) {
 
   // Begin request
   client_->PerformRequest(
-      std::move(events), "" /* selected_language */,
-      std::nullopt, /* oai_tool_definitions */
-      std::nullopt, /* preferred_tool_name */
-      mojom::ConversationCapability::CHAT,
+      std::move(events), std::nullopt, /* oai_tool_definitions */
+      std::nullopt,                    /* preferred_tool_name */
+      {mojom::ConversationCapability::CHAT},
       base::BindRepeating(&MockCallbacks::OnDataReceived,
                           base::Unretained(&mock_callbacks)),
       base::BindOnce(&MockCallbacks::OnCompleted,
@@ -1439,7 +1384,7 @@ TEST_F(ConversationAPIUnitTest, FailNoConversationEvents) {
 }
 
 TEST_F(ConversationAPIUnitTest, ParseResponseEvent_ParsesContentReceiptEvent) {
-  base::Value::Dict content_receipt_event;
+  base::DictValue content_receipt_event;
   content_receipt_event.Set("type", "contentReceipt");
   content_receipt_event.Set("model", "llama-3-8b-instruct");
   content_receipt_event.Set("total_tokens", static_cast<int>(1234567890));
@@ -1459,7 +1404,7 @@ TEST_F(ConversationAPIUnitTest, ParseResponseEvent_ParsesContentReceiptEvent) {
 
   // Test with missing values (both missing)
   // Should default to 0 when values are missing
-  base::Value::Dict missing_values_event;
+  base::DictValue missing_values_event;
   missing_values_event.Set("type", "contentReceipt");
   missing_values_event.Set("model", "llama-3-8b-instruct");
   result = ConversationAPIClient::ParseResponseEvent(missing_values_event,
@@ -1472,7 +1417,7 @@ TEST_F(ConversationAPIUnitTest, ParseResponseEvent_ParsesContentReceiptEvent) {
   EXPECT_EQ(result->model_key, "chat-basic");
 
   // Test with missing trimmed_tokens only
-  base::Value::Dict missing_trimmed_event;
+  base::DictValue missing_trimmed_event;
   missing_trimmed_event.Set("type", "contentReceipt");
   missing_trimmed_event.Set("model", "llama-3-8b-instruct");
   missing_trimmed_event.Set("total_tokens", static_cast<int>(12345));
@@ -1488,7 +1433,7 @@ TEST_F(ConversationAPIUnitTest, ParseResponseEvent_ParsesContentReceiptEvent) {
   EXPECT_EQ(result->model_key, "chat-basic");
 
   // Test with negative values
-  base::Value::Dict negative_values_event;
+  base::DictValue negative_values_event;
   negative_values_event.Set("type", "contentReceipt");
   negative_values_event.Set("model", "llama-3-8b-instruct");
   negative_values_event.Set("total_tokens", static_cast<int>(-100));
@@ -1504,7 +1449,7 @@ TEST_F(ConversationAPIUnitTest, ParseResponseEvent_ParsesContentReceiptEvent) {
   EXPECT_EQ(result->model_key, "chat-basic");
 
   // Test with mixed values (one positive, one negative)
-  base::Value::Dict mixed_values_event;
+  base::DictValue mixed_values_event;
   mixed_values_event.Set("type", "contentReceipt");
   mixed_values_event.Set("model", "llama-3-8b-instruct");
   mixed_values_event.Set("total_tokens", static_cast<int>(500));
@@ -1520,7 +1465,7 @@ TEST_F(ConversationAPIUnitTest, ParseResponseEvent_ParsesContentReceiptEvent) {
 }
 
 TEST_F(ConversationAPIUnitTest, ParseResponseEvent_ParsesCompletionEvent) {
-  base::Value::Dict completion_event;
+  base::DictValue completion_event;
   completion_event.Set("type", "completion");
   completion_event.Set("model", "llama-3-8b-instruct");
   completion_event.Set("completion", "Wherever I go, he goes");
@@ -1537,7 +1482,7 @@ TEST_F(ConversationAPIUnitTest, ParseResponseEvent_ParsesCompletionEvent) {
 }
 
 TEST_F(ConversationAPIUnitTest, ParseResponseEvent_ParsesIsSearchingEvent) {
-  base::Value::Dict is_searching_event;
+  base::DictValue is_searching_event;
   is_searching_event.Set("type", "isSearching");
   is_searching_event.Set("model", "llama-3-8b-instruct");
 
@@ -1551,11 +1496,11 @@ TEST_F(ConversationAPIUnitTest, ParseResponseEvent_ParsesIsSearchingEvent) {
 }
 
 TEST_F(ConversationAPIUnitTest, ParseResponseEvent_ParsesSearchQueriesEvent) {
-  base::Value::Dict search_queries_event;
+  base::DictValue search_queries_event;
   search_queries_event.Set("type", "searchQueries");
   search_queries_event.Set("model", "llama-3-8b-instruct");
 
-  base::Value::List queries;
+  base::ListValue queries;
   queries.Append("query1");
   queries.Append("query2");
   search_queries_event.Set("queries", std::move(queries));
@@ -1577,7 +1522,7 @@ TEST_F(ConversationAPIUnitTest, ParseResponseEvent_ParsesSearchQueriesEvent) {
 
 TEST_F(ConversationAPIUnitTest,
        ParseResponseEvent_ParsesConversationTitleEvent) {
-  base::Value::Dict conversation_title_event;
+  base::DictValue conversation_title_event;
   conversation_title_event.Set("type", "conversationTitle");
   conversation_title_event.Set("model", "llama-3-8b-instruct");
   conversation_title_event.Set("title", "This is the way");
@@ -1595,12 +1540,12 @@ TEST_F(ConversationAPIUnitTest,
 
 TEST_F(ConversationAPIUnitTest, ParseResponseEvent_ParsesWebSourcesEvent) {
   // Case 1: Valid favicon from allowed brave host
-  base::Value::Dict event_with_valid_favicon;
+  base::DictValue event_with_valid_favicon;
   event_with_valid_favicon.Set("type", "webSources");
   event_with_valid_favicon.Set("model", "llama-3-8b-instruct");
-  base::Value::List sources1;
+  base::ListValue sources1;
 
-  base::Value::Dict source1;
+  base::DictValue source1;
   source1.Set("title", "Example 1");
   source1.Set("url", "https://example.com/1");
   source1.Set("favicon", "https://imgs.search.brave.com/favicon.ico");
@@ -1624,12 +1569,12 @@ TEST_F(ConversationAPIUnitTest, ParseResponseEvent_ParsesWebSourcesEvent) {
   EXPECT_EQ(result1->model_key, "chat-basic");
 
   // Case 2: Missing favicon, should use default
-  base::Value::Dict event_with_missing_favicon;
+  base::DictValue event_with_missing_favicon;
   event_with_missing_favicon.Set("type", "webSources");
   event_with_missing_favicon.Set("model", "llama-3-8b-instruct");
-  base::Value::List sources2;
+  base::ListValue sources2;
 
-  base::Value::Dict source2;
+  base::DictValue source2;
   source2.Set("title", "Example 2");
   source2.Set("url", "https://example.com/2");
   sources2.Append(std::move(source2));
@@ -1653,12 +1598,12 @@ TEST_F(ConversationAPIUnitTest, ParseResponseEvent_ParsesWebSourcesEvent) {
 
   // Case 3: Disallowed favicon host, should be skipped
   // We manage the allowed list in kAllowedWebSourceFaviconHost
-  base::Value::Dict event_with_disallowed_favicon;
+  base::DictValue event_with_disallowed_favicon;
   event_with_disallowed_favicon.Set("type", "webSources");
   event_with_disallowed_favicon.Set("model", "llama-3-8b-instruct");
-  base::Value::List sources3;
+  base::ListValue sources3;
 
-  base::Value::Dict source3;
+  base::DictValue source3;
   source3.Set("title", "Example 3");
   source3.Set("url", "https://example.com/3");
   source3.Set("favicon",
@@ -1676,7 +1621,7 @@ TEST_F(ConversationAPIUnitTest, ParseResponseEvent_ParsesWebSourcesEvent) {
 TEST_F(ConversationAPIUnitTest,
        ParseResponseEvent_ParsesWebSourcesEventWithRichResults) {
   // Test webSources event with valid rich_results data
-  base::Value::Dict event = base::test::ParseJsonDict(R"({
+  base::DictValue event = base::test::ParseJsonDict(R"({
     "type": "webSources",
     "model": "llama-3-8b-instruct",
     "sources": [
@@ -1738,7 +1683,7 @@ TEST_F(ConversationAPIUnitTest,
 TEST_F(ConversationAPIUnitTest,
        ParseResponseEvent_ParsesWebSourcesEventWithMultipleRichResultGroups) {
   // Test webSources event with multiple rich_results groups
-  base::Value::Dict event = base::test::ParseJsonDict(R"({
+  base::DictValue event = base::test::ParseJsonDict(R"({
     "type": "webSources",
     "model": "llama-3-8b-instruct",
     "sources": [
@@ -1786,7 +1731,7 @@ TEST_F(ConversationAPIUnitTest,
        ParseResponseEvent_WebSourcesEventWithInvalidRichResults) {
   // Test that invalid rich_results items are skipped gracefully
   // Note: Must construct manually to test invalid structures
-  base::Value::Dict event = base::test::ParseJsonDict(R"({
+  base::DictValue event = base::test::ParseJsonDict(R"({
     "type": "webSources",
     "model": "llama-3-8b-instruct",
     "sources": [
@@ -1798,7 +1743,7 @@ TEST_F(ConversationAPIUnitTest,
   })");
 
   // Add rich_results with various invalid items
-  base::Value::List rich_results;
+  base::ListValue rich_results;
 
   // Invalid: not a dict
   rich_results.Append("invalid_string");
@@ -1812,13 +1757,13 @@ TEST_F(ConversationAPIUnitTest,
   })"));
 
   // Invalid: results is not a list
-  base::Value::Dict invalid_results_group;
+  base::DictValue invalid_results_group;
   invalid_results_group.Set("results", "not_a_list");
   rich_results.Append(std::move(invalid_results_group));
 
   // Valid group but with invalid result items mixed in
-  base::Value::Dict mixed_group;
-  base::Value::List mixed_results;
+  base::DictValue mixed_group;
+  base::ListValue mixed_results;
   mixed_results.Append("invalid_item");  // not a dict
   mixed_results.Append(base::test::ParseJsonDict(R"({"id": "valid_item2"})"));
   mixed_group.Set("results", std::move(mixed_results));
@@ -1847,7 +1792,7 @@ TEST_F(ConversationAPIUnitTest,
 TEST_F(ConversationAPIUnitTest,
        ParseResponseEvent_WebSourcesEventWithoutRichResults) {
   // Test that webSources event works fine without rich_results
-  base::Value::Dict event = base::test::ParseJsonDict(R"({
+  base::DictValue event = base::test::ParseJsonDict(R"({
     "type": "webSources",
     "model": "llama-3-8b-instruct",
     "sources": [
@@ -1874,7 +1819,7 @@ TEST_F(ConversationAPIUnitTest,
 TEST_F(ConversationAPIUnitTest,
        ParseResponseEvent_WebSourcesEventWithEmptyRichResults) {
   // Test that empty rich_results list is handled correctly
-  base::Value::Dict event = base::test::ParseJsonDict(R"({
+  base::DictValue event = base::test::ParseJsonDict(R"({
     "type": "webSources",
     "model": "llama-3-8b-instruct",
     "sources": [
@@ -1900,7 +1845,7 @@ TEST_F(ConversationAPIUnitTest,
 }
 
 TEST_F(ConversationAPIUnitTest, ParseResponseEvent_InvalidEventType) {
-  base::Value::Dict invalid_event;
+  base::DictValue invalid_event;
   invalid_event.Set("type", "unknownThisIsTheWayEvent");
   invalid_event.Set("model", "llama-3-8b-instruct");
 
@@ -1911,7 +1856,7 @@ TEST_F(ConversationAPIUnitTest, ParseResponseEvent_InvalidEventType) {
 }
 
 TEST_F(ConversationAPIUnitTest, ParseResponseEvent_MissingModelKey) {
-  base::Value::Dict invalid_event;
+  base::DictValue invalid_event;
   invalid_event.Set("type", "conversationTitle");
   invalid_event.Set("title", "This is the way");
 

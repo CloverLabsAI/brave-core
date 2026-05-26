@@ -6,7 +6,7 @@
 #include <memory>
 #include <optional>
 
-#include "base/test/scoped_feature_list.h"
+#include "base/functional/callback_helpers.h"
 #include "brave/browser/brave_wallet/brave_wallet_service_factory.h"
 #include "brave/components/brave_wallet/browser/brave_wallet_service.h"
 #include "brave/components/brave_wallet/browser/brave_wallet_utils.h"
@@ -14,7 +14,6 @@
 #include "brave/components/brave_wallet/browser/keyring_service.h"
 #include "brave/components/brave_wallet/browser/permission_utils.h"
 #include "brave/components/brave_wallet/browser/test_utils.h"
-#include "brave/components/brave_wallet/common/features.h"
 #include "brave/components/permissions/contexts/brave_wallet_permission_context.h"
 #include "chrome/browser/content_settings/host_content_settings_map_factory.h"
 #include "chrome/browser/profiles/profile.h"
@@ -54,10 +53,7 @@ namespace brave_wallet {
 
 class BraveWalletEventEmitterTest : public InProcessBrowserTest {
  public:
-  BraveWalletEventEmitterTest() {
-    feature_list_.InitAndEnableFeature(
-        brave_wallet::features::kNativeBraveWalletFeature);
-  }
+  BraveWalletEventEmitterTest() = default;
 
   void SetUpInProcessBrowserTestFixture() override {
     InProcessBrowserTest::SetUpInProcessBrowserTestFixture();
@@ -139,7 +135,6 @@ class BraveWalletEventEmitterTest : public InProcessBrowserTest {
   content::ContentMockCertVerifier mock_cert_verifier_;
   mojo::Remote<brave_wallet::mojom::JsonRpcService> json_rpc_service_;
   std::unique_ptr<net::EmbeddedTestServer> https_server_;
-  base::test::ScopedFeatureList feature_list_;
 };
 
 IN_PROC_BROWSER_TEST_F(BraveWalletEventEmitterTest, CheckForAConnectEvent) {

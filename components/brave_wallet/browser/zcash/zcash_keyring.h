@@ -11,19 +11,19 @@
 #include <string>
 #include <vector>
 
+#include "brave/components/brave_wallet/browser/internal/hd_key_zip32.h"
 #include "brave/components/brave_wallet/browser/secp256k1_hd_keyring.h"
 #include "brave/components/brave_wallet/common/brave_wallet.mojom.h"
 #include "brave/components/brave_wallet/common/buildflags/buildflags.h"
-
-#if BUILDFLAG(ENABLE_ORCHARD)
-#include "brave/components/brave_wallet/browser/internal/hd_key_zip32.h"
-#endif
 
 namespace brave_wallet {
 
 class ZCashKeyring : public Secp256k1HDKeyring {
  public:
-  ZCashKeyring(base::span<const uint8_t> seed, mojom::KeyringId keyring_id);
+  ZCashKeyring(
+      base::span<const uint8_t> seed,
+      mojom::KeyringId keyring_id,
+      base::RepeatingCallback<bool(const std::string&)> is_address_allowed);
   ~ZCashKeyring() override;
 
   ZCashKeyring(const ZCashKeyring&) = delete;
@@ -35,8 +35,7 @@ class ZCashKeyring : public Secp256k1HDKeyring {
   std::optional<std::vector<uint8_t>> GetPubkeyHash(
       const mojom::ZCashKeyId& key_id);
 
-// TODO(cypt4): move Orchard to the separate keyring
-#if BUILDFLAG(ENABLE_ORCHARD)
+  // TODO(cypt4): move Orchard to the separate keyring
   std::unique_ptr<HDKeyZip32> DeriveOrchardAccount(uint32_t index) const;
   std::optional<std::string> GetUnifiedAddress(
       const mojom::ZCashKeyId& transparent_key_id,
@@ -48,7 +47,6 @@ class ZCashKeyring : public Secp256k1HDKeyring {
       const uint32_t& account_id);
   std::optional<OrchardSpendingKey> GetOrchardSpendingKey(
       const uint32_t& account_id);
-#endif
 
   std::optional<std::vector<uint8_t>> SignMessage(
       const mojom::ZCashKeyId& key_id,
@@ -61,10 +59,7 @@ class ZCashKeyring : public Secp256k1HDKeyring {
   std::string GetAddressInternal(const HDKey& hd_key) const override;
   std::unique_ptr<HDKey> DeriveAccount(uint32_t index) const override;
   std::unique_ptr<HDKey> DeriveKey(const mojom::ZCashKeyId& key_id);
-
-#if BUILDFLAG(ENABLE_ORCHARD)
   std::unique_ptr<HDKeyZip32> orchard_accounts_root_;
-#endif
 
   mojom::KeyringId keyring_id_;
 };

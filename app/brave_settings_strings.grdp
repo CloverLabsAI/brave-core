@@ -26,39 +26,6 @@
     Get started
   </message>
 
-  <!-- <Brave Account Row> -->
-  <message name="IDS_SETTINGS_BRAVE_ACCOUNT_LOGGED_OUT_ROW_TITLE" translateable="false" desc="Title inviting users to sign in or create a Brave Account, shown in the Get started settings page">
-    Sign in or create a Brave account
-  </message>
-  <message name="IDS_SETTINGS_BRAVE_ACCOUNT_LOGGED_OUT_ROW_DESCRIPTION" translateable="false" desc="Description explaining the benefits of a Brave Account">
-    A Brave account will allow you to easily sync your settings, passwords, bookmarks, etc. across all your devices and access our full range of premium products.
-  </message>
-  <message name="IDS_SETTINGS_BRAVE_ACCOUNT_GET_STARTED_BUTTON_LABEL" translateable="false" desc="Label for the button that opens the Brave Account dialog when clicked">
-    Get started
-  </message>
-  <message name="IDS_SETTINGS_BRAVE_ACCOUNT_VERIFICATION_ROW_TITLE" translateable="false" desc="Title shown when user has registered but is awaiting email verification">
-    Almost there!
-  </message>
-  <message name="IDS_SETTINGS_BRAVE_ACCOUNT_VERIFICATION_ROW_DESCRIPTION_1" translateable="false" desc="Instructions informing the user that a confirmation email has been sent and they need to click the link to activate their account">
-    A confirmation email is on the way. Click the button in that email to activate your account.
-  </message>
-  <message name="IDS_SETTINGS_BRAVE_ACCOUNT_VERIFICATION_ROW_DESCRIPTION_2" translateable="false" desc="Help text for users who haven't received the confirmation email, suggesting they check spam or resend it">
-    Don't see the email? Check your spam folder or click on the button to resend the confirmation email.
-  </message>
-  <message name="IDS_SETTINGS_BRAVE_ACCOUNT_RESEND_CONFIRMATION_EMAIL_BUTTON_LABEL" translateable="false" desc="Label for the button that resends the confirmation email when clicked">
-    Resend confirmation email
-  </message>
-  <message name="IDS_SETTINGS_BRAVE_ACCOUNT_CANCEL_REGISTRATION_BUTTON_LABEL" translateable="false" desc="Label for the button that cancels the pending registration when clicked">
-    Cancel registration
-  </message>
-  <message name="IDS_SETTINGS_BRAVE_ACCOUNT_LOGGED_IN_ROW_TITLE" translateable="false" desc="Title shown when user is logged in">
-    Email address
-  </message>
-  <message name="IDS_SETTINGS_BRAVE_ACCOUNT_LOG_OUT_BUTTON_LABEL" translateable="false" desc="Label for the button that signs the user out of their account when clicked">
-    Sign out
-  </message>
-  <!-- </Brave Account Row> -->
-
   <!-- Settings / Get started / Profile name and icon -->
   <message name="IDS_SETTINGS_BRAVE_EDIT_PROFILE" desc="Title to edit the profile user name and picture">
     Profile name and icon
@@ -213,11 +180,32 @@
   <message name="IDS_SETTINGS_APPEARANCE_SETTINGS_BRAVE_TAB_HOVER_MODE_TOOLTIP" desc="The label name of the tab hover mode where a tooltip with the site title is shown.">
     Tooltip
   </message>
+  <message name="IDS_SETTINGS_APPEARANCE_SETTINGS_BRAVE_TAB_MIN_WIDTH_MODE" desc="Label for horizontal tab minimum width setting">
+    Minimum tab width
+  </message>
+  <message name="IDS_SETTINGS_APPEARANCE_SETTINGS_BRAVE_TAB_MIN_WIDTH_MINIMUM" desc="Tab minimum width option: narrowest tabs">
+    Minimum (Default)
+  </message>
+  <message name="IDS_SETTINGS_APPEARANCE_SETTINGS_BRAVE_TAB_MIN_WIDTH_MEDIUM" desc="Tab minimum width option: medium width">
+    Medium
+  </message>
+  <message name="IDS_SETTINGS_APPEARANCE_SETTINGS_BRAVE_TAB_MIN_WIDTH_LARGE" desc="Tab minimum width option: half of full tab width">
+    Large
+  </message>
+  <message name="IDS_SETTINGS_APPEARANCE_SETTINGS_BRAVE_TAB_MIN_WIDTH_FULL" desc="Tab minimum width option: full standard tab width">
+    Full width
+  </message>
+  <message name="IDS_SETTINGS_APPEARANCE_SETTINGS_BRAVE_SCROLLABLE_HORIZONTAL_TAB_STRIP" desc="Title for toggle that enables scrolling the horizontal tab strip when many tabs are open">
+    Use scrollable tab strip
+  </message>
   <message name="IDS_SETTINGS_APPEARANCE_SETTINGS_BRAVE_SHARED_PINNED_TAB" desc="The label name of a toggle button for Shared Pinned Tab feature">
     Show pinned tabs in all windows
   </message>
   <message name="IDS_SETTINGS_APPEARANCE_SETTINGS_SHOW_BOOKMARKS_BUTTON" desc="The label for whether the bookmarks button should be shown or not">
     Show bookmarks button
+  </message>
+  <message name="IDS_SETTINGS_APPEARANCE_SETTINGS_SUBTLE_APP_MENU_LOGO" desc="The label for whether the app menu button should use the subtle outline-only logo">
+    Use outline logo on main menu button
   </message>
   <message name="IDS_SETTINGS_APPEARANCE_SETTINGS_LOCATION_BAR_IS_WIDE" desc="The label for whether the location bar should display wide or not">
     Use wide address bar
@@ -825,7 +813,7 @@
 
   <!-- Settings / Privacy and security / Clear Browsing Data dialog -->
   <message name="IDS_SETTINGS_BRAVE_ON_EXIT" desc="Clear Browsing Data dialog On exit tab label">
-    On exit
+    Delete data on exit
   </message>
   <message name="IDS_SETTINGS_CLEAR_BRAVE_ADS_DATA" desc="The label for the link to clear 'Brave Ads' data">
     Clear Brave Ads data...
@@ -983,7 +971,7 @@
   <message name="IDS_SETTINGS_SITE_SETTINGS_GOOGLE_SIGN_IN_ALLOW_EXCEPTIONS" desc="Label for G sign-in site settings.">
     Allowed to use third-party cookies for legacy Google Sign-In
   </message>
-  
+
   <!-- AI chat setting -->
   <message name="IDS_SETTINGS_SITE_SETTINGS_BRAVE_OPEN_AI_CHAT" desc="Label for opening Leo AI chat site settings.">
     Leo AI chat
@@ -1635,6 +1623,9 @@
   <message name="IDS_SETTINGS_LEO_ASSISTANT_TAB_ORGANIZATION_DESC" desc="The description for settings option to enable tab focus mode">
     Enable tab organization in Tab Search page. When opened, this will automatically send the titles and origins of all non-private tabs to Leo to classify them. <ph name="BEGIN_LINK">&lt;a target="_blank" href="$1"&gt;</ph>Learn more<ph name="END_LINK">&lt;/a&gt;</ph>
   </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_TAB_ORGANIZATION_MODEL_LABEL" desc="The label for the tab organization model selection dropdown">
+    Default model for tab focus
+  </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_SHOW_SUGGESTED_PROMPTS_LABEL" desc="The text for settings option">
     Show suggested prompts in the conversation
   </message>
@@ -1709,6 +1700,12 @@
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_INPUT_MODEL_VISION_SUPPORT_TOOLTIP_INFO" desc="A brief description for model vision support for adding a custom model.">
     If this model takes image as input, e.g. llama 3.2b vision
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_MODEL_TOOL_SUPPORT_TOGGLE" desc="An label for model tool support toggle.">
+    Tool Support
+  </message>
+  <message name="IDS_SETTINGS_LEO_ASSISTANT_INPUT_MODEL_TOOL_SUPPORT_TOOLTIP_INFO" desc="A brief description for model tool support for adding a custom model.">
+    If this model supports function calling / tool use
   </message>
   <message name="IDS_SETTINGS_LEO_ASSISTANT_INPUT_MODEL_LABEL_TOOLTIP_INFO" desc="A brief description for the input title for adding a custom model">
     The name of the model as it will appear in the model selection menu

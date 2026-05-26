@@ -14,13 +14,16 @@
 #include "base/check_op.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
-#include "base/values.h"
 #include "brave/components/brave_ads/core/internal/account/utility/refill_confirmation_tokens/refill_confirmation_tokens_delegate.h"
 #include "brave/components/brave_ads/core/internal/account/wallet/wallet_info.h"
 #include "brave/components/brave_ads/core/internal/common/challenge_bypass_ristretto/blinded_token.h"
 #include "brave/components/brave_ads/core/internal/common/challenge_bypass_ristretto/token.h"
 #include "brave/components/brave_ads/core/internal/common/timer/backoff_timer.h"
 #include "brave/components/brave_ads/core/mojom/brave_ads.mojom-forward.h"
+
+namespace base {
+class DictValue;
+}  // namespace base
 
 namespace brave_ads {
 
@@ -59,7 +62,7 @@ class RefillConfirmationTokens final {
   base::expected<void, std::tuple<std::string, /*should_retry*/ bool>>
   HandleGetSignedTokensUrlResponse(
       const mojom::UrlResponseInfo& mojom_url_response);
-  void ParseAndRequireCaptcha(const base::Value::Dict& dict) const;
+  void ParseAndRequireCaptcha(const base::DictValue& dict) const;
 
   void SuccessfullyRefilled();
   void FailedToRefillAndRetry();

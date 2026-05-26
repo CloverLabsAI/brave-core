@@ -6,6 +6,8 @@ include_rules += [
   "+brave/components/commander/common",
   "+brave/components/constants",
   "+brave/components/containers/buildflags",
+  "+brave/components/containers/content/browser",
+  "+brave/components/containers/core/common",
   "+brave/components/omnibox/browser",
   "+brave/components/tor/buildflags",
 ]

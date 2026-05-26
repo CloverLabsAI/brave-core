@@ -443,6 +443,9 @@ provideStrings({
     'NOTE: Private key is provided as a hex-encoded JSON that contains private '
     + 'key and protocol information. $1Learn more$1.',
   braveWalletTestnetAccounts: 'Testnet accounts',
+  braveWalletPolkadotImportJsonDescription:
+    'Import using a JSON file exported from Polkadot.js or compatible wallets. '
+    + 'Enter the password used to encrypt the export.',
 
   // Import Account
   braveWalletImportAccountDisclaimer:
@@ -539,6 +542,9 @@ provideStrings({
     'Password is required to take this action.',
   braveWalletAddToken: 'Add token',
 
+  // Spot Prices
+  braveWalletLastUpdatedAgo: 'Last updated $1 ago',
+
   // Empty Token List State
   braveWalletNoAvailableAssets: 'No available assets',
   braveWalletNoAvailableAssetsDescription:
@@ -619,6 +625,10 @@ provideStrings({
   braveWalletSwapInsufficientFundsForGas: 'Insufficient funds for gas',
   braveSwapApproveToken: 'Approve $1',
   braveSwapInsufficientLiquidity: 'Insufficient liquidity',
+  braveSwapAmountTooLow: 'Amount too low',
+  braveSwapUnsupportedNetwork: 'Unsupported network',
+  braveSwapUnsupportedTokens: 'Unsupported token(s)',
+  braveSwapInvalidRequest: 'Invalid request',
   braveWalletSwapInsufficientAllowance: 'Activate token',
   braveWalletSwapUnknownError: 'Unknown error',
   braveWalletSwapReviewSpend: 'You spend',
@@ -665,6 +675,7 @@ provideStrings({
   braveWalletConfirmBridge: 'Confirm bridge',
   braveWalletConfirmSend: 'Confirm send',
   braveWalletSwapProvider: 'Provider',
+  braveWalletSwapProviderStatus: 'Provider status',
   braveWalletConfirmShield: 'Confirm shield',
   braveWalletConfirmUnshield: 'Confirm unshield',
   braveWalletSpend: 'Spend',
@@ -898,10 +909,10 @@ provideStrings({
   braveWalletPermissionForever: 'Forever',
 
   // Connect Hardware Wallet Panel
-  braveWalletConnectHardwarePanelConnected: '$1 connected',
-  braveWalletConnectHardwarePanelDisconnected: '$1 disconnected',
-  braveWalletConnectHardwarePanelInstructions: 'Instructions',
-  braveWalletConnectHardwarePanelConnect: 'Connect your $1',
+  braveWalletConnectHardwarePanelConnected: '$1 is connected',
+  braveWalletConnectHardwarePanelDisconnected: '$1 is disconnected',
+  braveWalletConnectHardwarePanelInstructions: 'View instructions',
+  braveWalletConnectHardwarePanelConnect: 'Connect your $1 to continue',
   braveWalletConnectHardwarePanelConfirmation:
     'Hardware wallet requires transaction confirmation on device.',
   braveWalletConnectHardwarePanelOpenApp:
@@ -1098,16 +1109,16 @@ provideStrings({
   braveWalletSameAddressError: 'The receiving address is your own address.',
   braveWalletContractAddressError:
     'The receiving address is a tokens contract address.',
-  braveWalletFailedChecksumTitle: 'Address doesn’t look correct',
-  braveWalletFailedChecksumDescription:
-    'Check your address to make sure it’s the right address '
-    + '(e.g. letters with lower or upper case).',
+  braveWalletMissingChecksumTitle: 'Address is missing checksum',
+  braveWalletMissingChecksumDescription:
+    'Validity of this address cannot be verified. To avoid a potential loss '
+    + 'of funds, review the address carefully before sending.',
+  braveWalletInvalidChecksumTitle:
+    "Address doesn't look correct (invalid checksum)",
+  braveWalletInvalidChecksumDescription:
+    'This address appears to have a typo. Please review the address and type '
+    + 'it again.',
   braveWalletHowToSolve: 'How can I solve it?',
-  braveWalletAddressMissingChecksumInfoWarning:
-    'This address cannot be verified (missing checksum). Proceed?',
-  braveWalletNotValidChecksumAddressError:
-    'Address did not pass verification (invalid checksum). '
-    + 'Please try again, replacing lowercase letters with uppercase.',
   braveWalletMissingGasLimitError: 'Missing gas limit',
   braveWalletZeroBalanceError: 'Amount must be greater than 0',
   braveWalletAddressRequiredError: 'To address is required',
@@ -1277,6 +1288,9 @@ provideStrings({
   braveWalletSwapping: 'Swapping',
   braveWalletBridging: 'Bridging',
   braveWalletSwappingOrBridgingOnNetwork: '$1 on $2',
+  braveWalletSwapProcessing: 'Processing',
+  braveWalletSwapPending: 'Pending',
+  braveWalletSwapRefunded: 'Refunded',
   braveWalletErrorAttemptingToTransactOnNetwork:
     'There was an error attempting to $1 on $2',
   braveWalletShieldingAmount: 'Shielding $1',
@@ -1603,6 +1617,7 @@ provideStrings({
   braveWalletShieldZEC: 'Shield ZEC',
   braveWalletUnshieldZEC: 'Unshield ZEC',
   braveWalletShieldFunds: 'Shield funds',
+  braveWalletUnshieldFunds: 'Unshield funds',
   braveWalletShieldingFundsAlertDescription:
     'You are sending funds from your transparent account to your shielded'
     + 'account.',
@@ -1615,4 +1630,6 @@ provideStrings({
   braveWalletPageNotFoundDescription:
     'It may have moved to a different place or the URL may contain a typo.',
   braveWalletGoToPortfolio: 'Go to Portfolio',
+  braveWalletProcessTransactionErrorMessage:
+    "There was an error processing your transaction. In many cases, this means there isn't enough $1 to cover the network fee. Try a smaller amount instead.",
 })

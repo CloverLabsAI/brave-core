@@ -35,7 +35,14 @@ export default function AttachmentButtonMenu(props: Props) {
   const isMenuDisabled = shouldDisableAttachmentsButton(
     props.conversationHistory,
   )
-  const hasAssociatedContent = props.associatedContentInfo.length > 0
+
+  const hasAssociatedContent =
+    // Screenshots are not supported on iOS.
+    // <if expr="is_ios">
+    false
+  // <else>
+  props.associatedContentInfo.length > 0
+  // </if>
 
   return (
     <>
@@ -53,7 +60,7 @@ export default function AttachmentButtonMenu(props: Props) {
             <Icon name='attachment' />
           </Button>
         </div>
-        <leo-menu-item onClick={() => props.uploadFile(false)}>
+        <leo-menu-item onClick={() => props.uploadFile([false])}>
           <div className={styles.buttonContent}>
             <Icon
               className={styles.buttonIcon}
@@ -74,7 +81,7 @@ export default function AttachmentButtonMenu(props: Props) {
           </leo-menu-item>
         )}
         {props.isMobile && (
-          <leo-menu-item onClick={() => props.uploadFile(true)}>
+          <leo-menu-item onClick={() => props.uploadFile([true])}>
             <div className={styles.buttonContent}>
               <Icon
                 className={styles.buttonIcon}

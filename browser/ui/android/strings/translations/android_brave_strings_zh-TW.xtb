@@ -49,6 +49,14 @@
 <translation id="2998960761270772157">封鎖 youtube.com 的登入、選單、留言和影片資訊等元素。</translation>
 <translation id="8531835121131500698">封鎖 YouTube Shorts</translation>
 <translation id="2167271714269158912">封鎖來自 youtube.com 首頁、發燒影片頁面與搜尋結果的 Shorts。</translation>
+<translation id="2564435705466025309">封鎖 YouTube 自動配音影片</translation>
+<translation id="3603500459037204525">防止自動配音影片出現在 youtube.com 首頁和搜尋結果中。</translation>
+<translation id="4067265130987656010">封鎖 YouTube 縮圖</translation>
+<translation id="3034711349887440574">防止縮圖出現在 youtube.com 首頁和搜尋結果中。</translation>
+<translation id="8741919213635379855">封鎖 YouTube Playables</translation>
+<translation id="2216551241986578034">防止 Playables 出現在 youtube.com 首頁和搜尋結果中。</translation>
+<translation id="9038505474874975130">封鎖 YouTube 會員專用影片</translation>
+<translation id="3084239516382196983">防止會員專用影片出現在 youtube.com 首頁和搜尋結果中。</translation>
 <translation id="6052725679982758334">阻擋社群媒體</translation>
 <translation id="7498695072878479744">在第三方網站上允許 Google 登入按鈕</translation>
 <translation id="863171915776379000">允許 Facebook 登入與嵌入貼文</translation>
@@ -68,8 +76,6 @@
 <translation id="7304425663107214334">顯示瀏覽器建議</translation>
 <translation id="8982438328166986164">根據您的書籤和瀏覽記錄顯示網站建議。</translation>
 <translation id="924029461438529367">顯示搜尋建議</translation>
-<translation id="6285118765755298263">為其他搜尋引擎編製索引</translation>
-<translation id="919715748352669592">為遵循 OpenSearch 規範的網站自動編製索引。</translation>
 <translation id="9148058034647219655">結束</translation>
 <translation id="7534079972563542000">Unstoppable Domains</translation>
 <translation id="6486983549008741930">內容過濾</translation>
@@ -145,6 +151,8 @@
 <translation id="4690906712010847708">不要將連線升級至 HTTPS (停用)</translation>
 <translation id="693506469193748756">當我關閉此網站時忘記我</translation>
 <translation id="6975864539539353406">在您關閉網站時清除 cookie 和其他網站資料</translation>
+<translation id="7740929262043547697">在無痕式視窗中允許元素封鎖</translation>
+<translation id="1260864846935682371">在無痕式視窗中啟用盾牌的封鎖元素功能。請注意，在無痕式視窗中封鎖的元素，也會在非無痕式視窗中封鎖。</translation>
 <translation id="1680858055899097121">終止瀏覽後不要保留分頁</translation>
 <translation id="7142548388914389999">允許保護私隱的產品分析 (P3A)</translation>
 <translation id="5254037869598726291">匿名的 P3A 資訊可協助 Brave 預估整體使用量，並確保我們可以改進受歡迎的功能。</translation>
@@ -164,10 +172,6 @@
 <translation id="9110294136812584522">網站可要求透過第三方 Cookie 使用舊版 Google 登入</translation>
 <translation id="2903783737778379345">不允許透過第三方 Cookie 使用舊版 Google 登入</translation>
 <translation id="6880817299303842099">允許使用第三方 Cookie 進行舊版 Google 登入</translation>
-<translation id="2136412236435693622">存取本地主機</translation>
-<translation id="4172219483893066798">網站可要求存取本地主機資源</translation>
-<translation id="7181706637590665047">禁止存取本地主機資源</translation>
-<translation id="1485435696620658073">已允許存取本地主機資源</translation>
 <translation id="181905442828471321">Brave shields 全域預設值</translation>
 <translation id="2675679258824361492">其他私隱設定</translation>
 <translation id="8026334261755873520">清除瀏覽資料</translation>
@@ -192,14 +196,27 @@
 <translation id="834487290629916192">稍後</translation>
 <translation id="4117451092682672487">輕鬆捍衛個人隱私。</translation>
 <translation id="7909375417585209817">只要將 Brave 設為預設瀏覽器，您輕觸的每個連結都會在 Brave 的隱私保護功能下開啟。</translation>
-<translation id="7370959926683925817">封鎖廣告，節省數據，全年無休。</translation>
-<translation id="7281027579943912834">將 Brave 設為預設瀏覽器，您點按的每個連結都會受到 Brave 的廣告封鎖保護。所有頁面、影片和串流都能受益。</translation>
-<translation id="5148943178722443958">協助提升 Brave 品質。</translation>
+<translation id="763369711159699222">協助提升 Brave 品質。</translation>
+<translation id="8025937231644975408">請告訴我們您最喜愛的功能有哪些。</translation>
 <translation id="6718362830686703942">系統當機或停止回應時傳送診斷報告。</translation>
 <translation id="8616157231067364693">分享不公開的匿名產品深入分析，指出 Brave 使用者正在使用哪些功能。</translation>
 <translation id="2888496576732880897">幫助 Brave 搜尋成長</translation>
+<translation id="7198716519700700181">觀看串流媒體時防止受到中斷</translation>
 <translation id="7044431516245362795">選擇加入「網路探索計畫」，以幫助索引成長並改善搜尋結果。 <ph name="LEARN_MORE_START"/>了解更多資訊。<ph name="LEARN_MORE_END"/></translation>
+<translation id="4847979153841887006">Brave 標誌</translation>
+<translation id="1389386068457132299">內嵌教程背景</translation>
+<translation id="5101985748360228609">頂部葉片裝飾</translation>
+<translation id="5270920361877570459">底部葉片裝飾</translation>
+<translation id="4021716437419160885">向下捲動</translation>
+<translation id="4767173360729868049">幫助 Brave 搜尋插圖</translation>
+<translation id="8241918461631453498">防止受到中斷插圖</translation>
+<translation id="8213310572767907663">改進 Brave 插圖</translation>
+<translation id="2427917529469438577">在你最愛的串流網站阻擋惱人干擾。</translation>
 <translation id="7818938154803162778">沒問題，我願意協助</translation>
+<translation id="5298784657468199167">傳送當機報告</translation>
+<translation id="6188781052835527980">系統當機或停止回應時傳送匿名診斷報告。</translation>
+<translation id="4780647518983772446">分享不公開的匿名產品深入分析，指出 Brave 正在使用哪些功能。</translation>
+<translation id="5109496672133133896">私人產品深入分析</translation>
 <translation id="3545804467215833536">輕觸以查看 Brave Shields</translation>
 <translation id="1724327820822194498">查看 Brave 使用 Shields 在每個頁面上封鎖的所有惡意內容。</translation>
 <translation id="5386259141409498372">已封鎖 <ph name="BIG_TECH"/> 和其他 <ph name="TRACKER"/> 個廣告和追蹤器</translation>
@@ -371,6 +388,14 @@
 <translation id="8793108040181436796">小工具</translation>
 <translation id="8643377320501056697">顯示頂部網站</translation>
 <translation id="7275773481201277457">顯示 Brave 統計</translation>
+<translation id="7462178177755090262">開啟畫面</translation>
+<translation id="5365434987337264071">上次開啟的分頁</translation>
+<translation id="6019856124237323989">{HOURS, plural,
+          =1 {<ph name="HOURS_ONE"/> 小時沒有活動後的新分頁}
+          other {<ph name="HOURS_MANY"/> 小時沒有活動後的新分頁}
+        }</translation>
+<translation id="5233638681132016545">新增分頁</translation>
+<translation id="8395271296293035055">返回您最近的分頁</translation>
 <translation id="8297488609722895137">攝影者：<ph name="PHOTO_BY"/></translation>
 <translation id="2898634658146274982">在 Brave 中開啟外部連結</translation>
 <translation id="5616508928556767259">在 Brave Web 檢視中開啟來自其他應用程式的連結。注意：您必須將 Brave 設定為預設瀏覽器。</translation>
@@ -381,7 +406,7 @@
 <translation id="717952606991220586">唉呀，發生問題了。請待會再試一次。</translation>
 <translation id="987264212798334818">一般</translation>
 <translation id="1116694919640316211">關於</translation>
-<translation id="1275213816424141989">晚點再說</translation>
+<translation id="2370739752330685659">稍後再說</translation>
 <translation id="3624048886326677117">封鎖追蹤程式 &amp; 廣告（積極）</translation>
 <translation id="7151914815476509258">封鎖追蹤程式 &amp; 廣告（標準）</translation>
 <translation id="7384778069178817075">允許所有追蹤器與廣告</translation>
@@ -419,6 +444,13 @@
 <translation id="7141438739990875547">比特幣網路</translation>
 <translation id="9055546041146396417">如果此網站顯示為損壞，請試試 Shields down</translation>
 <translation id="7898672232170410330">封鎖元素</translation>
+<translation id="9064628362799094520">銷毀網站的資料</translation>
+<translation id="8949611615512336262">自動銷毀：<ph name="AUTO_SHRED_MODE_TEXT"/></translation>
+<translation id="9140049656798805345">立即銷毀網站資料</translation>
+<translation id="6795622376590884449">自動銷毀</translation>
+<translation id="7961015016161918242">一律不要</translation>
+<translation id="1991004083507807299">網站分頁關閉</translation>
+<translation id="5827277414420724690">應用程式關閉</translation>
 <translation id="1209739344687072997">回報壞掉的網站</translation>
 <translation id="8510478288840333677">讓 Brave 開發者知道此網站無法與 Shields 一起運作：</translation>
 <translation id="1653405824851871276">感謝您協助 Brave 改善服務。此報告只會包含我們修復此網站所需的資訊。<ph name="LEARN_MORE"/></translation>
@@ -492,7 +524,6 @@
 <translation id="5705882733397021510">返回</translation>
 <translation id="7889432931837317731">可能的話自動開啟</translation>
 <translation id="1029304566263314007">顯示下載進度通知</translation>
-<translation id="2910433761530295035">詢問檔案儲存位置（若偵測到 SD 卡）</translation>
 <translation id="2977501775944575564">並行下載</translation>
 <translation id="6224180438946945617">啟用並行下載以加快下載速度</translation>
 <translation id="8967385052772844086">檢視完整的隱私權報告</translation>
@@ -761,7 +792,6 @@
 <translation id="6889920539620318793">設定為啟用</translation>
 <translation id="2653659639078652383">提交</translation>
 <translation id="4945690646623486292">選取網路</translation>
-<translation id="5233638681132016545">新增分頁</translation>
 <translation id="8006088103295786154">存取 Brave 錢包</translation>
 <translation id="5308380583665731573">連線</translation>
 <translation id="8030169304546394654">已取消連結</translation>
@@ -914,6 +944,9 @@
 <translation id="703185154752046151">新增至主畫面的小工具</translation>
 <translation id="4635094429202343515">試試 Brave 搜尋小工具</translation>
 <translation id="4809681171446727314">透過您的主畫面執行私密的獨立搜尋作業。</translation>
+<translation id="3280562213547448728">語音搜尋</translation>
+<translation id="3925312712530886302">開啟無痕搜尋</translation>
+<translation id="9214590551301647710">開啟 Leo</translation>
 <translation id="7751715172931488388">新增小工具</translation>
 <translation id="7285167584112910782">Brave 快速行動搜尋</translation>
 <translation id="2326703104633309781">使用 Brave 翻譯</translation>
@@ -945,15 +978,25 @@
 <translation id="5494920125229734069">全選</translation>
 <translation id="2361906291514218784">Leo AI</translation>
 <translation id="944736176598169208">獎勵</translation>
-<translation id="4272190451231642425">自動傳送當機報告</translation>
 <translation id="1199170151481311646">隱私權保護分析</translation>
 <translation id="1706715315466634757">電子郵件別名</translation>
+<translation id="738840791756723657">AI</translation>
 <translation id="6709133671862442373">新聞內容</translation>
 <translation id="5990642573624858459">統計報告</translation>
 <translation id="7705524343798198388">VPN</translation>
 <translation id="2441719842399509963">重設為預設值</translation>
 <translation id="4922034974043704366">此功能已啟用，因為您已選擇使用。</translation>
-<translation id="3144818380093107753">Brave Origin 是一種以訂閱為基礎的方式，讓您停用原本用來支持 Brave 業務的創收功能。Brave Origin 訂閱者將繼續受益於我們領先業界的隱私、廣告攔截和速度（透過 Brave 盾牌）以及定期的軟體更新、Chromium 修補程式、安全和隱私改進。他們也可以選擇停用 Brave Leo、新聞、獎賞、錢包、VPN、Web3 網域等功能。&lt;br/&gt;&lt;br/&gt;用戶將在瀏覽器設定選單中看到一個新的控制面板。&lt;br/&gt;&lt;br/&gt;&lt;b&gt;注意：Brave Origin 不會禁用您當前使用的瀏覽器功能，也不會影響 Brave 搜尋功能或 Brave 搜尋廣告。&lt;/b&gt;</translation>
+<translation id="2587535830241068901">自訂您的瀏覽器，同時仍支援 Brave</translation>
+<translation id="7235314227387539944">Brave Origin 是瀏覽器的付費版本，適合不需要支持 Brave 業務所有功能，但仍想要只有 Brave 提供的隱私保護的用戶。Origin 用戶將繼續受益於我們業界領先的隱私保護、廣告攔截和速度（透過 Brave 盾牌），以及定期軟件更新、Chromium 補丁和安全與隱私改進。Origin 將從瀏覽器中移除大多數其他功能。</translation>
+<translation id="7941943775131052130">請注意，Brave Origin 購買還將包括對 Brave 搜尋高級版的存取權限，因為 Origin 將從 Brave 搜尋結果頁面中移除廣告。</translation>
+<translation id="2573819149217596923">改變 Brave 功能</translation>
+<translation id="7415416427817229128">啟用或停用 Brave 功能需要瀏覽器重新啟動以套用變更。您想立即重新啟動嗎？</translation>
+<translation id="2256115617011615191">立即重新啟動</translation>
+<translation id="2160089182263405907">正在停用功能</translation>
+<translation id="3362364767724670721">啟用或停用 Brave 功能需要重新啟動瀏覽器才能套用變更。請在 Origin 完成更新後，點擊<ph name="BEGIN_BOLD"/>立即重新啟動<ph name="END_BOLD"/>。</translation>
+<translation id="1028940738207645746">確定要將所有設定重設為預設值嗎？</translation>
+<translation id="5939518447894949180">重設</translation>
+<translation id="8554205386170195281">購買</translation>
 <translation id="8613144770663526433">用 Brave 錢包登入</translation>
 <translation id="3696514931437952995">您正在登入 <ph name="ORIGIN"/>。Brave 錢包將與 <ph name="ORIGIN"/> 分享您的錢包位址。</translation>
 <translation id="1028781062521375153">檢視詳細資料</translation>
@@ -988,7 +1031,6 @@
 <translation id="1309636029062006520">為您最愛的音訊和影片建立播放清單，並隨時隨地播放。</translation>
 <translation id="7899390017499980820">「新增至播放清單」按鈕</translation>
 <translation id="6901152954398668317">顯示或隱藏「新增至播放清單」按鈕，以便快速存取並新增或移除媒體。</translation>
-<translation id="5939518447894949180">重置</translation>
 <translation id="8199028711686989861">從「播放清單」中移除所有影片，包括離線模式的儲存內容。</translation>
 <translation id="4590997608186539865">播放清單</translation>
 <translation id="7525067979554623046">建立</translation>
@@ -1069,17 +1111,22 @@
 <translation id="4650851936784160359">無法更新篩選清單。請再試一次</translation>
 <translation id="3098054327870766317">關閉標籤頁時顯示撤銷按鈕</translation>
 <translation id="1336494649091412226">您確定要退出 Brave 嗎？</translation>
+<translation id="6061635824229591714">要銷毀網站資料嗎？</translation>
+<translation id="1265051174491933207">銷毀將刪除網站資料並關閉所有「<ph name="SITE_NAME"/>」分頁。此操作無法復原。</translation>
+<translation id="5528772406060281700">銷毀網站資料</translation>
+<translation id="4426990318287827331">銷毀資料</translation>
 <translation id="7942415993090181327">聊天紀錄</translation>
 <translation id="6859935199732075666">顯示安全瀏覽錯誤</translation>
 <translation id="2735247450315842119">允許在無痕標籤頁中截圖</translation>
 <translation id="8420414929552321089">如果允許，開啟多個應用程式時，無痕標籤頁也會顯示。</translation>
 <translation id="7956713633345437162">手機書籤</translation>
+<translation id="7984508421152399880">立即購買</translation>
 <translation id="6261139507111008244">支持我們的使命 &amp; 開源工作</translation>
-<translation id="7882690061170175552">以盾牌為中心的極簡瀏覽器 UI</translation>
+<translation id="6073373503121903099">以 Brave 盾牌為中心的極簡瀏覽器 UI</translation>
 <translation id="2267973897341040743">維持核心廣告攔截、隱私權、 &amp; 速度</translation>
-<translation id="1361157028850796410">最佳價值</translation>
-<translation id="7280825497485894053">按月訂閱</translation>
-<translation id="4570901726096223030">深入瞭解 Origin</translation>
+<translation id="3339535734679532460">一次性購買，無需額外的訂閱費用</translation>
+<translation id="2805615640226281689">一次性購買</translation>
+<translation id="261433018299584676">取得登入代碼</translation>
 <translation id="1943432128510653496">儲存密碼</translation>
 <translation id="2100273922101894616">自動登入</translation>
 <translation id="363596933471559332">自動使用已儲存的憑證登入網站。如果關閉這項功能，每次在您登入網站之前，網站一律會要求驗證。</translation>
@@ -1093,7 +1140,7 @@
 <translation id="1129510026454351943">詳細資料：<ph name="ERROR_DESCRIPTION"/></translation>
 <translation id="5594899180331219722">選擇檔案</translation>
 <translation id="3744219658596020825">您的密碼未被匯入</translation>
-<translation id="8258027225380843424">匯入成功!</translation>
+<translation id="8258027225380843424">匯入成功！</translation>
 <translation id="766635563210446220">無法匯入密碼。請檢查 <ph name="FILENAME"/> 並確保其格式正確。<ph name="BEGIN_LINK"/>進一步瞭解<ph name="END_LINK"/></translation>
 <translation id="6581356304040102696">無法匯入密碼。檔案大小須小於 1 MB。</translation>
 <translation id="5895244669404288318">{COUNT, plural, =1 {無法匯入密碼。您每次只能匯入 1 組密碼。} other {無法匯入密碼。您每次最多只能匯入 <ph name="COUNT_MANY"/> 組密碼。}}</translation>
@@ -1101,7 +1148,7 @@
 <translation id="6438475350605608554">您正在另一個分頁中匯入密碼</translation>
 <translation id="3482868954775580230">讀取所選檔案時失敗。<ph name="EXCEPTION_INFO"/></translation>
 <translation id="9162995380643712715">{IMPORT_COUNT, plural, =1 {已成功匯入 1 組密碼。} other {已成功匯入 <ph name="IMPORT_COUNT_MANY"/> 組密碼。}}</translation>
-<translation id="4637949129057123593">匯入失敗.</translation>
+<translation id="4637949129057123593">匯入失敗。</translation>
 <translation id="4300452012226767715">密碼管理員無法使用。</translation>
 <translation id="6221633008163990886">解鎖即可匯出你的密碼</translation>
 <translation id="5245792669563792664">密碼</translation>
@@ -1130,4 +1177,20 @@
 <translation id="1724977129262658800">解鎖後即可編輯密碼</translation>
 <translation id="5780792035410621042">如要複製密碼，請先在裝置上設定螢幕鎖定功能</translation>
 <translation id="7986497153528221272">如要查看密碼，請先在裝置上設定螢幕鎖定功能</translation>
+<translation id="4882237634123415792">自訂搜尋引擎</translation>
+<translation id="8364431224461158026">新增自訂搜尋引擎</translation>
+<translation id="7307935603426295341">編輯自訂搜尋引擎</translation>
+<translation id="4002066346123236978">標題</translation>
+<translation id="3653110185270660915">輸入搜尋引擎的名稱</translation>
+<translation id="7400418766976504921">網址</translation>
+<translation id="6410668567036790476">新增搜尋引擎</translation>
+<translation id="6289878295410648689">輸入搜尋網址，並將查詢內容改成<ph name="SPECIAL_SYMBOL"/>。</translation>
+<translation id="8943582268084103903">例如：https://youtube.com/search?q=<ph name="SPECIAL_SYMBOL"/>。如果網站支援 OpenSearch，在您編輯此欄位時，畫面會顯示自動新增搜尋引擎的選項。</translation>
+<translation id="8706939021136180678">網址無效。</translation>
+<translation id="6528099556282059181">搜尋引擎已新增。</translation>
+<translation id="463451857046640291">無法新增搜尋引擎。</translation>
+<translation id="1229671956956864948">無法更新搜尋引擎。</translation>
+<translation id="1462771969120037152">無法刪除搜尋引擎。您嘗試刪除的搜尋引擎可能設為預設引擎。</translation>
+<translation id="1079140196216383600">刪除自訂搜尋引擎</translation>
+<translation id="525276572490219787">確定要刪除「<ph name="SEARCH_ENGINE_NAME"/>」嗎？此操作無法撤銷。</translation>
 </translationbundle>

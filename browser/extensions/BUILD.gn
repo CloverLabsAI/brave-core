@@ -68,8 +68,6 @@ source_set("extensions") {
   sources = [
     "api/brave_extensions_api_client.cc",
     "api/brave_extensions_api_client.h",
-    "api/brave_rewards_api.cc",
-    "api/brave_rewards_api.h",
     "api/brave_theme_api.cc",
     "api/brave_theme_api.h",
     "api/identity/brave_web_auth_flow.cc",
@@ -96,9 +94,6 @@ source_set("extensions") {
     "//base",
     "//brave/app:brave_generated_resources_grit",
     "//brave/browser:browser_process",
-    "//brave/browser/brave_adaptive_captcha",
-    "//brave/browser/brave_rewards",
-    "//brave/browser/brave_rewards:util",
     "//brave/browser/brave_search",
     "//brave/browser/component_updater",
     "//brave/browser/extensions/api:generated_api_registration",
@@ -106,14 +101,9 @@ source_set("extensions") {
     "//brave/common",
     "//brave/common/extensions/api",
     "//brave/components/ai_chat/core/common/buildflags",
-    "//brave/components/brave_adaptive_captcha",
-    "//brave/components/brave_ads/buildflags",
-    "//brave/components/brave_ads/core/browser/service",
     "//brave/components/brave_extension:static_resources",
     "//brave/components/brave_news/common/buildflags",
-    "//brave/components/brave_rewards/content",
     "//brave/components/brave_rewards/core",
-    "//brave/components/brave_rewards/core/mojom",
     "//brave/components/brave_search/browser",
     "//brave/components/brave_shields/core/common",
     "//brave/components/brave_talk/buildflags",
@@ -149,8 +139,6 @@ source_set("extensions") {
 
   public_deps = [
     ":component_loader",
-    "//brave/components/brave_ads/core/mojom",
-    "//brave/components/brave_rewards/core/mojom",
     "//extensions/browser",
   ]
 
@@ -168,14 +156,6 @@ source_set("extensions") {
 
   if (enable_ai_chat) {
     deps += [ "//brave/components/ai_chat/core/common" ]
-  }
-
-  if (enable_brave_ads) {
-    deps += [
-      "//brave/browser/brave_ads",
-      "//brave/components/brave_ads/browser",
-      "//brave/components/brave_ads/core/public:headers",
-    ]
   }
 
   if (enable_brave_news) {
@@ -250,6 +230,7 @@ source_set("test_support") {
     "//chrome/test:test_support",
     "//content/public/browser",
     "//content/test:test_support",
+    "//extensions/browser:crx_installer",
     "//net",
     "//net:test_support",
   ]

@@ -40,21 +40,21 @@ TEST(BraveNewsFeedSampling, CanPickRandomItem) {
 
 TEST(BraveNewsFeedSampling, CanSampleContentGroupEmpty) {
   std::vector<ContentGroup> groups;
-  auto [name, is_channel] = SampleContentGroup(groups);
-  EXPECT_EQ("", name);
+  const auto [id, is_channel] = SampleContentGroup(groups);
+  EXPECT_TRUE(id.is_null());
   EXPECT_FALSE(is_channel);
 }
 
 TEST(BraveNewsFeedSampling, CanSampleContentGroup) {
   constexpr int iterations = 100;
-  const auto groups = base::flat_set<ContentGroup>({{"channel_1", true},
-                                                    {"channel_2", true},
-                                                    {"publisher_1", false},
-                                                    {"publisher_2", false},
-                                                    {"publisher_3", false}});
+  const auto groups = base::flat_set<ContentGroup>({{NameId(1), true},
+                                                    {NameId(2), true},
+                                                    {NameId(3), false},
+                                                    {NameId(4), false},
+                                                    {NameId(5), false}});
 
   for (auto i = 0; i < iterations; ++i) {
-    auto sample = SampleContentGroup(groups);
+    const auto sample = SampleContentGroup(groups);
     EXPECT_TRUE(groups.contains(sample));
   }
 }
@@ -98,26 +98,21 @@ TEST(BraveNewsFeedSampling, PickRouletteWithWeighting) {
   // No positively weighted items, so we shouldn't pick anything.
   EXPECT_EQ(std::nullopt,
             PickRouletteWithWeighting(
-                infos, base::BindRepeating(
-                           [](const mojom::FeedItemMetadataPtr& item,
-                              const ArticleMetadata& meta) { return 0.0; })));
+                infos, [](const mojom::FeedItemMetadataPtr& item,
+                          const ArticleMetadata& meta) { return 0.0; }));
   auto& first = std::get<0>(infos.at(0));
   auto& second = std::get<0>(infos.at(1));
   auto& third = std::get<0>(infos.at(2));
-  auto make_picker_for =
-      [](const mojom::FeedItemMetadataPtr& target) -> GetWeighting {
-    return base::BindRepeating(
-        [](mojom::FeedItemMetadata* target,
-           const mojom::FeedItemMetadataPtr& item,
-           const ArticleMetadata& meta) {
-          return target == item.get() ? 100.0 : 0.0;
-        },
-        target.get());
+  auto make_picker_for = [](const mojom::FeedItemMetadata* target) {
+    return [target](const mojom::FeedItemMetadataPtr& item,
+                    const ArticleMetadata& meta) {
+      return target == item.get() ? 100.0 : 0.0;
+    };
   };
 
-  EXPECT_EQ(0, PickRouletteWithWeighting(infos, make_picker_for(first)));
-  EXPECT_EQ(1, PickRouletteWithWeighting(infos, make_picker_for(second)));
-  EXPECT_EQ(2, PickRouletteWithWeighting(infos, make_picker_for(third)));
+  EXPECT_EQ(0, PickRouletteWithWeighting(infos, make_picker_for(first.get())));
+  EXPECT_EQ(1, PickRouletteWithWeighting(infos, make_picker_for(second.get())));
+  EXPECT_EQ(2, PickRouletteWithWeighting(infos, make_picker_for(third.get())));
 }
 
 }  // namespace brave_news

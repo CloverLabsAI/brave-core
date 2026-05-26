@@ -63,9 +63,6 @@ class CookiesAndCacheClearable: Clearable {
       modifiedSince: Date(timeIntervalSinceReferenceDate: 0)
     )
     UserDefaults.standard.synchronize()
-    for coin in [BraveWallet.CoinType.eth, BraveWallet.CoinType.sol] {
-      await Domain.clearAllWalletPermissions(for: coin)
-    }
   }
 }
 
@@ -153,6 +150,10 @@ class PasswordsClearable: Clearable {
 }
 
 class SiteAndShieldsSettingsClearable: Clearable {
+  private let profile: Profile
+  init(profile: Profile) {
+    self.profile = profile
+  }
 
   var label: String {
     return Strings.siteAndShieldsSettings
@@ -164,6 +165,7 @@ class SiteAndShieldsSettingsClearable: Clearable {
         continuation.resume()
       })
     }
+    BraveRemoveSiteSettingsData(Date.distantPast, Date.distantFuture, profile)
   }
 }
 

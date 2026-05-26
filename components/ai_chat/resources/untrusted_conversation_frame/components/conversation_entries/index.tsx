@@ -29,6 +29,7 @@ import EditInput from '../edit_input'
 import EditIndicator from '../edit_indicator'
 import {
   getReasoningText,
+  getToolArtifacts,
   groupConversationEntries,
   isAssistantGroupTask,
 } from './conversation_entries_utils'
@@ -129,8 +130,9 @@ function ConversationEntries() {
         // Not allowed to edit agent conversations until the edit submission
         // happens on a different frame.
         const canEditEntry =
-          conversationContext.conversationCapability
-            !== Mojom.ConversationCapability.CONTENT_AGENT
+          !conversationContext.conversationCapabilities.includes(
+            Mojom.ConversationCapability.CONTENT_AGENT,
+          )
           && group.length === 1
           && !firstEntryEdit.events?.some((event) => !!event.toolUseEvent)
 
@@ -148,25 +150,31 @@ function ConversationEntries() {
         const handleCopyText =
           useConversationEventClipboardCopyHandler(firstEntryEdit)
 
-        const tabAttachments = conversationContext.associatedContent.filter(
-          (c) => c.conversationTurnUuid === firstEntryEdit.uuid,
-        )
+        const tabAttachments =
+          conversationContext.associatedContent?.filter(
+            (c) => c.conversationTurnUuid === firstEntryEdit.uuid,
+          ) ?? []
         const hasAttachments =
           !!firstEntryEdit.uploadedFiles?.length || tabAttachments.length > 0
 
         const groupIsTask = isAssistantGroupTask(group)
 
+        // Omit artifacts until generation is complete so we show
+        // the artifacts and the final response text at the same time.
+        const shouldOmitToolArtifacts =
+          isLastGroup && conversationContext.isGenerating
+        const toolArtifacts = !shouldOmitToolArtifacts
+          ? getToolArtifacts(group)
+          : null
+
         return (
           <div key={firstEntryEdit.uuid || index}>
             <div
               data-id={index}
+              data-testid={isHuman ? 'human-turn' : 'assistant-turn'}
               className={turnClass}
               onMouseEnter={() => isHuman && setHoverMenuButtonId(index)}
-              onMouseLeave={() => {
-                if (!isHuman) return
-                setActiveMenuId(undefined)
-                setHoverMenuButtonId(undefined)
-              }}
+              onMouseLeave={() => isHuman && setHoverMenuButtonId(undefined)}
             >
               <div
                 className={isAIAssistant ? styles.message : styles.humanMessage}
@@ -219,6 +227,9 @@ function ConversationEntries() {
                               isEntryInProgress={isEntryInProgress}
                               allowedLinks={allowedLinksForEntry}
                               isLeoModel={conversationContext.isLeoModel}
+                              toolArtifacts={
+                                i === group.length - 1 ? toolArtifacts : null
+                              }
                             />
                           </>
                         )}
@@ -226,27 +237,27 @@ function ConversationEntries() {
                           && !firstEntryEdit.selectedText
                           && !showEditInput && (
                             <>
-                              {conversationContext.isMobile
-                              || hoverMenuButtonId === index ? (
-                                <ContextMenuHuman
-                                  isOpen={activeMenuId === index}
-                                  onClick={() => showHumanMenu(index)}
-                                  onClose={hideHumanMenu}
-                                  onEditQuestionClicked={
-                                    canEditEntry
-                                      ? () => setEditInputId(index)
-                                      : undefined
-                                  }
-                                  onCopyQuestionClicked={handleCopyText}
-                                  onSaveAsSkillClicked={() =>
-                                    conversationContext.parentUiFrame?.showSkillDialog(
-                                      firstEntryEdit.text,
-                                    )
-                                  }
-                                />
-                              ) : (
-                                <div className={styles.divToKeepGap} />
-                              )}
+                              <ContextMenuHuman
+                                isOpen={activeMenuId === index}
+                                isVisible={
+                                  conversationContext.isMobile
+                                  || hoverMenuButtonId === index
+                                  || activeMenuId === index
+                                }
+                                onClick={() => showHumanMenu(index)}
+                                onClose={hideHumanMenu}
+                                onEditQuestionClicked={
+                                  canEditEntry
+                                    ? () => setEditInputId(index)
+                                    : undefined
+                                }
+                                onCopyQuestionClicked={handleCopyText}
+                                onSaveAsSkillClicked={() =>
+                                  conversationContext.parentUiFrame?.showSkillDialog(
+                                    firstEntryEdit.text,
+                                  )
+                                }
+                              />
                               <div className={styles.humanMessageBubble}>
                                 <div className={styles.humanTextRow}>
                                   {maybeHighlightSkillText(
@@ -292,12 +303,12 @@ function ConversationEntries() {
                           />
                         )}
                         {firstEntryEdit.selectedText && (
-                          <ActionTypeLabel
-                            actionType={firstEntryEdit.actionType}
-                          />
-                        )}
-                        {firstEntryEdit.selectedText && (
-                          <Quote text={firstEntryEdit.selectedText} />
+                          <div className={styles.selectedTextContext}>
+                            <ActionTypeLabel
+                              actionType={firstEntryEdit.actionType}
+                            />
+                            <Quote text={firstEntryEdit.selectedText} />
+                          </div>
                         )}
                         {showLongPageContentInfo
                           && (() => {

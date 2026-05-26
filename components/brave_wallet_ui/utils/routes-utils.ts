@@ -237,7 +237,7 @@ export const makeDepositFundsAccountRoute = (assetId: string) => {
 
 export const makeSendRoute = (
   asset: BraveWallet.BlockchainToken,
-  account?: BraveWallet.AccountInfo,
+  account?: Pick<BraveWallet.AccountInfo, 'accountId'>,
   recipient?: string,
 ) => {
   const isNftTab = asset.isErc721 || asset.isNft
@@ -311,7 +311,15 @@ export const makeSwapOrBridgeRoute = ({
       }
     : toAccountIdParams
 
-  const params = new URLSearchParams(toTokenParams)
+  const fromShieldedParams = fromToken.isShielded
+    ? { ...toTokenParams, fromIsShielded: 'true' }
+    : toTokenParams
+
+  const allParams = toToken?.isShielded
+    ? { ...fromShieldedParams, toIsShielded: 'true' }
+    : fromShieldedParams
+
+  const params = new URLSearchParams(allParams)
 
   const route = routeType === 'bridge' ? WalletRoutes.Bridge : WalletRoutes.Swap
 

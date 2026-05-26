@@ -16,7 +16,9 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.robolectric.RuntimeEnvironment;
 
-import org.chromium.base.supplier.ObservableSupplierImpl;
+import org.chromium.base.supplier.ObservableSuppliers;
+import org.chromium.base.supplier.SettableMonotonicObservableSupplier;
+import org.chromium.base.supplier.SettableNullableObservableSupplier;
 import org.chromium.base.test.BaseRobolectricTestRunner;
 import org.chromium.build.annotations.Nullable;
 import org.chromium.chrome.browser.ActivityTabProvider;
@@ -25,9 +27,9 @@ import org.chromium.chrome.browser.lifecycle.ActivityLifecycleDispatcher;
 import org.chromium.chrome.browser.tab_group_suggestion.toolbar.GroupSuggestionsButtonController;
 import org.chromium.chrome.browser.tabmodel.TabCreatorManager;
 import org.chromium.chrome.browser.tabmodel.TabModelSelector;
+import org.chromium.chrome.browser.tabstrip.StripVisibilityState;
 import org.chromium.chrome.browser.toolbar.adaptive.AdaptiveToolbarBehavior;
 import org.chromium.chrome.browser.toolbar.adaptive.AdaptiveToolbarButtonVariant;
-import org.chromium.chrome.browser.toolbar.top.tab_strip.StripVisibilityState;
 import org.chromium.ui.modaldialog.ModalDialogManager;
 
 import java.util.Arrays;
@@ -43,9 +45,10 @@ public class BraveTabbedAdaptiveToolbarBehaviorTest {
         Context context = RuntimeEnvironment.getApplication();
         AdaptiveToolbarBehavior.sValidButtons.clear();
 
-        ObservableSupplierImpl<BookmarkModel> bookmarkModelSupplier =
-                new ObservableSupplierImpl<>();
-        ObservableSupplierImpl<Integer> tabStripVisibilitySupplier = new ObservableSupplierImpl<>();
+        SettableNullableObservableSupplier<BookmarkModel> bookmarkModelSupplier =
+                ObservableSuppliers.createNullable();
+        SettableMonotonicObservableSupplier<Integer> tabStripVisibilitySupplier =
+                ObservableSuppliers.createMonotonic();
         tabStripVisibilitySupplier.set(StripVisibilityState.VISIBLE);
 
         ActivityLifecycleDispatcher lifecycleDispatcher =
@@ -67,7 +70,8 @@ public class BraveTabbedAdaptiveToolbarBehaviorTest {
                         groupSuggestionsControllerSupplier,
                         tabModelSelectorSupplier,
                         modalDialogManagerSupplier,
-                        tabStripVisibilitySupplier);
+                        tabStripVisibilitySupplier,
+                        () -> {});
     }
 
     @After

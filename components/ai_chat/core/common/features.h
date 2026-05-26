@@ -46,6 +46,12 @@ extern const base::FeatureParam<size_t> kMaxCountLargeToolUseEvents;
 COMPONENT_EXPORT(AI_CHAT_COMMON)
 extern const base::FeatureParam<size_t> kContentSizeLargeToolUseEvent;
 
+// How many most-recent web sources tool outputs to keep with full content
+// (page_content, extra_snippets, rich_results). Older ones are stripped to
+// metadata only.
+COMPONENT_EXPORT(AI_CHAT_COMMON)
+extern const base::FeatureParam<size_t> kMaxFullWebSourcesToolOutputs;
+
 // Whether automatic model should support tools. This affects model routing
 // when tools are sent. Since tools are always sent if any are available to the
 // conversation and if the model supports them, the server might need to be
@@ -104,12 +110,21 @@ COMPONENT_EXPORT(AI_CHAT_COMMON)
 BASE_DECLARE_FEATURE(kTabOrganization);
 COMPONENT_EXPORT(AI_CHAT_COMMON) bool IsTabOrganizationEnabled();
 
+#if BUILDFLAG(ENABLE_AI_CHAT_TAB_MANAGEMENT_TOOL)
+COMPONENT_EXPORT(AI_CHAT_COMMON)
+BASE_DECLARE_FEATURE(kTabManagementTool);
+#endif
+
 COMPONENT_EXPORT(AI_CHAT_COMMON)
 BASE_DECLARE_FEATURE(kNEARModels);
 COMPONENT_EXPORT(AI_CHAT_COMMON) bool IsNEARModelsEnabled();
 
 COMPONENT_EXPORT(AI_CHAT_COMMON)
-BASE_DECLARE_FEATURE(kConversationAPIV2);
+BASE_DECLARE_FEATURE(kBraveSummaryModel);
+COMPONENT_EXPORT(AI_CHAT_COMMON) bool IsBraveSummaryModelEnabled();
+
+COMPONENT_EXPORT(AI_CHAT_COMMON)
+BASE_DECLARE_FEATURE(kAIChatConversationAPIV2);
 COMPONENT_EXPORT(AI_CHAT_COMMON) bool IsAIChatConversationAPIV2Enabled();
 
 // Whether we should show rich search widgets in the conversation.
@@ -123,7 +138,22 @@ extern const base::FeatureParam<std::string> kRichSearchWidgetsOrigin;
 
 COMPONENT_EXPORT(AI_CHAT_COMMON)
 BASE_DECLARE_FEATURE(kCodeExecutionTool);
+COMPONENT_EXPORT(AI_CHAT_COMMON)
+extern const base::FeatureParam<bool> kCodeExecutionToolCharts;
 COMPONENT_EXPORT(AI_CHAT_COMMON) bool IsCodeExecutionToolEnabled();
+
+#if BUILDFLAG(IS_IOS)
+COMPONENT_EXPORT(AI_CHAT_COMMON) BASE_DECLARE_FEATURE(kAIChatWebUIEnabled);
+COMPONENT_EXPORT(AI_CHAT_COMMON) bool IsAIChatWebUIEnabled();
+#endif
+
+COMPONENT_EXPORT(AI_CHAT_COMMON)
+BASE_DECLARE_FEATURE(kShowAIChatInputOnNewTabPage);
+COMPONENT_EXPORT(AI_CHAT_COMMON) bool IsShowAIChatInputOnNewTabPageEnabled();
+
+COMPONENT_EXPORT(AI_CHAT_COMMON)
+BASE_DECLARE_FEATURE(kAIChatDeepResearch);
+COMPONENT_EXPORT(AI_CHAT_COMMON) bool IsAIChatDeepResearchEnabled();
 
 }  // namespace ai_chat::features
 

@@ -42,7 +42,8 @@ class BatAdsImpl final : public mojom::BatAds {
   void SetSysInfo(brave_ads::mojom::SysInfoPtr mojom_sys_info) override;
   void SetBuildChannel(
       brave_ads::mojom::BuildChannelInfoPtr mojom_build_channel) override;
-  void SetFlags(brave_ads::mojom::FlagsPtr mojom_flags) override;
+  void SetCommandLineSwitches(brave_ads::mojom::CommandLineSwitchesPtr
+                                  mojom_command_line_switches) override;
   void SetContentSettings(
       brave_ads::mojom::ContentSettingsPtr mojom_content_settings) override;
 
@@ -57,7 +58,7 @@ class BatAdsImpl final : public mojom::BatAds {
   void GetStatementOfAccounts(GetStatementOfAccountsCallback callback) override;
 
   void ParseAndSaveNewTabPageAds(
-      base::Value::Dict data,
+      base::DictValue data,
       ParseAndSaveNewTabPageAdsCallback callback) override;
   void MaybeServeNewTabPageAd(MaybeServeNewTabPageAdCallback callback) override;
   void TriggerNewTabPageAdEvent(

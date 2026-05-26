@@ -71,9 +71,9 @@ RegisterStyleOverride(
       cr-drawer settings-menu::part(header) {
         display: none;
       }
-      .cr-container-shadow {
+      .cr-scrollable-top-shadow {
         display: none !important;
-     }
+      }
       #container {
         /* menu and content next to each other in the horizontal center */
       }
@@ -81,7 +81,7 @@ RegisterStyleOverride(
         max-width: 250px;
       }
       #main {
-        margin: var(--leo-spacing-m) var(--leo-spacing-m) var(--leo-spacing-m) 0;
+        margin: 0 var(--leo-spacing-m) var(--leo-spacing-m) 0;
         height: calc(100% - 40px);
         background: var(--leo-color-page-background);
         padding-bottom: var(--leo-spacing-2xl);

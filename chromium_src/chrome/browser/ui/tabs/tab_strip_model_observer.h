@@ -13,16 +13,17 @@
 // Add TabCustomTitleChanged() callback to TabStripModelObserver.
 // BraveBrowser will make sure that the custom title is stored in the session
 // service so that it can be restored even after browser restarts.
-#define TabPinnedStateChanged                                              \
+#define OnTabPinnedStateChanged                                            \
   TabCustomTitleChanged(content::WebContents* contents,                    \
                         const std::optional<std::string>& custom_title) {} \
-  virtual void TabPinnedStateChanged
+  virtual void OnTabPinnedStateChanged
 
 // Add TreeTabChange type to represent changes in the tree tab structure.
 struct TreeTabChange {
   enum Type {
     kNodeCreated,
     kNodeWillBeDestroyed,
+    kNodeCollapsedStateChanged,
   };
 
   struct Delta {
@@ -43,6 +44,13 @@ struct TreeTabChange {
     raw_ref<const tabs::TreeTabNode> node;
   };
 
+  struct CollapsedStateChangedChange : public Delta {
+    explicit CollapsedStateChangedChange(const tabs::TreeTabNode& node);
+    ~CollapsedStateChangedChange() override;
+
+    raw_ref<const tabs::TreeTabNode> node;
+  };
+
   TreeTabChange(Type type,
                 tree_tab::TreeTabNodeId id,
                 std::unique_ptr<Delta> delta);
@@ -50,12 +58,16 @@ struct TreeTabChange {
                 const CreatedChange& created_change);
   TreeTabChange(tree_tab::TreeTabNodeId id,
                 const WillBeDestroyedChange& destroyed_change);
+  TreeTabChange(
+      tree_tab::TreeTabNodeId id,
+      const CollapsedStateChangedChange& collapsed_state_changed_change);
   TreeTabChange(const TreeTabChange& other) = delete;
   TreeTabChange& operator=(const TreeTabChange& other) = delete;
   ~TreeTabChange();
 
   const CreatedChange& GetCreatedChange() const;
   const WillBeDestroyedChange& GetWillBeDestroyedChange() const;
+  const CollapsedStateChangedChange& GetCollapsedStateChangedChange() const;
 
   Type type;
   tree_tab::TreeTabNodeId id;
@@ -70,6 +82,6 @@ struct TreeTabChange {
 #include <chrome/browser/ui/tabs/tab_strip_model_observer.h>  // IWYU pragma: export
 
 #undef OnTabGroupChanged
-#undef TabPinnedStateChanged
+#undef OnTabPinnedStateChanged
 
 #endif  // BRAVE_CHROMIUM_SRC_CHROME_BROWSER_UI_TABS_TAB_STRIP_MODEL_OBSERVER_H_

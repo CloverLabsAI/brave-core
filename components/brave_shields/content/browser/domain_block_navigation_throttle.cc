@@ -15,6 +15,7 @@
 #include "base/metrics/histogram_macros.h"
 #include "base/notreached.h"
 #include "base/task/single_thread_task_runner.h"
+#include "brave/components/brave_shields/content/browser/ad_block_engine_wrapper.h"
 #include "brave/components/brave_shields/content/browser/ad_block_service.h"
 #include "brave/components/brave_shields/content/browser/brave_shields_util.h"
 #include "brave/components/brave_shields/content/browser/domain_block_controller_client.h"
@@ -54,23 +55,23 @@ struct DomainBlockNavigationThrottle::BlockResult {
 
 namespace {
 brave_shields::DomainBlockNavigationThrottle::BlockResult
-ShouldBlockDomainOnTaskRunner(brave_shields::AdBlockService* ad_block_service,
-                              const GURL& url,
-                              bool aggressive_setting) {
+ShouldBlockDomainOnTaskRunner(
+    const GURL& url,
+    brave_shields::AdBlockEngineWrapper* engine_wrapper) {
   SCOPED_UMA_HISTOGRAM_TIMER("Brave.DomainBlock.ShouldBlock");
   brave_shields::DomainBlockNavigationThrottle::BlockResult block_result;
   // force aggressive blocking to `true` for domain blocking - these requests
   // are all "first-party", but the throttle is already only called when
   // necessary.
   bool aggressive_for_engine = true;
-  auto result = ad_block_service->ShouldStartRequest(
+  auto result = engine_wrapper->ShouldStartRequest(
       url, blink::mojom::ResourceType::kMainFrame, std::string(url.host()),
       aggressive_for_engine, false, false, false);
 
   block_result.should_block =
       result.important || (result.matched && !result.has_exception);
 
-  block_result.new_url = aggressive_setting && result.rewritten_url.has_value
+  block_result.new_url = result.rewritten_url.has_value
                              ? std::string(result.rewritten_url.value)
                              : std::string();
 
@@ -172,16 +173,10 @@ DomainBlockNavigationThrottle::WillStartRequest() {
     return content::NavigationThrottle::PROCEED;
   }
 
-  bool aggressive_mode =
-      brave_shields::GetCosmeticFilteringControlType(
-          content_settings_, request_url) == brave_shields::ControlType::BLOCK;
-
   // Otherwise, call the ad block service on a task runner to determine whether
   // this domain should be blocked.
-  ad_block_service_->GetTaskRunner()->PostTaskAndReplyWithResult(
-      FROM_HERE,
-      base::BindOnce(&ShouldBlockDomainOnTaskRunner, ad_block_service_,
-                     request_url, aggressive_mode),
+  ad_block_service_->AsyncCallAndReplyWithResult<BlockResult>(
+      base::BindOnce(&ShouldBlockDomainOnTaskRunner, request_url),
       base::BindOnce(&DomainBlockNavigationThrottle::OnShouldBlockDomain,
                      weak_ptr_factory_.GetWeakPtr(), domain_blocking_type));
 
@@ -210,7 +205,7 @@ DomainBlockNavigationThrottle::WillProcessResponse() {
 
 void DomainBlockNavigationThrottle::OnShouldBlockDomain(
     DomainBlockingType domain_blocking_type,
-    const BlockResult& block_result) {
+    BlockResult block_result) {
   const bool should_block = block_result.should_block;
   const GURL new_url(block_result.new_url);
 

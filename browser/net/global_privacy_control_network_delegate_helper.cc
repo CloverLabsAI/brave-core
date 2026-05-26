@@ -7,7 +7,9 @@
 
 #include <memory>
 
+#include "base/check.h"
 #include "base/feature_list.h"
+#include "brave/browser/net/url_context.h"
 #include "brave/components/constants/network_constants.h"
 #include "brave/components/global_privacy_control/global_privacy_control_utils.h"
 #include "chrome/browser/profiles/profile.h"
@@ -16,16 +18,28 @@
 
 namespace brave {
 
+template <template <typename> class T>
 int OnBeforeStartTransaction_GlobalPrivacyControlWork(
     net::HttpRequestHeaders* headers,
     const ResponseCallback& next_callback,
-    std::shared_ptr<BraveRequestInfo> ctx) {
-  Profile* profile = Profile::FromBrowserContext(ctx->browser_context);
+    T<BraveRequestInfo> ctx) {
+  CHECK(ctx);
+  Profile* profile = Profile::FromBrowserContext(ctx->browser_context());
   if (profile && global_privacy_control::IsGlobalPrivacyControlEnabled(
                      profile->GetPrefs())) {
     headers->SetHeader(kSecGpcHeader, "1");
   }
   return net::OK;
 }
+
+template int OnBeforeStartTransaction_GlobalPrivacyControlWork<std::shared_ptr>(
+    net::HttpRequestHeaders* headers,
+    const ResponseCallback& next_callback,
+    std::shared_ptr<BraveRequestInfo> ctx);
+
+template int OnBeforeStartTransaction_GlobalPrivacyControlWork<base::WeakPtr>(
+    net::HttpRequestHeaders* headers,
+    const ResponseCallback& next_callback,
+    base::WeakPtr<BraveRequestInfo> ctx);
 
 }  // namespace brave

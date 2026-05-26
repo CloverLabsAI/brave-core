@@ -28,7 +28,7 @@ using ::testing::Optional;
 
 namespace brave_wallet {
 namespace {
-base::Value::List ParseParamsList(const std::string& json) {
+base::ListValue ParseParamsList(const std::string& json) {
   return std::move(*ParseJsonDict(json).FindList("params"));
 }
 }  // namespace
@@ -135,6 +135,41 @@ TEST(EthResponseHelperUnitTest, ParseEthTransaction1559Params) {
   EXPECT_EQ(tx_data->base_data->data, (std::vector<uint8_t>{1, 2, 3}));
   EXPECT_TRUE(tx_data->max_priority_fee_per_gas.empty());
   EXPECT_TRUE(tx_data->max_fee_per_gas.empty());
+}
+
+TEST(EthResponseHelperUnitTest, ParseEthTransaction1559ParamsHandleNulls) {
+  std::string json(
+      R"({
+        "params": [{
+          "from": "0x7f84E0DfF3ffd0af78770cF86c1b1DdFF99d51C8",
+          "to": "0x7f84E0DfF3ffd0af78770cF86c1b1DdFF99d51C7",
+          "gas": "0x146",
+          "value": "0x25F38E9E0000000",
+          "data": "0x010203",
+          "nonce": "0x01",
+        }]
+      })");
+  auto params = ParseParamsList(json);
+  std::string from;
+  mojom::TxData1559Ptr tx_data = ParseEthTransaction1559Params(params, from);
+  EXPECT_EQ(tx_data->max_fee_per_gas, "");
+  EXPECT_EQ(tx_data->max_priority_fee_per_gas, "");
+
+  // nulls in these fields are parsed as no value.
+  params[0].GetDict().Set("maxFeePerGas", base::Value());
+  params[0].GetDict().Set("maxPriorityFeePerGas", base::Value());
+
+  tx_data = ParseEthTransaction1559Params(params, from);
+  EXPECT_EQ(tx_data->max_fee_per_gas, "");
+  EXPECT_EQ(tx_data->max_priority_fee_per_gas, "");
+
+  // Non string values fail parsing.
+  params[0].GetDict().Set("maxFeePerGas", base::Value(123));
+  EXPECT_FALSE(ParseEthTransaction1559Params(params, from));
+  params[0].GetDict().Set("maxFeePerGas", base::Value());
+
+  params[0].GetDict().Set("maxPriorityFeePerGas", base::DictValue());
+  EXPECT_FALSE(ParseEthTransaction1559Params(params, from));
 }
 
 TEST(EthResponseHelperUnitTest, ShouldCreate1559Tx) {
@@ -497,7 +532,7 @@ TEST(EthResponseHelperUnitTest, GetEthJsonRequestInfo) {
   })";
   base::Value id;
   std::string method;
-  base::Value::List params;
+  base::ListValue params;
   EXPECT_TRUE(GetEthJsonRequestInfo(json, &id, &method, &params));
   EXPECT_EQ(id, base::Value("1"));
   EXPECT_EQ(method, "eth_blockNumber");
@@ -1131,7 +1166,7 @@ TEST(EthResponseHelperUnitTest, ParseRequestPermissionsParams) {
   EXPECT_THAT(ParseRequestPermissionsParams(ParseParamsList(json)),
               Optional(base::flat_set<std::string>()));
 
-  EXPECT_FALSE(ParseRequestPermissionsParams(base::Value::List()));
+  EXPECT_FALSE(ParseRequestPermissionsParams(base::ListValue()));
   EXPECT_FALSE(
       ParseRequestPermissionsParams(ParseParamsList(R"({ "params": [5] })")));
   EXPECT_FALSE(

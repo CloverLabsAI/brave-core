@@ -60,10 +60,6 @@ void Segments::Insert(const mojom::DBTransactionInfoPtr& mojom_db_transaction,
   mojom_db_transaction->actions.push_back(std::move(mojom_db_action));
 }
 
-std::string Segments::GetTableName() const {
-  return kTableName;
-}
-
 void Segments::Create(const mojom::DBTransactionInfoPtr& mojom_db_transaction) {
   CHECK(mojom_db_transaction);
 
@@ -106,7 +102,15 @@ void Segments::MigrateToV48(
   // should not drop the table as it will store catalog and non-catalog ad units
   // and maintain relationships with other tables.
   DropTable(mojom_db_transaction, "segments");
-  Create(mojom_db_transaction);
+  Execute(mojom_db_transaction, R"(
+      CREATE TABLE segments (
+        creative_set_id TEXT NOT NULL,
+        segment TEXT NOT NULL,
+        PRIMARY KEY (
+          creative_set_id,
+          segment
+        ) ON CONFLICT REPLACE
+      ))");
 }
 
 std::string Segments::BuildInsertSql(
@@ -124,8 +128,7 @@ std::string Segments::BuildInsertSql(
             creative_set_id,
             segment
           ) VALUES $2)",
-      {GetTableName(),
-       BuildBindColumnPlaceholders(/*column_count=*/2, row_count)},
+      {kTableName, BuildBindColumnPlaceholders(/*column_count=*/2, row_count)},
       nullptr);
 }
 

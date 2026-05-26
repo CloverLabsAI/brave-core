@@ -4,8 +4,14 @@
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import * as React from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
 import * as leo from '@brave/leo/tokens/css/variables'
+import Button from '@brave/leo/react/button'
+
+// redux
+import { useAppDispatch } from '../../../../common/hooks/use-redux'
+
+// types
 import { type InputEventDetail } from '@brave/leo/react/input'
 
 // actions
@@ -30,7 +36,7 @@ import { useSafeUISelector } from '../../../../common/hooks/use-safe-selector'
 import { PopupModal } from '../index'
 
 // style
-import { Column, LeoSquaredButton, Row, Text } from '../../../shared/style'
+import { Column, Row, Text } from '../../../shared/style'
 import { modalWidth, StyledWrapper } from './remove-account-modal.style'
 import {
   PasswordInputNala, //
@@ -38,7 +44,7 @@ import {
 
 export const RemoveAccountModal = () => {
   // redux
-  const dispatch = useDispatch()
+  const dispatch = useAppDispatch()
 
   const isPanel = useSafeUISelector(UISelectors.isPanel)
   const isMobile = useSafeUISelector(UISelectors.isMobile)
@@ -175,22 +181,22 @@ export const RemoveAccountModal = () => {
 
         {isMobile || isPanel ? (
           <Row gap='4px'>
-            <LeoSquaredButton
+            <Button
               onClick={() =>
                 dispatch(AccountsTabActions.setAccountToRemove(undefined))
               }
               kind='plain-faint'
             >
               {getLocale('braveWalletButtonCancel')}
-            </LeoSquaredButton>
+            </Button>
 
-            <LeoSquaredButton
+            <Button
               onClick={onSubmit}
               kind='filled'
               isDisabled={password ? !isCorrectPassword : true}
             >
               {getLocale('braveWalletAccountsRemove')}
-            </LeoSquaredButton>
+            </Button>
           </Row>
         ) : (
           <Row
@@ -198,24 +204,24 @@ export const RemoveAccountModal = () => {
             justifyContent={'flex-end'}
           >
             <div>
-              <LeoSquaredButton
+              <Button
                 onClick={() =>
                   dispatch(AccountsTabActions.setAccountToRemove(undefined))
                 }
                 kind='plain-faint'
               >
                 {getLocale('braveWalletButtonCancel')}
-              </LeoSquaredButton>
+              </Button>
             </div>
 
             <div>
-              <LeoSquaredButton
+              <Button
                 onClick={onSubmit}
                 kind='filled'
                 isDisabled={password ? !isCorrectPassword : true}
               >
                 {getLocale('braveWalletAccountsRemove')}
-              </LeoSquaredButton>
+              </Button>
             </div>
           </Row>
         )}

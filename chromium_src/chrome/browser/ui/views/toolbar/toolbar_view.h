@@ -6,6 +6,7 @@
 #ifndef BRAVE_CHROMIUM_SRC_CHROME_BROWSER_UI_VIEWS_TOOLBAR_TOOLBAR_VIEW_H_
 #define BRAVE_CHROMIUM_SRC_CHROME_BROWSER_UI_VIEWS_TOOLBAR_TOOLBAR_VIEW_H_
 
+#include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/views/frame/browser_root_view.h"
 #include "chrome/browser/ui/views/intent_picker_bubble_view.h"
 #include "chrome/browser/ui/views/location_bar/custom_tab_bar_view.h"
@@ -13,7 +14,6 @@
 #define Init virtual Init
 #define Update virtual Update
 #define ShowBookmarkBubble virtual ShowBookmarkBubble
-#define UpdateRecedingCornerRadius virtual UpdateRecedingCornerRadius
 #define LoadImages(...)                                                       \
   virtual LoadImages(__VA_ARGS__);                                            \
   friend class BraveToolbarView;                                              \
@@ -23,7 +23,6 @@
 #include <chrome/browser/ui/views/toolbar/toolbar_view.h>  // IWYU pragma: export
 
 #undef LoadImages
-#undef UpdateRecedingCornerRadius
 #undef ShowBookmarkBubble
 #undef Update
 #undef Init

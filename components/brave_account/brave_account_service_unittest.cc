@@ -54,8 +54,9 @@ struct RegisterInitializeTestCase {
                   base::test::TaskEnvironment& task_environment,
                   mojom::Authentication& authentication,
                   base::OnceCallback<void(MojoExpected)> callback) {
-    authentication.RegisterInitialize(
-        test_case.email, test_case.blinded_message, std::move(callback));
+    authentication.RegisterInitialize(std::nullopt, test_case.email,
+                                      test_case.blinded_message,
+                                      std::move(callback));
   }
 
   std::string test_name;
@@ -806,6 +807,21 @@ ResendConfirmationEmailVerificationTokenFailedToDecrypt() {
   return kResendConfirmationEmailVerificationTokenFailedToDecrypt.get();
 }
 
+const ResendConfirmationEmailTestCase* ResendConfirmationEmailSuccess() {
+  static const base::NoDestructor<ResendConfirmationEmailTestCase>
+      kResendConfirmationEmailSuccess({
+          .test_name = "resend_confirmation_email_success",
+          .encrypted_verification_token =
+              base::Base64Encode("encrypted_verification_token"),
+          .fail_decryption = false,
+          .endpoint_response = {{.net_error = net::OK,
+                                 .status_code = net::HTTP_NO_CONTENT,
+                                 .body = std::nullopt}},
+          .mojo_expected = mojom::ResendConfirmationEmailResult::New(),
+      });
+  return kResendConfirmationEmailSuccess.get();
+}
+
 const ResendConfirmationEmailTestCase* ResendConfirmationEmailNetworkError() {
   static const base::NoDestructor<ResendConfirmationEmailTestCase>
       kResendConfirmationEmailNetworkError({
@@ -956,22 +972,6 @@ const ResendConfirmationEmailTestCase* ResendConfirmationEmailUnknown() {
   return kResendConfirmationEmailUnknown.get();
 }
 
-const ResendConfirmationEmailTestCase* ResendConfirmationEmailSuccess() {
-  static const base::NoDestructor<ResendConfirmationEmailTestCase>
-      kResendConfirmationEmailSuccess({
-          .test_name = "resend_confirmation_email_success",
-          .encrypted_verification_token =
-              base::Base64Encode("encrypted_verification_token"),
-          .fail_decryption = false,
-          .endpoint_response = {{.net_error = net::OK,
-                                 .status_code = net::HTTP_NO_CONTENT,
-                                 .body =
-                                     VerifyResend::Response::SuccessBody()}},
-          .mojo_expected = mojom::ResendConfirmationEmailResult::New(),
-      });
-  return kResendConfirmationEmailSuccess.get();
-}
-
 using BraveAccountServiceResendConfirmationEmailTest =
     BraveAccountServiceTest<ResendConfirmationEmailTestCase>;
 
@@ -987,14 +987,14 @@ INSTANTIATE_TEST_SUITE_P(
     BraveAccountServiceResendConfirmationEmailTest,
     testing::Values(ResendConfirmationEmailVerificationTokenEmpty(),
                     ResendConfirmationEmailVerificationTokenFailedToDecrypt(),
+                    ResendConfirmationEmailSuccess(),
                     ResendConfirmationEmailNetworkError(),
                     ResendConfirmationEmailBodyMissingOrFailedToParse(),
                     ResendConfirmationEmailBadRequestWithNullErrorCode(),
                     ResendConfirmationEmailMaximumEmailSendAttemptsExceeded(),
                     ResendConfirmationEmailEmailAlreadyVerified(),
                     ResendConfirmationEmailServerError(),
-                    ResendConfirmationEmailUnknown(),
-                    ResendConfirmationEmailSuccess()),
+                    ResendConfirmationEmailUnknown()),
     BraveAccountServiceResendConfirmationEmailTest::kNameGenerator);
 
 struct VerifyResultTestCase {
@@ -1665,7 +1665,8 @@ struct LoginInitializeTestCase {
                   base::test::TaskEnvironment& task_environment,
                   mojom::Authentication& authentication,
                   base::OnceCallback<void(MojoExpected)> callback) {
-    authentication.LoginInitialize(test_case.email, test_case.serialized_ke1,
+    authentication.LoginInitialize(std::nullopt, test_case.email,
+                                   test_case.serialized_ke1,
                                    std::move(callback));
   }
 
@@ -2511,11 +2512,11 @@ struct GetServiceTokenTestCase {
   }
 
   std::string test_name;
-  // |service_tokens_dict| is a callback instead of a plain base::Value::Dict
+  // |service_tokens_dict| is a callback instead of a plain base::DictValue
   // so that test cases can use the current mock time (passed as parameter)
   // when constructing the dictionary. This is necessary for cache expiration
   // tests that need to set timestamps relative to when the test runs.
-  mutable base::OnceCallback<base::Value::Dict(base::Time)> service_tokens_dict;
+  mutable base::OnceCallback<base::DictValue(base::Time)> service_tokens_dict;
   bool set_authentication_token;
   bool fail_decryption;
   bool clear_authentication_token;
@@ -2532,9 +2533,9 @@ const GetServiceTokenTestCase* GetServiceTokenCacheHit() {
       kGetServiceTokenCacheHit({
           .test_name = "get_service_token_cache_hit",
           .service_tokens_dict = base::BindOnce([](base::Time mock_now) {
-            return base::Value::Dict().Set(
+            return base::DictValue().Set(
                 "email-aliases",
-                base::Value::Dict()
+                base::DictValue()
                     .Set(prefs::keys::kServiceToken,
                          base::Base64Encode("cached_service_token"))
                     .Set(prefs::keys::kLastFetched,
@@ -2557,7 +2558,7 @@ const GetServiceTokenTestCase* GetServiceTokenUserNotLoggedIn() {
       kGetServiceTokenUserNotLoggedIn({
           .test_name = "get_service_token_user_not_logged_in",
           .service_tokens_dict =
-              base::BindOnce([](base::Time) { return base::Value::Dict(); }),
+              base::BindOnce([](base::Time) { return base::DictValue(); }),
           .set_authentication_token = {},    // not used
           .fail_decryption = {},             // not used
           .clear_authentication_token = {},  // not used
@@ -2577,7 +2578,7 @@ GetServiceTokenAuthenticationTokenDecryptionFailed() {
           .test_name =
               "get_service_token_authentication_token_decryption_failed",
           .service_tokens_dict =
-              base::BindOnce([](base::Time) { return base::Value::Dict(); }),
+              base::BindOnce([](base::Time) { return base::DictValue(); }),
           .set_authentication_token = true,
           .fail_decryption = true,
           .clear_authentication_token = {},  // not used
@@ -2596,7 +2597,7 @@ const GetServiceTokenTestCase* GetServiceTokenAuthenticationSessionChanged() {
       kGetServiceTokenAuthenticationSessionChanged({
           .test_name = "get_service_token_authentication_session_changed",
           .service_tokens_dict =
-              base::BindOnce([](base::Time) { return base::Value::Dict(); }),
+              base::BindOnce([](base::Time) { return base::DictValue(); }),
           .set_authentication_token = true,
           .fail_decryption = false,
           .clear_authentication_token = true,
@@ -2623,7 +2624,7 @@ const GetServiceTokenTestCase* GetServiceTokenNetworkError() {
       kGetServiceTokenNetworkError({
           .test_name = "get_service_token_network_error",
           .service_tokens_dict =
-              base::BindOnce([](base::Time) { return base::Value::Dict(); }),
+              base::BindOnce([](base::Time) { return base::DictValue(); }),
           .set_authentication_token = true,
           .fail_decryption = false,
           .clear_authentication_token = false,
@@ -2643,7 +2644,7 @@ const GetServiceTokenTestCase* GetServiceTokenBodyMissingOrFailedToParse() {
       kGetServiceTokenBodyMissingOrFailedToParse({
           .test_name = "get_service_token_body_missing_or_failed_to_parse",
           .service_tokens_dict =
-              base::BindOnce([](base::Time) { return base::Value::Dict(); }),
+              base::BindOnce([](base::Time) { return base::DictValue(); }),
           .set_authentication_token = true,
           .fail_decryption = false,
           .clear_authentication_token = false,
@@ -2663,7 +2664,7 @@ const GetServiceTokenTestCase* GetServiceTokenErrorCodeIsNull() {
       kGetServiceTokenErrorCodeIsNull({
           .test_name = "get_service_token_error_code_is_null",
           .service_tokens_dict =
-              base::BindOnce([](base::Time) { return base::Value::Dict(); }),
+              base::BindOnce([](base::Time) { return base::DictValue(); }),
           .set_authentication_token = true,
           .fail_decryption = false,
           .clear_authentication_token = false,
@@ -2687,7 +2688,7 @@ const GetServiceTokenTestCase* GetServiceTokenEmailDomainNotSupported() {
       kGetServiceTokenEmailDomainNotSupported({
           .test_name = "get_service_token_email_domain_not_supported",
           .service_tokens_dict =
-              base::BindOnce([](base::Time) { return base::Value::Dict(); }),
+              base::BindOnce([](base::Time) { return base::DictValue(); }),
           .set_authentication_token = true,
           .fail_decryption = false,
           .clear_authentication_token = false,
@@ -2712,7 +2713,7 @@ const GetServiceTokenTestCase* GetServiceTokenIncorrectCredentials() {
       kGetServiceTokenIncorrectCredentials({
           .test_name = "get_service_token_incorrect_credentials",
           .service_tokens_dict =
-              base::BindOnce([](base::Time) { return base::Value::Dict(); }),
+              base::BindOnce([](base::Time) { return base::DictValue(); }),
           .set_authentication_token = true,
           .fail_decryption = false,
           .clear_authentication_token = false,
@@ -2737,7 +2738,7 @@ const GetServiceTokenTestCase* GetServiceTokenInvalidTokenAudience() {
       kGetServiceTokenInvalidTokenAudience({
           .test_name = "get_service_token_invalid_token_audience",
           .service_tokens_dict =
-              base::BindOnce([](base::Time) { return base::Value::Dict(); }),
+              base::BindOnce([](base::Time) { return base::DictValue(); }),
           .set_authentication_token = true,
           .fail_decryption = false,
           .clear_authentication_token = false,
@@ -2762,7 +2763,7 @@ const GetServiceTokenTestCase* GetServiceTokenBadRequest() {
       kGetServiceTokenBadRequest({
           .test_name = "get_service_token_bad_request",
           .service_tokens_dict =
-              base::BindOnce([](base::Time) { return base::Value::Dict(); }),
+              base::BindOnce([](base::Time) { return base::DictValue(); }),
           .set_authentication_token = true,
           .fail_decryption = false,
           .clear_authentication_token = false,
@@ -2787,7 +2788,7 @@ const GetServiceTokenTestCase* GetServiceTokenUnauthorized() {
       kGetServiceTokenUnauthorized({
           .test_name = "get_service_token_unauthorized",
           .service_tokens_dict =
-              base::BindOnce([](base::Time) { return base::Value::Dict(); }),
+              base::BindOnce([](base::Time) { return base::DictValue(); }),
           .set_authentication_token = true,
           .fail_decryption = false,
           .clear_authentication_token = false,
@@ -2812,7 +2813,7 @@ const GetServiceTokenTestCase* GetServiceTokenServerError() {
       kGetServiceTokenInternalServerError({
           .test_name = "get_service_token_internal_server_error",
           .service_tokens_dict =
-              base::BindOnce([](base::Time) { return base::Value::Dict(); }),
+              base::BindOnce([](base::Time) { return base::DictValue(); }),
           .set_authentication_token = true,
           .fail_decryption = false,
           .clear_authentication_token = false,
@@ -2837,7 +2838,7 @@ const GetServiceTokenTestCase* GetServiceTokenUnknown() {
       kGetServiceTokenUnknown({
           .test_name = "get_service_token_unknown",
           .service_tokens_dict =
-              base::BindOnce([](base::Time) { return base::Value::Dict(); }),
+              base::BindOnce([](base::Time) { return base::DictValue(); }),
           .set_authentication_token = true,
           .fail_decryption = false,
           .clear_authentication_token = false,
@@ -2861,7 +2862,7 @@ const GetServiceTokenTestCase* GetServiceTokenServiceTokenEmpty() {
       kGetServiceTokenServiceTokenEmpty({
           .test_name = "get_service_token_service_token_empty",
           .service_tokens_dict =
-              base::BindOnce([](base::Time) { return base::Value::Dict(); }),
+              base::BindOnce([](base::Time) { return base::DictValue(); }),
           .set_authentication_token = true,
           .fail_decryption = false,
           .clear_authentication_token = false,
@@ -2886,7 +2887,7 @@ const GetServiceTokenTestCase* GetServiceTokenServiceTokenEncryptionFailed() {
       kGetServiceTokenServiceTokenEncryptionFailed({
           .test_name = "get_service_token_service_token_encryption_failed",
           .service_tokens_dict =
-              base::BindOnce([](base::Time) { return base::Value::Dict(); }),
+              base::BindOnce([](base::Time) { return base::DictValue(); }),
           .set_authentication_token = true,
           .fail_decryption = false,
           .clear_authentication_token = false,
@@ -2913,7 +2914,7 @@ const GetServiceTokenTestCase* GetServiceTokenSuccess() {
       kGetServiceTokenSuccess({
           .test_name = "get_service_token_success",
           .service_tokens_dict =
-              base::BindOnce([](base::Time) { return base::Value::Dict(); }),
+              base::BindOnce([](base::Time) { return base::DictValue(); }),
           .set_authentication_token = true,
           .fail_decryption = false,
           .clear_authentication_token = false,
@@ -2939,7 +2940,7 @@ const GetServiceTokenTestCase* GetServiceTokenServiceDictMissing() {
       kGetServiceTokenServiceDictMissing({
           .test_name = "get_service_token_service_dict_missing",
           .service_tokens_dict =
-              base::BindOnce([](base::Time) { return base::Value::Dict(); }),
+              base::BindOnce([](base::Time) { return base::DictValue(); }),
           .set_authentication_token = true,
           .fail_decryption = false,
           .clear_authentication_token = false,
@@ -2965,10 +2966,10 @@ const GetServiceTokenTestCase* GetServiceTokenServiceTokenMissing() {
       kGetServiceTokenServiceTokenMissing({
           .test_name = "get_service_token_cache_service_token_missing",
           .service_tokens_dict = base::BindOnce([](base::Time mock_now) {
-            return base::Value::Dict().Set(
+            return base::DictValue().Set(
                 "email-aliases",
-                base::Value::Dict().Set(prefs::keys::kLastFetched,
-                                        base::TimeToValue(mock_now)));
+                base::DictValue().Set(prefs::keys::kLastFetched,
+                                      base::TimeToValue(mock_now)));
           }),
           .set_authentication_token = true,
           .fail_decryption = false,
@@ -2995,9 +2996,9 @@ const GetServiceTokenTestCase* GetServiceTokenLastFetchedMissing() {
       kGetServiceTokenLastFetchedMissing({
           .test_name = "get_service_token_cache_last_fetched_missing",
           .service_tokens_dict = base::BindOnce([](base::Time) {
-            return base::Value::Dict().Set(
+            return base::DictValue().Set(
                 "email-aliases",
-                base::Value::Dict().Set(
+                base::DictValue().Set(
                     prefs::keys::kServiceToken,
                     base::Base64Encode("cached_service_token")));
           }),
@@ -3026,9 +3027,9 @@ const GetServiceTokenTestCase* GetServiceTokenLastFetchedInvalid() {
       kGetServiceTokenLastFetchedInvalid({
           .test_name = "get_service_token_cache_last_fetched_invalid",
           .service_tokens_dict = base::BindOnce([](base::Time) {
-            return base::Value::Dict().Set(
+            return base::DictValue().Set(
                 "email-aliases",
-                base::Value::Dict()
+                base::DictValue()
                     .Set(prefs::keys::kServiceToken,
                          base::Base64Encode("cached_service_token"))
                     .Set(prefs::keys::kLastFetched, "invalid-time-format"));
@@ -3058,9 +3059,9 @@ const GetServiceTokenTestCase* GetServiceTokenCacheExpired() {
       kGetServiceTokenCacheExpired({
           .test_name = "get_service_token_cache_expired",
           .service_tokens_dict = base::BindOnce([](base::Time mock_now) {
-            return base::Value::Dict().Set(
+            return base::DictValue().Set(
                 "email-aliases",
-                base::Value::Dict()
+                base::DictValue()
                     .Set(prefs::keys::kServiceToken,
                          base::Base64Encode("cached_service_token"))
                     .Set(prefs::keys::kLastFetched,
@@ -3093,9 +3094,9 @@ const GetServiceTokenTestCase* GetServiceTokenServiceTokenDecryptionFailed() {
           .test_name =
               "get_service_token_cache_service_token_decryption_failed",
           .service_tokens_dict = base::BindOnce([](base::Time mock_now) {
-            return base::Value::Dict().Set(
+            return base::DictValue().Set(
                 "email-aliases",
-                base::Value::Dict()
+                base::DictValue()
                     .Set(prefs::keys::kServiceToken, "!!!invalid-base64!!!")
                     .Set(prefs::keys::kLastFetched,
                          base::TimeToValue(mock_now)));

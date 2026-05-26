@@ -17,11 +17,13 @@
 #include "base/no_destructor.h"
 #include "base/strings/strcat.h"
 #include "base/strings/string_util.h"
+#include "base/task/single_thread_task_runner.h"
 #include "base/time/time.h"
 #include "brave/brave_domains/service_domains.h"
 #include "brave/components/ai_chat/core/common/constants.h"
 #include "brave/components/ai_chat/core/common/features.h"
 #include "brave/components/ai_chat/core/common/mojom/ai_chat.mojom-forward.h"
+#include "brave/components/ai_chat/core/common/mojom/ai_chat.mojom.h"
 #include "brave/components/ai_chat/core/common/mojom/common.mojom-forward.h"
 #include "brave/components/ai_chat/core/common/pref_names.h"
 #include "components/grit/brave_components_strings.h"
@@ -154,6 +156,12 @@ bool IsBraveSearchSERP(const GURL& url) {
          url.host() ==
              brave_domains::GetServicesDomain(kBraveSearchURLPrefix) &&
          url.path() == "/search" && url.query().starts_with("q=");
+}
+
+bool IsBraveSearchTool(std::string_view tool_name) {
+  return tool_name == mojom::kBraveWebSearchToolName ||
+         tool_name == mojom::kBraveNewsSearchToolName ||
+         tool_name == mojom::kBraveFaqsSearchToolName;
 }
 
 bool IsPremiumStatus(mojom::PremiumStatus status) {

@@ -29,7 +29,7 @@ using IsFirstTimeCallback =
 using GetAdEventsCallback =
     base::OnceCallback<void(bool success, const AdEventList& ad_events)>;
 using GetAdEventVirtualPrefsCallback =
-    base::OnceCallback<void(base::Value::Dict virtual_prefs)>;
+    base::OnceCallback<void(base::DictValue virtual_prefs)>;
 
 class AdEvents final : public TableInterface {
  public:
@@ -66,7 +66,6 @@ class AdEvents final : public TableInterface {
                      ResultCallback callback) const;
   void PurgeAllOrphaned(ResultCallback callback) const;
 
-  std::string GetTableName() const override;
   void Create(const mojom::DBTransactionInfoPtr& mojom_db_transaction) override;
   void Migrate(const mojom::DBTransactionInfoPtr& mojom_db_transaction,
                int to_version) override;

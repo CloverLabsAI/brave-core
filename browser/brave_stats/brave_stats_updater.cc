@@ -5,36 +5,42 @@
 
 #include "brave/browser/brave_stats/brave_stats_updater.h"
 
+#include <cstddef>
 #include <memory>
 #include <utility>
 
 #include "base/barrier_closure.h"
 #include "base/check.h"
+#include "base/check_deref.h"
+#include "base/check_is_test.h"
 #include "base/command_line.h"
 #include "base/logging.h"
 #include "base/memory/scoped_refptr.h"
 #include "base/metrics/histogram_macros.h"
 #include "base/strings/string_util.h"
-#include "base/system/sys_info.h"
 #include "brave/browser/brave_browser_features.h"
 #include "brave/browser/brave_stats/brave_stats_updater_params.h"
 #include "brave/browser/brave_stats/buildflags.h"
 #include "brave/browser/brave_stats/features.h"
 #include "brave/browser/brave_stats/first_run_util.h"
 #include "brave/browser/brave_stats/switches.h"
+#include "brave/browser/serp_metrics/serp_metrics_all_profiles_aggregator.h"
+#include "brave/browser/serp_metrics/serp_metrics_migration.h"
 #include "brave/common/brave_channel_info.h"
-#include "brave/components/brave_ads/core/public/prefs/pref_names.h"
 #include "brave/components/brave_referrals/common/pref_names.h"
 #include "brave/components/brave_stats/browser/brave_stats_updater_util.h"
 #include "brave/components/brave_wallet/common/buildflags/buildflags.h"
 #include "brave/components/constants/network_constants.h"
 #include "brave/components/constants/pref_names.h"
 #include "brave/components/misc_metrics/general_browser_usage.h"
-#include "brave/components/rpill/common/rpill.h"
+#include "brave/components/serp_metrics/serp_metrics_feature.h"
 #include "brave/components/version_info/version_info.h"
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/first_run/first_run.h"
 #include "chrome/browser/net/system_network_context_manager.h"
+#include "chrome/browser/profiles/profile.h"
+#include "chrome/browser/profiles/profile_attributes_entry.h"
+#include "chrome/browser/profiles/profile_attributes_storage.h"
 #include "chrome/browser/profiles/profile_manager.h"
 #include "chrome/common/channel_info.h"
 #include "components/prefs/pref_change_registrar.h"
@@ -71,11 +77,14 @@ static constexpr int kUpdateServerPeriodicPingFrequencySeconds = 5 * 60;
 
 GURL GetUpdateURL(
     const GURL& base_update_url,
-    const brave_stats::BraveStatsUpdaterParams& stats_updater_params) {
+    const brave_stats::BraveStatsUpdaterParams& stats_updater_params,
+    std::unique_ptr<serp_metrics::SerpMetricsAllProfilesAggregator>
+        serp_metrics_aggregator) {
   return stats_updater_params.GetUpdateURL(
       base_update_url, brave_stats::GetPlatformIdentifier(),
       brave::GetChannelName(),
-      version_info::GetBraveVersionWithoutChromiumMajorVersion());
+      version_info::GetBraveVersionWithoutChromiumMajorVersion(),
+      serp_metrics_aggregator.get());
 }
 
 net::NetworkTrafficAnnotationTag AnonymousStatsAnnotation() {
@@ -98,6 +107,41 @@ net::NetworkTrafficAnnotationTag AnonymousStatsAnnotation() {
       policy_exception_justification:
         "Not implemented."
     })");
+}
+
+void MaybeMigrateSerpMetricsToProfileAttributes(ProfileManager* profile_manager,
+                                                Profile& profile) {
+  if (!profile_manager) {
+    // `profile_manager` can only be null in tests.
+    CHECK_IS_TEST();
+    return;
+  }
+
+  // System and guest profiles are not tracked in ProfileAttributesStorage, so
+  // their ProfileAttributesEntry returns null.
+  if (ProfileAttributesEntry* entry =
+          profile_manager->GetProfileAttributesStorage()
+              .GetProfileAttributesWithPath(profile.GetPath())) {
+    serp_metrics::MaybeMigrateSerpMetricsToProfileAttributes(
+        CHECK_DEREF(profile.GetPrefs()), *entry);
+  }
+}
+
+std::unique_ptr<serp_metrics::SerpMetricsAllProfilesAggregator>
+GetSerpMetricsAllProfilesAggregator(PrefService* local_state,
+                                    ProfileManager* profile_manager) {
+  if (!profile_manager) {
+    // `profile_manager` can only be null in tests.
+    CHECK_IS_TEST();
+    return nullptr;
+  }
+
+  if (!base::FeatureList::IsEnabled(serp_metrics::kSerpMetricsFeature)) {
+    return nullptr;
+  }
+
+  return std::make_unique<serp_metrics::SerpMetricsAllProfilesAggregator>(
+      local_state, profile_manager->GetProfileAttributesStorage());
 }
 
 }  // anonymous namespace
@@ -247,27 +291,24 @@ bool BraveStatsUpdater::IsReferralInitialized() {
          pref_service_->GetBoolean(kReferralCheckedForPromoCodeFile);
 }
 
-bool BraveStatsUpdater::IsAdsEnabled() {
-  return pref_service_->GetBoolean(brave_ads::prefs::kEnabledForLastProfile);
-}
-
 void BraveStatsUpdater::OnProfileAdded(Profile* profile) {
+  CHECK(profile);
+
   general_browser_usage_p3a_->ReportProfileCount(
       g_browser_process->profile_manager()->GetNumberOfProfiles());
+
+  MaybeMigrateSerpMetricsToProfileAttributes(
+      g_browser_process->profile_manager(), *profile);
 }
 
 void BraveStatsUpdater::QueueServerPing() {
   const bool referrals_initialized = IsReferralInitialized();
-  const bool ads_enabled = IsAdsEnabled();
   int num_closures = 0;
 
   // Note: We don't have the callbacks here because otherwise there is a race
   // condition whereby the callback completes before the barrier has been
   // initialized.
   if (!referrals_initialized) {
-    ++num_closures;
-  }
-  if (ads_enabled) {
     ++num_closures;
   }
 
@@ -284,32 +325,10 @@ void BraveStatsUpdater::QueueServerPing() {
         base::BindRepeating(&BraveStatsUpdater::OnReferralInitialization,
                             base::Unretained(this)));
   }
-
-  if (ads_enabled) {
-    DetectUncertainFuture();
-  }
-}
-
-void BraveStatsUpdater::DetectUncertainFuture() {
-  brave_rpill::DetectUncertainFuture(
-      base::BindOnce(&BraveStatsUpdater::OnDetectUncertainFuture,
-                     weak_ptr_factory_.GetWeakPtr()));
 }
 
 void BraveStatsUpdater::OnReferralInitialization() {
   pref_change_registrar_ = nullptr;
-  if (stats_preconditions_barrier_) {
-    stats_preconditions_barrier_.Run();
-  }
-}
-
-void BraveStatsUpdater::OnDetectUncertainFuture(
-    const bool is_uncertain_future) {
-  if (is_uncertain_future) {
-    arch_ = ProcessArch::kArchVirt;
-  } else {
-    arch_ = ProcessArch::kArchMetal;
-  }
   if (stats_preconditions_barrier_) {
     stats_preconditions_barrier_.Run();
   }
@@ -329,11 +348,11 @@ void BraveStatsUpdater::SendServerPing() {
   auto resource_request = std::make_unique<network::ResourceRequest>();
 
   auto stats_updater_params =
-      std::make_unique<brave_stats::BraveStatsUpdaterParams>(pref_service_,
-                                                             arch_);
-
+      std::make_unique<brave_stats::BraveStatsUpdaterParams>(pref_service_);
   auto endpoint = BuildStatsEndpoint(kBraveUsageStandardPath);
-  resource_request->url = GetUpdateURL(endpoint, *stats_updater_params);
+  resource_request->url = GetUpdateURL(
+      endpoint, *stats_updater_params,
+      GetSerpMetricsAllProfilesAggregator(pref_service_, profile_manager_));
   resource_request->credentials_mode = network::mojom::CredentialsMode::kOmit;
   resource_request->load_flags = net::LOAD_DO_NOT_SAVE_COOKIES |
                                  net::LOAD_BYPASS_CACHE |

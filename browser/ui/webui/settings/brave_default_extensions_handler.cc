@@ -26,7 +26,7 @@
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_finder.h"
 #include "chrome/browser/ui/browser_window.h"
-#include "chrome/browser/ui/chrome_select_file_policy.h"
+#include "chrome/browser/ui/select_file_policy/chrome_select_file_policy.h"
 #include "chrome/common/chrome_switches.h"
 #include "chrome/common/pref_names.h"
 #include "components/grit/brave_components_strings.h"
@@ -61,15 +61,15 @@ using decentralized_dns::ResolveMethodTypes;
 namespace {
 
 template <typename T>
-base::Value::Dict MakeSelectValue(T value, const std::u16string& name) {
-  base::Value::Dict item;
+base::DictValue MakeSelectValue(T value, const std::u16string& name) {
+  base::DictValue item;
   item.Set("value", base::Value(static_cast<int>(value)));
   item.Set("name", base::Value(name));
   return item;
 }
 
-base::Value::List GetResolveMethodList() {
-  base::Value::List list;
+base::ListValue GetResolveMethodList() {
+  base::ListValue list;
   list.Append(MakeSelectValue(
       ResolveMethodTypes::ASK,
       l10n_util::GetStringUTF16(IDS_DECENTRALIZED_DNS_RESOLVE_OPTION_ASK)));
@@ -84,8 +84,8 @@ base::Value::List GetResolveMethodList() {
   return list;
 }
 
-base::Value::List GetEnsOffchainResolveMethodList() {
-  base::Value::List list;
+base::ListValue GetEnsOffchainResolveMethodList() {
+  base::ListValue list;
   list.Append(MakeSelectValue(
       EnsOffchainResolveMethod::kAsk,
       l10n_util::GetStringUTF16(
@@ -124,14 +124,12 @@ void BraveDefaultExtensionsHandler::RegisterMessages() {
       base::BindRepeating(&BraveDefaultExtensionsHandler::ResetTransactionInfo,
                           base::Unretained(this)));
 
-#if BUILDFLAG(ENABLE_ORCHARD)
   if (brave_wallet::IsZCashShieldedTransactionsEnabled()) {
     web_ui()->RegisterMessageCallback(
         "resetZCashSyncState",
         base::BindRepeating(&BraveDefaultExtensionsHandler::ResetZCashSyncState,
                             base::Unretained(this)));
   }
-#endif
 #endif  // BUILDFLAG(ENABLE_BRAVE_WALLET)
 
   // TODO(petemill): If anything outside this handler is responsible for causing
@@ -187,7 +185,7 @@ bool BraveDefaultExtensionsHandler::IsRestartNeeded() {
 }
 
 void BraveDefaultExtensionsHandler::GetRestartNeeded(
-    const base::Value::List& args) {
+    const base::ListValue& args) {
   CHECK_EQ(args.size(), 1U);
 
   AllowJavascript();
@@ -195,9 +193,8 @@ void BraveDefaultExtensionsHandler::GetRestartNeeded(
 }
 
 #if BUILDFLAG(ENABLE_BRAVE_WALLET)
-#if BUILDFLAG(ENABLE_ORCHARD)
 void BraveDefaultExtensionsHandler::ResetZCashSyncState(
-    const base::Value::List& args) {
+    const base::ListValue& args) {
   auto* brave_wallet_service =
       brave_wallet::BraveWalletServiceFactory::GetServiceForContext(profile_);
   if (!brave_wallet_service) {
@@ -209,9 +206,8 @@ void BraveDefaultExtensionsHandler::ResetZCashSyncState(
   }
   zcash_wallet_service->Reset();
 }
-#endif
 
-void BraveDefaultExtensionsHandler::ResetWallet(const base::Value::List& args) {
+void BraveDefaultExtensionsHandler::ResetWallet(const base::ListValue& args) {
   auto* brave_wallet_service =
       brave_wallet::BraveWalletServiceFactory::GetServiceForContext(profile_);
   if (brave_wallet_service) {
@@ -220,7 +216,7 @@ void BraveDefaultExtensionsHandler::ResetWallet(const base::Value::List& args) {
 }
 
 void BraveDefaultExtensionsHandler::ResetTransactionInfo(
-    const base::Value::List& args) {
+    const base::ListValue& args) {
   auto* brave_wallet_service =
       brave_wallet::BraveWalletServiceFactory::GetServiceForContext(profile_);
   if (brave_wallet_service) {
@@ -255,7 +251,7 @@ void BraveDefaultExtensionsHandler::OnRestartNeededChanged() {
 }
 
 void BraveDefaultExtensionsHandler::SetWidevineEnabled(
-    const base::Value::List& args) {
+    const base::ListValue& args) {
 #if BUILDFLAG(ENABLE_WIDEVINE)
   CHECK_EQ(args.size(), 1U);
   bool enabled = args[0].GetBool();
@@ -265,7 +261,7 @@ void BraveDefaultExtensionsHandler::SetWidevineEnabled(
 }
 
 void BraveDefaultExtensionsHandler::IsWidevineEnabled(
-    const base::Value::List& args) {
+    const base::ListValue& args) {
   CHECK_EQ(args.size(), 1U);
   AllowJavascript();
   ResolveJavascriptCallback(args[0],
@@ -289,7 +285,7 @@ void BraveDefaultExtensionsHandler::OnWidevineEnabledChanged() {
 }
 
 void BraveDefaultExtensionsHandler::GetDecentralizedDnsResolveMethodList(
-    const base::Value::List& args) {
+    const base::ListValue& args) {
   CHECK_EQ(args.size(), 1U);
   AllowJavascript();
 
@@ -297,7 +293,7 @@ void BraveDefaultExtensionsHandler::GetDecentralizedDnsResolveMethodList(
 }
 
 void BraveDefaultExtensionsHandler::GetEnsOffchainResolveMethodList(
-    const base::Value::List& args) {
+    const base::ListValue& args) {
   CHECK_EQ(args.size(), 1U);
   AllowJavascript();
 

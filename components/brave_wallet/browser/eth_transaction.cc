@@ -27,16 +27,18 @@ constexpr uint256_t kTxDataZeroCostPerByte = 4;
 constexpr uint256_t kTxDataCostPerByte = 16;
 }  // namespace
 
-EthTransaction::EthTransaction() : gas_price_(0), gas_limit_(0), value_(0) {}
-
+EthTransaction::EthTransaction() = default;
 EthTransaction::EthTransaction(const EthTransaction&) = default;
-EthTransaction::EthTransaction(std::optional<uint256_t> nonce,
-                               uint256_t gas_price,
-                               uint256_t gas_limit,
-                               const EthAddress& to,
-                               uint256_t value,
-                               const std::vector<uint8_t>& data)
-    : nonce_(nonce),
+EthTransaction::EthTransaction(
+    uint256_t chain_id,
+    std::optional<uint256_t> nonce,
+    uint256_t gas_price,
+    uint256_t gas_limit,
+    std::variant<EthAddress, EthContractCreationAddress> to,
+    uint256_t value,
+    const std::vector<uint8_t>& data)
+    : chain_id_(chain_id),
+      nonce_(nonce),
       gas_price_(gas_price),
       gas_limit_(gas_limit),
       to_(to),
@@ -44,13 +46,15 @@ EthTransaction::EthTransaction(std::optional<uint256_t> nonce,
       data_(data) {}
 EthTransaction::~EthTransaction() = default;
 
-bool EthTransaction::operator==(const EthTransaction& tx) const = default;
-
 // static
 std::optional<EthTransaction> EthTransaction::FromTxData(
     const mojom::TxDataPtr& tx_data,
     bool strict) {
   EthTransaction tx;
+  if (!HexValueToUint256(tx_data->chain_id, &tx.chain_id_)) {
+    return std::nullopt;
+  }
+
   if (!tx_data->nonce.empty()) {
     uint256_t nonce_uint;
     if (HexValueToUint256(tx_data->nonce, &nonce_uint)) {
@@ -66,7 +70,17 @@ std::optional<EthTransaction> EthTransaction::FromTxData(
   if (!HexValueToUint256(tx_data->gas_limit, &tx.gas_limit_) && strict) {
     return std::nullopt;
   }
-  tx.to_ = EthAddress::FromHex(tx_data->to);
+
+  if (tx_data->to.empty() ||
+      tx_data->to == EthContractCreationAddress().ToHex()) {
+    tx.to_ = EthContractCreationAddress();
+  } else {
+    auto addr = EthAddress::From0xHex(tx_data->to);
+    if (!addr) {
+      return std::nullopt;
+    }
+    tx.to_ = *addr;
+  }
   if (!HexValueToUint256(tx_data->value, &tx.value_) && strict) {
     return std::nullopt;
   }
@@ -76,8 +90,17 @@ std::optional<EthTransaction> EthTransaction::FromTxData(
 
 // static
 std::optional<EthTransaction> EthTransaction::FromValue(
-    const base::Value::Dict& value) {
+    const base::DictValue& value) {
   EthTransaction tx;
+
+  const std::string* tx_chain_id = value.FindString("chain_id");
+  if (!tx_chain_id) {
+    return std::nullopt;
+  }
+  if (!HexValueToUint256(*tx_chain_id, &tx.chain_id_)) {
+    return std::nullopt;
+  }
+
   const std::string* nonce = value.FindString("nonce");
   if (!nonce) {
     return std::nullopt;
@@ -111,7 +134,16 @@ std::optional<EthTransaction> EthTransaction::FromValue(
   if (!to) {
     return std::nullopt;
   }
-  tx.to_ = EthAddress::FromHex(*to);
+
+  if (to->empty() || *to == EthContractCreationAddress().ToHex()) {
+    tx.set_to(EthContractCreationAddress());
+  } else {
+    auto addr = EthAddress::From0xHex(*to);
+    if (!addr) {
+      return std::nullopt;
+    }
+    tx.set_to(*addr);
+  }
 
   const std::string* tx_value = value.FindString("value");
   if (!tx_value) {
@@ -161,23 +193,30 @@ std::optional<EthTransaction> EthTransaction::FromValue(
   if (!type) {
     return std::nullopt;
   }
-  tx.type_ = (uint8_t)*type;
-
+  tx.type_ = static_cast<EthTransactionType>(*type);
+  if (tx.type_ != EthTransactionType::kLegacy &&
+      tx.type_ != EthTransactionType::kEip2930 &&
+      tx.type_ != EthTransactionType::kEip1559) {
+    return std::nullopt;
+  }
   return tx;
 }
 
-std::vector<uint8_t> EthTransaction::GetMessageToSign(
-    uint256_t chain_id) const {
+std::vector<uint8_t> EthTransaction::GetMessageToSign() const {
+  return GetMessageToSignImpl();
+}
+
+std::vector<uint8_t> EthTransaction::GetMessageToSignImpl() const {
   DCHECK(nonce_);
-  base::Value::List list;
+  base::ListValue list;
   list.Append(RLPUint256ToBlob(nonce_.value()));
   list.Append(RLPUint256ToBlob(gas_price_));
   list.Append(RLPUint256ToBlob(gas_limit_));
-  list.Append(base::Value::BlobStorage(to_.bytes()));
+  list.Append(base::Value::BlobStorage(GetToBytes()));
   list.Append(RLPUint256ToBlob(value_));
   list.Append(base::Value(data_));
-  if (chain_id) {
-    list.Append(RLPUint256ToBlob(chain_id));
+  if (chain_id_) {
+    list.Append(RLPUint256ToBlob(chain_id_));
     list.Append(RLPUint256ToBlob(0));
     list.Append(RLPUint256ToBlob(0));
   }
@@ -185,22 +224,22 @@ std::vector<uint8_t> EthTransaction::GetMessageToSign(
   return RLPEncode(list);
 }
 
-KeccakHashArray EthTransaction::GetHashedMessageToSign(
-    uint256_t chain_id) const {
-  return KeccakHash(GetMessageToSign(chain_id));
+KeccakHashArray EthTransaction::GetHashedMessageToSign() const {
+  return KeccakHash(GetMessageToSign());
 }
 
 std::string EthTransaction::GetSignedTransaction() const {
+  DCHECK(IsSigned());
   DCHECK(nonce_);
 
-  return ToHex(RLPEncode(Serialize()));
+  return ToHex(Serialize());
 }
 
 std::string EthTransaction::GetTransactionHash() const {
   DCHECK(IsSigned());
   DCHECK(nonce_);
 
-  return ToHex(KeccakHash(base::as_byte_span(RLPEncode(Serialize()))));
+  return ToHex(KeccakHash(Serialize()));
 }
 
 bool EthTransaction::ProcessVRS(const std::vector<uint8_t>& v,
@@ -221,34 +260,38 @@ bool EthTransaction::ProcessVRS(const std::vector<uint8_t>& v,
 }
 
 // signature and recid will be used to produce v, r, s
-void EthTransaction::ProcessSignature(const Secp256k1Signature& signature,
-                                      uint256_t chain_id) {
+void EthTransaction::ProcessSignature(const Secp256k1Signature& signature) {
   r_ = base::ToVector(signature.rs_bytes().subspan(0u, 32u));
   s_ = base::ToVector(signature.rs_bytes().subspan(32u, 32u));
 
-  if (VIsRecid()) {
+  if (type_ != EthTransactionType::kLegacy) {
     // For EIP-1559 and EIP-2930 recovery id is used as is.
     v_ = signature.recid();
   } else {
     // For EIP-155 recovery id is adjusted with chain_id.
-    v_ = chain_id ? static_cast<uint256_t>(signature.recid()) +
-                        (chain_id * static_cast<uint256_t>(2) +
-                         static_cast<uint256_t>(35))
-                  : static_cast<uint256_t>(signature.recid()) +
-                        static_cast<uint256_t>(27);
+    v_ = chain_id_ ? static_cast<uint256_t>(signature.recid()) +
+                         (chain_id_ * static_cast<uint256_t>(2) +
+                          static_cast<uint256_t>(35))
+                   : static_cast<uint256_t>(signature.recid()) +
+                         static_cast<uint256_t>(27);
   }
 }
 
 bool EthTransaction::IsSigned() const {
-  return v_ != (uint256_t)0 && r_.size() != 0 && s_.size() != 0;
+  return !r_.empty() && !s_.empty();
 }
 
-base::Value::Dict EthTransaction::ToValue() const {
-  base::Value::Dict dict;
+base::DictValue EthTransaction::ToValue() const {
+  return ToValueImpl();
+}
+
+base::DictValue EthTransaction::ToValueImpl() const {
+  base::DictValue dict;
+  dict.Set("chain_id", Uint256ValueToHex(chain_id_));
   dict.Set("nonce", nonce_ ? Uint256ValueToHex(nonce_.value()) : "");
   dict.Set("gas_price", Uint256ValueToHex(gas_price_));
   dict.Set("gas_limit", Uint256ValueToHex(gas_limit_));
-  dict.Set("to", to_.ToHex());
+  dict.Set("to", GetToHex());
   dict.Set("value", Uint256ValueToHex(value_));
   dict.Set("data", base::Base64Encode(data_));
   dict.Set("v", static_cast<int>(v_));
@@ -276,23 +319,52 @@ uint256_t EthTransaction::GetDataFee() const {
   return cost;
 }
 
-bool EthTransaction::VIsRecid() const {
-  return false;
-}
-
-base::Value EthTransaction::Serialize() const {
-  base::Value::List list;
+std::vector<uint8_t> EthTransaction::Serialize() const {
+  base::ListValue list;
   list.Append(RLPUint256ToBlob(nonce_.value()));
   list.Append(RLPUint256ToBlob(gas_price_));
   list.Append(RLPUint256ToBlob(gas_limit_));
-  list.Append(base::Value::BlobStorage(to_.bytes()));
+  list.Append(base::Value::BlobStorage(GetToBytes()));
   list.Append(RLPUint256ToBlob(value_));
   list.Append(base::Value(data_));
   list.Append(RLPUint256ToBlob(v_));
   list.Append(base::Value(r_));
   list.Append(base::Value(s_));
 
-  return base::Value(std::move(list));
+  return RLPEncode(base::Value(std::move(list)));
+}
+
+std::vector<uint8_t> EthTransaction::GetToBytes() const {
+  auto* contract_creation = std::get_if<EthContractCreationAddress>(&to_);
+  auto* eth_addr = std::get_if<EthAddress>(&to_);
+  CHECK(contract_creation || eth_addr);
+  if (contract_creation) {
+    return base::ToVector(contract_creation->bytes());
+  } else {
+    return base::ToVector(eth_addr->bytes());
+  }
+}
+
+std::string EthTransaction::GetToHex() const {
+  auto* contract_creation = std::get_if<EthContractCreationAddress>(&to_);
+  auto* eth_addr = std::get_if<EthAddress>(&to_);
+  CHECK(contract_creation || eth_addr);
+  if (contract_creation) {
+    return contract_creation->ToHex();
+  } else {
+    return eth_addr->ToHex();
+  }
+}
+
+std::string EthTransaction::GetToChecksumAddress() const {
+  auto* contract_creation = std::get_if<EthContractCreationAddress>(&to_);
+  auto* eth_addr = std::get_if<EthAddress>(&to_);
+  CHECK(contract_creation || eth_addr);
+  if (contract_creation) {
+    return contract_creation->ToHex();
+  } else {
+    return eth_addr->ToChecksumAddress();
+  }
 }
 
 }  // namespace brave_wallet

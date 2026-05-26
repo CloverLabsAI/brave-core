@@ -9,6 +9,7 @@
 #include <utility>
 
 #include "base/base64.h"
+#include "base/functional/callback_helpers.h"
 #include "base/strings/string_number_conversions.h"
 #include "base/test/task_environment.h"
 #include "base/time/time.h"
@@ -114,9 +115,9 @@ class WebDiscoveryReporterTest : public testing::Test {
     credential_signer_.allowed_credentials_.insert(today);
   }
 
-  base::Value::Dict GenerateTestPayload() {
-    base::Value::Dict payload;
-    base::Value::Dict inner_payload;
+  base::DictValue GenerateTestPayload() {
+    base::DictValue payload;
+    base::DictValue inner_payload;
     inner_payload.Set("q", "test query");
     payload.Set("payload", std::move(inner_payload));
     payload.Set("action", "query");

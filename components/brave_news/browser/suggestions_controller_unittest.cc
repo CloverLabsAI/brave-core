@@ -9,7 +9,6 @@
 #include <utility>
 #include <vector>
 
-#include "base/containers/contains.h"
 #include "base/functional/bind.h"
 #include "base/functional/callback_helpers.h"
 #include "base/strings/string_number_conversions.h"
@@ -23,7 +22,6 @@
 #include "components/sync_preferences/testing_pref_service_syncable.h"
 #include "content/public/test/browser_task_environment.h"
 #include "net/traffic_annotation/network_traffic_annotation_test_helper.h"
-#include "services/data_decoder/public/cpp/test_support/in_process_data_decoder.h"
 #include "services/network/public/cpp/shared_url_loader_factory.h"
 #include "services/network/public/cpp/weak_wrapper_shared_url_loader_factory.h"
 #include "services/network/test/test_url_loader_factory.h"
@@ -252,11 +250,11 @@ TEST_F(BraveNewsSuggestionsControllerTest,
   EXPECT_EQ(3u, suggestions.size());
   // Note: Don't care about order here - we're going to be tweaking the weights
   // and we don't want the test to fail all the time.
-  EXPECT_TRUE(base::Contains(suggestions, "1"));  // Visited
-  EXPECT_TRUE(
-      base::Contains(suggestions, "2"));  // Similar to P3 (which is subscribed)
-  EXPECT_TRUE(
-      base::Contains(suggestions, "4"));  // Similar to P1 (which was visited)
+  EXPECT_TRUE(std::ranges::contains(suggestions, "1"));  // Visited
+  EXPECT_TRUE(std::ranges::contains(
+      suggestions, "2"));  // Similar to P3 (which is subscribed)
+  EXPECT_TRUE(std::ranges::contains(suggestions,
+                                    "4"));  // Similar to P1 (which was visited)
 }
 
 TEST_F(BraveNewsSuggestionsControllerTest,

@@ -26,7 +26,7 @@ constexpr char kArrayPattern[] = R"((?s)(\[.*?\]))";
 
 EngineConsumer::GenerationResultData::GenerationResultData(
     mojom::ConversationEntryEventPtr event,
-    std::optional<std::string>&& model_key,
+    std::optional<std::string> model_key,
     std::optional<bool> is_near_verified)
     : event(std::move(event)),
       model_key(std::move(model_key)),
@@ -123,6 +123,21 @@ void EngineConsumer::OnConversationTitleGenerated(
 
   GenerationResultData title_result(std::move(title_event), std::nullopt);
   std::move(completion_callback).Run(std::move(title_result));
+}
+
+void EngineConsumer::MergeSuggestTopicsResults(
+    GetSuggestedTopicsCallback callback,
+    std::vector<GenerationResult> results) {
+  if (results.size() == 1) {
+    // No need to dedupe topics if there is only one result.
+    std::move(callback).Run(
+        EngineConsumer::GetStrArrFromTabOrganizationResponses(results));
+    return;
+  }
+
+  // Merge the result and send another request to dedupe topics.
+  DedupeTopics(GetStrArrFromTabOrganizationResponses(results),
+               std::move(callback));
 }
 
 // static

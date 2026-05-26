@@ -25,6 +25,12 @@ class GURL;
 
 namespace brave_ads {
 
+// AdsService is the key interface for the Brave Ads component, managing ad
+// serving, user interactions, and ad-related events. It handles all ad types
+// including notification ads, new tab page ads, and search result ads.
+// Note: This header can be included even when Brave Ads is disabled by build
+// flag. When Brave Ads is disabled, the pointer to AdsService should be
+// nullptr and no ads functionality should be available.
 class AdsService : public KeyedService {
  public:
   class Delegate {
@@ -62,6 +68,9 @@ class AdsService : public KeyedService {
   void AddObserver(AdsServiceObserver* observer);
   void RemoveObserver(AdsServiceObserver* observer);
 
+  // Returns `true` if the service successfully initialized.
+  virtual bool IsInitialized() const = 0;
+
   // Returns true if a browser upgrade is required to serve ads.
   virtual bool IsBrowserUpgradeRequiredToServeAds() const = 0;
 
@@ -89,11 +98,11 @@ class AdsService : public KeyedService {
           bat_ads_observer_pending_remote) = 0;
 
   // Called to get internals. The callback takes one argument -
-  // `base::Value::List` containing info of the obtained internals.
+  // `base::ListValue` containing info of the obtained internals.
   virtual void GetInternals(GetInternalsCallback callback) = 0;
 
   // Called to get diagnostics to help identify issues. The callback takes one
-  // argument - `base::Value::List` containing info of the obtained diagnostics.
+  // argument - `base::ListValue` containing info of the obtained diagnostics.
   virtual void GetDiagnostics(GetDiagnosticsCallback callback) = 0;
 
   // Called to get the statement of accounts. The callback takes one argument -
@@ -102,22 +111,10 @@ class AdsService : public KeyedService {
   virtual void GetStatementOfAccounts(
       GetStatementOfAccountsCallback callback) = 0;
 
-  // Called to prefetch a new tab page ad.
-  virtual void PrefetchNewTabPageAd() = 0;
-
-  // Called to get the prefetched new tab page ad for display.
-  virtual mojom::NewTabPageAdInfoPtr MaybeGetPrefetchedNewTabPageAd() = 0;
-
-  // Called when failing to prefetch a new tab page ad for the specified
-  // `placement_id` and `creative_instance_id`.
-  virtual void OnFailedToPrefetchNewTabPageAd(
-      const std::string& placement_id,
-      const std::string& creative_instance_id) = 0;
-
   // Called to parse and save creative new tab page ads. The callback takes one
   // argument - `bool` is set to `true` if successful otherwise `false`.
   virtual void ParseAndSaveNewTabPageAds(
-      base::Value::Dict dict,
+      base::DictValue dict,
       ParseAndSaveNewTabPageAdsCallback callback) = 0;
 
   // Called to serve a new tab page ad. The callback takes one argument -
@@ -165,7 +162,7 @@ class AdsService : public KeyedService {
       PurgeOrphanedAdEventsForTypeCallback callback) = 0;
 
   // Called to get ad history for the given date range in descending order. The
-  // callback takes one argument - `base::Value::List` containing info of the
+  // callback takes one argument - `base::ListValue` containing info of the
   // obtained ad history.
   virtual void GetAdHistory(base::Time from_time,
                             base::Time to_time,
@@ -218,16 +215,6 @@ class AdsService : public KeyedService {
       const std::vector<GURL>& redirect_chain,
       const std::string& text) = 0;
 
-  // Called when the page for `tab_id` has loaded and the content is available
-  // for analysis. `redirect_chain` containing a list of redirect URLs that
-  // occurred on the way to the current page. The current page is the last one
-  // in the list (so even when there's no redirect, there should be one entry in
-  // the list). `html` containing the page content as HTML.
-  virtual void NotifyTabHtmlContentDidChange(
-      int32_t tab_id,
-      const std::vector<GURL>& redirect_chain,
-      const std::string& html) = 0;
-
   // Called when media starts playing on a browser tab for the specified
   // `tab_id`.
   virtual void NotifyTabDidStartPlayingMedia(int32_t tab_id) = 0;
@@ -257,10 +244,9 @@ class AdsService : public KeyedService {
   virtual void NotifyDidCloseTab(int32_t tab_id) = 0;
 
   // Called when a page navigation was initiated by a user gesture.
-  // `page_transition_type` containing the page transition type, see enums for
-  // `PageTransitionType`.
-  virtual void NotifyUserGestureEventTriggered(
-      int32_t page_transition_type) = 0;
+  // `page_transition` containing the page transition type, see enums for
+  // `ui::PageTransition`.
+  virtual void NotifyUserGestureEventTriggered(int32_t page_transition) = 0;
 
   // Called when the browser did become active.
   virtual void NotifyBrowserDidBecomeActive() = 0;

@@ -33,9 +33,7 @@ namespace {
 
 void RegisterVPNLocalStatePrefs(PrefRegistrySimple* registry) {
 #if !BUILDFLAG(IS_ANDROID)
-  registry->RegisterListPref(prefs::kBraveVPNRegionList);
   registry->RegisterIntegerPref(prefs::kBraveVPNRegionListVersion, 1);
-  registry->RegisterTimePref(prefs::kBraveVPNRegionListFetchedDate, {});
   registry->RegisterStringPref(prefs::kBraveVPNDeviceRegion, "");
   registry->RegisterStringPref(prefs::kBraveVPNSelectedRegion, "");
   registry->RegisterStringPref(prefs::kBraveVPNSelectedRegionV2, "");
@@ -178,9 +176,9 @@ void MigrateVPNSettings(PrefService* profile_prefs, PrefService* local_prefs) {
     local_prefs->SetBoolean(prefs::kBraveVPNLocalStateMigrated, true);
     return;
   }
-  base::Value::Dict obsolete_pref =
+  base::DictValue obsolete_pref =
       profile_prefs->GetDict(prefs::kBraveVPNRootPref).Clone();
-  base::Value::Dict result;
+  base::DictValue result;
   if (local_prefs->HasPrefPath(prefs::kBraveVPNRootPref)) {
     result = local_prefs->GetDict(prefs::kBraveVPNRootPref).Clone();
     auto& result_dict = result;
@@ -297,6 +295,14 @@ void RegisterLocalStatePrefs(PrefRegistrySimple* registry) {
   RegisterVPNLocalStatePrefs(registry);
 }
 
+void RegisterLocalStatePrefsForMigration(PrefRegistrySimple* registry) {
+#if !BUILDFLAG(IS_ANDROID)
+  // Added 02/2026
+  registry->RegisterListPref(prefs::kBraveVPNRegionList);
+  registry->RegisterTimePref(prefs::kBraveVPNRegionListFetchedDate, {});
+#endif
+}
+
 void MigrateLocalStatePrefs(PrefService* local_prefs) {
 #if !BUILDFLAG(IS_ANDROID)
   const int current_version =
@@ -304,11 +310,15 @@ void MigrateLocalStatePrefs(PrefService* local_prefs) {
   if (current_version == 1) {
     MigrateFromV1ToV2(local_prefs);
   }
+
+  // Added 02/2026
+  local_prefs->ClearPref(prefs::kBraveVPNRegionList);
+  local_prefs->ClearPref(prefs::kBraveVPNRegionListFetchedDate);
 #endif
 }
 
 bool HasValidSubscriberCredential(PrefService* local_prefs) {
-  const base::Value::Dict& sub_cred_dict =
+  const base::DictValue& sub_cred_dict =
       local_prefs->GetDict(prefs::kBraveVPNSubscriberCredential);
   if (sub_cred_dict.empty()) {
     return false;
@@ -338,7 +348,7 @@ std::string GetSubscriberCredential(PrefService* local_prefs) {
   if (!HasValidSubscriberCredential(local_prefs)) {
     return "";
   }
-  const base::Value::Dict& sub_cred_dict =
+  const base::DictValue& sub_cred_dict =
       local_prefs->GetDict(prefs::kBraveVPNSubscriberCredential);
   const std::string* cred = sub_cred_dict.FindString(kSubscriberCredentialKey);
   DCHECK(cred);
@@ -346,7 +356,7 @@ std::string GetSubscriberCredential(PrefService* local_prefs) {
 }
 
 bool HasValidSkusCredential(PrefService* local_prefs) {
-  const base::Value::Dict& sub_cred_dict =
+  const base::DictValue& sub_cred_dict =
       local_prefs->GetDict(prefs::kBraveVPNSubscriberCredential);
   if (sub_cred_dict.empty()) {
     return false;
@@ -376,7 +386,7 @@ std::string GetSkusCredential(PrefService* local_prefs) {
   CHECK(HasValidSkusCredential(local_prefs))
       << "Don't call when there is no valid skus credential.";
 
-  const base::Value::Dict& sub_cred_dict =
+  const base::DictValue& sub_cred_dict =
       local_prefs->GetDict(prefs::kBraveVPNSubscriberCredential);
   const std::string* skus_cred = sub_cred_dict.FindString(kSkusCredentialKey);
   DCHECK(skus_cred);

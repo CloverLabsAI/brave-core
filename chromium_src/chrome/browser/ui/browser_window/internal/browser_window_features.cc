@@ -23,7 +23,6 @@
 
 #define BrowserContentSettingBubbleModelDelegate \
   BraveBrowserContentSettingBubbleModelDelegate
-#define BrowserLocationBarModelDelegate BraveLocationBarModelDelegate
 #define BrowserWindowFeatures BrowserWindowFeatures_ChromiumImpl
 #define SidePanelCoordinator BraveSidePanelCoordinator
 #define BookmarksSidePanelCoordinator BraveBookmarksSidePanelCoordinator
@@ -35,7 +34,10 @@
 #undef BookmarksSidePanelCoordinator
 #undef SidePanelCoordinator
 #undef BrowserWindowFeatures
-#undef BrowserLocationBarModelDelegate
 #undef BrowserContentSettingBubbleModelDelegate
 #undef BrowserActions
 #undef BrowserCommandController
+
+const SidePanelUI* BrowserWindowFeatures_ChromiumImpl::side_panel_ui() const {
+  return const_cast<BrowserWindowFeatures_ChromiumImpl*>(this)->side_panel_ui();
+}

@@ -3,7 +3,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // you can obtain one at https://mozilla.org/MPL/2.0/.
 
-/* eslint-disable @typescript-eslint/key-spacing */
 import { assert } from 'chrome://resources/js/assert.js'
 
 // redux
@@ -13,6 +12,7 @@ import type { AnyAction } from 'redux'
 import {
   BraveWallet,
   CommonNftMetadata,
+  MeldCryptoCurrency,
   MeldFiatCurrency,
   MeldFilter,
 } from '../../../constants/types'
@@ -543,7 +543,6 @@ export class MockedWalletApiProxy {
             },
             jupiterTransaction: undefined,
             lifiTransaction: undefined,
-            squidTransaction: undefined,
             gate3Route: undefined,
           },
           errorString: '',
@@ -562,7 +561,6 @@ export class MockedWalletApiProxy {
           zeroExQuote: this.mockZeroExQuote,
           jupiterQuote: undefined,
           lifiQuote: undefined,
-          squidQuote: undefined,
           gate3Quote: undefined,
         },
         fees: {
@@ -593,6 +591,15 @@ export class MockedWalletApiProxy {
           symbolImageUrl: '',
         },
       ],
+      error: null,
+    }),
+    getCryptoCurrencies: async (
+      filter: MeldFilter,
+    ): Promise<{
+      fiatCurrencies: MeldCryptoCurrency[] | null
+      error: string[] | null
+    }> => ({
+      fiatCurrencies: [],
       error: null,
     }),
   }
@@ -1451,6 +1458,67 @@ export class MockedWalletApiProxy {
       return {
         translatedUrl: url,
       }
+    },
+  }
+
+  polkadotWalletService: Partial<
+    InstanceType<typeof BraveWallet.PolkadotWalletServiceInterface>
+  > = {
+    getCompatibleNetworks: async (accountId) => {
+      const account = this.accountInfos.find(
+        (item) => item.accountId.uniqueKey === accountId.uniqueKey,
+      )
+      if (!account || account.accountId.coin !== BraveWallet.CoinType.DOT) {
+        return { networks: [] }
+      }
+
+      let chainId = ''
+      switch (account.accountId.keyringId) {
+        case BraveWallet.KeyringId.kPolkadotMainnet:
+        case BraveWallet.KeyringId.kPolkadotImport:
+          chainId = BraveWallet.POLKADOT_MAINNET
+          break
+        case BraveWallet.KeyringId.kPolkadotTestnet:
+        case BraveWallet.KeyringId.kPolkadotImportTestnet:
+          chainId = BraveWallet.POLKADOT_TESTNET
+          break
+        default:
+          break
+      }
+
+      if (!chainId) {
+        return { networks: [] }
+      }
+
+      return {
+        networks: this.networks.filter(
+          (network) =>
+            network.coin === BraveWallet.CoinType.DOT
+            && network.chainId === chainId,
+        ),
+      }
+    },
+    getAddress: async (accountId, chainId) => {
+      const account = this.accountInfos.find(
+        (item) => item.accountId.uniqueKey === accountId.uniqueKey,
+      )
+      if (!account || account.accountId.coin !== BraveWallet.CoinType.DOT) {
+        return { address: null, errorMessage: 'invalid account' }
+      }
+
+      const { networks } =
+        await this.polkadotWalletService.getCompatibleNetworks!(accountId)
+      const isCompatible = (networks ?? []).some(
+        (network) =>
+          network.chainId === chainId
+          && network.coin === BraveWallet.CoinType.DOT,
+      )
+
+      if (!isCompatible) {
+        return { address: null, errorMessage: 'incompatible network' }
+      }
+
+      return { address: account.address, errorMessage: null }
     },
   }
 

@@ -28,7 +28,6 @@ BraveVPNRegionDataManager::BraveVPNRegionDataManager(
     scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory,
     PrefService* local_prefs)
     : url_loader_factory_(url_loader_factory), local_prefs_(local_prefs) {
-  LoadCachedRegionData();
 }
 
 BraveVPNRegionDataManager::~BraveVPNRegionDataManager() = default;
@@ -97,7 +96,7 @@ void BraveVPNRegionDataManager::SetFallbackDeviceRegion() {
 }
 
 void BraveVPNRegionDataManager::SetDeviceRegionWithTimezone(
-    const base::Value::List& timezones_value) {
+    const base::ListValue& timezones_value) {
   const std::string current_time_zone = GetCurrentTimeZone();
   if (current_time_zone.empty()) {
     return;
@@ -148,58 +147,6 @@ std::string BraveVPNRegionDataManager::GetCountryRegionNameFrom(
   return regions_[0]->name;
 }
 
-void BraveVPNRegionDataManager::LoadCachedRegionData() {
-  // Already loaded from cache.
-  if (!regions_.empty()) {
-    return;
-  }
-
-  // Empty device region means it's initial state.
-  if (GetDeviceRegion().empty()) {
-    return;
-  }
-
-  auto* preference = local_prefs_->FindPreference(prefs::kBraveVPNRegionList);
-  DCHECK(preference);
-  // Early return when we don't have any cached region data.
-  if (preference->IsDefaultValue()) {
-    return;
-  }
-
-  // If cached one is outdated, don't use it.
-  if (!ValidateCachedRegionData(preference->GetValue()->GetList())) {
-    VLOG(2) << __func__ << " : Cached data is outdate. Will get fetch latest.";
-    return;
-  }
-
-  if (ParseAndCacheRegionList(preference->GetValue()->GetList())) {
-    VLOG(2) << __func__ << " : Loaded cached region list";
-    return;
-  }
-
-  VLOG(2) << __func__ << " : Failed to load cached region list";
-}
-
-bool BraveVPNRegionDataManager::NeedToUpdateRegionData() const {
-  if (!IsRegionDataReady()) {
-    return true;
-  }
-
-  // Skip checking region data update when we have cached one and its age is
-  // younger than 5h.
-  const auto last_fetched_date =
-      local_prefs_->GetTime(prefs::kBraveVPNRegionListFetchedDate);
-  constexpr int kRegionDataFetchIntervalInHours = 5;
-
-  if (last_fetched_date.is_null() ||
-      (base::Time::Now() - last_fetched_date).InHours() >=
-          kRegionDataFetchIntervalInHours) {
-    return true;
-  }
-
-  return false;
-}
-
 void BraveVPNRegionDataManager::NotifyRegionDataReady() const {
   if (region_data_ready_callback_) {
     region_data_ready_callback_.Run(!regions_.empty());
@@ -212,13 +159,6 @@ void BraveVPNRegionDataManager::FetchRegionDataIfNeeded() {
     return;
   }
 
-  if (!NeedToUpdateRegionData()) {
-    VLOG(2)
-        << __func__
-        << " : Don't need to check as it's not passed 5h since the last check.";
-    NotifyRegionDataReady();
-    return;
-  }
   FetchRegions();
 }
 
@@ -239,9 +179,9 @@ void BraveVPNRegionDataManager::OnFetchRegionList(
     CHECK_IS_TEST();
   }
   api_request_.reset();
-  std::optional<base::Value::List> value = base::JSONReader::ReadList(
+  std::optional<base::ListValue> value = base::JSONReader::ReadList(
       region_list, base::JSON_PARSE_CHROMIUM_EXTENSIONS);
-  if (value && ParseAndCacheRegionList(*value, true)) {
+  if (value && ParseAndStoreRegionList(*value)) {
     VLOG(2) << "Got valid region list";
     // Set default device region and it'll be updated when received valid
     // timezone info.
@@ -257,9 +197,8 @@ void BraveVPNRegionDataManager::OnFetchRegionList(
   NotifyRegionDataReady();
 }
 
-bool BraveVPNRegionDataManager::ParseAndCacheRegionList(
-    const base::Value::List& region_value,
-    bool save_to_prefs) {
+bool BraveVPNRegionDataManager::ParseAndStoreRegionList(
+    const base::ListValue& region_value) {
   auto new_regions = ParseRegionList(region_value);
   VLOG(2) << __func__ << " : has regionlist: " << !new_regions.empty();
 
@@ -270,10 +209,6 @@ bool BraveVPNRegionDataManager::ParseAndCacheRegionList(
   }
 
   regions_ = std::move(new_regions);
-
-  if (save_to_prefs) {
-    SetRegionListToPrefs();
-  }
   return true;
 }
 
@@ -283,7 +218,7 @@ void BraveVPNRegionDataManager::OnFetchTimezones(
   api_request_.reset();
 
   if (success) {
-    std::optional<base::Value::List> value = base::JSONReader::ReadList(
+    std::optional<base::ListValue> value = base::JSONReader::ReadList(
         timezones_list, base::JSON_PARSE_CHROMIUM_EXTENSIONS);
     success = value.has_value();
     if (success) {
@@ -299,20 +234,6 @@ void BraveVPNRegionDataManager::OnFetchTimezones(
   // Can notify as ready now regardless of timezone fetching result.
   // We use default one picked from region list as a device region on failure.
   NotifyRegionDataReady();
-}
-
-void BraveVPNRegionDataManager::SetRegionListToPrefs() {
-  DCHECK(!regions_.empty());
-
-  base::Value::List regions_list;
-  for (const auto& region : regions_) {
-    regions_list.Append(GetValueFromRegion(region));
-  }
-
-  local_prefs_->Set(prefs::kBraveVPNRegionList,
-                    base::Value(std::move(regions_list)));
-  local_prefs_->SetTime(prefs::kBraveVPNRegionListFetchedDate,
-                        base::Time::Now());
 }
 
 std::string BraveVPNRegionDataManager::GetCurrentTimeZone() {

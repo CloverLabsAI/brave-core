@@ -11,7 +11,7 @@ import {
 } from './brave_account_browser_proxy.js'
 import { getCss } from './brave_account_sign_in_dialog.css.js'
 import { getHtml } from './brave_account_sign_in_dialog.html.js'
-import { Error, isEmailValid } from './brave_account_common.js'
+import { Error } from './brave_account_common.js'
 import { LoginError, LoginErrorCode } from './brave_account.mojom-webui.js'
 
 // @ts-expect-error
@@ -33,16 +33,10 @@ export class BraveAccountSignInDialogElement extends CrLitElement {
   static override get properties() {
     return {
       email: { type: String },
+      isEmailValid: { type: Boolean },
+      isCapsLockOn: { type: Boolean },
       password: { type: String },
     }
-  }
-
-  protected onEmailInput(detail: { value: string }) {
-    this.email = detail.value.trim()
-  }
-
-  protected onPasswordInput(detail: { value: string }) {
-    this.password = detail.value
   }
 
   // The reason this happens here (rather than in BraveAccountService) is that
@@ -57,6 +51,7 @@ export class BraveAccountSignInDialogElement extends CrLitElement {
       const serializedKE1 = this.login.start(this.password)
       const { encryptedLoginToken, serializedKE2 } =
         await this.browserProxy.authentication.loginInitialize(
+          this.browserProxy.getInitiatingService(),
           this.email,
           serializedKE1,
         )
@@ -98,15 +93,9 @@ export class BraveAccountSignInDialogElement extends CrLitElement {
   protected login = new Login()
 
   protected accessor email: string = ''
+  protected accessor isEmailValid: boolean = false
+  protected accessor isCapsLockOn: boolean = false
   protected accessor password: string = ''
-
-  protected get isEmailValid(): boolean {
-    return isEmailValid(this.email)
-  }
-
-  protected get shouldShowEmailError(): boolean {
-    return this.email.length !== 0 && !this.isEmailValid
-  }
 
   protected get isPasswordValid(): boolean {
     return this.password.length !== 0

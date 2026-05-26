@@ -51,16 +51,10 @@ class OAIAPIClient {
   OAIAPIClient& operator=(const OAIAPIClient&) = delete;
   virtual ~OAIAPIClient();
 
-  virtual void PerformRequest(const mojom::CustomModelOptions& model_options,
-                              base::Value::List messages,
-                              GenerationDataCallback data_received_callback,
-                              GenerationCompletedCallback completed_callback,
-                              const std::optional<std::vector<std::string>>&
-                                  stop_sequences = std::nullopt);
-
-  virtual void PerformRequestWithOAIMessages(
+  virtual void PerformRequest(
       const mojom::CustomModelOptions& model_options,
       std::vector<OAIMessage> messages,
+      std::optional<base::ListValue> oai_tool_definitions,
       GenerationDataCallback data_received_callback,
       GenerationCompletedCallback completed_callback,
       const std::optional<std::vector<std::string>>& stop_sequences =
@@ -68,8 +62,7 @@ class OAIAPIClient {
 
   void ClearAllQueries();
 
-  static base::Value::List SerializeOAIMessages(
-      std::vector<OAIMessage> messages);
+  static base::ListValue SerializeOAIMessages(std::vector<OAIMessage> messages);
 
  protected:
   void SetAPIRequestHelperForTesting(

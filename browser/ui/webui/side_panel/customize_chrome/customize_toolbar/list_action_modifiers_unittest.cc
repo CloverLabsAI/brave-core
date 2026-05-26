@@ -7,12 +7,10 @@
 
 #include <utility>
 
-#include "base/containers/contains.h"
 #include "base/containers/fixed_flat_set.h"
-#include "brave/browser/brave_rewards/rewards_util.h"
 #include "brave/components/ai_chat/core/common/buildflags/buildflags.h"
 #include "brave/components/brave_news/common/buildflags/buildflags.h"
-#include "brave/components/brave_rewards/core/pref_names.h"
+#include "brave/components/brave_rewards/core/buildflags/buildflags.h"
 #include "brave/components/brave_vpn/common/buildflags/buildflags.h"
 #include "brave/components/brave_wallet/common/buildflags/buildflags.h"
 #include "brave/components/vector_icons/vector_icons.h"
@@ -51,6 +49,11 @@
 
 #if BUILDFLAG(ENABLE_BRAVE_NEWS)
 #include "brave/components/brave_news/common/pref_names.h"
+#endif
+
+#if BUILDFLAG(ENABLE_BRAVE_REWARDS)
+#include "brave/browser/brave_rewards/rewards_util.h"
+#include "brave/components/brave_rewards/core/pref_names.h"
 #endif
 
 using ActionId = side_panel::customize_chrome::mojom::ActionId;
@@ -147,8 +150,7 @@ TEST_F(ListActionModifiersUnitTest,
         std::move(single_action));
 
     // Check if this action should be filtered out
-    const bool should_be_filtered =
-        base::Contains(kUnsupportedChromiumActions, id);
+    const bool should_be_filtered = kUnsupportedChromiumActions.contains(id);
 
     if (should_be_filtered) {
       EXPECT_TRUE(filtered.empty()) << "Action ID " << static_cast<int>(id)
@@ -187,7 +189,7 @@ TEST_F(ListActionModifiersUnitTest,
 
   // Verify none of the unsupported actions remain
   for (const auto& action : filtered_all) {
-    EXPECT_FALSE(base::Contains(kUnsupportedChromiumActions, action->id))
+    EXPECT_FALSE(kUnsupportedChromiumActions.contains(action->id))
         << "Found unsupported action ID " << static_cast<int>(action->id)
         << " in filtered results.";
   }
@@ -197,7 +199,7 @@ TEST_F(ListActionModifiersUnitTest,
        ApplyBraveSpecificModifications_TabSearchShouldBeInNavigationCategory) {
   // Apply modifications
   auto modified_actions = customize_chrome::ApplyBraveSpecificModifications(
-      *web_contents_, GetBasicActions());
+      web_contents_.get(), GetBasicActions());
 
   // Verify Tab Search is now in Navigation category and follows Side panel
   // action.
@@ -215,7 +217,7 @@ TEST_F(ListActionModifiersUnitTest,
        ApplyBraveSpecificModifications_NewPrivateWindowShouldHaveCorrectIcon) {
   // Apply modifications
   auto modified_actions = customize_chrome::ApplyBraveSpecificModifications(
-      *web_contents_, GetBasicActions());
+      web_contents_.get(), GetBasicActions());
 
   auto incognito_action_it =
       std::ranges::find(modified_actions, ActionId::kNewIncognitoWindow,
@@ -238,7 +240,7 @@ TEST_F(
     ListActionModifiersUnitTest,
     ApplyBraveSpecificModifications_ShowBookmarksShouldHaveCorrectDisplayName) {
   auto modified_actions = customize_chrome::ApplyBraveSpecificModifications(
-      *web_contents_, GetBasicActions());
+      web_contents_.get(), GetBasicActions());
 
   auto show_bookmarks_action_it =
       std::ranges::find(modified_actions, ActionId::kShowBookmarks,
@@ -256,7 +258,7 @@ TEST_F(ListActionModifiersUnitTest,
   // VPN should be added by default(VPN enabled by default)
   ASSERT_TRUE(brave_vpn::IsBraveVPNEnabled(web_contents_->GetBrowserContext()));
   auto modified_actions = customize_chrome::ApplyBraveSpecificModifications(
-      *web_contents_, GetBasicActions());
+      web_contents_.get(), GetBasicActions());
   auto vpn_action_it =
       std::ranges::find(modified_actions, ActionId::kShowVPN,
                         &side_panel::customize_chrome::mojom::Action::id);
@@ -269,7 +271,7 @@ TEST_F(ListActionModifiersUnitTest,
       brave_vpn::IsBraveVPNEnabled(web_contents_->GetBrowserContext()));
 
   modified_actions = customize_chrome::ApplyBraveSpecificModifications(
-      *web_contents_, GetBasicActions());
+      web_contents_.get(), GetBasicActions());
   vpn_action_it =
       std::ranges::find(modified_actions, ActionId::kShowVPN,
                         &side_panel::customize_chrome::mojom::Action::id);
@@ -285,7 +287,7 @@ TEST_F(ListActionModifiersUnitTest,
   // AI Chat should be added by default(AI Chat enabled by default)
   ASSERT_TRUE(ai_chat::IsAIChatEnabled(prefs()));
   auto modified_actions = customize_chrome::ApplyBraveSpecificModifications(
-      *web_contents_, GetBasicActions());
+      web_contents_.get(), GetBasicActions());
 
   auto ai_chat_action_it =
       std::ranges::find(modified_actions, ActionId::kShowAIChat,
@@ -298,7 +300,7 @@ TEST_F(ListActionModifiersUnitTest,
 
   // AI Chat should not be added when disabled
   modified_actions = customize_chrome::ApplyBraveSpecificModifications(
-      *web_contents_, GetBasicActions());
+      web_contents_.get(), GetBasicActions());
   ai_chat_action_it =
       std::ranges::find(modified_actions, ActionId::kShowAIChat,
                         &side_panel::customize_chrome::mojom::Action::id);
@@ -313,7 +315,7 @@ TEST_F(ListActionModifiersUnitTest,
   // Wallet should be added by default(Wallet enabled by default)
   ASSERT_TRUE(brave_wallet::IsNativeWalletEnabled());
   auto modified_actions = customize_chrome::ApplyBraveSpecificModifications(
-      *web_contents_, GetBasicActions());
+      web_contents_.get(), GetBasicActions());
   auto wallet_action_it =
       std::ranges::find(modified_actions, ActionId::kShowWallet,
                         &side_panel::customize_chrome::mojom::Action::id);
@@ -326,7 +328,7 @@ TEST_F(ListActionModifiersUnitTest,
   ASSERT_FALSE(brave_wallet::IsNativeWalletEnabled());
 
   modified_actions = customize_chrome::ApplyBraveSpecificModifications(
-      *web_contents_, GetBasicActions());
+      web_contents_.get(), GetBasicActions());
   wallet_action_it =
       std::ranges::find(modified_actions, ActionId::kShowWallet,
                         &side_panel::customize_chrome::mojom::Action::id);
@@ -335,13 +337,14 @@ TEST_F(ListActionModifiersUnitTest,
 }
 #endif
 
+#if BUILDFLAG(ENABLE_BRAVE_REWARDS)
 TEST_F(ListActionModifiersUnitTest,
        ApplyBraveSpecificModifications_RewardsShouldNotBeAddedWhenDisabled) {
   // Rewards should be added by default(Rewards enabled by default)
   ASSERT_TRUE(brave_rewards::IsSupportedForProfile(
       Profile::FromBrowserContext(web_contents_->GetBrowserContext())));
   auto modified_actions = customize_chrome::ApplyBraveSpecificModifications(
-      *web_contents_, GetBasicActions());
+      web_contents_.get(), GetBasicActions());
   auto rewards_action_it =
       std::ranges::find(modified_actions, ActionId::kShowReward,
                         &side_panel::customize_chrome::mojom::Action::id);
@@ -354,13 +357,14 @@ TEST_F(ListActionModifiersUnitTest,
       prefs()->IsManagedPreference(brave_rewards::prefs::kDisabledByPolicy));
 
   modified_actions = customize_chrome::ApplyBraveSpecificModifications(
-      *web_contents_, GetBasicActions());
+      web_contents_.get(), GetBasicActions());
   rewards_action_it =
       std::ranges::find(modified_actions, ActionId::kShowReward,
                         &side_panel::customize_chrome::mojom::Action::id);
   // Show Rewards action should not be present
   EXPECT_EQ(rewards_action_it, modified_actions.end());
 }
+#endif  // BUILDFLAG(ENABLE_BRAVE_REWARDS)
 
 TEST_F(ListActionModifiersUnitTest,
        ApplyBraveSpecificModifications_ShareMenuShouldNotBeAddedWhenDisabled) {
@@ -368,7 +372,7 @@ TEST_F(ListActionModifiersUnitTest,
   ASSERT_FALSE(sharing_hub::SharingIsDisabledByPolicy(
       web_contents_->GetBrowserContext()));
   auto modified_actions = customize_chrome::ApplyBraveSpecificModifications(
-      *web_contents_, GetBasicActions());
+      web_contents_.get(), GetBasicActions());
   auto share_menu_action_it =
       std::ranges::find(modified_actions, ActionId::kShowShareMenu,
                         &side_panel::customize_chrome::mojom::Action::id);
@@ -380,7 +384,7 @@ TEST_F(ListActionModifiersUnitTest,
       web_contents_->GetBrowserContext()));
 
   modified_actions = customize_chrome::ApplyBraveSpecificModifications(
-      *web_contents_, GetBasicActions());
+      web_contents_.get(), GetBasicActions());
   share_menu_action_it =
       std::ranges::find(modified_actions, ActionId::kShowShareMenu,
                         &side_panel::customize_chrome::mojom::Action::id);
@@ -399,15 +403,17 @@ TEST_F(ListActionModifiersUnitTest,
 #if BUILDFLAG(ENABLE_BRAVE_WALLET)
   ASSERT_TRUE(brave_wallet::IsNativeWalletEnabled());
 #endif
+#if BUILDFLAG(ENABLE_BRAVE_REWARDS)
   ASSERT_TRUE(brave_rewards::IsSupportedForProfile(
       Profile::FromBrowserContext(web_contents_->GetBrowserContext())));
+#endif
 #if BUILDFLAG(ENABLE_BRAVE_NEWS)
   ASSERT_TRUE(
       !prefs()->GetBoolean(brave_news::prefs::kBraveNewsDisabledByPolicy));
 #endif
 
   auto modified_actions = customize_chrome::ApplyBraveSpecificModifications(
-      *web_contents_, GetBasicActions());
+      web_contents_.get(), GetBasicActions());
   EXPECT_THAT(
       modified_actions,
       testing::ElementsAre(
@@ -424,145 +430,11 @@ TEST_F(ListActionModifiersUnitTest,
           EqId(ActionId::kShowVPN),
 #endif  // BUILDFLAG(ENABLE_BRAVE_VPN)
           EqId(ActionId::kShowBookmarks), EqId(ActionId::kDevTools),
+#if BUILDFLAG(ENABLE_BRAVE_REWARDS)
           EqId(ActionId::kShowReward),
+#endif
 #if BUILDFLAG(ENABLE_BRAVE_NEWS)
           EqId(ActionId::kShowBraveNews),
 #endif
-          EqId(ActionId::kShowShareMenu)));
-}
-
-TEST_F(ListActionModifiersUnitTest, AppendBraveSpecificCategories_Rewards) {
-  // Create a vector of categories
-  std::vector<side_panel::customize_chrome::mojom::CategoryPtr> categories;
-
-  // Append Brave specific categories
-  categories = customize_chrome::AppendBraveSpecificCategories(
-      *web_contents_, std::move(categories));
-
-  // Verify "Address bar" category is added with expected actions
-  ASSERT_TRUE(brave_rewards::IsSupportedForProfile(
-      Profile::FromBrowserContext(web_contents_->GetBrowserContext())));
-  auto it = std::ranges::find(
-      categories, side_panel::customize_chrome::mojom::CategoryId::kAddressBar,
-      &side_panel::customize_chrome::mojom::Category::id);
-  EXPECT_NE(it, categories.end());
-
-  // When Brave Rewards isn't supported, the Address bar category should not be
-  // added
-  prefs()->SetManagedPref(brave_rewards::prefs::kDisabledByPolicy,
-                          base::Value(true));
-#if BUILDFLAG(ENABLE_BRAVE_NEWS)
-  // Disables brave news to ensure it doesn't affect the result
-  prefs()->SetBoolean(brave_news::prefs::kBraveNewsDisabledByPolicy, true);
-#endif
-
-  ASSERT_TRUE(
-      prefs()->IsManagedPreference(brave_rewards::prefs::kDisabledByPolicy));
-  ASSERT_FALSE(brave_rewards::IsSupportedForProfile(
-      Profile::FromBrowserContext(web_contents_->GetBrowserContext())));
-
-  // Also disables Sharing Hub to ensure it doesn't affect the result
-  prefs()->SetBoolean(prefs::kDesktopSharingHubEnabled, false);
-  ASSERT_TRUE(sharing_hub::SharingIsDisabledByPolicy(
-      web_contents_->GetBrowserContext()));
-
-  categories.clear();
-  categories = customize_chrome::AppendBraveSpecificCategories(
-      *web_contents_, std::move(categories));
-  it = std::ranges::find(
-      categories, side_panel::customize_chrome::mojom::CategoryId::kAddressBar,
-      &side_panel::customize_chrome::mojom::Category::id);
-  EXPECT_EQ(it, categories.end());
-}
-
-#if BUILDFLAG(ENABLE_BRAVE_NEWS)
-TEST_F(ListActionModifiersUnitTest, AppendBraveSpecificCategories_BraveNews) {
-  // Create a vector of categories
-  std::vector<side_panel::customize_chrome::mojom::CategoryPtr> categories;
-
-  // Append Brave specific categories
-  categories = customize_chrome::AppendBraveSpecificCategories(
-      *web_contents_, std::move(categories));
-
-  // Verify "Address bar" category is added when Brave News is enabled
-  ASSERT_FALSE(
-      prefs()->GetBoolean(brave_news::prefs::kBraveNewsDisabledByPolicy));
-  auto it = std::ranges::find(
-      categories, side_panel::customize_chrome::mojom::CategoryId::kAddressBar,
-      &side_panel::customize_chrome::mojom::Category::id);
-  EXPECT_NE(it, categories.end());
-
-  // When Brave News is disabled, check if Address bar category behavior
-  prefs()->SetBoolean(brave_news::prefs::kBraveNewsDisabledByPolicy, true);
-  ASSERT_TRUE(
-      prefs()->GetBoolean(brave_news::prefs::kBraveNewsDisabledByPolicy));
-
-  // Also disable Brave Rewards to ensure only Brave News affects the result
-  prefs()->SetManagedPref(brave_rewards::prefs::kDisabledByPolicy,
-                          base::Value(true));
-  ASSERT_FALSE(brave_rewards::IsSupportedForProfile(
-      Profile::FromBrowserContext(web_contents_->GetBrowserContext())));
-
-  // Also disables Sharing Hub to ensure it doesn't affect the result
-  prefs()->SetBoolean(prefs::kDesktopSharingHubEnabled, false);
-  ASSERT_TRUE(sharing_hub::SharingIsDisabledByPolicy(
-      web_contents_->GetBrowserContext()));
-
-  categories.clear();
-  categories = customize_chrome::AppendBraveSpecificCategories(
-      *web_contents_, std::move(categories));
-  it = std::ranges::find(
-      categories, side_panel::customize_chrome::mojom::CategoryId::kAddressBar,
-      &side_panel::customize_chrome::mojom::Category::id);
-
-  // Address bar category should not be added when both Rewards and News are
-  // disabled
-  EXPECT_EQ(it, categories.end());
-}
-#endif  // BUILDFLAG(ENABLE_BRAVE_NEWS)
-
-TEST_F(ListActionModifiersUnitTest, AppendBraveSpecificCategories_ShareMenu) {
-  // Create a vector of categories
-  std::vector<side_panel::customize_chrome::mojom::CategoryPtr> categories;
-
-  // Append Brave specific categories
-  categories = customize_chrome::AppendBraveSpecificCategories(
-      *web_contents_, std::move(categories));
-
-  // Verify "Address bar" category is added when Share Menu is enabled
-  ASSERT_FALSE(sharing_hub::SharingIsDisabledByPolicy(
-      web_contents_->GetBrowserContext()));
-  auto it = std::ranges::find(
-      categories, side_panel::customize_chrome::mojom::CategoryId::kAddressBar,
-      &side_panel::customize_chrome::mojom::Category::id);
-  EXPECT_NE(it, categories.end());
-
-  // When Share Menu is disabled, check if Address bar category behavior
-  prefs()->SetBoolean(prefs::kDesktopSharingHubEnabled, false);
-  ASSERT_TRUE(sharing_hub::SharingIsDisabledByPolicy(
-      web_contents_->GetBrowserContext()));
-
-  // Also disable Brave Rewards to ensure only Share Menu affects the result
-  prefs()->SetManagedPref(brave_rewards::prefs::kDisabledByPolicy,
-                          base::Value(true));
-  ASSERT_FALSE(brave_rewards::IsSupportedForProfile(
-      Profile::FromBrowserContext(web_contents_->GetBrowserContext())));
-
-#if BUILDFLAG(ENABLE_BRAVE_NEWS)
-  // Also disable Brave News to ensure only Share Menu affects the result
-  prefs()->SetBoolean(brave_news::prefs::kBraveNewsDisabledByPolicy, true);
-  ASSERT_TRUE(
-      prefs()->GetBoolean(brave_news::prefs::kBraveNewsDisabledByPolicy));
-#endif  // BUILDFLAG(ENABLE_BRAVE_NEWS)
-
-  categories.clear();
-  categories = customize_chrome::AppendBraveSpecificCategories(
-      *web_contents_, std::move(categories));
-  it = std::ranges::find(
-      categories, side_panel::customize_chrome::mojom::CategoryId::kAddressBar,
-      &side_panel::customize_chrome::mojom::Category::id);
-
-  // Address bar category should not be added when Rewards, News, and Share
-  // Menu are all disabled
-  EXPECT_EQ(it, categories.end());
+          EqId(ActionId::kShowShareMenu), EqId(ActionId::kShowPwaInstall)));
 }

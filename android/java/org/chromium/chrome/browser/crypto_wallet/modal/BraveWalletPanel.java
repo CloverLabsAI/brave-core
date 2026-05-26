@@ -30,11 +30,11 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.view.menu.MenuBuilder;
 import androidx.lifecycle.Observer;
 
-import org.chromium.base.BraveUrlConstants;
 import org.chromium.base.Log;
 import org.chromium.base.SysUtils;
 import org.chromium.brave_wallet.mojom.AccountInfo;
 import org.chromium.brave_wallet.mojom.AllAccountsInfo;
+import org.chromium.brave_wallet.mojom.AssetPriceRequest;
 import org.chromium.brave_wallet.mojom.AssetRatioService;
 import org.chromium.brave_wallet.mojom.BlockchainToken;
 import org.chromium.brave_wallet.mojom.BraveWalletService;
@@ -51,7 +51,6 @@ import org.chromium.chrome.browser.crypto_wallet.activities.AccountSelectorActiv
 import org.chromium.chrome.browser.crypto_wallet.activities.BraveWalletDAppsActivity;
 import org.chromium.chrome.browser.crypto_wallet.activities.NetworkSelectorActivity;
 import org.chromium.chrome.browser.crypto_wallet.util.AccountsPermissionsHelper;
-import org.chromium.chrome.browser.crypto_wallet.util.AssetsPricesHelper;
 import org.chromium.chrome.browser.crypto_wallet.util.BalanceHelper;
 import org.chromium.chrome.browser.crypto_wallet.util.Utils;
 import org.chromium.chrome.browser.crypto_wallet.util.WalletUtils;
@@ -62,6 +61,8 @@ import org.chromium.components.embedder_support.util.UrlConstants;
 import org.chromium.ui.base.DeviceFormFactor;
 import org.chromium.url.GURL;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Locale;
@@ -134,18 +135,26 @@ public class BraveWalletPanel implements DialogInterface {
                     if (assetRatioService == null || jsonRpcService == null) {
                         return;
                     }
-                    AssetsPricesHelper.fetchPrices(
-                            assetRatioService,
-                            new BlockchainToken[] {asset},
-                            assetPrices ->
+                    AssetPriceRequest request = new AssetPriceRequest();
+                    request.coin = asset.coin;
+                    request.chainId = asset.chainId;
+                    request.address =
+                            asset.contractAddress.isEmpty() ? null : asset.contractAddress;
+                    assetRatioService.getPrice(
+                            new AssetPriceRequest[] {request},
+                            "usd",
+                            (success, assetPrices) ->
                                     BalanceHelper.getNativeAssetsBalances(
                                             jsonRpcService,
                                             mSelectedNetwork,
                                             new AccountInfo[] {mSelectedAccount},
                                             (coinType, nativeAssetsBalances) -> {
                                                 double price =
-                                                        AssetsPricesHelper.getPriceForAsset(
-                                                                assetPrices, asset);
+                                                        Utils.getPriceForAsset(
+                                                                success
+                                                                        ? Arrays.asList(assetPrices)
+                                                                        : new ArrayList<>(),
+                                                                asset);
                                                 double balance =
                                                         Utils.getOrDefault(
                                                                 nativeAssetsBalances,
@@ -407,8 +416,7 @@ public class BraveWalletPanel implements DialogInterface {
                 if (activity.getActivityTab() != null) {
                     GURL lastCommittedUrl =
                             activity.getActivityTab().getWebContents().getLastCommittedUrl();
-                    if (!lastCommittedUrl.getScheme().equals(BraveUrlConstants.BRAVE_SCHEME)
-                            && !lastCommittedUrl.getScheme().equals(UrlConstants.CHROME_SCHEME)
+                    if (!lastCommittedUrl.getScheme().equals(UrlConstants.CHROME_SCHEME)
                             && !lastCommittedUrl
                                     .getScheme()
                                     .equals(UrlConstants.CHROME_NATIVE_SCHEME)) {

@@ -12,22 +12,28 @@
 #include "base/functional/callback_helpers.h"
 #include "base/gtest_prod_util.h"
 #include "base/memory/weak_ptr.h"
+#include "base/scoped_observation.h"
 #include "base/timer/timer.h"
 #include "base/types/pass_key.h"
 #include "chrome/browser/ui/exclusive_access/fullscreen_observer.h"
-#include "chrome/browser/ui/views/frame/tab_strip_region_view.h"
+#include "chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.h"
 #include "components/prefs/pref_member.h"
 #include "ui/base/metadata/metadata_header_macros.h"
+#include "ui/gfx/animation/slide_animation.h"
+#include "ui/views/animation/animation_delegate_views.h"
+#include "ui/views/context_menu_controller.h"
 #include "ui/views/controls/resize_area_delegate.h"
+#include "ui/views/widget/widget.h"
+#include "ui/views/widget/widget_observer.h"
 
 namespace views {
-class LabelButton;
 class MenuRunner;
 }  // namespace views
 
 class BraveNewTabButton;
 class BrowserView;
 class FullscreenController;
+class TabStyle;
 
 // Wraps TabStripRegion and show it vertically.
 class BraveVerticalTabStripRegionView : public views::View,
@@ -54,12 +60,15 @@ class BraveVerticalTabStripRegionView : public views::View,
   };
 
   BraveVerticalTabStripRegionView(BrowserView* browser_view,
-                                  TabStripRegionView* region_view);
+                                  HorizontalTabStripRegionView* region_view);
   ~BraveVerticalTabStripRegionView() override;
 
   State state() const { return state_; }
   State last_state() const { return last_state_; }
   bool is_animating() const { return width_animation_.is_animating(); }
+  const gfx::SlideAnimation& width_animation() const {
+    return width_animation_;
+  }
 
   const TabStrip* tab_strip() const {
     return original_region_view_->tab_strip_;
@@ -75,7 +84,6 @@ class BraveVerticalTabStripRegionView : public views::View,
   // previous state.
   using ScopedStateResetter = std::unique_ptr<base::ScopedClosureRunner>;
   [[nodiscard]] ScopedStateResetter ExpandTabStripForDragging();
-  gfx::Vector2d GetOffsetForDraggedTab() const;
 
   int GetAvailableWidthForTabContainer();
 
@@ -124,8 +132,6 @@ class BraveVerticalTabStripRegionView : public views::View,
       views::View* source,
       const gfx::Point& p,
       ui::mojom::MenuSourceType source_type) override;
-
-  class HeaderView;
 
  private:
   FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest, VisualState);
@@ -178,8 +184,6 @@ class BraveVerticalTabStripRegionView : public views::View,
 
   void OnMenuClosed();
 
-  views::LabelButton& GetToggleButtonForTesting();
-
   // Callback that is called when collapse animation ends. We update visibility
   // of this view if it's needed
   void OnCollapseAnimationEnded();
@@ -189,9 +193,7 @@ class BraveVerticalTabStripRegionView : public views::View,
 
   raw_ptr<views::View> original_parent_of_region_view_ = nullptr;
   std::optional<size_t> tab_strip_region_view_original_index_;
-  raw_ptr<TabStripRegionView> original_region_view_ = nullptr;
-
-  raw_ptr<HeaderView> header_view_ = nullptr;
+  raw_ptr<HorizontalTabStripRegionView> original_region_view_ = nullptr;
 
   // Reportedly, when we add the TabStripRegionView to
   // VerticalTabStripRegionView directly, context menu on Omnibox is not working

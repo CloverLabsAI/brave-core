@@ -22,7 +22,7 @@
 #include "brave/components/sidebar/browser/sidebar_service.h"
 #include "brave/grit/brave_generated_resources.h"
 #include "chrome/browser/profiles/profile.h"
-#include "chrome/browser/ui/views/side_panel/side_panel_entry.h"
+#include "chrome/browser/ui/side_panel/side_panel_entry.h"
 
 namespace {
 
@@ -41,7 +41,7 @@ BraveSidePanelCoordinator::~BraveSidePanelCoordinator() = default;
 
 void BraveSidePanelCoordinator::Show(
     const UniqueKey& entry,
-    std::optional<SidePanelUtil::SidePanelOpenTrigger> open_trigger,
+    std::optional<SidePanelOpenTrigger> open_trigger,
     bool suppress_animations) {
   sidebar::SetLastUsedSidePanel(browser_view_->GetProfile()->GetPrefs(),
                                 entry.key.id());
@@ -49,24 +49,19 @@ void BraveSidePanelCoordinator::Show(
   SidePanelCoordinator::Show(entry, open_trigger, suppress_animations);
 }
 
-void BraveSidePanelCoordinator::OnTabStripModelChanged(
-    TabStripModel* tab_strip_model,
-    const TabStripModelChange& change,
-    const TabStripSelectionChange& selection) {
+void BraveSidePanelCoordinator::OnActiveTabChanged(
+    content::WebContents* old_contents,
+    content::WebContents* new_contents,
+    bool tab_removed_for_deletion) {
   auto* brave_browser_view = static_cast<BraveBrowserView*>(browser_view_);
-  const bool active_tab_changed = selection.active_tab_changed();
-  if (active_tab_changed) {
-    brave_browser_view->SetSidePanelOperationByActiveTabChange(true);
-  }
+  brave_browser_view->SetSidePanelOperationByActiveTabChange(true);
 
-  SidePanelCoordinator::OnTabStripModelChanged(tab_strip_model, change,
-                                               selection);
+  SidePanelCoordinator::OnActiveTabChanged(old_contents, new_contents,
+                                           tab_removed_for_deletion);
 
   // Clear as this flag is only used for show/hide operation triggered by above
   // SidePanelCoordinator::OnTabStripModelChanged().
-  if (active_tab_changed) {
-    brave_browser_view->SetSidePanelOperationByActiveTabChange(false);
-  }
+  brave_browser_view->SetSidePanelOperationByActiveTabChange(false);
 }
 
 void BraveSidePanelCoordinator::Toggle() {
@@ -74,14 +69,12 @@ void BraveSidePanelCoordinator::Toggle() {
       !browser_view_->contents_height_side_panel()->IsClosing()) {
     Close(SidePanelEntry::PanelType::kContent);
   } else if (const auto key = GetLastActiveEntryKey()) {
-    SidePanelUIBase::Show(*key,
-                          SidePanelUtil::SidePanelOpenTrigger::kToolbarButton);
+    SidePanelUIBase::Show(*key, SidePanelOpenTrigger::kToolbarButton);
   }
 }
 
-void BraveSidePanelCoordinator::Toggle(
-    SidePanelEntryKey key,
-    SidePanelUtil::SidePanelOpenTrigger open_trigger) {
+void BraveSidePanelCoordinator::Toggle(SidePanelEntryKey key,
+                                       SidePanelOpenTrigger open_trigger) {
   SidePanelCoordinator::Toggle(key, open_trigger);
 }
 
@@ -147,12 +140,12 @@ void BraveSidePanelCoordinator::UpdateToolbarButtonHighlight(
 void BraveSidePanelCoordinator::PopulateSidePanel(
     bool supress_animations,
     const UniqueKey& unique_key,
-    std::optional<SidePanelUtil::SidePanelOpenTrigger> open_trigger,
+    std::optional<SidePanelOpenTrigger> open_trigger,
     SidePanelEntry* entry,
     std::optional<std::unique_ptr<views::View>> content_view) {
   CHECK(entry);
   actions::ActionItem* const action_item =
-      SidePanelUtil::GetActionItem(browser_view_->browser(), entry->key());
+      SidePanelHelper::GetActionItem(browser_view_->browser(), entry->key());
   if (!action_item) {
     const std::string entry_id = SidePanelEntryIdToString(entry->key().id());
     LOG(ERROR) << __func__ << " no side panel action item for " << entry_id;

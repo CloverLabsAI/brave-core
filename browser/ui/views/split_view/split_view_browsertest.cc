@@ -5,11 +5,11 @@
 
 #include <utility>
 
+#include "base/functional/callback_helpers.h"
 #include "base/test/run_until.h"
 #include "brave/browser/ui/bookmark/bookmark_helper.h"
 #include "brave/browser/ui/browser_commands.h"
 #include "brave/browser/ui/split_view/split_view_features.h"
-#include "brave/browser/ui/views/brave_javascript_tab_modal_dialog_view_views.h"
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
 #include "brave/browser/ui/views/frame/brave_contents_view_util.h"
 #include "brave/browser/ui/views/frame/split_view/brave_contents_container_view.h"
@@ -47,7 +47,7 @@
 #include "components/tabs/public/split_tab_data.h"
 #include "components/tabs/public/tab_interface.h"
 #include "components/web_modal/web_contents_modal_dialog_manager.h"
-#include "content/public/common/javascript_dialog_type.h"
+#include "content/public/browser/navigation_handle.h"
 #include "content/public/test/browser_test.h"
 #include "content/public/test/browser_test_utils.h"
 #include "content/public/test/test_navigation_observer.h"
@@ -148,6 +148,43 @@ constexpr char kTestPageWithLink[] = R"(
 </html>
 )";
 
+// Observer for same-document navigations. Uses DidFinishNavigation to detect
+// same-document commits (event-driven), and RunUntil for the wait mechanism
+// (provides timeout safety instead of RunLoop::Run() which can hang
+// indefinitely).
+class SameDocumentCommitObserver : public content::WebContentsObserver {
+ public:
+  explicit SameDocumentCommitObserver(content::WebContents* web_contents)
+      : content::WebContentsObserver(web_contents) {
+    EXPECT_TRUE(web_contents);
+  }
+
+  SameDocumentCommitObserver(const SameDocumentCommitObserver&) = delete;
+  SameDocumentCommitObserver& operator=(const SameDocumentCommitObserver&) =
+      delete;
+
+  // Returns true if a same-document navigation was observed, false on timeout.
+  bool Wait() {
+    return did_navigate_ ||
+           base::test::RunUntil([this]() { return did_navigate_; });
+  }
+
+  const GURL& last_committed_url() const { return last_committed_url_; }
+
+ private:
+  void DidFinishNavigation(
+      content::NavigationHandle* navigation_handle) override {
+    if (navigation_handle->IsSameDocument() &&
+        navigation_handle->HasCommitted()) {
+      did_navigate_ = true;
+      last_committed_url_ = navigation_handle->GetURL();
+    }
+  }
+
+  bool did_navigate_ = false;
+  GURL last_committed_url_;
+};
+
 }  // namespace
 
 class SideBySideEnabledBrowserTest : public InProcessBrowserTest {
@@ -161,7 +198,8 @@ class SideBySideEnabledBrowserTest : public InProcessBrowserTest {
   }
 
   TabStrip* tab_strip() {
-    return BrowserView::GetBrowserViewForBrowser(browser())->tabstrip();
+    return BrowserView::GetBrowserViewForBrowser(browser())
+        ->horizontal_tab_strip_for_testing();
   }
 
   BraveBrowserView* brave_browser_view() const {
@@ -203,24 +241,24 @@ IN_PROC_BROWSER_TEST_F(SideBySideEnabledBrowserTest,
   infobars::ContentInfoBarManager::FromWebContents(
       browser()->tab_strip_model()->GetWebContentsAt(0))
       ->RemoveAllInfoBars(/*animate=*/false);
-  browser_view->InvalidateLayout();
-  ASSERT_TRUE(base::test::RunUntil(
-      [&]() { return !browser_view->infobar_container()->GetVisible(); }));
+  RunScheduledLayouts();
+  ASSERT_FALSE(browser_view->infobar_container()->GetVisible());
 
   // separator should not be empty and visible when split view is closed.
   EXPECT_TRUE(
       browser_view->top_container_separator_for_testing()->GetVisible());
-  EXPECT_NE(
-      gfx::Size(),
-      browser_view->top_container_separator_for_testing()->GetPreferredSize());
+  EXPECT_NE(gfx::Size(),
+            browser_view->top_container_separator_for_testing()->size());
 
   chrome::NewSplitTab(browser(),
                       split_tabs::SplitTabCreatedSource::kToolbarButton);
+  RunScheduledLayouts();
 
   // separator should be empty when split view is opened.
-  EXPECT_EQ(
-      gfx::Size(),
-      browser_view->top_container_separator_for_testing()->GetPreferredSize());
+  EXPECT_EQ(gfx::Size(),
+            browser_view->top_container_separator_for_testing()->size());
+  EXPECT_FALSE(
+      browser_view->top_container_separator_for_testing()->GetVisible());
   EXPECT_TRUE(split_view_separator()->GetVisible());
   EXPECT_EQ(4, split_view_separator()->GetPreferredSize().width());
 
@@ -307,21 +345,6 @@ IN_PROC_BROWSER_TEST_F(SideBySideEnabledBrowserTest, SelectTabTest) {
       brave_multi_contents_view()->mini_toolbar_for_testing(0)->GetVisible());
   EXPECT_TRUE(
       brave_multi_contents_view()->mini_toolbar_for_testing(1)->GetVisible());
-
-  // Check mini toolbar uses our menu model.
-  brave_multi_contents_view()->mini_toolbar_for_testing(0)->OpenSplitViewMenu();
-  auto* menu_model =
-      static_cast<SplitTabMenuModel*>(brave_multi_contents_view()
-                                          ->mini_toolbar_for_testing(0)
-                                          ->menu_model_.get());
-
-  // This id calc is copied from GetCommandIdInt() at split_tab_menu_model.cc
-  // Check that method if test failed.
-  int command_id =
-      ExistingBaseSubMenuModel::kMinSplitTabMenuModelCommandId +
-      static_cast<int>(SplitTabMenuModel::CommandId::kReversePosition);
-  EXPECT_EQ(l10n_util::GetStringUTF16(IDS_IDC_SWAP_SPLIT_VIEW),
-            menu_model->GetLabelForCommandId(command_id));
 
   // Activate non split view tab.
   tab_strip()->SelectTab(tab_strip()->tab_at(0), GetDummyEvent());
@@ -459,7 +482,7 @@ class SplitViewCommonBrowserTest : public InProcessBrowserTest {
   bool GetIsWebContentsBlockedFromTabAt(int index) {
     auto* tab_strip_model = browser()->tab_strip_model();
     return static_cast<tabs::TabModel*>(tab_strip_model->GetTabAtIndex(index))
-        ->blocked();
+        ->IsBlocked();
   }
 
   web_modal::WebContentsModalDialogManager* GetWebModalDialogManagerAt(
@@ -519,7 +542,8 @@ class SplitViewCommonBrowserTest : public InProcessBrowserTest {
   }
 
   TabStrip* tab_strip() {
-    return BrowserView::GetBrowserViewForBrowser(browser())->tabstrip();
+    return BrowserView::GetBrowserViewForBrowser(browser())
+        ->horizontal_tab_strip_for_testing();
   }
 
  private:
@@ -682,86 +706,6 @@ IN_PROC_BROWSER_TEST_F(SplitViewCommonBrowserTest, BookmarksBarVisibilityTest) {
 #endif
 }
 
-// Only flaky(time out) on macOS.
-// https://github.com/brave/brave-browser/issues/48804
-#if BUILDFLAG(IS_MAC)
-#define MAYBE_JavascriptTabModalDialogView_DialogShouldBeCenteredToRelatedWebView \
-  DISABLED_JavascriptTabModalDialogView_DialogShouldBeCenteredToRelatedWebView
-#else
-#define MAYBE_JavascriptTabModalDialogView_DialogShouldBeCenteredToRelatedWebView \
-  JavascriptTabModalDialogView_DialogShouldBeCenteredToRelatedWebView
-#endif
-
-IN_PROC_BROWSER_TEST_F(
-    SplitViewCommonBrowserTest,
-    MAYBE_JavascriptTabModalDialogView_DialogShouldBeCenteredToRelatedWebView) {
-  NewSplitTab();
-  auto* active_contents = chrome_test_utils::GetActiveWebContents(this);
-  ASSERT_TRUE(IsSplitWebContents(active_contents));
-  auto* dialog = new BraveJavaScriptTabModalDialogViewViews(
-      active_contents, active_contents, u"title",
-      content::JAVASCRIPT_DIALOG_TYPE_ALERT, u"message", u"default prompt",
-      base::DoNothing(), base::DoNothing());
-  ASSERT_TRUE(dialog);
-  auto* widget = dialog->GetWidget();
-  ASSERT_TRUE(widget);
-
-#if BUILDFLAG(IS_MAC)
-  ASSERT_TRUE(base::test::RunUntil([&]() {
-    const auto dialog_bounds = widget->GetWindowBoundsInScreen();
-    auto web_view_bounds = GetContentsWebView()->GetLocalBounds();
-    views::View::ConvertRectToScreen(GetContentsWebView(), &web_view_bounds);
-    return web_view_bounds.CenterPoint().x() == dialog_bounds.CenterPoint().x();
-  }));
-#else
-  // On macOS, this check is flaky. It seems widget position is not updated
-  // immediately. So, used loop like above on macOS.
-  // Why not using above checking in loop on all platform?
-  // Above checking in loop causes another weird |Widget::native_widget_|
-  // invalidation in the loop on other platforms(win/linux). Not sure why.
-  // Fortunately, below checking works well. So, testing differently on macOS
-  // and others.
-  const auto dialog_bounds = widget->GetWindowBoundsInScreen();
-  auto web_view_bounds = GetContentsWebView()->GetLocalBounds();
-  views::View::ConvertRectToScreen(GetContentsWebView(), &web_view_bounds);
-  EXPECT_EQ(web_view_bounds.CenterPoint().x(), dialog_bounds.CenterPoint().x());
-#endif
-}
-
-// This test can be flaky depending on the screen size. Our macOS CI doesn't
-// seem to have a large enough screen to run this test.
-#if BUILDFLAG(IS_MAC)
-#define MAYBE_JavascriptTabModalDialogView_DialogShouldBeCenteredToRelatedWebView_InVerticalTab \
-  DISABLED_JavascriptTabModalDialogView_DialogShouldBeCenteredToRelatedWebView_InVerticalTab
-#else
-#define MAYBE_JavascriptTabModalDialogView_DialogShouldBeCenteredToRelatedWebView_InVerticalTab \
-  JavascriptTabModalDialogView_DialogShouldBeCenteredToRelatedWebView_InVerticalTab
-#endif
-
-IN_PROC_BROWSER_TEST_F(
-    SplitViewCommonBrowserTest,
-    MAYBE_JavascriptTabModalDialogView_DialogShouldBeCenteredToRelatedWebView_InVerticalTab) {
-  brave::ToggleVerticalTabStrip(browser());
-  NewSplitTab();
-  auto* active_contents = chrome_test_utils::GetActiveWebContents(this);
-  ASSERT_TRUE(IsSplitWebContents(active_contents));
-
-  auto* dialog = new BraveJavaScriptTabModalDialogViewViews(
-      active_contents, active_contents, u"title",
-      content::JAVASCRIPT_DIALOG_TYPE_ALERT, u"message", u"default prompt",
-      base::DoNothing(), base::DoNothing());
-  ASSERT_TRUE(dialog);
-  auto* widget = dialog->GetWidget();
-  ASSERT_TRUE(widget);
-
-  const auto dialog_bounds = widget->GetWindowBoundsInScreen();
-
-  auto web_view_bounds = GetContentsWebView()->GetLocalBounds();
-  views::View::ConvertRectToScreen(GetContentsWebView(), &web_view_bounds);
-
-  EXPECT_EQ(web_view_bounds.CenterPoint().x(), dialog_bounds.CenterPoint().x());
-}
-
 IN_PROC_BROWSER_TEST_F(SplitViewCommonBrowserTest, InactiveSplitTabTest) {
   NewSplitTab();
   auto* tab_strip_model = browser()->tab_strip_model();
@@ -792,19 +736,6 @@ IN_PROC_BROWSER_TEST_F(SplitViewCommonBrowserTest, InactiveSplitTabTest) {
   ASSERT_TRUE(base::test::RunUntil(
       [&]() { return !GetIsTabHiddenFromPermissionManagerFromTabAt(1); }));
   EXPECT_TRUE(GetIsTabHiddenFromPermissionManagerFromTabAt(2));
-
-  // Check that the proper state is set after the browser window is restored
-  // from minimized state.
-  browser()->window()->Minimize();
-  browser()->window()->Restore();
-  EXPECT_TRUE(GetIsTabHiddenFromPermissionManagerFromTabAt(0));
-  ASSERT_TRUE(base::test::RunUntil(
-      [&]() { return !GetIsTabHiddenFromPermissionManagerFromTabAt(1); }));
-  EXPECT_TRUE(GetIsTabHiddenFromPermissionManagerFromTabAt(2));
-
-  EXPECT_TRUE(tab_strip_model->GetTabAtIndex(1)->IsActivated());
-  EXPECT_FALSE(GetIsWebContentsBlockedFromTabAt(0));
-  EXPECT_FALSE(GetIsWebContentsBlockedFromTabAt(1));
 
   // Launch dialog from inactive split tab (at 0).
   bool did_suppress = false;
@@ -1322,19 +1253,26 @@ IN_PROC_BROWSER_TEST_F(SplitViewLinkTest,
   ASSERT_TRUE(content::NavigateToURL(left_pane, GetLinkTestPageURL()));
   content::WaitForLoadStop(left_pane);
 
-  GURL initial_url = left_pane->GetLastCommittedURL();
+  // Record right pane URL before clicking to verify no redirect occurs.
+  content::WebContents* right_pane = GetRightPaneContents();
+  ASSERT_TRUE(right_pane);
+  GURL right_pane_url_before = right_pane->GetLastCommittedURL();
+
+  // Set up observer for same-document navigation BEFORE triggering the click.
+  SameDocumentCommitObserver same_doc_observer(left_pane);
 
   // Click the hash link (same-document navigation)
   ASSERT_TRUE(content::ExecJs(left_pane, "clickHashLink();"));
 
-  // Wait a bit and verify URL changed but it's still same document
-  ASSERT_TRUE(base::test::RunUntil(
-      [&]() { return left_pane->GetLastCommittedURL() != initial_url; }));
+  // Wait for the same-document navigation to complete. The observer uses
+  // RunUntil internally for timeout safety (prevents indefinite hang).
+  ASSERT_TRUE(same_doc_observer.Wait());
 
   // Same-document navigation should not redirect to right pane
-  EXPECT_TRUE(left_pane->GetLastCommittedURL().has_ref());
+  EXPECT_TRUE(same_doc_observer.last_committed_url().has_ref());
   EXPECT_EQ(GetLinkTestPageURL().spec() + "#section",
-            left_pane->GetLastCommittedURL().spec());
+            same_doc_observer.last_committed_url().spec());
+  EXPECT_EQ(right_pane_url_before, right_pane->GetLastCommittedURL());
 }
 
 IN_PROC_BROWSER_TEST_F(SplitViewLinkTest, RightPaneNavigationDoesNotRedirect) {

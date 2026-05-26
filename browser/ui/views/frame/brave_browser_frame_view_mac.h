@@ -29,10 +29,12 @@ class BraveBrowserFrameViewMac : public BrowserFrameViewMac {
   void UpdateWindowTitleColor();
 
   // BrowserFrameViewMac overrides:
+  gfx::Rect GetBoundsForClientView() const override;
   void OnPaint(gfx::Canvas* canvas) override;
   int GetTopInset(bool restored) const override;
   int NonClientHitTest(const gfx::Point& point) override;
   void OnThemeChanged() override;
+  bool ShouldHideTopUIInFullscreen() const override;
 
   std::unique_ptr<BraveWindowFrameGraphic> frame_graphic_;
 

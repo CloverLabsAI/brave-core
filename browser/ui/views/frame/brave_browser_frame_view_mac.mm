@@ -13,9 +13,11 @@
 #include "brave/browser/ui/views/tabs/vertical_tab_utils.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser.h"
+#include "chrome/browser/ui/fullscreen_util_mac.h"
 #include "chrome/browser/ui/tabs/features.h"
 #include "chrome/browser/ui/view_ids.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
+#include "chrome/browser/ui/views/frame/immersive_mode_controller.h"
 #include "ui/base/hit_test.h"
 #include "ui/gfx/geometry/insets.h"
 #include "ui/gfx/geometry/rect.h"
@@ -46,6 +48,21 @@ BraveBrowserFrameViewMac::BraveBrowserFrameViewMac(
 
 BraveBrowserFrameViewMac::~BraveBrowserFrameViewMac() = default;
 
+gfx::Rect BraveBrowserFrameViewMac::GetBoundsForClientView() const {
+  if (ShouldShowWindowTitleForVerticalTabs()) {
+    // Upstream implementation doesn't properly use
+    // GetBrowserLayoutParams().visual_client_area. They just use bounds() for
+    // client view bounds which results in make client area fills the entire
+    // frame bounds. So it doesn't help even if we override
+    // GetBrowserLayoutParams(). to inset the visual_client_area. So we need to
+    // manually inset the client view bounds here.
+    gfx::Rect client_bounds = bounds();
+    client_bounds.Inset(gfx::Insets::TLBR(GetTopInset(false), 0, 0, 0));
+    return client_bounds;
+  }
+  return BrowserFrameViewMac::GetBoundsForClientView();
+}
+
 void BraveBrowserFrameViewMac::OnPaint(gfx::Canvas* canvas) {
   BrowserFrameViewMac::OnPaint(canvas);
 
@@ -63,7 +80,7 @@ void BraveBrowserFrameViewMac::OnPaint(gfx::Canvas* canvas) {
 }
 
 int BraveBrowserFrameViewMac::GetTopInset(bool restored) const {
-  if (tabs::utils::ShouldShowBraveVerticalTabs(browser_view()->browser())) {
+  if (tabs::utils::ShouldShowBraveVerticalTabs(GetBrowserView()->browser())) {
     if (ShouldShowWindowTitleForVerticalTabs()) {
       // Set minimum top inset to show caption buttons on frame.
       return 30;
@@ -83,12 +100,12 @@ int BraveBrowserFrameViewMac::GetTopInset(bool restored) const {
 
 bool BraveBrowserFrameViewMac::ShouldShowWindowTitleForVerticalTabs() const {
   return tabs::utils::ShouldShowWindowTitleForVerticalTabs(
-             browser_view()->browser()) &&
-         !browser_view()->IsFullscreen();
+             GetBrowserView()->browser()) &&
+         !GetBrowserView()->IsFullscreen();
 }
 
 void BraveBrowserFrameViewMac::UpdateWindowTitleVisibility() {
-  if (!browser_view()->browser()->is_type_normal()) {
+  if (!GetBrowserView()->browser()->is_type_normal()) {
     return;
   }
 
@@ -97,7 +114,7 @@ void BraveBrowserFrameViewMac::UpdateWindowTitleVisibility() {
 }
 
 void BraveBrowserFrameViewMac::UpdateWindowTitleColor() {
-  if (!browser_view()->browser()->is_type_normal()) {
+  if (!GetBrowserView()->browser()->is_type_normal()) {
     return;
   }
 
@@ -106,9 +123,23 @@ void BraveBrowserFrameViewMac::UpdateWindowTitleColor() {
 }
 
 int BraveBrowserFrameViewMac::NonClientHitTest(const gfx::Point& point) {
-  if (auto res = brave::NonClientHitTest(browser_view(), point);
-      res != HTNOWHERE) {
-    return res;
+  // During window teardown or fullscreen transitions on Mac, AppKit can trigger
+  // hit tests via windowDidBecomeKey:/makeKeyAndOrderFront: while the widget is
+  // in a partially destroyed state. Guard against this to prevent crashes.
+  if (!GetWidget() || GetWidget()->IsClosed()) {
+    return HTNOWHERE;
+  }
+
+  // In immersive fullscreen the toolbar is reparented to a separate overlay
+  // widget, violating brave::NonClientHitTest's precondition that the toolbar
+  // and browser view share the same widget. Skip it while immersive mode is
+  // active.
+  if (!ImmersiveModeController::From(GetBrowserView()->browser())
+           ->IsEnabled()) {
+    if (auto res = brave::NonClientHitTest(GetBrowserView(), point);
+        res != HTNOWHERE) {
+      return res;
+    }
   }
 
   return BrowserFrameViewMac::NonClientHitTest(point);
@@ -130,7 +161,7 @@ void BraveBrowserFrameViewMac::UpdateWindowTitleAndControls() {
 }
 
 gfx::Size BraveBrowserFrameViewMac::GetMinimumSize() const {
-  if (tabs::utils::ShouldShowBraveVerticalTabs(browser_view()->browser())) {
+  if (tabs::utils::ShouldShowBraveVerticalTabs(GetBrowserView()->browser())) {
     // In order to ignore tab strip height, skip BrowserFrameViewMac's
     // implementation.
     auto size = browser_widget()->client_view()->GetMinimumSize();
@@ -141,4 +172,19 @@ gfx::Size BraveBrowserFrameViewMac::GetMinimumSize() const {
   }
 
   return BrowserFrameViewMac::GetMinimumSize();
+}
+
+bool BraveBrowserFrameViewMac::ShouldHideTopUIInFullscreen() const {
+  // When a browser window starts with horizontal tabs and the user switches to
+  // vertical tabs at runtime, fullscreen_toolbar_controller_ in the base class
+  // is nil — it was skipped at construction because
+  // UsesImmersiveFullscreenMode() returned true at that point. Messaging nil in
+  // ObjC returns 0, which equals TOOLBAR_PRESENT, so the base implementation
+  // incorrectly reports "don't hide" during tab (content) fullscreen. Intercept
+  // that case explicitly.
+  if (tabs::utils::ShouldShowBraveVerticalTabs(GetBrowserView()->browser()) &&
+      fullscreen_utils::IsInContentFullscreen(GetBrowserView()->browser())) {
+    return true;
+  }
+  return BrowserFrameViewMac::ShouldHideTopUIInFullscreen();
 }

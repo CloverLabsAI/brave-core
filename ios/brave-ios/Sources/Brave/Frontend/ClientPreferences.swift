@@ -235,7 +235,7 @@ extension Preferences {
 
   final public class Privacy {
     static let lockWithPasscode = Option<Bool>(key: "privacy.lock-with-passcode", default: false)
-    static let privateBrowsingLock = Option<Bool>(
+    public static let privateBrowsingLock = Option<Bool>(
       key: "privacy.private-browsing-lock",
       default: false
     )
@@ -247,6 +247,12 @@ extension Preferences {
     /// Whether or not private browsing tabs can be session restored (persistent private browsing)
     public static let persistentPrivateBrowsing = Option<Bool>(
       key: "privacy.private-browsing-persistence",
+      default: false
+    )
+    /// When "Keep Private Tabs" is enabled, whether to launch in private mode and restore private tabs.
+    /// Off by default; when off, browser launches in regular mode but private tabs are still restored.
+    public static let rememberBrowsingMode = Option<Bool>(
+      key: "privacy.remember-browsing-mode",
       default: false
     )
     /// Blocks all cookies and access to local storage
@@ -310,10 +316,6 @@ extension Preferences {
     /// The goal is to show the claim grant notification only once per app session if still available.
     static let attemptToShowClaimRewardsNotification =
       Option<Bool>(key: "newtabpage.show-grant-notification", default: true)
-
-    /// Whether preloaded favorites have been initialized. Uses custom favorites in case of super referral or default ones instead.
-    static let preloadedFavoritiesInitialized =
-      Option<Bool>(key: "newtabpage.favorites-initialized", default: false)
 
     /// Custom theme used in app. Nil if default theme is used.
     static let selectedCustomTheme =

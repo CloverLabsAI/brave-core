@@ -17,7 +17,6 @@
 #include "base/notreached.h"
 #include "base/strings/string_number_conversions.h"
 #include "base/time/time_delta_from_string.h"
-#include "base/types/cxx23_to_underlying.h"
 #include "base/types/optional_util.h"
 #include "base/values.h"
 #include "brave/components/brave_ads/core/internal/ads_core/ads_core_util.h"
@@ -104,14 +103,10 @@ constexpr char kCreativeSetValueKey[] = "value";
 
 constexpr char kCreativeSetSegmentsKey[] = "segments";
 
-constexpr char kCreativeSetSplitTestGroupKey[] = "splitTestGroup";
-
 constexpr char kCreativeSetConversionsKey[] = "conversions";
 constexpr char kCreativeSetConversionUrlPatternKey[] = "urlPattern";
 constexpr char kCreativeSetConversionObservationWindowKey[] =
     "observationWindow";
-constexpr char kCreativeSetConversionPublicKeyKey[] = "publicKey";
-
 // Creative keys.
 constexpr char kCreativesKey[] = "creatives";
 constexpr char kCreativeInstanceIdKey[] = "creativeInstanceId";
@@ -162,8 +157,7 @@ void SaveCreativeNewTabPageAdsCallback(
 
 }  // namespace
 
-void ParseAndSaveNewTabPageAds(base::Value::Dict dict,
-                               ResultCallback callback) {
+void ParseAndSaveNewTabPageAds(base::DictValue dict, ResultCallback callback) {
   std::optional<int> schema_version = dict.FindInt(kSchemaVersionKey);
   if (schema_version != kExpectedSchemaVersion) {
     // Currently, only version 2 is supported. Update this code to maintain.
@@ -179,7 +173,7 @@ void ParseAndSaveNewTabPageAds(base::Value::Dict dict,
   }
   SetProfileTimeDeltaPref(prefs::kGracePeriod, grace_period);
 
-  const base::Value::List* const campaign_list = dict.FindList(kCampaignsKey);
+  const base::ListValue* const campaign_list = dict.FindList(kCampaignsKey);
   if (!campaign_list) {
     BLOG(0, "Campaigns are required");
     return std::move(callback).Run(/*success=*/false);
@@ -190,7 +184,7 @@ void ParseAndSaveNewTabPageAds(base::Value::Dict dict,
 
   // Campaigns.
   for (const auto& campaign_value : *campaign_list) {
-    const base::Value::Dict* const campaign_dict = campaign_value.GetIfDict();
+    const base::DictValue* const campaign_dict = campaign_value.GetIfDict();
     if (!campaign_dict) {
       BLOG(0, "Malformed campaign, skipping campaign");
       continue;
@@ -262,7 +256,7 @@ void ParseAndSaveNewTabPageAds(base::Value::Dict dict,
         campaign_dict->FindDouble(kCampaignPassThroughRateKey).value_or(1.0);
 
     // Geo targets.
-    const base::Value::List* const geo_target_list =
+    const base::ListValue* const geo_target_list =
         campaign_dict->FindList(kCampaignGeoTargetsKey);
     if (!geo_target_list || geo_target_list->empty()) {
       BLOG(0, "Geo targets are required, skipping campaign");
@@ -282,11 +276,11 @@ void ParseAndSaveNewTabPageAds(base::Value::Dict dict,
 
     // Dayparts.
     CreativeDaypartSet dayparts;
-    if (const base::Value::List* const list =
+    if (const base::ListValue* const list =
             campaign_dict->FindList(kCampaignDayPartsKey)) {
       // Dayparts are optional.
       for (const auto& value : *list) {
-        const base::Value::Dict* const daypart_dict = value.GetIfDict();
+        const base::DictValue* const daypart_dict = value.GetIfDict();
         if (!daypart_dict) {
           BLOG(0, "Malformed daypart, skipping campaign");
           continue;
@@ -318,7 +312,7 @@ void ParseAndSaveNewTabPageAds(base::Value::Dict dict,
     }
 
     // Creative sets.
-    const base::Value::List* const creative_set_list =
+    const base::ListValue* const creative_set_list =
         campaign_dict->FindList(kCreativeSetsKey);
     if (!creative_set_list) {
       BLOG(0, "Creative sets are required, skipping campaign");
@@ -326,7 +320,7 @@ void ParseAndSaveNewTabPageAds(base::Value::Dict dict,
     }
 
     for (const auto& creative_set_value : *creative_set_list) {
-      const base::Value::Dict* const creative_set_dict =
+      const base::DictValue* const creative_set_dict =
           creative_set_value.GetIfDict();
       if (!creative_set_dict) {
         BLOG(0, "Malformed creative set, skipping creative set");
@@ -375,20 +369,13 @@ void ParseAndSaveNewTabPageAds(base::Value::Dict dict,
         creative_ad.value = 0.0;
       }
 
-      // Split test group.
-      if (const std::string* const value =
-              creative_set_dict->FindString(kCreativeSetSplitTestGroupKey)) {
-        // Split test group is optional.
-        creative_ad.split_test_group = *value;
-      }
-
       // Conversions.
-      const base::Value::List* const conversion_list =
+      const base::ListValue* const conversion_list =
           creative_set_dict->FindList(kCreativeSetConversionsKey);
       if (conversion_list) {
         // Conversions are optional.
         for (const auto& conversion_value : *conversion_list) {
-          const base::Value::Dict* const conversion_dict =
+          const base::DictValue* const conversion_dict =
               conversion_value.GetIfDict();
           if (!conversion_dict) {
             BLOG(0, "Malformed conversion, skipping conversion");
@@ -419,20 +406,13 @@ void ParseAndSaveNewTabPageAds(base::Value::Dict dict,
           creative_set_conversion.expire_at =
               creative_ad.end_at + creative_set_conversion.observation_window;
 
-          const std::string* const public_key =
-              conversion_dict->FindString(kCreativeSetConversionPublicKeyKey);
-          if (public_key) {
-            creative_set_conversion.verifiable_advertiser_public_key_base64 =
-                *public_key;
-          }
-
           creative_set_conversions.push_back(creative_set_conversion);
         }
       }
 
       // Segments.
       SegmentList segments;
-      if (const base::Value::List* const list =
+      if (const base::ListValue* const list =
               creative_set_dict->FindList(kCreativeSetSegmentsKey)) {
         // Segments are optional.
         for (const auto& value : *list) {
@@ -451,7 +431,7 @@ void ParseAndSaveNewTabPageAds(base::Value::Dict dict,
       }
 
       // Creatives.
-      const base::Value::List* const creative_list =
+      const base::ListValue* const creative_list =
           creative_set_dict->FindList(kCreativesKey);
       if (!creative_list) {
         BLOG(0, "Creatives are required, skipping creative set");
@@ -459,8 +439,7 @@ void ParseAndSaveNewTabPageAds(base::Value::Dict dict,
       }
 
       for (const auto& creative_value : *creative_list) {
-        const base::Value::Dict* const creative_dict =
-            creative_value.GetIfDict();
+        const base::DictValue* const creative_dict = creative_value.GetIfDict();
         if (!creative_dict) {
           BLOG(0, "Malformed creative, skipping creative");
           continue;
@@ -504,7 +483,7 @@ void ParseAndSaveNewTabPageAds(base::Value::Dict dict,
         }
 
         // Wallpaper.
-        const base::Value::Dict* const wallpaper_dict =
+        const base::DictValue* const wallpaper_dict =
             creative_dict->FindDict(kCreativeWallpaperKey);
         if (!wallpaper_dict) {
           BLOG(0, "Wallpaper is required, skipping creative");
@@ -526,13 +505,13 @@ void ParseAndSaveNewTabPageAds(base::Value::Dict dict,
             ToCreativeNewTabPageAdWallpaperType(*wallpaper_type);
 
         // Condition matchers.
-        const base::Value::List* const condition_matcher_list =
+        const base::ListValue* const condition_matcher_list =
             creative_dict->FindList(kCreativeConditionMatchersKey);
         if (condition_matcher_list) {
           // Condition matchers are optional.
           ConditionMatcherMap condition_matchers;
           for (const auto& condition_matcher_value : *condition_matcher_list) {
-            const base::Value::Dict* const condition_matcher_dict =
+            const base::DictValue* const condition_matcher_dict =
                 condition_matcher_value.GetIfDict();
             if (!condition_matcher_dict) {
               BLOG(0,
@@ -592,7 +571,7 @@ std::string_view ToString(mojom::NewTabPageAdMetricType value) {
   }
 
   NOTREACHED() << "Unexpected value for mojom::NewTabPageAdMetricType: "
-               << base::to_underlying(value);
+               << std::to_underlying(value);
 }
 
 }  // namespace brave_ads

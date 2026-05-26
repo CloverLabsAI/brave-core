@@ -30,10 +30,6 @@ class UserScriptManager {
       scripts.append(.playlist)
     }
 
-    if Preferences.UserScript.readyState.value {
-      scripts.append(.readyStateHelper)
-    }
-
     if Preferences.UserScript.youtubeQuality.value {
       scripts.append(.youtubeQuality)
     }
@@ -121,9 +117,9 @@ class UserScriptManager {
     case requestBlocking
     case trackerProtectionStats
     case resourceDownloader
-    case readyStateHelper
     case ethereumProvider
     case solanaProvider
+    case cardanoProvider
     case searchResultAd
     case youtubeQuality
     case braveLeoAIChat
@@ -154,6 +150,9 @@ class UserScriptManager {
       case .solanaProvider:
         return Preferences.UserScript.solanaProvider.value
           ? SolanaProviderScriptHandler.userScript : nil
+      case .cardanoProvider:
+        return Preferences.UserScript.cardanoProvider.value
+          ? CardanoProviderScriptHandler.userScript : nil
       case .searchResultAd: return BraveSearchResultAdScriptHandler.userScript
 
       // Always enabled scripts
@@ -162,8 +161,6 @@ class UserScriptManager {
       case .playlist:
         return Preferences.UserScript.playlist.value ? PlaylistScriptHandler.userScript : nil
       case .resourceDownloader: return ResourceDownloadScriptHandler.userScript
-      case .readyStateHelper:
-        return Preferences.UserScript.readyState.value ? ReadyStateScriptHandler.userScript : nil
       case .youtubeQuality:
         return Preferences.UserScript.youtubeQuality.value
           ? YoutubeQualityScriptHandler.userScript : nil
@@ -285,7 +282,9 @@ class UserScriptManager {
     scripts: Set<ScriptType>,
     tab: any TabState
   ) {
-    if Preferences.UserScript.blockAllScripts.value {
+    if FeatureList.kUseProfileWebViewConfiguration.enabled
+      || Preferences.UserScript.blockAllScripts.value
+    {
       return
     }
 
@@ -339,11 +338,15 @@ class UserScriptManager {
     userScripts: Set<ScriptType>,
     customScripts: Set<UserScriptType>
   ) {
-    if Preferences.UserScript.blockAllScripts.value {
+    if FeatureList.kUseProfileWebViewConfiguration.enabled
+      || Preferences.UserScript.blockAllScripts.value
+    {
       return
     }
 
-    let userContentController = tab.configuration.userContentController
+    guard let userContentController = tab.configuration?.userContentController else {
+      return
+    }
 
     let logComponents = [
       userScripts.sorted(by: { $0.rawValue < $1.rawValue }).map { scriptType in
@@ -406,6 +409,16 @@ class UserScriptManager {
           ? self.walletSolanaWalletStandardScript : nil
       {
         scriptController.addUserScript(walletStandardScript)
+      }
+
+      // Inject Cardano provider script
+      if WalletConstants.isCardanoDAppSupportEnabled,
+        !tab.isPrivate,
+        Preferences.Wallet.WalletType(rawValue: Preferences.Wallet.defaultCardanoWallet.value)
+          == .brave,
+        let script = self.dynamicScripts[.cardanoProvider]
+      {
+        scriptController.addUserScript(script)
       }
 
       // TODO: Refactor this and get rid of the `UserScriptType`

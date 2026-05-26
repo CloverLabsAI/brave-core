@@ -8,8 +8,42 @@ module ai_chat.mojom;
 import "mojo/public/mojom/base/time.mojom";
 import "url/mojom/url.mojom";
 
+enum PremiumStatus {
+  Unknown,
+  Inactive,
+  Active,
+  ActiveDisconnected,
+};
+
+struct PremiumInfo {
+  // How many credentials in the current batch are remaining
+  uint32 remaining_credential_count;
+
+  // When their next batch of credentials is active. If null, there is no
+  // next batch.
+  mojo_base.mojom.Time? next_active_at;
+};
+
 // Common types shared between ai_chat.mojom and untrusted_frame.mojom.
 // This file exists to break circular import dependencies between those files.
+
+enum APIError {
+  None,
+  InternalError,
+  ConnectionIssue,
+  RateLimitReached,
+  ContextLimitReached,
+  InvalidEndpointURL,
+  InvalidAPIKey,
+  ServiceOverloaded
+};
+
+enum SuggestionGenerationStatus {
+  None,
+  CanGenerate,
+  IsGenerating,
+  HasGenerated,
+};
 
 enum CharacterType {
   HUMAN,
@@ -18,7 +52,8 @@ enum CharacterType {
 
 enum ConversationCapability {
   CHAT,
-  CONTENT_AGENT
+  CONTENT_AGENT,
+  DEEP_RESEARCH
 };
 
 // Which action the user was taking for the entry. This can be used
@@ -56,6 +91,7 @@ enum ActionType {
 // be provided via ai_chat_ui_strings.grdp and ai_chat/core/constants.cc
 enum ModelCategory {
   CHAT,
+  SUMMARY,
 };
 
 enum ModelAccess {
@@ -77,6 +113,15 @@ enum UploadedFileType {
   kImage = 0,
   kScreenshot,
   kPdf,
+};
+
+// This does not cover more specific data that the Service owns, such as the
+// conversation list, but does cover status of preferences and notices.
+struct ServiceState {
+  bool has_accepted_agreement;
+  bool is_storage_pref_enabled;
+  bool is_storage_notice_dismissed;
+  bool can_show_premium_prompt;
 };
 
 // Represents the content that is associated with a conversation.
@@ -177,6 +222,33 @@ struct ReduceFocusTopicsContentBlock {
   string text;  // topics
 };
 
+struct WebSource {
+  string title;
+  url.mojom.Url url;
+  url.mojom.Url favicon_url;
+
+  // Extra context to be optionally provided by server-side search tools.
+  // Currently these are only used in WebSourcesContentBlock and would not be
+  // populated in WebSourcesEvent, which we plan to retire and just utilize
+  // WebSourcesContentBlock from tool outputs directly in frontend.
+  string? page_content;
+  array<string>? extra_snippets;
+};
+
+// Content block for parsed web sources from search tool results.
+struct WebSourcesContentBlock {
+  array<WebSource> sources;
+  array<string> queries;
+
+  // Note: These are expected to be JSON strings in the format of
+  // https://api-dashboard.search.brave.com/app/documentation/rich-search/responses#RichResult
+  // We don't type anything explicitly here because the schema changes often and
+  // the expectation is that this data is simply passed through to a renderer
+  // that does understand the data format and is updated more frequently than
+  // the browser.
+  array<string> rich_results;
+};
+
 enum SimpleRequestType {
   kParaphrase,
   kImprove,
@@ -196,6 +268,12 @@ enum SimpleRequestType {
 // add it into ContentBlock union.
 struct SimpleRequestContentBlock {
   SimpleRequestType type;
+};
+
+// Artifact generated from tool call
+struct ToolArtifact {
+  string type;
+  string content_json;
 };
 
 union ContentBlock {
@@ -218,6 +296,10 @@ union ContentBlock {
   SuggestFocusTopicsWithEmojiContentBlock
     suggest_focus_topics_with_emoji_content_block;
   ReduceFocusTopicsContentBlock reduce_focus_topics_content_block;
+
+  // Brave customized content blocks for parsed web sources from server-side
+  // search tool results
+  WebSourcesContentBlock web_sources_content_block;
 
   // Brave customized content blocks which does not have any data payloads.
   SimpleRequestContentBlock simple_request_content_block;
@@ -252,9 +334,15 @@ struct ToolUseEvent {
   // has not yet run or completed.
   array<ContentBlock>? output;
 
+  // Artifacts generated from the Tool.
+  array<ToolArtifact>? artifacts;
+
   // Permission challenge that blocks execution until user approves.
   // Can be set by server (alignment check) or client tool.
   PermissionChallenge? permission_challenge;
+
+  // True if the output was provided by the server (server-side tool execution).
+  bool is_server_result = false;
 };
 
 struct SearchQueriesEvent {
@@ -263,12 +351,6 @@ struct SearchQueriesEvent {
 
 struct SearchStatusEvent {
   bool is_searching = true;
-};
-
-struct WebSource {
-  string title;
-  url.mojom.Url url;
-  url.mojom.Url favicon_url;
 };
 
 struct WebSourcesEvent {
@@ -282,14 +364,20 @@ struct WebSourcesEvent {
   array<string> rich_results;
 };
 
+// Inline search results which can be displayed as part of the response
+struct InlineSearchEvent {
+  // The query that was used for the results.
+  string query;
+
+  // The results of the search - stored as a JSON string so we can pass
+  // them around transparently.
+  string results_json;
+};
+
 struct CompletionEvent {
   // TODO(petemill): Use ContentBlock or even array<ContentBlock>
   // and rely less on multiple events.
   string completion;
-};
-
-struct SelectedLanguageEvent {
-  string selected_language;
 };
 
 struct ContentReceiptEvent {
@@ -301,6 +389,107 @@ struct ConversationTitleEvent {
   string title;
 };
 
+// Deep Research Events
+struct DeepResearchQueriesEvent {
+  array<string> queries;
+};
+
+struct DeepResearchAnalyzingEvent {
+  string query = "";
+  uint32 url_count = 0;
+  uint32 new_url_count = 0;
+};
+
+struct DeepResearchUrlInfo {
+  url.mojom.Url url;
+  url.mojom.Url favicon;
+};
+
+struct DeepResearchThinkingEvent {
+  string query = "";
+  uint32 chunks_analyzed = 0;
+  uint32 chunks_selected = 0;
+  uint32 urls_analyzed = 0;
+  array<url.mojom.Url> urls_selected;
+  array<DeepResearchUrlInfo> urls_info;
+};
+
+struct DeepResearchProgressEvent {
+  double elapsed_seconds = 0.0;
+  uint32 iteration_count = 0;
+  uint32 queries_count = 0;
+  uint32 urls_analyzed = 0;
+  uint32 snippets_analyzed = 0;
+};
+
+struct DeepResearchBlindspotsEvent {
+  array<string> blindspots;
+};
+
+struct DeepResearchCompleteEvent {
+  string reason = "";
+};
+
+struct DeepResearchErrorEvent {
+  string error = "";
+};
+
+// Granular progress events for UX improvement
+enum DeepResearchSearchStatus {
+  kStarted,
+  kCompleted,
+};
+
+enum DeepResearchAnalysisStatus {
+  kStarted,
+  kProgress,
+};
+
+struct DeepResearchSearchStatusEvent {
+  DeepResearchSearchStatus status = kStarted;
+  string query = "";
+  uint32 query_index = 0;
+  uint32 total_queries = 0;
+  uint32 urls_found = 0;  // only for completed
+  uint32 elapsed_ms = 0;  // only for completed
+};
+
+struct DeepResearchFetchStatusEvent {
+  string query = "";
+  uint32 urls_total = 0;
+  uint32 urls_fetched = 0;
+};
+
+struct DeepResearchAnalysisStatusEvent {
+  DeepResearchAnalysisStatus status = kStarted;
+  string query = "";
+  uint32 chunks_analyzed = 0;
+  uint32 chunks_total = 0;
+};
+
+struct DeepResearchIterationCompleteEvent {
+  uint32 iteration = 0;
+  uint32 total_iterations = 0;
+  uint32 queries_this_iteration = 0;
+  uint32 urls_analyzed = 0;
+  uint32 blindspots_identified = 0;
+};
+
+// All deep research event types consolidated into a single union
+union DeepResearchEvent {
+  DeepResearchQueriesEvent queries_event;
+  DeepResearchAnalyzingEvent analyzing_event;
+  DeepResearchThinkingEvent thinking_event;
+  DeepResearchProgressEvent progress_event;
+  DeepResearchBlindspotsEvent blindspots_event;
+  DeepResearchCompleteEvent complete_event;
+  DeepResearchErrorEvent error_event;
+  DeepResearchSearchStatusEvent search_status_event;
+  DeepResearchFetchStatusEvent fetch_status_event;
+  DeepResearchAnalysisStatusEvent analysis_status_event;
+  DeepResearchIterationCompleteEvent iteration_complete_event;
+};
+
 // Events that occur during a conversation turn (only assistant for now)
 union ConversationEntryEvent {
   CompletionEvent completion_event;
@@ -308,10 +497,11 @@ union ConversationEntryEvent {
   SearchStatusEvent search_status_event;
   WebSourcesEvent sources_event;
   ToolUseEvent tool_use_event;
+  InlineSearchEvent inline_search_event;
+  DeepResearchEvent deep_research_event;
 
   // These events don't normally get added to the conversation entry
   // but are used in engine responses.
-  SelectedLanguageEvent selected_language_event;
   ContentReceiptEvent content_receipt_event;
   ConversationTitleEvent conversation_title_event;
 };
@@ -409,6 +599,8 @@ struct LeoModelOptions {
   string name;
   // maker, for users
   string display_maker;
+  // description, for users
+  string description = "";
   // user-facing category
   ModelCategory category;
   // Which access level grants permission to use the model
@@ -449,6 +641,17 @@ struct Model {
   bool vision_support;
   // Model supports tool use
   bool supports_tools = false;
+  // whether accept audio as input
+  bool audio_support = false;
+  // whether accept video as input
+  bool video_support = false;
+  // Conversation capabilities this model supports. Used to filter which models
+  // are available for different conversation types (e.g. basic chat, content
+  // agent, deep research).
+  // All models that can participate in regular conversations should include
+  // CHAT. Models approved for agentic contexts (content agent, agent profile)
+  // should include CONTENT_AGENT, which should be approved by security team.
+  array<ConversationCapability> supported_capabilities;
   // Is a suggested model
   bool is_suggested_model;
   // Is a Near model
@@ -481,7 +684,13 @@ struct ConversationEntriesState {
   uint64 total_tokens;
   // Indicates the number of tokens that were trimmed from the conversation
   uint64 trimmed_tokens;
-  ConversationCapability conversation_capability;
-  // Whether a user is a premium user or not
-  bool is_premium_user;
+  array<ConversationCapability> conversation_capabilities;
+  // Suggested questions for the conversation
+  array<string> suggested_questions;
+  // Status of suggestion generation
+  SuggestionGenerationStatus suggestion_status;
+  // Current API error state
+  APIError current_error;
+  // Whether this is a temporary (non-persisted) conversation
+  bool is_temporary = false;
 };

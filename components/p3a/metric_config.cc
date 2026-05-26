@@ -29,6 +29,8 @@ constexpr auto kMetricAttributeMap =
         {"dtoi", MetricAttribute::kDateOfInstall},
         {"dtoa", MetricAttribute::kDateOfActivation},
         {"woa", MetricAttribute::kWeekOfActivation},
+        {"is_browser_default", MetricAttribute::kIsBrowserDefault},
+        {"custom_attribute", MetricAttribute::kCustomAttribute},
     });
 
 bool GetMetricAttribute(const base::Value* value,
@@ -119,6 +121,27 @@ bool GetOptionalBool(const base::Value* value, std::optional<bool>* field) {
   return true;
 }
 
+bool GetCustomAttributes(const base::Value* value,
+                         std::optional<RemoteCustomAttributes>* field) {
+  if (!value || !value->is_list()) {
+    return false;
+  }
+
+  const auto& list = value->GetList();
+
+  RemoteCustomAttributes attributes;
+
+  for (size_t i = 0; i < list.size() && i < attributes.size(); i++) {
+    if (!list[i].is_string()) {
+      return false;
+    }
+    attributes[i] = list[i].GetString();
+  }
+
+  *field = attributes;
+  return true;
+}
+
 }  // namespace
 
 RemoteMetricConfig::RemoteMetricConfig() = default;
@@ -150,6 +173,9 @@ void RemoteMetricConfig::RegisterJSONConverter(
       &GetOptionalString);
   converter->RegisterCustomValueField("cadence", &RemoteMetricConfig::cadence,
                                       &GetMetricLogType);
+  converter->RegisterCustomValueField("custom_attributes",
+                                      &RemoteMetricConfig::custom_attributes,
+                                      &GetCustomAttributes);
 }
 
 }  // namespace p3a

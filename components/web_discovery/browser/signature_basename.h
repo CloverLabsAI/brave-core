@@ -9,10 +9,13 @@
 #include <optional>
 #include <vector>
 
-#include "base/values.h"
 #include "brave/components/web_discovery/browser/server_config_loader.h"
 
 class PrefService;
+
+namespace base {
+class DictValue;
+}  // namespace base
 
 namespace web_discovery {
 
@@ -41,7 +44,7 @@ struct BasenameResult {
 std::optional<BasenameResult> GenerateBasename(
     PrefService* profile_prefs,
     const ServerConfig& server_config,
-    const base::Value::Dict& payload);
+    const base::DictValue& payload);
 
 // Saves the count returned from `GenerateBasename` in the prefs.
 // This ensures that the count index cannot be used for future messages

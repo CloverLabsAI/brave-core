@@ -73,7 +73,6 @@ CreativesInfo BuildCreatives(const CatalogInfo& catalog) {
         creative_ad.per_month = creative_set.per_month;
         creative_ad.total_max = creative_set.total_max;
         creative_ad.value = creative_set.value;
-        creative_ad.split_test_group = creative_set.split_test_group;
         creative_ad.dayparts = dayparts;
         creative_ad.geo_targets = geo_targets;
         creative_ad.target_url = creative.payload.target_url;
@@ -104,8 +103,6 @@ CreativesInfo BuildCreatives(const CatalogInfo& catalog) {
 
         creative_set_conversion.id = conversion.creative_set_id;
         creative_set_conversion.url_pattern = conversion.url_pattern;
-        creative_set_conversion.verifiable_advertiser_public_key_base64 =
-            conversion.verifiable_advertiser_public_key_base64;
         creative_set_conversion.observation_window =
             conversion.observation_window;
         creative_set_conversion.expire_at = conversion.expire_at;

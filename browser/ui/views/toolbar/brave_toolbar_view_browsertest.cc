@@ -10,8 +10,11 @@
 #include "base/memory/raw_ptr.h"
 #include "base/test/scoped_feature_list.h"
 #include "brave/browser/ui/tabs/brave_split_tab_menu_model.h"
+#include "brave/browser/ui/tabs/brave_tab_prefs.h"
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
+#include "brave/browser/ui/views/location_bar/brave_location_bar_view.h"
 #include "brave/browser/ui/views/toolbar/bookmark_button.h"
+#include "brave/browser/ui/views/toolbar/side_panel_button.h"
 #include "brave/components/ai_chat/core/common/buildflags/buildflags.h"
 #include "brave/components/brave_wallet/common/buildflags/buildflags.h"
 #include "brave/components/constants/pref_names.h"
@@ -29,18 +32,18 @@
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_commands.h"
 #include "chrome/browser/ui/browser_finder.h"
-#include "chrome/browser/ui/browser_list.h"
 #include "chrome/browser/ui/browser_list_observer.h"
 #include "chrome/browser/ui/browser_tabstrip.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
+#include "chrome/browser/ui/side_panel/side_panel_entry.h"
+#include "chrome/browser/ui/side_panel/side_panel_entry_id.h"
+#include "chrome/browser/ui/side_panel/side_panel_entry_key.h"
 #include "chrome/browser/ui/tabs/split_tab_menu_model.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
+#include "chrome/browser/ui/views/frame/custom_corners_background.h"
 #include "chrome/browser/ui/views/frame/toolbar_button_provider.h"
 #include "chrome/browser/ui/views/side_panel/side_panel_coordinator.h"
-#include "chrome/browser/ui/views/side_panel/side_panel_entry.h"
-#include "chrome/browser/ui/views/side_panel/side_panel_entry_id.h"
-#include "chrome/browser/ui/views/side_panel/side_panel_entry_key.h"
 #include "chrome/browser/ui/views/toolbar/browser_app_menu_button.h"
 #include "chrome/browser/ui/views/toolbar/split_tabs_button.h"
 #include "chrome/browser/ui/views/toolbar/toolbar_view.h"
@@ -276,8 +279,7 @@ IN_PROC_BROWSER_TEST_F(BraveToolbarViewTest_AIChatEnabled,
   // Check loaded in sidebar.
   SidePanelEntryKey ai_chat_key =
       SidePanelEntry::Key(SidePanelEntryId::kChatUI);
-  auto* side_panel_coordinator =
-      browser()->GetFeatures().side_panel_coordinator();
+  auto* side_panel_coordinator = SidePanelCoordinator::From(browser());
   EXPECT_FALSE(side_panel_coordinator->IsSidePanelShowing(
       SidePanelEntry::PanelType::kContent));
   button->ButtonPressed();
@@ -325,12 +327,12 @@ IN_PROC_BROWSER_TEST_F(BraveToolbarViewTest_AIChatEnabled,
 IN_PROC_BROWSER_TEST_F(BraveToolbarViewTest_AIChatEnabled,
                        AIChatButtonVisibility_GuestProfile) {
   // Open a Guest window.
-  EXPECT_EQ(1U, BrowserList::GetInstance()->size());
+  EXPECT_EQ(1U, chrome::GetTotalBrowserCount());
   ui_test_utils::BrowserCreatedObserver browser_creation_observer;
   profiles::SwitchToGuestProfile(base::DoNothing());
   base::RunLoop().RunUntilIdle();
   browser_creation_observer.Wait();
-  EXPECT_EQ(2U, BrowserList::GetInstance()->size());
+  EXPECT_EQ(2U, chrome::GetTotalBrowserCount());
 
   // Retrieve the new Guest profile.
   Profile* guest = g_browser_process->profile_manager()->GetProfileByPath(
@@ -350,19 +352,52 @@ IN_PROC_BROWSER_TEST_F(BraveToolbarViewTest_AIChatDisabled,
 }
 #endif
 
+// When the toolbar is narrowed, Brave optional buttons (bookmark, side panel)
+// must collapse to zero width before the location bar is forced below its
+// minimum size. This exercises SetBraveButtonFlexBehavior() and the additive
+// GetMinimumSize() in BraveLocationBarView.
+IN_PROC_BROWSER_TEST_F(BraveToolbarViewTest,
+                       BraveButtonsCollapseBeforeLocationBarShrinks) {
+  auto* location_bar =
+      static_cast<BraveLocationBarView*>(toolbar_view_->location_bar());
+  ASSERT_NE(location_bar, nullptr);
+  const int location_bar_min = location_bar->GetMinimumSize().width();
+
+  // Narrow the toolbar to just above the location bar minimum so that Brave
+  // optional buttons must be evicted to satisfy the location bar's minimum.
+  auto toolbar_bounds = toolbar_view_->bounds();
+  toolbar_bounds.set_width(location_bar_min + 150);
+  toolbar_view_->SetBoundsRect(toolbar_bounds);
+
+  EXPECT_FALSE(toolbar_view_->bookmark_button()->GetVisible());
+  EXPECT_FALSE(toolbar_view_->side_panel_button()->GetVisible());
+  EXPECT_GE(location_bar->width(), location_bar_min)
+      << "location bar width: " << location_bar->width()
+      << ", min: " << location_bar_min;
+}
+
 IN_PROC_BROWSER_TEST_F(BraveToolbarViewTest, ToolbarDividerNotShownTest) {
   // As we don't use divider in toolbar, it should be null always.
   EXPECT_TRUE(!toolbar_view_->toolbar_divider_for_testing());
 }
 
 IN_PROC_BROWSER_TEST_F(BraveToolbarViewTest, ToolbarCornerRadiusTest) {
-  // Check toolbar corner radius is always 8 regardless of active tab index.
+  // Check toolbar corner radius is always kTabstripCurve regardless of active
+  // tab index.
+  auto* custom_corners_background =
+      static_cast<CustomCornersBackground*>(toolbar_view_->background());
   EXPECT_EQ(0, browser()->tab_strip_model()->active_index());
-  EXPECT_EQ(8, toolbar_view_->receding_corner_radius_);
+  EXPECT_EQ(custom_corners_background->GetCorners().upper_leading.type,
+            CustomCornersBackground::CornerType::kRoundedWithBackground);
+  EXPECT_EQ(custom_corners_background->GetCorners().upper_trailing.type,
+            CustomCornersBackground::CornerType::kRoundedWithBackground);
 
   chrome::AddTabAt(browser(), GURL(), -1, /*foreground*/ true);
   EXPECT_EQ(1, browser()->tab_strip_model()->active_index());
-  EXPECT_EQ(8, toolbar_view_->receding_corner_radius_);
+  EXPECT_EQ(custom_corners_background->GetCorners().upper_leading.type,
+            CustomCornersBackground::CornerType::kRoundedWithBackground);
+  EXPECT_EQ(custom_corners_background->GetCorners().upper_trailing.type,
+            CustomCornersBackground::CornerType::kRoundedWithBackground);
 }
 
 IN_PROC_BROWSER_TEST_F(BraveToolbarViewTest,
@@ -415,12 +450,12 @@ IN_PROC_BROWSER_TEST_F(BraveToolbarViewTest, AvatarButtonTextWithOTRTest) {
 
 IN_PROC_BROWSER_TEST_F(BraveToolbarViewTest, AvatarButtonIsShownGuestProfile) {
   // Open a Guest window.
-  EXPECT_EQ(1U, BrowserList::GetInstance()->size());
+  EXPECT_EQ(1U, chrome::GetTotalBrowserCount());
   ui_test_utils::BrowserCreatedObserver browser_creation_observer;
   profiles::SwitchToGuestProfile(base::DoNothing());
   base::RunLoop().RunUntilIdle();
   browser_creation_observer.Wait();
-  EXPECT_EQ(2U, BrowserList::GetInstance()->size());
+  EXPECT_EQ(2U, chrome::GetTotalBrowserCount());
 
   // Retrieve the new Guest profile.
   Profile* guest = g_browser_process->profile_manager()->GetProfileByPath(
@@ -452,7 +487,7 @@ IN_PROC_BROWSER_TEST_F(BraveToolbarViewTest,
   EXPECT_EQ(true, is_avatar_button_shown());
 
   // Open the new profile
-  EXPECT_EQ(1U, BrowserList::GetInstance()->size());
+  EXPECT_EQ(1U, chrome::GetTotalBrowserCount());
   ui_test_utils::BrowserCreatedObserver browser_creation_observer;
   profiles::OpenBrowserWindowForProfile(
       base::DoNothing(),
@@ -460,7 +495,7 @@ IN_PROC_BROWSER_TEST_F(BraveToolbarViewTest,
       /*is_new_profile=*/true, /*open_command_line_urls=*/false, &new_profile);
   base::RunLoop().RunUntilIdle();
   browser_creation_observer.Wait();
-  EXPECT_EQ(2U, BrowserList::GetInstance()->size());
+  EXPECT_EQ(2U, chrome::GetTotalBrowserCount());
 
   // Check it's shown in second profile
   Browser* browser = chrome::FindAnyBrowser(&new_profile, true);
@@ -479,7 +514,8 @@ IN_PROC_BROWSER_TEST_F(BraveToolbarViewTest,
             container->GetIndexOf(app_menu).value() - 1ul);
 
   // Check avatar button's size.
-  const int avatar_size = GetLayoutConstant(TOOLBAR_BUTTON_HEIGHT);
+  const int avatar_size =
+      GetLayoutConstant(LayoutConstant::kToolbarButtonHeight);
   EXPECT_EQ(gfx::Size(avatar_size, avatar_size), avatar->size());
 }
 
@@ -550,3 +586,22 @@ IN_PROC_BROWSER_TEST_F(BraveToolbarViewTest,
   EXPECT_TRUE(is_wallet_button_shown(browser()));
 }
 #endif  // BUILDFLAG(ENABLE_BRAVE_WALLET)
+
+IN_PROC_BROWSER_TEST_F(BraveToolbarViewTest,
+                       VerticalTabToggleButtonVisibility) {
+  auto* prefs = browser()->profile()->GetPrefs();
+  auto* button = toolbar_view_->vertical_tab_toggle_button();
+  ASSERT_TRUE(button);
+
+  // By default, vertical tabs is disabled, so button is not visible.
+  EXPECT_FALSE(prefs->GetBoolean(brave_tabs::kVerticalTabsEnabled));
+  EXPECT_FALSE(button->GetVisible());
+
+  // Enable vertical tabs - button should become visible.
+  prefs->SetBoolean(brave_tabs::kVerticalTabsEnabled, true);
+  EXPECT_TRUE(button->GetVisible());
+
+  // Disable vertical tabs - button should be hidden again.
+  prefs->SetBoolean(brave_tabs::kVerticalTabsEnabled, false);
+  EXPECT_FALSE(button->GetVisible());
+}

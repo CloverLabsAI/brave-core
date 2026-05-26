@@ -5,6 +5,7 @@
 
 #include "brave/third_party/blink/renderer/core/farbling/brave_session_cache.h"
 
+#include <algorithm>
 #include <string_view>
 
 #include "base/check.h"
@@ -35,6 +36,7 @@
 #include "third_party/blink/renderer/platform/language.h"
 #include "third_party/blink/renderer/platform/network/network_utils.h"
 #include "third_party/blink/renderer/platform/storage/blink_storage_key.h"
+#include "third_party/blink/renderer/platform/supplementable.h"
 #include "third_party/blink/renderer/platform/weborigin/scheme_registry.h"
 #include "third_party/blink/renderer/platform/weborigin/security_origin.h"
 #include "third_party/blink/renderer/platform/wtf/casting.h"
@@ -102,6 +104,8 @@ const blink::BlinkStorageKey* GetStorageKey(blink::ExecutionContext* context) {
 
 namespace brave {
 
+constexpr char BraveSessionCache::kSupplementName[] = "BraveSessionCache";
+
 blink::WebContentSettingsClient* GetContentSettingsClientFor(
     ExecutionContext* context) {
   if (!context) {
@@ -117,7 +121,7 @@ blink::WebContentSettingsClient* GetContentSettingsClientFor(
       "chrome-extension",
       "chrome-untrusted",
   };
-  if (protocol.empty() || base::Contains(kExcludedProtocols, protocol) ||
+  if (protocol.empty() || std::ranges::contains(kExcludedProtocols, protocol) ||
       blink::SchemeRegistry::ShouldTreatURLSchemeAsDisplayIsolated(protocol)) {
     return nullptr;
   }
@@ -353,7 +357,7 @@ void BraveSessionCache::SetTimezoneOverride(const blink::String& timezone_id) {
 }
 
 BraveSessionCache::BraveSessionCache(ExecutionContext& context)
-    : execution_context_(context) {
+    : Supplement<ExecutionContext>(context) {
   if (auto* settings_client = GetContentSettingsClientFor(&context)) {
     default_shields_settings_ = settings_client->GetBraveShieldsSettings(
         ContentSettingsType::BRAVE_WEBCOMPAT_NONE);
@@ -435,10 +439,11 @@ BraveSessionCache::BraveSessionCache(ExecutionContext& context)
 }
 
 BraveSessionCache& BraveSessionCache::From(ExecutionContext& context) {
-  BraveSessionCache* cache = context.GetBraveSessionCache();
+  BraveSessionCache* cache =
+      Supplement<ExecutionContext>::From<BraveSessionCache>(context);
   if (!cache) {
     cache = MakeGarbageCollected<BraveSessionCache>(context);
-    context.SetBraveSessionCache(cache);
+    ProvideTo(context, cache);
   }
   return *cache;
 }
@@ -597,8 +602,9 @@ bool BraveSessionCache::AllowFontFamily(
       return true;
     case BraveFarblingLevel::BALANCED:
     case BraveFarblingLevel::MAXIMUM: {
-      if (AllowFontByFamilyName(family_name,
-                                blink::DefaultLanguage().GetString().Left(2))) {
+      if (AllowFontByFamilyName(
+              family_name,
+              blink::DefaultLanguage().GetString().Substring(0, 2))) {
         return true;
       }
       if (IsFontAllowedForFarbling(family_name)) {
@@ -657,7 +663,7 @@ BraveFarblingLevel BraveSessionCache::GetBraveFarblingLevel(
   if (webcompat_content_settings > ContentSettingsType::BRAVE_WEBCOMPAT_NONE &&
       webcompat_content_settings < ContentSettingsType::BRAVE_WEBCOMPAT_ALL) {
     if (auto* settings_client =
-            GetContentSettingsClientFor(execution_context_)) {
+            GetContentSettingsClientFor(GetSupplementable())) {
       auto shields_settings =
           settings_client->GetBraveShieldsSettings(webcompat_content_settings);
       // https://github.com/brave/brave-browser/issues/41889 debug.
@@ -672,10 +678,6 @@ BraveFarblingLevel BraveSessionCache::GetBraveFarblingLevel(
     }
   }
   return default_shields_settings_->farbling_level;
-}
-
-void BraveSessionCache::Trace(blink::Visitor* visitor) const {
-  visitor->Trace(execution_context_);
 }
 
 }  // namespace brave

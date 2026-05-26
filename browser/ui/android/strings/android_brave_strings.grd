@@ -305,6 +305,30 @@ This file contains all "about" strings.  It is set to NOT be translated, in tran
       <message name="IDS_BLOCK_YOUTUBE_SHORTS_DESCRIPTION" desc="Hides shorts on YouTube.">
         Blocks Shorts from the home page, trending page and search results on youtube.com.
       </message>
+      <message name="IDS_BLOCK_YOUTUBE_AUTODUBBED_VIDEOS" desc="Block YouTube auto-dubbed videos">
+        Block YouTube auto-dubbed videos
+      </message>
+      <message name="IDS_BLOCK_YOUTUBE_AUTODUBBED_VIDEOS_DESCRIPTION" desc="Blocks auto-dubbed videos from appearing on youtube.com.">
+        Blocks auto-dubbed videos from appearing on the youtube.com home page &amp; search results.
+      </message>
+      <message name="IDS_BLOCK_YOUTUBE_THUMBNAILS" desc="Block YouTube thumbnails">
+        Block YouTube thumbnails
+      </message>
+      <message name="IDS_BLOCK_YOUTUBE_THUMBNAILS_DESCRIPTION" desc="Blocks thumbnails from appearing on youtube.com.">
+        Blocks thumbnails from appearing on the youtube.com home page &amp; search results.
+      </message>
+      <message name="IDS_BLOCK_YOUTUBE_PLAYABLES" desc="Block YouTube Playables">
+        Block YouTube Playables
+      </message>
+      <message name="IDS_BLOCK_YOUTUBE_PLAYABLES_DESCRIPTION" desc="Blocks Playables from appearing on youtube.com.">
+        Blocks Playables from appearing on the youtube.com home page &amp; search results.
+      </message>
+      <message name="IDS_BLOCK_YOUTUBE_MEMBERS_ONLY_VIDEOS" desc="Block YouTube members-only videos">
+        Block YouTube members-only videos
+      </message>
+      <message name="IDS_BLOCK_YOUTUBE_MEMBERS_ONLY_VIDEOS_DESCRIPTION" desc="Blocks members-only videos from appearing on youtube.com.">
+        Blocks members-only videos from appearing on the youtube.com home page &amp; search results.
+      </message>
       <message name="IDS_BRAVE_SHIELDS_SOCIAL_BLOCKING_TITLE" desc="Title for social media blocking.">
         Social Media Blocking
       </message>
@@ -331,33 +355,6 @@ This file contains all "about" strings.  It is set to NOT be translated, in tran
       </message>
       <message name="IDS_PREFS_SUPPORT_SECTION" desc="Title for the support section ">
         Support
-      </message>
-      <message name="IDS_PREFS_BRAVE_ACCOUNT" translateable="false" desc="Title for the Brave Account section in settings">
-        Brave Account
-      </message>
-      <message name="IDS_PREFS_BRAVE_ACCOUNT_EMAIL_ADDRESS" translateable="false" desc="Title shown when user is logged in">
-        Email address
-      </message>
-      <message name="IDS_PREFS_BRAVE_ACCOUNT_SIGN_OUT" translateable="false" desc="Label for the button that signs the user out of their account when clicked">
-        Sign out
-      </message>
-      <message name="IDS_PREFS_BRAVE_ACCOUNT_ALMOST_THERE" translateable="false" desc="Title shown when user has registered but is awaiting email verification">
-        Almost there!
-      </message>
-      <message name="IDS_PREFS_BRAVE_ACCOUNT_ALMOST_THERE_DETAIL" translateable="false" desc="Instructions informing the user that a confirmation email has been sent and they need to click the link to activate their account">
-        A confirmation email is on the way. Click the button in that email to activate your account.
-      </message>
-      <message name="IDS_PREFS_BRAVE_ACCOUNT_RESEND_CONFIRMATION_EMAIL" translateable="false" desc="Label for the button that resends the confirmation email when clicked">
-        Resend confirmation email
-      </message>
-      <message name="IDS_PREFS_BRAVE_ACCOUNT_RESEND_CONFIRMATION_EMAIL_DETAIL" translateable="false" desc="Help text for users who haven't received the confirmation email, suggesting they check spam or resend it">
-        Don't see the email? Check your spam folder or click on the button to resend the confirmation email.
-      </message>
-      <message name="IDS_PREFS_BRAVE_ACCOUNT_CANCEL_REGISTRATION" translateable="false" desc="Label for the button that cancels the pending registration when clicked">
-        Cancel registration
-      </message>
-      <message name="IDS_PREFS_BRAVE_ACCOUNT_GET_STARTED" translateable="false" desc="Label for the button that opens the Brave Account dialog when clicked">
-        Get started
       </message>
       <message name="IDS_PREFS_SECTION_FEATURES" desc="Title for Brave-specific features section">
         Features
@@ -756,29 +753,50 @@ This file contains all "about" strings.  It is set to NOT be translated, in tran
       </message>
 
       <!-- Onboarding strings -->
-      <message name="IDS_PRIVACY_ONBOARDING" desc="Text for privacy onboarding">
-        Privacy. Made simple.
-      </message>
-      <message name="IDS_ONBOARDING_SET_DEFAULT" desc="Text for set default onboarding">
-        With Brave as default, every link you tap opens with Brave's privacy protections.
-      </message>
       <message name="IDS_P3A_TITLE" desc="Text for p3a title onboarding">
-        Help make Brave better.
+        Help make Brave better
       </message>
-      <message name="IDS_P3A_CRASH" desc="Text for p3a crash onboarding">
-        Send diagnostic reports if you experience a crash or freeze.
-      </message>
-      <message name="IDS_P3A_INSIGHTS" desc="Text for p3a insights onboarding">
-        Share private and anonymous product insights about what features are being used by Brave's users.
+        <message name="IDS_P3A_SUBTITLE" desc="Text for p3a subtitle onboarding">
+        Let us know which features you're enjoying the most.
       </message>
       <message name="IDS_WDP_TITLE" desc="Text for WDP title onboarding">
         Help Brave Search grow
       </message>
+      <message name="IDS_BLOCK_INTERRUPTIONS" desc="Block video ads title onboarding">
+        Block interruptions when you stream
+      </message>
       <message name="IDS_WDP_TEXT" desc="Text for WDP text onboarding">
         Opt into the Web Discovery Project to help grow the index and improve search results. <ph name="LEARN_MORE_START">&lt;learn_more&gt;</ph>Learn more.<ph name="LEARN_MORE_END">&lt;/learn_more&gt;</ph>
       </message>
+      <message name="IDS_BRAVE_ONBOARDING_SPLASH_LOGO_DESCRIPTION" desc="Accessibility description for the onboarding splash logo">
+        Brave logo
+      </message>
+      <message name="IDS_BRAVE_ONBOARDING_HELP_BRAVE_SEARCH_ILLUSTRATION_DESCRIPTION" desc="Accessibility description for the help Brave Search onboarding illustration">
+        Help Brave Search illustration
+      </message>
+      <message name="IDS_BRAVE_ONBOARDING_BLOCK_INTERRUPTIONS_ILLUSTRATION_DESCRIPTION" desc="Accessibility description for the block interruptions onboarding illustration">
+        Block interruptions illustration
+      </message>
+      <message name="IDS_BRAVE_ONBOARDING_MAKE_BRAVE_BETTER_ILLUSTRATION_DESCRIPTION" desc="Accessibility description for the make Brave better onboarding illustration">
+        Make Brave better illustration
+      </message>
+      <message name="IDS_BLOCK_INTERRUPTIONS_SUBTITLE" desc="Block video ads subtitle onboarding">
+        Block annoying interruptions on your favorite streaming sites.
+      </message>
       <message name="IDS_SURE_ILL_HELP_ONBOARDING" desc="Text for Sure i'll help button onboarding">
         Sure, I'll help
+      </message>
+      <message name="IDS_SEND_REPORTS_TITLE" desc="Title for sending anonymous diagnostic reports during onboarding phase">
+        Send crash reports
+      </message>
+      <message name="IDS_SEND_REPORTS" desc="Text for sending anonymous diagnostic reports during onboarding phase">
+        Send anonymous diagnostic reports if you experience a crash or freeze.
+      </message>
+      <message name="IDS_SEND_P3A" desc="Text for sending anonymous product insight during onboarding phase">
+        Share private and anonymous product insights about what Brave features are being used.
+      </message>
+      <message name="IDS_SEND_P3A_TITLE" desc="Title for sending anonymous product insight during onboarding phase">
+        Private product insights
       </message>
       <message name="IDS_SHIELD_ONBOARDING" desc="Text for shield tooltip onboarding">
         Tap to view Brave Shields
@@ -797,9 +815,6 @@ This file contains all "about" strings.  It is set to NOT be translated, in tran
       </message>
       <message name="IDS_SKIP" desc="Text for skip button in onboarding">
         Skip
-      </message>
-      <message name="IDS_LEARN_MORE_ONBOARDING" desc="Text for learn more button onboarding">
-        Learn more
       </message>
       <message name="IDS_TROUBLESHOOTING_ONBOARDING" desc="Text for trouble shooting page for onboarding">
         Troubleshooting onboarding
@@ -1332,7 +1347,7 @@ Are you sure you want to do this?
         About
       </message>
       <message name="IDS_MAYBE_LATER" desc="Text for rate brave dialog button.">
-        Maybe Later
+        Maybe later
       </message>
       <message name="IDS_BLOCK_TRACKERS_ADS_OPTION_1" desc="Text for block trackers and ads option.">
         Block trackers &amp; ads (Aggressive)
@@ -1445,6 +1460,27 @@ Are you sure you want to do this?
       <message name="IDS_BRAVE_SHIELDS_BLOCK_ELEMENT_TEXT" desc="Shields block element button label.">
         Block element
       </message>
+      <message name="IDS_BRAVE_SHIELDS_SHRED_SITES_DATA_TEXT" desc="Shields menu shred site's data item text.">
+        Shred site's data
+      </message>
+      <message name="IDS_BRAVE_SHIELDS_SHRED_SITES_DATA_SUB_TEXT" desc="Shields menu shred site's data item sub text.">
+        Auto shred: <ph name="AUTO_SHRED_MODE_TEXT">%1$s</ph>
+      </message>
+      <message name="IDS_BRAVE_SHIELDS_SHRED_SITES_DATA_NOW_TEXT" desc="Shields menu shred site's data now item text.">
+        Shred site data now
+      </message>
+      <message name="IDS_BRAVE_SHIELDS_AUTO_SHRED_SITES_DATA_TEXT" desc="Shields menu auto shred site's data item text.">
+        Auto shred
+      </message>
+      <message name="IDS_BRAVE_SHIELDS_AUTO_SHRED_NEVER_MODE_TEXT" desc="Shields menu auto shred never mode item text.">
+        Never
+      </message>
+      <message name="IDS_BRAVE_SHIELDS_AUTO_SHRED_SITE_TAB_CLOSED_MODE_TEXT" desc="Shields menu auto shred site tab closed mode item text.">
+        Site tab closed
+      </message>
+      <message name="IDS_BRAVE_SHIELDS_AUTO_SHRED_APP_CLOSE_MODE_TEXT" desc="Shields menu auto shred app close mode item text.">
+        App close
+      </message>   
       <message name="IDS_REPORT_BROKEN_SITE_TEXT" desc="Shields text for broken text warning message.">
         Report a broken site
       </message>
@@ -1666,9 +1702,6 @@ Are you sure you want to do this?
       </message>
       <message name="IDS_DOWNLOAD_PROGRESS_NOTIFICATION_TITLE" desc="Title for preference that allows the user to enable disable download progress notifications bubble.">
         Show download progress notifications
-      </message>
-      <message name="IDS_BRAVE_DOWNLOAD_LOCATION_PROMPT_ENABLED_TITLE" desc="Title for preference that allows the user to indicate whether they want to show a change downloads location prompt every time they download.">
-        Ask where to save files (if SD card is detected)
       </message>
       <message name="IDS_ENABLE_PARALLEL_DOWNLOADING_TITLE" desc="Title for preference that allows the user to enable parallel downloading.">
         Parallel Downloading
@@ -3068,6 +3101,18 @@ If you don't accept this request, VPN will not reconnect and your internet conne
     <message name="IDS_TRY_BRAVE_SEARCH_WIDGET_DESCRIPTION" desc="Description of Brave search widget promo">
       Access private, independent search right from your home screen.
     </message>
+    <message name="IDS_SEARCH_WIDGET_PROMO_SEARCH_CONTENT_DESCRIPTION" desc="Content description for the search icon in the Brave search widget promo">
+      Search
+    </message>
+    <message name="IDS_SEARCH_WIDGET_PROMO_VOICE_SEARCH_CONTENT_DESCRIPTION" desc="Content description for the voice search icon in the Brave search widget promo">
+      Voice search
+    </message>
+    <message name="IDS_SEARCH_WIDGET_PROMO_PRIVATE_SEARCH_CONTENT_DESCRIPTION" desc="Content description for the private search icon in the Brave search widget promo">
+      Open private search
+    </message>
+    <message name="IDS_SEARCH_WIDGET_PROMO_LEO_CONTENT_DESCRIPTION" desc="Content description for the Leo icon in the Brave search widget promo">
+      Open Leo
+    </message>
     <message name="IDS_ADD_WIDGET" desc="Add widget button text">
       Add widget
     </message>
@@ -3176,9 +3221,6 @@ If you don't accept this request, VPN will not reconnect and your internet conne
     <message name="IDS_ORIGIN_REWARDS_TOGGLE" desc="Brave Origin rewards toggle title">
       Rewards
     </message>
-    <message name="IDS_ORIGIN_CRASH_REPORTS_TOGGLE" desc="Brave Origin automatically send crash reports toggle title">
-      Automatically send crash reports
-    </message>
     <message name="IDS_ORIGIN_PRIVACY_PRESERVING_ANALYTICS_TOGGLE" desc="Brave Origin privacy preserving analytics toggle title">
       Privacy preserving analytics
     </message>
@@ -3186,7 +3228,7 @@ If you don't accept this request, VPN will not reconnect and your internet conne
       Email aliases
     </message>
     <message name="IDS_ORIGIN_LEO_AI_TOGGLE" desc="Brave Origin Leo AI toggle title">
-      Leo AI
+      AI
     </message>
     <message name="IDS_ORIGIN_NEWS_TOGGLE" desc="Brave Origin News toggle title">
       News
@@ -3209,10 +3251,40 @@ If you don't accept this request, VPN will not reconnect and your internet conne
     <message name="IDS_ORIGIN_TOGGLE_ENABLED_DESCRIPTION" desc="Description shown when a toggle is enabled in Brave Origin settings">
       This feature is enabled because you opted into it
     </message>
-    <message name="IDS_ORIGIN_DESCRIPTION_TEXT" desc="Brave Origin description text explaining the subscription">
-      Brave Origin is a subscription-based way to disable the revenue-generating features that otherwise support Brave as a business. Brave Origin subscribers will continue to benefit from our industry-leading privacy, adblock, and speed (via Brave Shields), as well as regular software updates, Chromium patches, and security and privacy improvements. They'll also unlock the option to disable features like Brave Leo, News, Rewards, Wallet, VPN, Web3 domains, and more.&lt;br/&gt;&lt;br/&gt;Subscribers will see a new control panel in the browser settings menu. Existing features—as well as any new features we ship in the future—would appear here, and be toggled off by default.&lt;br/&gt;&lt;br/&gt;&lt;b&gt;Note: Brave Origin will not disable browser features that you currently use, and will not affect Brave Search features or Brave Search Ads.&lt;/b&gt;
+    <message name="IDS_ORIGIN_DESCRIPTION_TITLE" desc="Brave Origin description title">
+      Customize your browser while still supporting Brave
     </message>
-    <message name="IDS_LINK_SUBSCRIPTION_TITLE_ORIGIN" desc="Brave Origin link subscription settings title text">
+    <message name="IDS_ORIGIN_DESCRIPTION_BODY" desc="Brave Origin description body text">
+      Brave Origin is a paid version of the browser for users who don't need all the features that support Brave as a business, but still want the privacy that only Brave offers. Origin users will continue to benefit from our industry-leading privacy, adblock, and speed (via Shields), as well as regular software updates, Chromium patches, and security and privacy improvements. Origin will remove most other features from the browser.
+    </message>
+    <message name="IDS_ORIGIN_DESCRIPTION_NOTE" desc="Brave Origin description note about Search Premium">
+      Note that a Brave Origin purchase will also include access to Brave Search Premium, as Origin will remove ads from the Brave Search results page.
+    </message>
+    <message name="IDS_ORIGIN_CHANGING_BRAVE_FEATURES_TITLE" desc="Title for the snackbar shown when toggling a Brave Origin feature">
+      Changing Brave features
+    </message>
+    <message name="IDS_ORIGIN_CHANGING_BRAVE_FEATURES_MESSAGE" desc="Message for the snackbar shown when toggling a Brave Origin feature, explaining that a restart is needed">
+      Enabling or disabling a Brave feature requires the browser to restart to apply changes. Would you like to restart now?
+    </message>
+    <message name="IDS_ORIGIN_RESTART_NOW" desc="Action button text on the Brave Origin restart snackbar">
+      Restart now
+    </message>
+    <message name="IDS_ORIGIN_DISABLING_FEATURES" desc="Text shown in the snackbar while Origin credentials are being fetched after purchase, indicating features are being disabled">
+      Disabling features
+    </message>
+    <message name="IDS_ORIGIN_CHANGING_BRAVE_FEATURES_MESSAGE_POST_PURCHASE" desc="Message for the snackbar shown right after Origin purchase while credentials are being fetched">
+      Enabling or disabling a Brave feature requires a browser restart to apply changes. Please tap <ph name="BEGIN_BOLD">&lt;b&gt;</ph>Restart now<ph name="END_BOLD">&lt;/b&gt;</ph> once Origin has finished updating.
+    </message>
+    <message name="IDS_ORIGIN_RESET_DIALOG_MESSAGE" desc="Confirmation message shown when the user taps Reset to defaults in Brave Origin settings">
+      Are you sure you want to reset all settings to default?
+    </message>
+    <message name="IDS_ORIGIN_RESET_DIALOG_BUTTON" desc="Button text for the reset confirmation dialog in Brave Origin settings">
+      Reset
+    </message>
+    <message name="IDS_ORIGIN_PURCHASE_SECTION_TITLE" desc="Brave Origin purchase section title">
+      Purchase
+    </message>
+    <message name="IDS_LINK_PURCHASE_TITLE_ORIGIN" desc="Brave Origin link purchase settings title text">
       Link purchase to your Brave account
     </message>
     <message name="IDS_BRAVE_WALLET_SIGN_IN_WITH_BRAVE_WALLET" desc="Sign in with Brave Wallet Title">
@@ -3592,7 +3664,7 @@ If you don't accept this request, VPN will not reconnect and your internet conne
       Shredding will delete site data and close all '<ph name="SITE_NAME">%1$s</ph>' tabs. This cannot be undone.
     </message>
     <message name="IDS_BRAVE_MENU_SHRED_TEXT" desc="Shred menu item text to delete browsing data securely.">
-      Shred
+      Shred site data
     </message>
     <message name="IDS_BRAVE_SHRED_DATA_DIALOG_OK_BUTTON_TEXT" desc="Shred data confirmation dialog OK button text">
       Shred data
@@ -3618,32 +3690,26 @@ If you don't accept this request, VPN will not reconnect and your internet conne
     <message name="IDS_BRAVE_ORIGIN_PREMIUM" desc="Title for Origin Premium">
       Origin
     </message>
-    <message name="IDS_YEARLY_SUBSCRIPTION_AMOUNT_ORIGIN" desc="Brave Origin plan text">
-      <ph name="YEARLY_AMOUNT">%1$s</ph> /year
-    </message>
-    <message name="IDS_MONTHLY_SUBSCRIPTION_AMOUNT_ORIGIN" desc="Brave Origin plan text">
-      <ph name="MONTHLY_AMOUNT">%1$s</ph> /month
-    </message>
-    <message name="IDS_ORIGIN_SUBSCRIPTION_TRY_FREE_TRIAL" desc="Try free trial now button for Brave Origin subscription">
-      Try 7 days free
+    <message name="IDS_ORIGIN_BUY_NOW" desc="Buy now button for Brave Origin one-time purchase">
+      Buy now
     </message>
     <message name="IDS_ORIGIN_PAYWALL_TEXT_1" desc="Brave Origin paywall text">
       Support our mission &amp; open-source work
     </message>
     <message name="IDS_ORIGIN_PAYWALL_TEXT_2" desc="Brave Origin paywall text">
-      Minimal browser UI centered on Shields
+      Minimalist browser UI centered on Brave Shields
     </message>
     <message name="IDS_ORIGIN_PAYWALL_TEXT_3" desc="Brave Origin paywall text">
       Maintain core adblock, privacy, &amp; speed
     </message>
-    <message name="IDS_YEARLY_SUBSCRIPTION_BEST_VALUE" desc="Brave Origin yearly plan best value text">
-      best value
+    <message name="IDS_ORIGIN_PAYWALL_TEXT_4" desc="Brave Origin paywall text">
+      One-time purchase, no additional subscription cost
     </message>
-    <message name="IDS_MONTHLY_SUBSCRIPTION_ORIGIN" desc="Brave Origin monthly subscription text">
-      Monthly subscription
+    <message name="IDS_ORIGIN_ONE_TIME_PURCHASE" desc="Brave Origin one-time purchase plan label">
+      One Time Purchase
     </message>
-    <message name="IDS_LEARN_MORE_ABOUT_ORIGIN" desc="Brave Origin learn more about text">
-      Learn more about Origin
+    <message name="IDS_ORIGIN_GET_LOGIN_CODE" desc="Brave Origin get login code button text">
+      Get a login code
     </message>
     <!-- Password Manager backport -->
     <message name="IDS_PASSWORD_SETTINGS_SAVE_PASSWORDS" desc="Title for the checkbox toggling whether passwords are saved or not. [CHAR_LIMIT=32]">
@@ -3805,6 +3871,68 @@ If you don't accept this request, VPN will not reconnect and your internet conne
     </message>
     <message name="IDS_PASSWORD_ENTRY_VIEW_SET_SCREEN_LOCK" desc="Text prompting user to set up screen lock on their device in order to view passwords">
       To view passwords, first set a screen lock on your device
+    </message>
+
+    <!-- Custom search engines (browser/custom_search_engines) -->
+    <message name="IDS_CUSTOM_SEARCH_ENGINES" desc="Search engines category title for custom search engines">
+      Custom search engines
+    </message>
+    <message name="IDS_ADD_CUSTOM_SEARCH_ENGINE" desc="Title of the add custom search engine">
+      Add a custom search engine
+    </message>
+    <message name="IDS_EDIT_CUSTOM_SEARCH_ENGINE" desc="Title of the edit custom search engine">
+      Edit custom search engine
+    </message>
+    <message name="IDS_ADD_CUSTOM_SEARCH_ENGINE_TITLE" desc="Add custom search engine title">
+      Title
+    </message>
+    <message name="IDS_ADD_CUSTOM_SEARCH_ENGINE_TITLE_HINT" desc="Add serach engine title edittext hint">
+      Enter the name of the search engine
+    </message>
+    <message name="IDS_ADD_CUSTOM_SEARCH_ENGINE_URL" desc="Add custom search engine url">
+      URL
+    </message>
+    <message name="IDS_ADD_CUSTOM_SEARCH_ENGINE_URL_HINT" desc="Add custom search engine url hint" translateable="false">
+      https://
+    </message>
+    <message name="IDS_ADD_SEARCH_ENGINE" desc="Add search engine button text">
+      Add search engine
+    </message>
+    <message name="IDS_ADD_CUSTOM_SEARCH_ENGINE_TEXT1" desc="Add custom search engine text1">
+      Write the search url and replace the query with <ph name="SPECIAL_SYMBOL">%s</ph>.
+    </message>
+    <message name="IDS_ADD_CUSTOM_SEARCH_ENGINE_TEXT2" desc="Add custom search engine text2">
+      For example: https://youtube.com/search?q=<ph name="SPECIAL_SYMBOL">%s</ph>. If the site supports OpenSearch an option to add automatically will be provided while editing this field.
+    </message>
+    <message name="IDS_ADD_CUSTOM_SEARCH_ENGINE_URL_ERROR" desc="Add custom search engine empty url text">
+      URL is invalid.
+    </message>
+    <message name="IDS_SEARCH_ENGINE_ALREADY_EXISTS_ERROR" desc="Search engine already exists text">
+      Search engine is already added.
+    </message>
+    <message name="IDS_FAILED_TO_ADD_SEARCH_ENGINE" desc="Failed to add search engine text">
+      Failed to add search engine.
+    </message>
+    <message name="IDS_FAILED_TO_UPDATE_SEARCH_ENGINE" desc="Failed to update search engine text">
+      Failed to update search engine.
+    </message>
+    <message name="IDS_FAILED_TO_DELETE_SEARCH_ENGINE" desc="Failed to delete search engine text">
+      Failed to delete search engine. The search engine you're trying to delete may be set as the default one.
+    </message>
+    <message name="IDS_DELETE_CUSTOM_SEARCH_ENGINE_TITLE" desc="Delete custom search engine title">
+      Delete custom search engine
+    </message>
+    <message name="IDS_DELETE_CUSTOM_SEARCH_ENGINE_TEXT" desc="Delete custom search engine text">
+      Are you sure you want to delete ”<ph name="SEARCH_ENGINE_NAME">%s</ph>”? This action cannot be undone.
+    </message>
+    <message name="IDS_DELETE_ACTION_TEXT" desc="Delete action text">
+      Delete
+    </message>
+    <message name="IDS_CANCEL_ACTION_TEXT" desc="Cancel action text">
+      Cancel
+    </message>
+    <message name="IDS_SAVE_CHANGES_ACTION_TEXT" desc="Save changes action text">
+      Save changes
     </message>
   </messages>
   </release>

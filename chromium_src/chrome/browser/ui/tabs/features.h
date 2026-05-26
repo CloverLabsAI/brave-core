@@ -30,7 +30,7 @@ BASE_DECLARE_FEATURE(kBraveVerticalTabHideCompletely);
 
 BASE_DECLARE_FEATURE(kBraveTreeTab);
 
-BASE_DECLARE_FEATURE(kBraveRenamingTabs);
+BASE_DECLARE_FEATURE(kBraveScrollableTabStrip);
 
 bool HorizontalTabsUpdateEnabled();
 

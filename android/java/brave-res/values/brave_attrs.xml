@@ -2,6 +2,7 @@
 <resources>
     <declare-styleable name="brave_account_preference">
         <attr name="title_text_color" format="color"/>
+        <attr name="title_truncate_middle" format="boolean"/>
         <attr name="summary_text_color" format="color"/>
     </declare-styleable>
 

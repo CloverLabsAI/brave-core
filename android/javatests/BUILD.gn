@@ -76,6 +76,7 @@ android_library(
 
   deps = [
     ":brave_test_java_helper",
+    "//base/test:public_transit_java",
     "//brave/browser/password_manager/android:test_support_java",
     "//chrome/android:chrome_app_java_resources",
     "//chrome/browser/password_manager/android:java",
@@ -104,5 +105,15 @@ android_library("brave_test_java_org.chromium.chrome.browser.swiperefresh") {
     "//third_party/android_swipe_refresh:android_swipe_refresh_java",
     "//third_party/mockito:mockito_java",
     "//ui/android:ui_no_recycler_view_java",
+  ]
+}
+
+android_library(
+    "brave_test_java_org.chromium.chrome.browser.set_default_browser") {
+  sources = [ "org/chromium/chrome/browser/set_default_browser/BraveSetDefaultBrowserUtilsTest.java" ]
+
+  deps = [
+    ":brave_test_java_helper",
+    "//components/embedder_support/android:util_java",
   ]
 }

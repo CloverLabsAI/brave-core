@@ -8,8 +8,9 @@
 #include <utility>
 
 #include "brave/browser/brave_browser_process.h"
-#include "brave/browser/brave_rewards/rewards_service_factory.h"
 #include "brave/browser/misc_metrics/process_misc_metrics.h"
+#include "brave/browser/misc_metrics/profile_misc_metrics_service.h"
+#include "brave/browser/misc_metrics/profile_misc_metrics_service_factory.h"
 #include "brave/browser/ntp_background/brave_ntp_custom_background_service_factory.h"
 #include "brave/browser/ntp_background/custom_background_file_manager.h"
 #include "brave/browser/ntp_background/view_counter_service_factory.h"
@@ -19,9 +20,10 @@
 #include "brave/browser/ui/webui/brave_new_tab_page_refresh/new_tab_page_initializer.h"
 #include "brave/browser/ui/webui/brave_new_tab_page_refresh/top_sites_facade.h"
 #include "brave/browser/ui/webui/brave_new_tab_page_refresh/vpn_facade.h"
-#include "brave/browser/ui/webui/brave_rewards/rewards_page_handler.h"
 #include "brave/components/brave_ads/buildflags/buildflags.h"
 #include "brave/components/brave_news/common/buildflags/buildflags.h"
+#include "brave/components/brave_rewards/core/buildflags/buildflags.h"
+#include "brave/components/misc_metrics/page_metrics.h"
 #include "brave/components/ntp_background_images/browser/ntp_sponsored_rich_media_ad_event_handler.h"
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/contextual_search/contextual_search_service_factory.h"
@@ -33,6 +35,19 @@
 #include "components/contextual_search/contextual_search_session_handle.h"
 #include "content/public/browser/navigation_controller.h"
 #include "content/public/browser/navigation_entry.h"
+
+#if BUILDFLAG(ENABLE_AI_CHAT)
+#include "brave/browser/ai_chat/ai_chat_service_factory.h"
+#include "brave/browser/ai_chat/tab_tracker_service_factory.h"
+#include "brave/browser/ui/webui/ai_chat/ai_chat_ui_page_handler.h"
+#include "brave/components/ai_chat/core/browser/ai_chat_service.h"
+#include "brave/components/ai_chat/core/browser/bookmarks_page_handler.h"
+#include "brave/components/ai_chat/core/browser/history_ui_handler.h"
+#include "brave/components/ai_chat/core/browser/tab_tracker_service.h"
+#include "brave/components/ai_chat/core/common/features.h"
+#include "chrome/browser/bookmarks/bookmark_model_factory.h"
+#include "chrome/browser/history/history_service_factory.h"
+#endif
 
 #if BUILDFLAG(ENABLE_BRAVE_ADS)
 #include "brave/browser/brave_ads/ads_service_factory.h"
@@ -46,6 +61,11 @@
 #if BUILDFLAG(ENABLE_BRAVE_VPN)
 #include "brave/browser/brave_vpn/brave_vpn_service_factory.h"
 #include "brave/components/brave_vpn/browser/brave_vpn_service.h"
+#endif
+
+#if BUILDFLAG(ENABLE_BRAVE_REWARDS)
+#include "brave/browser/brave_rewards/rewards_service_factory.h"
+#include "brave/browser/ui/webui/brave_rewards/rewards_page_handler.h"
 #endif
 
 namespace {
@@ -94,13 +114,19 @@ void BraveNewTabPageUI::BindInterface(
   auto vpn_facade = std::make_unique<VPNFacade>();
 #endif
 
+  auto* profile_metrics =
+      misc_metrics::ProfileMiscMetricsServiceFactory::GetServiceForContext(
+          profile);
+  misc_metrics::PageMetrics* page_metrics =
+      profile_metrics ? profile_metrics->GetPageMetrics() : nullptr;
+
   page_handler_ = std::make_unique<NewTabPageHandler>(
       std::move(receiver), std::move(image_chooser),
       std::move(background_facade), std::move(top_sites_facade),
       std::move(vpn_facade), *web_contents, *prefs,
       *TemplateURLServiceFactory::GetForProfile(profile),
       *g_brave_browser_process->process_misc_metrics()->new_tab_metrics(),
-      was_restored_);
+      page_metrics, was_restored_);
 
   // Reset `was_restored_` flag so with the next reload the current tab won't be
   // treated as a restored tab.
@@ -125,20 +151,25 @@ void BraveNewTabPageUI::BindInterface(
 }
 
 void BraveNewTabPageUI::BindInterface(
-    mojo::PendingReceiver<searchbox::mojom::PageHandler> receiver) {
-  realbox_handler_ = std::make_unique<RealboxHandler>(
-      std::move(receiver), Profile::FromWebUI(web_ui()),
-      web_ui()->GetWebContents(),
-      base::BindRepeating(&BraveNewTabPageUI::GetContextualSessionHandle,
-                          base::Unretained(this)));
+    mojo::PendingReceiver<searchbox::mojom::PageHandlerFactory>
+        pending_receiver) {
+  if (searchbox_page_factory_receiver_.is_bound()) {
+    searchbox_page_factory_receiver_.reset();
+  }
+  searchbox_page_factory_receiver_.Bind(std::move(pending_receiver));
 }
 
+#if BUILDFLAG(ENABLE_BRAVE_REWARDS)
 void BraveNewTabPageUI::BindInterface(
     mojo::PendingReceiver<brave_rewards::mojom::RewardsPageHandler> receiver) {
   auto* profile = Profile::FromWebUI(web_ui());
+  auto* rewards_service =
+      brave_rewards::RewardsServiceFactory::GetForProfile(profile);
+  if (!rewards_service) {
+    return;
+  }
   rewards_page_handler_ = std::make_unique<brave_rewards::RewardsPageHandler>(
-      std::move(receiver), nullptr,
-      brave_rewards::RewardsServiceFactory::GetForProfile(profile),
+      std::move(receiver), nullptr, rewards_service,
 #if BUILDFLAG(ENABLE_BRAVE_ADS)
       brave_ads::AdsServiceFactory::GetForProfile(profile),
 #else
@@ -146,6 +177,7 @@ void BraveNewTabPageUI::BindInterface(
 #endif  // BUILDFLAG(ENABLE_BRAVE_ADS)
       nullptr, profile->GetPrefs());
 }
+#endif  // BUILDFLAG(ENABLE_BRAVE_REWARDS)
 
 #if BUILDFLAG(ENABLE_BRAVE_NEWS)
 void BraveNewTabPageUI::BindInterface(
@@ -180,10 +212,78 @@ BraveNewTabPageUI::GetContextualSessionHandle() {
           std::make_unique<
               contextual_search::ContextualSearchContextController::
                   ConfigParams>(),
-          contextual_search::ContextualSearchSource::kOmnibox);
+          contextual_search::ContextualSearchSource::kOmnibox,
+          /*invocation_source=*/std::nullopt);
     }
   }
   return session_handle_.get();
+}
+
+#if BUILDFLAG(ENABLE_AI_CHAT)
+void BraveNewTabPageUI::BindInterface(
+    mojo::PendingReceiver<ai_chat::mojom::AIChatUIHandler> receiver) {
+  CHECK(ai_chat::features::IsShowAIChatInputOnNewTabPageEnabled());
+  auto* profile = Profile::FromWebUI(web_ui());
+  if (!ai_chat::AIChatServiceFactory::GetForBrowserContext(profile)) {
+    return;
+  }
+  ai_chat_page_handler_ = std::make_unique<ai_chat::AIChatUIPageHandler>(
+      web_ui()->GetWebContents(), nullptr, profile, std::move(receiver));
+}
+
+void BraveNewTabPageUI::BindInterface(
+    mojo::PendingReceiver<ai_chat::mojom::Service> receiver) {
+  CHECK(ai_chat::features::IsShowAIChatInputOnNewTabPageEnabled());
+  auto* profile = Profile::FromWebUI(web_ui());
+  auto* service = ai_chat::AIChatServiceFactory::GetForBrowserContext(profile);
+  if (!service) {
+    return;
+  }
+  service->Bind(std::move(receiver));
+}
+
+void BraveNewTabPageUI::BindInterface(
+    mojo::PendingReceiver<ai_chat::mojom::TabTrackerService> pending_receiver) {
+  CHECK(ai_chat::features::IsShowAIChatInputOnNewTabPageEnabled());
+  auto* profile = Profile::FromWebUI(web_ui());
+  auto* service =
+      ai_chat::TabTrackerServiceFactory::GetForBrowserContext(profile);
+  if (!service) {
+    return;
+  }
+  service->Bind(std::move(pending_receiver));
+}
+
+void BraveNewTabPageUI::BindInterface(
+    mojo::PendingReceiver<ai_chat::mojom::BookmarksPageHandler>
+        pending_receiver) {
+  CHECK(ai_chat::features::IsShowAIChatInputOnNewTabPageEnabled());
+  auto* profile = Profile::FromWebUI(web_ui());
+  bookmarks_page_handler_ = std::make_unique<ai_chat::BookmarksPageHandler>(
+      BookmarkModelFactory::GetForBrowserContext(profile),
+      std::move(pending_receiver));
+}
+
+void BraveNewTabPageUI::BindInterface(
+    mojo::PendingReceiver<ai_chat::mojom::HistoryUIHandler> pending_receiver) {
+  CHECK(ai_chat::features::IsShowAIChatInputOnNewTabPageEnabled());
+  auto* profile = Profile::FromWebUI(web_ui());
+  history_ui_handler_ = std::make_unique<ai_chat::HistoryUIHandler>(
+      std::move(pending_receiver),
+      HistoryServiceFactory::GetForProfile(profile,
+                                           ServiceAccessType::EXPLICIT_ACCESS));
+  CHECK(history_ui_handler_);
+}
+#endif  // BUILDFLAG(ENABLE_AI_CHAT)
+
+void BraveNewTabPageUI::CreatePageHandler(
+    mojo::PendingRemote<searchbox::mojom::Page> pending_page,
+    mojo::PendingReceiver<searchbox::mojom::PageHandler> pending_page_handler) {
+  realbox_handler_ = std::make_unique<RealboxHandler>(
+      std::move(pending_page_handler), std::move(pending_page),
+      Profile::FromWebUI(web_ui()), web_ui()->GetWebContents(),
+      base::BindRepeating(&BraveNewTabPageUI::GetContextualSessionHandle,
+                          base::Unretained(this)));
 }
 
 WEB_UI_CONTROLLER_TYPE_IMPL(BraveNewTabPageUI)

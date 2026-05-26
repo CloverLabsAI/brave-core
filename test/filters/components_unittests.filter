@@ -5,6 +5,15 @@
 ## why the filter is required and create an associated tracking issue.
 ##
 
+# Known upstream flake (crbug.com/40831552): ~1% flake rate over 30 days per
+# LUCI Analysis. Already disabled on Android upstream. DCHECK failure in
+# MockResultQueue::NextOperationResult due to MOCK_TIME auto-advancing the
+# PurgeStale timer during TestFuture::Take(), consuming an extra mock queue
+# entry. Same root cause affects both FileBacked and InMemoryOnly variants.
+-All/SharedStorageManagerErrorParamTest.InitFailure_DestroyAndRecreateDatabase/FileBacked
+-All/SharedStorageManagerErrorParamTest.OtherOperationResults_NoErrorsAdded/FileBacked
+-All/SharedStorageManagerErrorParamTest.OtherOperationResults_NoErrorsAdded/InMemoryOnly
+
 # These tests fail because we override Prefetch methods to do nothing.
 -AffiliationServiceImplTest.*
 
@@ -25,11 +34,6 @@
 # disalow component installation.
 -AmountExtractionHeuristicRegexesInstallerPolicyTest.ComponentRegistered
 
-# This test fails because we disable omnibox::kDocumentProviderNoSyncRequirement
--DocumentProviderTest.CachingForSyncMatches
--DocumentProviderTest.IsDocumentProviderAllowed
--DocumentProviderTest.MaxMatches
-
 # This test crashes due to sequence check in BraveSearchProvider::DoHistoryQuery
 # https://github.com/brave/brave-browser/issues/47218
 -OmniboxTextUtilTest.AdjustTextForCopy
@@ -48,6 +52,9 @@
 # These tests fail because we stub out
 # optimization_guide::IsUserPermittedToFetchRemoteOptimizationGuide and
 # optimization_guide::features::IsModelDownloadingEnabled
+-All/OnDeviceModelServiceControllerBackgroundDownloadTest.Run/ConfigNotAvailableIfBackgroundDownloadEnabledAndAssetPending
+-All/OnDeviceModelServiceControllerBackgroundDownloadTest.Run/EligibilityReturnsPendingUsageIfModelInstalledForOtherFeature
+-All/OnDeviceModelServiceControllerBackgroundDownloadTest.Run/EligibleIfBackgroundDownloadEnabled
 -HintsManagerFetchingTest.*
 -HintsManagerProactivePersonalizationFetchingTest.*
 -ModelBrokerClientTest.*
@@ -60,9 +67,6 @@
 
 # These tests fail because we disable commerce::kShoppingList
 -All/ShoppingServiceTest.TestShoppingList*/*
-
-# This test fails because we disable omnibox::kDocumentProviderNoSyncRequirement
--DocumentProviderTest.IsDocumentProviderAllowed
 
 # These tests fail because we override SyncAuthManager::DetermineAccountToUse.
 -SyncServiceImplStartupWithDetermineAccountTypeTest.StartupWithConsumerAccount
@@ -94,6 +98,8 @@
 # These tests fail because we disable
 # switches::kSyncEnableBookmarksInTransportMode
 -InitialAccountBookmarkDeduplicatorTest.*
+-SyncPrefsTest.BookmarksEnabledWithExplicitBrowserPref
+-SyncPrefsTest.BookmarksEnabledWithoutExplicitSigninFlag
 
 # These tests fail because we patch ImageServiceConsentHelper::GetConsentStatus
 # to return false always
@@ -104,6 +110,7 @@
 # consent level
 -AccountUtilsTest.*
 -ContextualTasksServiceImplTest.CreateTaskFromUrl_MatchesPrimaryAccount
+-WebSigninTrackerTest.FreshCookiesWithSigninAccountShouldTriggerSuccessResult
 
 # These tests fail because we do not record permissions UKM, see
 # brave/chromium_src/components/permissions/permission_uma_util.cc
@@ -115,6 +122,7 @@
 -All/PEPCInitiatedPermissionRequestTestWithAutolocate.PEPCRequestHeuristicallyGrantedGeolocation/0
 
 # These tests fail because we disable popular site suggestions functionality
+-MostVisitedSitesTest.CustomLinksCappedAtTenWhenRedesignDisabled
 -MostVisitedSitesTest.ShouldDeduplicatePopularSitesWithMostVisitedIffHostAndTitleMatches
 -MostVisitedSitesTest.ShouldHandleTopSitesCacheHit
 -MostVisitedSitesWithEnterpriseShortcutsTest.ShouldMixEnterpriseAndCustomShortcuts
@@ -126,13 +134,53 @@
 # GetUkmSourceId override.
 -Accuracies/PermissionRequestManagerApproximateGeolocationTest.ReportAccuracyInUma*
 
+# These tests fail because we override WalletHttpClientImpl.
+-WalletHttpClientImplTest.*
+
 # This tests fails because we disable safe browsing enhanced protection and
 # patch safe_browsing::IsEnhancedProtectionEnabled to return false
+-GetUserPopulationTest.PopulatesPopulation_WithoutSBERDeprecation
+-RealTimeUrlLookupServiceTest.TestCanSendRTSampleRequest_FeatureEnabled
+-RealTimeUrlLookupServiceTest.TestFillLlamaForcedTriggerCapability
+-SuspiciousSiteTriggerTest.MonitorMode_SuspiciousHitDuringLoad
+-TriggerManagerTest.AdSamplerTrigger
+-TriggerManagerTest.CollectionWhenSBERDisabledByPolicy_WithSBERDeprecation
+-TriggerManagerTest.DataCollection_SBEROptInDisallowed_WithSBERDeprecation_ESB
+-TriggerManagerTest.NoCollectionWhenOutOfQuota
 -TriggerManagerTest.ReportSentWhenEsbIsEnabled
+-TriggerManagerTest.StartAndFinishCollectingThreatDetails
+-TriggerManagerTest.UserOptedOutOfSBER_DataCollected_ReportSent_WithSBERDeprecation
+-TriggerManagerTest.UserOptsInToESB_DataCollected_ReportSent
+-TriggerManagerTest.UserOptsOutOfSBER_DataCollected_ReportSent_WithSBERDeprecation
 
 # These tests fail because the text contains "Google" instead of "Brave" (the
 # string is hard-coded into the test)
 -BnplUtilTest.GetBnplUiFooterTextForAi_AiTerms*
+
+# These tests fail because we disable kAimEnabled.
+-AimEligibilityServiceTest.*
+
+# This test fails because we have a different set of regional search engines.
+-RegionalCapabilitiesUtilsTest.GetPrepopulatedEngines
+
+# This test fails because it uses raw
+# TemplateURLPrepopulateData::kCurrentDataVersion to compare with the version
+# that is overridden to add Brave's version bump.
+-TemplateURLPrepopulateDataUpdateRequirementsTest.ComputeDatabaseUpdateRequirements/UpToDateMetadataWithEngineMigration
+
+# These tests fail because we disable kAimEnabled.
+-AimEligibilityServiceTest.*
+
+# These tests fail because the default search engine is Brave instead of Google.
+-DefaultSearchManagerTest.DefaultSearchOverridesIgnoredWhenFlagEnabled
+
+# This test fails because we disable Actor Safety Lists component.
+-ActorSafetyListsComponentInstallerPolicyTest.ComponentRegistered
+
+# These tests verify that source=chrome.ob/chrome.rb is appended to search
+# URLs, but Brave overrides UpdateMatchDestinationURLWithInvocationSource to
+# suppress this Chrome-specific attribution.
+-AutocompleteControllerTest.UpdateMatchDestinationURLWithInvocationSource*
 
 # Tests below this point have not been diagnosed or had issues created yet.
 -AccountInvestigatorTest.*
@@ -301,7 +349,9 @@
 -TemplateURLPrepopulateDataUpdateRequirementsTest.ComputeDatabaseUpdateRequirements/DbMoreRecent
 -TemplateURLPrepopulateDataUpdateRequirementsTest.ComputeDatabaseUpdateRequirements/DbOlder
 -TemplateURLPrepopulateDataUpdateRequirementsTest.ComputeDatabaseUpdateRequirements/DifferentCountry
+-TemplateURLPrepopulateDataUpdateRequirementsTest.ComputeDatabaseUpdateRequirements/DifferentCountryWithEngineMigrationDowngrade
 -TemplateURLPrepopulateDataUpdateRequirementsTest.ComputeDatabaseUpdateRequirements/UpToDateMetadata
+-TemplateURLPrepopulateDataUpdateRequirementsTest.ComputeDatabaseUpdateRequirements/UpToDateMetadataWithEngineMigrationDowngrade
 -TemplateURLServiceUtilLoadTest.GetSearchProvidersUsingLoadedEngines_InEea
 -TemplateURLServiceUtilLoadTest.GetSearchProvidersUsingLoadedEngines_OutOfEea
 -TextEliderTest.FormatOriginForSecurityDisplay

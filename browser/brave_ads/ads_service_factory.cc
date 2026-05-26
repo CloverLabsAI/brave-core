@@ -19,22 +19,27 @@
 #include "brave/browser/brave_ads/tooltips/ads_tooltips_delegate_impl.h"
 #include "brave/browser/brave_ads/virtual_pref_provider_delegate.h"
 #include "brave/browser/brave_browser_process.h"
-#include "brave/browser/brave_rewards/rewards_service_factory.h"
-#include "brave/browser/brave_rewards/rewards_util.h"
 #include "brave/common/brave_channel_info.h"
 #include "brave/components/brave_ads/browser/ads_service_impl.h"
 #include "brave/components/brave_ads/core/browser/service/ads_service.h"
-#include "brave/components/brave_rewards/core/rewards_flags.h"
+#include "brave/components/brave_ads/core/public/ads_util.h"
+#include "brave/components/brave_rewards/core/buildflags/buildflags.h"
+#include "brave/components/brave_rewards/core/rewards_util.h"
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/content_settings/host_content_settings_map_factory.h"
 #include "chrome/browser/history/history_service_factory.h"
 #include "chrome/browser/notifications/notification_display_service.h"
 #include "chrome/browser/notifications/notification_display_service_factory.h"
 #include "chrome/browser/profiles/profile.h"
+#include "chrome/browser/profiles/profile_manager.h"
 #include "components/keyed_service/content/browser_context_dependency_manager.h"
 #include "content/public/browser/browser_context.h"
 #include "content/public/browser/storage_partition.h"
 #include "services/network/public/cpp/network_context_getter.h"
+
+#if BUILDFLAG(ENABLE_BRAVE_REWARDS)
+#include "brave/browser/brave_rewards/rewards_service_factory.h"
+#endif
 
 namespace brave_ads {
 
@@ -53,7 +58,11 @@ network::mojom::NetworkContext* GetNetworkContextForProfile(
 
 // static
 AdsService* AdsServiceFactory::GetForProfile(Profile* profile) {
-  if (!brave_rewards::IsSupportedForProfile(profile)) {
+  if (!profile->IsRegularProfile()) {
+    return nullptr;
+  }
+
+  if (!brave_rewards::IsSupported(profile->GetPrefs())) {
     return nullptr;
   }
 
@@ -72,7 +81,9 @@ AdsServiceFactory::AdsServiceFactory()
           "AdsService",
           BrowserContextDependencyManager::GetInstance()) {
   DependsOn(NotificationDisplayServiceFactory::GetInstance());
+#if BUILDFLAG(ENABLE_BRAVE_REWARDS)
   DependsOn(brave_rewards::RewardsServiceFactory::GetInstance());
+#endif
   DependsOn(HistoryServiceFactory::GetInstance());
   DependsOn(brave_adaptive_captcha::BraveAdaptiveCaptchaServiceFactory::
                 GetInstance());
@@ -112,28 +123,35 @@ AdsServiceFactory::BuildServiceInstanceForBrowserContext(
   auto* history_service = HistoryServiceFactory::GetForProfile(
       profile, ServiceAccessType::EXPLICIT_ACCESS);
 
+#if BUILDFLAG(ENABLE_BRAVE_REWARDS)
   auto* rewards_service =
       brave_rewards::RewardsServiceFactory::GetForProfile(profile);
+#endif  // BUILDFLAG(ENABLE_BRAVE_REWARDS)
 
   auto* host_content_settings_map =
       HostContentSettingsMapFactory::GetForProfile(profile);
 
-  auto network_client = std::make_unique<NetworkClient>(
+  auto http_client = std::make_unique<HttpClient>(
       *local_state,
       default_store_partition->GetURLLoaderFactoryForBrowserProcess(),
       base::BindRepeating(&GetNetworkContextForProfile, context),
-      /*use_oblivious_http_staging_server=*/
-      brave_rewards::RewardsFlags::ForCurrentProcess().environment !=
-          brave_rewards::RewardsFlags::Environment::kProduction);
+      /*use_ohttp_staging=*/IsStagingEnvironment(*prefs));
+
+  ProfileManager* const profile_manager = g_browser_process->profile_manager();
+  CHECK(profile_manager);
 
   return std::make_unique<AdsServiceImpl>(
-      std::move(delegate), prefs, local_state, std::move(network_client),
-      std::make_unique<VirtualPrefProviderDelegate>(*profile),
+      std::move(delegate), prefs, local_state, std::move(http_client),
+      std::make_unique<VirtualPrefProviderDelegate>(
+          *profile, profile_manager->GetProfileAttributesStorage()),
       brave::GetChannelName(), profile->GetPath(), CreateAdsTooltipsDelegate(),
       std::make_unique<DeviceIdImpl>(),
       std::make_unique<BatAdsServiceFactoryImpl>(),
       g_brave_browser_process->resource_component(), history_service,
-      rewards_service, host_content_settings_map);
+#if BUILDFLAG(ENABLE_BRAVE_REWARDS)
+      rewards_service,
+#endif
+      host_content_settings_map);
 }
 
 bool AdsServiceFactory::ServiceIsNULLWhileTesting() const {

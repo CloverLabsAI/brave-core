@@ -19,12 +19,11 @@ export const style = scoped.css`
     border-radius: 4px;
 
     &:hover {
-      background-color: ${color.container.interactive};
+      background-color: ${color.container.highlight};
     }
 
-    &.open {
-      background-color: ${color.container.interactive};
-      border-color: ${color.divider.interactive};
+    leo-button {
+      display: block;
     }
   }
 

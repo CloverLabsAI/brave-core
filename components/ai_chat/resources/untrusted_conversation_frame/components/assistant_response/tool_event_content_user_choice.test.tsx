@@ -6,7 +6,6 @@
 import '@testing-library/jest-dom'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { createTextContentBlock } from '../../../common/content_block'
-import * as Mojom from '../../../common/mojom'
 import * as React from 'react'
 import MockContext from '../../mock_untrusted_conversation_context'
 import ToolEvent from './tool_event'
@@ -19,11 +18,9 @@ describe('ToolEventContentUserChoice', () => {
     const mockRespondToToolUseRequest = jest.fn()
     render(
       <MockContext
-        conversationHandler={
-          {
-            respondToToolUseRequest: mockRespondToToolUseRequest,
-          } as unknown as Mojom.UntrustedConversationHandlerRemote
-        }
+        conversationHandler={{
+          respondToToolUseRequest: mockRespondToToolUseRequest,
+        }}
       >
         <ToolEvent
           toolUseEvent={{
@@ -42,24 +39,26 @@ describe('ToolEventContentUserChoice', () => {
     expect(screen.getByTestId('tool-choice-text-2').textContent).toBe('third')
 
     fireEvent.click(screen.getByTestId('tool-choice-text-0'))
-    expect(mockRespondToToolUseRequest).toHaveBeenCalledWith('123', [
-      {
-        textContentBlock: {
-          text: 'first',
+    expect(mockRespondToToolUseRequest).toHaveBeenCalledWith(
+      '123',
+      [
+        {
+          textContentBlock: {
+            text: 'first',
+          },
         },
-      },
-    ])
+      ],
+      [],
+    )
   })
 
   it('should render disabled choices when not active', () => {
     const mockRespondToToolUseRequest = jest.fn()
     render(
       <MockContext
-        conversationHandler={
-          {
-            respondToToolUseRequest: mockRespondToToolUseRequest,
-          } as unknown as Mojom.UntrustedConversationHandlerRemote
-        }
+        conversationHandler={{
+          respondToToolUseRequest: mockRespondToToolUseRequest,
+        }}
       >
         <ToolEvent
           toolUseEvent={{
@@ -85,11 +84,9 @@ describe('ToolEventContentUserChoice', () => {
     const mockRespondToToolUseRequest = jest.fn()
     render(
       <MockContext
-        conversationHandler={
-          {
-            respondToToolUseRequest: mockRespondToToolUseRequest,
-          } as unknown as Mojom.UntrustedConversationHandlerRemote
-        }
+        conversationHandler={{
+          respondToToolUseRequest: mockRespondToToolUseRequest,
+        }}
       >
         <ToolEvent
           toolUseEvent={{

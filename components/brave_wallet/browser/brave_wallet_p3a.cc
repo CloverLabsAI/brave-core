@@ -251,8 +251,8 @@ void BraveWalletP3A::ReportTransactionSent(mojom::CoinType coin,
       histogram_name = kZecTransactionSentHistogramName;
       break;
     case mojom::CoinType::ADA:
-      // TODO(https://github.com/brave/brave-browser/issues/49535): Cardano P3A
-      return;
+      histogram_name = kAdaTransactionSentHistogramName;
+      break;
     case mojom::CoinType::DOT:
       // TODO(https://github.com/brave/brave-browser/issues/49536): Polkadot P3A
       return;
@@ -262,7 +262,7 @@ void BraveWalletP3A::ReportTransactionSent(mojom::CoinType coin,
 
   ScopedDictPrefUpdate last_sent_time_update(
       profile_prefs_, kBraveWalletLastTransactionSentTimeDict);
-  base::Value::Dict& last_sent_time_dict = last_sent_time_update.Get();
+  base::DictValue& last_sent_time_dict = last_sent_time_update.Get();
 
   std::string coin_key = base::NumberToString(static_cast<int>(coin));
 
@@ -307,8 +307,8 @@ void BraveWalletP3A::RecordActiveWalletCount(int count,
       histogram_name = kZecActiveAccountHistogramName;
       break;
     case mojom::CoinType::ADA:
-      // TODO(https://github.com/brave/brave-browser/issues/49535): Cardano P3A
-      return;
+      histogram_name = kAdaActiveAccountHistogramName;
+      break;
     case mojom::CoinType::DOT:
       // TODO(https://github.com/brave/brave-browser/issues/49536): Polkadot P3A
       return;
@@ -316,7 +316,7 @@ void BraveWalletP3A::RecordActiveWalletCount(int count,
 
   CHECK(histogram_name);
 
-  const base::Value::Dict& active_wallet_dict =
+  const base::DictValue& active_wallet_dict =
       profile_prefs_->GetDict(kBraveWalletP3AActiveWalletDict);
   std::string coin_type_str = base::NumberToString(static_cast<int>(coin_type));
   if (!active_wallet_dict.FindBool(coin_type_str).has_value()) {
@@ -445,10 +445,14 @@ void BraveWalletP3A::OnTransactionStatusChanged(
       return;
     }
   } else if (tx_coin == mojom::CoinType::ADA) {
+    if (!count_test_networks && chain_id == mojom::kCardanoTestnet) {
+      return;
+    }
+  } else if (tx_coin == mojom::CoinType::DOT) {
     if (tx_type != mojom::TransactionType::Other) {
       return;
     }
-    if (!count_test_networks && chain_id == mojom::kCardanoTestnet) {
+    if (!count_test_networks && chain_id == mojom::kPolkadotTestnet) {
       return;
     }
   } else {

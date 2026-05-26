@@ -5,9 +5,9 @@
 # You can obtain one at https://mozilla.org/MPL/2.0/.
 """Siso configuration adjustments for Brave browser."""
 
+load("@builtin//lib/gn.star", "gn")
 load("@builtin//runtime.star", "runtime")
 load("@builtin//struct.star", "module", "struct")
-load("./platform.star", "platform")
 
 __HOST_OS_IS_LINUX = runtime.os == "linux"
 __HOST_OS_IS_WINDOWS = runtime.os == "windows"
@@ -18,6 +18,14 @@ __RULES_TO_REMOVE = [
     # handling. This is not trivial and require careful configuration. Can be
     # revisited when SISO becomes first class citizen in Brave.
     "typescript/ts_library",
+]
+
+# Rules to remove when MSAN is enabled. In general, MSAN-enabled binaries can't
+# work in RBE environment.
+__RULES_TO_REMOVE_FOR_MSAN = [
+    "proto/protoc_wrapper",
+    "v8/torque",
+    "v8/mksnapshot",
 ]
 
 # Labels to remove from platforms (EngFlow-specific).
@@ -61,14 +69,14 @@ __debug = False
 # Main configuration function that sets up SISO for Brave-specific build
 # requirements by adjusting step configurations and registering custom handlers.
 def __configure(ctx, step_config, filegroups, handlers):
-    __remove_rules(step_config)
+    __remove_rules(ctx, step_config)
     __adjust_filegroups(step_config, filegroups)
     __adjust_handlers(ctx, step_config, handlers)
     __remove_labels_from_platforms(step_config)
 
-
 # Disable any handling for rules that deviate from upstream.
-def __remove_rules(step_config):
+def __remove_rules(ctx, step_config):
+    is_msan = "args.gn" in ctx.metadata and gn.args(ctx).get("is_msan") == "true"
 
     def should_remove(rule_name):
         # Remove rules that are not supported by Brave.
@@ -79,6 +87,10 @@ def __remove_rules(step_config):
         # rust toolchain does not include cross-toolchains, so we can't use it
         # the same way we use Linux clang toolchain for cross-compilation.
         if not __HOST_OS_IS_LINUX and rule_name.startswith("rust"):
+            return True
+
+        # Remove msan-blacklisted rules if MSAN is enabled.
+        if is_msan and rule_name in __RULES_TO_REMOVE_FOR_MSAN:
             return True
 
         return False
@@ -149,9 +161,6 @@ def __adjust_handlers(ctx, step_config, handlers):
     # Adjust rules.
     for rule in step_config["rules"]:
         rule_name = rule["name"]
-        rule_command_prefix = rule.get("command_prefix")
-        is_python_rule = rule_command_prefix and rule_command_prefix.startswith(
-            platform.python_bin)
 
         if rule_name.startswith("clang"):
             found_clang_rule = True
@@ -159,7 +168,11 @@ def __adjust_handlers(ctx, step_config, handlers):
             __wrap_with_redirect_cc_handler(ctx, rule, handlers)
             continue
 
-        if is_python_rule and rule_name.startswith(("mojo", "blink")):
+        if __is_python_rule(rule) and rule_name.startswith((
+                "blink",
+                "grit",
+                "mojo",
+        )):
             __set_rule_timeout(rule, "15m")
             __wrap_python_with_chromium_src_inputs_handler(ctx, rule, handlers)
             continue
@@ -388,6 +401,15 @@ def __append_executables(rule, *executables):
 # Checks if the remote is disabled for a rule.
 def __is_remote_disabled(rule):
     return rule.get("remote") == False
+
+
+# Checks if a rule is a Python rule.
+def __is_python_rule(rule):
+    rule_command_prefix = rule.get("command_prefix")
+    rule_remote_command = rule.get("remote_command")
+    return (rule_command_prefix and rule_command_prefix.startswith("python3")
+            ) or (rule_remote_command
+                  and rule_remote_command.startswith("python3"))
 
 
 # Converts a path to the linux version of the llvm-build path.

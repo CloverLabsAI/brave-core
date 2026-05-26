@@ -22,6 +22,7 @@ import androidx.annotation.DrawableRes;
 import androidx.annotation.IdRes;
 import androidx.annotation.Nullable;
 import androidx.annotation.Size;
+import androidx.annotation.VisibleForTesting;
 import androidx.appcompat.content.res.AppCompatResources;
 import androidx.core.content.ContextCompat;
 import androidx.preference.Preference;
@@ -88,6 +89,9 @@ public class CustomizeBraveMenu {
 
     public static final int PREFERENCE_MENU_ICON_SIZE_DP = 24;
 
+    // Menu items initialized as hidden unless an explicit user preference already exists.
+    private static final int[] MENU_IDS_INVISIBLE_BY_DEFAULT = {R.id.exit_id};
+
     /**
      * Static mapping of menu item IDs to their corresponding drawable resource IDs. Uses
      * SparseIntArray for optimal performance and memory efficiency on Android when mapping resource
@@ -101,7 +105,7 @@ public class CustomizeBraveMenu {
 
     static {
         // Main menu items
-        MENU_ICON_MAP.put(R.id.new_tab_menu_id, R.drawable.ic_new_tab_page);
+        MENU_ICON_MAP.put(R.id.new_tab_menu_id, R.drawable.ic_window_tab_new);
         MENU_ICON_MAP.put(R.id.new_incognito_tab_menu_id, R.drawable.brave_menu_new_private_tab);
         MENU_ICON_MAP.put(R.id.add_to_group_menu_id, R.drawable.ic_widgets);
         MENU_ICON_MAP.put(R.id.pin_tab_menu_id, R.drawable.ic_keep_24dp);
@@ -110,16 +114,15 @@ public class CustomizeBraveMenu {
         MENU_ICON_MAP.put(R.id.move_to_other_window_menu_id, R.drawable.ic_open_in_browser);
         MENU_ICON_MAP.put(R.id.manage_all_windows_menu_id, R.drawable.ic_select_window);
         MENU_ICON_MAP.put(R.id.open_history_menu_id, R.drawable.brave_menu_history);
-        MENU_ICON_MAP.put(R.id.tinker_tank_menu_id, R.drawable.ic_add_box_rounded_corner);
         MENU_ICON_MAP.put(R.id.downloads_menu_id, R.drawable.brave_menu_downloads);
         MENU_ICON_MAP.put(R.id.all_bookmarks_menu_id, R.drawable.brave_menu_bookmarks);
         MENU_ICON_MAP.put(R.id.recent_tabs_menu_id, R.drawable.brave_menu_recent_tabs);
-        MENU_ICON_MAP.put(R.id.brave_wallet_id, R.drawable.ic_crypto_wallets);
+        MENU_ICON_MAP.put(R.id.brave_wallet_id, R.drawable.ic_product_brave_wallet);
         MENU_ICON_MAP.put(R.id.brave_playlist_id, R.drawable.ic_open_playlist);
         MENU_ICON_MAP.put(R.id.add_to_playlist_id, R.drawable.ic_baseline_add_24);
-        MENU_ICON_MAP.put(R.id.brave_news_id, R.drawable.ic_news);
-        MENU_ICON_MAP.put(R.id.brave_leo_id, R.drawable.ic_brave_ai);
-        MENU_ICON_MAP.put(R.id.request_brave_vpn_id, R.drawable.ic_vpn);
+        MENU_ICON_MAP.put(R.id.brave_news_id, R.drawable.ic_product_brave_news);
+        MENU_ICON_MAP.put(R.id.brave_leo_id, R.drawable.ic_product_brave_leo);
+        MENU_ICON_MAP.put(R.id.request_brave_vpn_id, R.drawable.ic_product_vpn);
         MENU_ICON_MAP.put(R.id.brave_rewards_id, R.drawable.brave_menu_rewards);
         MENU_ICON_MAP.put(R.id.set_default_browser, R.drawable.brave_menu_set_as_default);
         MENU_ICON_MAP.put(R.id.exit_id, R.drawable.brave_menu_exit);
@@ -297,10 +300,10 @@ public class CustomizeBraveMenu {
      * @param itemId the resource ID of the menu item to check
      * @return {@code true} if the item should be visible, {@code false} if it should be hidden
      */
-    public static boolean isVisible(final Resources resource, final int itemId) {
+    public static boolean isVisible(final Resources resources, final int itemId) {
         String resourceName;
         try {
-            resourceName = resource.getResourceEntryName(itemId);
+            resourceName = resources.getResourceEntryName(itemId);
         } catch (Resources.NotFoundException notFoundException) {
             assert false : "Resource not found for item with ID " + itemId;
             // We are referencing a resource that does not
@@ -309,12 +312,57 @@ public class CustomizeBraveMenu {
             return true;
         }
         return ChromeSharedPreferences.getInstance()
-                .readBoolean(
-                        String.format(
-                                Locale.ENGLISH,
-                                CUSTOMIZABLE_BRAVE_MENU_ITEM_ID_FORMAT,
-                                resourceName),
-                        true);
+                .readBoolean(getFormattedSharedPreferenceMenuItemName(resourceName), true);
+    }
+
+    /**
+     * Initializes menu items in the {@link MENU_IDS_INVISIBLE_BY_DEFAULT} array as invisible by
+     * default. This method should be called once during onboarding process.
+     *
+     * @see org.chromium.chrome.browser.firstrun.WelcomeOnboardingActivity
+     * @param resources the resources used to access the entry name of a given menu item ID
+     */
+    public static void initDefaultInvisibleItems(final Resources resources) {
+        for (final int menuItemId : MENU_IDS_INVISIBLE_BY_DEFAULT) {
+            initAsInvisible(resources, menuItemId);
+        }
+    }
+
+    /**
+     * Initializes a menu item as invisible in the user preferences. This method is a no-op when a
+     * preference already exists.
+     *
+     * @param resources the resources used to access the entry name of a given menu item ID
+     * @param itemId the resource ID of the menu item to initialize as invisible
+     */
+    @VisibleForTesting
+    static void initAsInvisible(final Resources resources, final int itemId) {
+        String resourceName;
+        try {
+            resourceName = resources.getResourceEntryName(itemId);
+        } catch (Resources.NotFoundException notFoundException) {
+            assert false : "Resource not found for item with ID " + itemId;
+            // We are referencing a resource that does not
+            // exist. This should never happen.
+            // Leave visibility unchanged by returning.
+            return;
+        }
+
+        if (!ChromeSharedPreferences.getInstance()
+                .contains(getFormattedSharedPreferenceMenuItemName(resourceName))) {
+            ChromeSharedPreferences.getInstance()
+                    .writeBoolean(getFormattedSharedPreferenceMenuItemName(resourceName), false);
+        }
+    }
+
+    /**
+     * Builds the shared-preference key used to persist visibility state for a menu item.
+     *
+     * @param resourceName the Android resource entry name for the menu item ID
+     * @return the formatted shared-preference key for that menu item
+     */
+    private static String getFormattedSharedPreferenceMenuItemName(final String resourceName) {
+        return String.format(Locale.ENGLISH, CUSTOMIZABLE_BRAVE_MENU_ITEM_ID_FORMAT, resourceName);
     }
 
     /**

@@ -15,6 +15,7 @@ source_set("browser_tests") {
       "blob_url_browsertest.cc",
       "ephemeral_storage_1p_browsertest.cc",
       "ephemeral_storage_1p_domain_block_browsertest.cc",
+      "ephemeral_storage_auto_shred_browsertest.cc",
       "ephemeral_storage_blink_memory_cache_browsertest.cc",
       "ephemeral_storage_browsertest.cc",
       "ephemeral_storage_browsertest.h",
@@ -25,6 +26,7 @@ source_set("browser_tests") {
 
     deps += [
       "//brave/browser",
+      "//brave/browser/brave_shields",
       "//brave/components/brave_component_updater/browser",
       "//brave/components/brave_shields/content/browser",
       "//brave/components/brave_shields/content/test:test_support",
@@ -52,6 +54,10 @@ source_set("unit_tests") {
 
   deps = [
     "//base/test:test_support",
+    "//brave/browser/brave_shields",
+    "//brave/components/brave_shields/core/browser",
+    "//brave/components/brave_shields/core/common",
+    "//brave/components/content_settings/core/common",
     "//brave/components/ephemeral_storage",
     "//chrome/browser",
     "//chrome/browser/content_settings:content_settings_factory",

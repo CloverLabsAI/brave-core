@@ -63,13 +63,13 @@
 #endif
 
 #if defined(TOOLKIT_VIEWS)
+#include "chrome/browser/ui/side_panel/side_panel_entry.h"
+#include "chrome/browser/ui/side_panel/side_panel_entry_id.h"
+#include "chrome/browser/ui/side_panel/side_panel_entry_key.h"
+#include "chrome/browser/ui/side_panel/side_panel_enums.h"
+#include "chrome/browser/ui/side_panel/side_panel_ui.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
 #include "chrome/browser/ui/views/side_panel/side_panel_coordinator.h"
-#include "chrome/browser/ui/views/side_panel/side_panel_entry.h"
-#include "chrome/browser/ui/views/side_panel/side_panel_entry_id.h"
-#include "chrome/browser/ui/views/side_panel/side_panel_entry_key.h"
-#include "chrome/browser/ui/views/side_panel/side_panel_enums.h"
-#include "chrome/browser/ui/views/side_panel/side_panel_ui.h"
 #endif
 
 class BraveBrowserCommandControllerTest : public InProcessBrowserTest {
@@ -503,8 +503,7 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserCommandControllerTest,
                        BraveCommandsToggleAIChat) {
   SidePanelEntryKey ai_chat_key =
       SidePanelEntry::Key(SidePanelEntryId::kChatUI);
-  auto* side_panel_coordinator =
-      browser()->GetFeatures().side_panel_coordinator();
+  auto* side_panel_coordinator = SidePanelCoordinator::From(browser());
   ASSERT_TRUE(base::test::RunUntil([&]() {
     return browser()->GetBrowserView().contents_height_side_panel()->state() ==
            SidePanel::State::kClosed;
@@ -550,21 +549,39 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserCommandControllerTest,
   ASSERT_FALSE(tabs::utils::ShouldShowBraveVerticalTabs(browser()));
 }
 
+#if BUILDFLAG(IS_MAC)
+// On macOS, we block vertical tab mode toggling in fullscreen.
+// Immersive fullscreen feeature is enabled by default but
+// it's not compatible with vertical tab now.
+IN_PROC_BROWSER_TEST_F(BraveBrowserCommandControllerTest,
+                       VerticalTabToggleEnabledState) {
+  EXPECT_FALSE(browser()->window()->IsFullscreen());
+  EXPECT_TRUE(tabs::utils::IsVerticalTabToggleEnabled(browser()));
+
+  // Enter browser fullscreen.
+  chrome::ToggleFullscreenMode(browser());
+  EXPECT_TRUE(browser()->window()->IsFullscreen());
+  browser()->command_controller()->FullscreenStateChanged();
+  EXPECT_FALSE(tabs::utils::IsVerticalTabToggleEnabled(browser()));
+
+  // Exit fullscreen.
+  chrome::ToggleFullscreenMode(browser());
+  EXPECT_FALSE(browser()->window()->IsFullscreen());
+  browser()->command_controller()->FullscreenStateChanged();
+  EXPECT_TRUE(tabs::utils::IsVerticalTabToggleEnabled(browser()));
+}
+#endif
+
 class BraveBrowserCommandControllerWithSideBySideTest
     : public BraveBrowserCommandControllerTest {
  public:
   BraveBrowserCommandControllerWithSideBySideTest() {
-    scoped_features_.InitWithFeatures(
-        /*enabled_features*/ {features::kSideBySide}, {});
   }
   ~BraveBrowserCommandControllerWithSideBySideTest() override = default;
 
   TabStripModel* tab_strip_model() { return browser()->tab_strip_model(); }
 
   CommandUpdater* command_updater() { return browser()->command_controller(); }
-
- private:
-  base::test::ScopedFeatureList scoped_features_;
 };
 
 IN_PROC_BROWSER_TEST_F(BraveBrowserCommandControllerWithSideBySideTest,
@@ -639,9 +656,10 @@ class BraveBrowserCommandControllerWithEmailAliasesTest
     : public BraveBrowserCommandControllerTest {
  public:
   BraveBrowserCommandControllerWithEmailAliasesTest() {
-    scoped_features_.InitWithFeatures({email_aliases::features::kEmailAliases,
-                                       brave_account::features::kBraveAccount},
-                                      {});
+    scoped_features_.InitWithFeatures(
+        {email_aliases::features::kEmailAliases,
+         brave_account::features::BraveAccountFeatureForTesting()},
+        {});
   }
   ~BraveBrowserCommandControllerWithEmailAliasesTest() override = default;
 

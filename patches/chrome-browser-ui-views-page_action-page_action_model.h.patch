@@ -1,0 +1,62 @@
+diff --git a/chrome/browser/ui/views/page_action/page_action_model.h b/chrome/browser/ui/views/page_action/page_action_model.h
+index 05c873f91672109a073561149122969c5d906069..69dd3115e03d61644a39a72cfc6b393c748a7965 100644
+--- a/chrome/browser/ui/views/page_action/page_action_model.h
++++ b/chrome/browser/ui/views/page_action/page_action_model.h
+@@ -40,6 +40,19 @@ class PageActionModelInterface {
+  public:
+   PageActionModelInterface() = default;
+   virtual ~PageActionModelInterface() = default;
++  virtual void SetOverrideChipColors(
++      base::PassKey<PageActionController>,
++      std::optional<SkColor> override_background_color,
++      std::optional<SkColor> override_foreground_color) = 0;
++  virtual void SetAlwaysShowLabel(base::PassKey<PageActionController>,
++                                  bool always_show) = 0;
++  virtual void SetOverrideHeight(base::PassKey<PageActionController>,
++                                 std::optional<int> height) = 0;
++
++  virtual std::optional<SkColor> GetOverrideBackgroundColor() const = 0;
++  virtual std::optional<SkColor> GetOverrideForegroundColor() const = 0;
++  virtual bool GetAlwaysShowLabel() const = 0;
++  virtual std::optional<int> GetOverrideHeight() const = 0;
+ 
+   virtual void AddObserver(PageActionModelObserver* observer) = 0;
+   virtual void RemoveObserver(PageActionModelObserver* observer) = 0;
+@@ -130,6 +143,27 @@ class PageActionModel : public PageActionModelInterface {
+   PageActionModel& operator=(const PageActionModel&) = delete;
+   ~PageActionModel() override;
+ 
++  void SetOverrideChipColors(
++      base::PassKey<PageActionController>,
++      std::optional<SkColor> override_background_color,
++      std::optional<SkColor> override_foreground_color) override;
++  void SetAlwaysShowLabel(base::PassKey<PageActionController>,
++                          bool always_show) override;
++  void SetOverrideHeight(base::PassKey<PageActionController>,
++                         std::optional<int> height_px) override;
++  std::optional<SkColor> GetOverrideBackgroundColor() const override;
++  std::optional<SkColor> GetOverrideForegroundColor() const override;
++  bool GetAlwaysShowLabel() const override;
++  std::optional<int> GetOverrideHeight() const override;
++
++ private:
++  std::optional<SkColor> override_background_color_;
++  std::optional<SkColor> override_foreground_color_;
++  bool always_show_label_ = false;
++  std::optional<int> override_height_;
++
++ public:
++
+   void AddObserver(PageActionModelObserver* observer) override;
+   void RemoveObserver(PageActionModelObserver* observer) override;
+ 
+@@ -223,6 +257,9 @@ class PageActionModel : public PageActionModelInterface {
+   // per-property reentrancy checks.
+   enum class Property {
+     kShowRequested,
++    kAlwaysShowLabel,
++    kOverrideChipColors,
++    kOverrideHeight,
+     kShouldShowSuggestionChip,
+     kSuggestionChipConfig,
+     kTabActive,

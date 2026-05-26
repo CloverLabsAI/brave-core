@@ -59,7 +59,7 @@ NewTabPageAdHandler::NewTabPageAdHandler(
 NewTabPageAdHandler::~NewTabPageAdHandler() = default;
 
 void NewTabPageAdHandler::ParseAndSave(
-    base::Value::Dict dict,
+    base::DictValue dict,
     ParseAndSaveNewTabPageAdsCallback callback) {
   ParseAndSaveNewTabPageAds(std::move(dict), std::move(callback));
 }
@@ -162,13 +162,19 @@ void NewTabPageAdHandler::OnDidFireNewTabPageAdViewedEvent(
           ad.creative_instance_id, ad.segment);
 }
 
+void NewTabPageAdHandler::OnWillFireNewTabPageAdClickedEvent(
+    const NewTabPageAdInfo& ad) {
+  // Must be set before `RecordAdEvent` completes so that if a page navigation
+  // commits during the write, `SiteVisit::MaybeLandOnPage` can record the
+  // page land for this ad.
+  site_visit_->set_last_clicked_ad(ad);
+}
+
 void NewTabPageAdHandler::OnDidFireNewTabPageAdClickedEvent(
     const NewTabPageAdInfo& ad) {
   BLOG(3, "Clicked new tab page ad with placement id "
               << ad.placement_id << " and creative instance id "
               << ad.creative_instance_id);
-
-  site_visit_->set_last_clicked_ad(ad);
 
   AdHistoryManager::GetInstance().Add(ad, mojom::ConfirmationType::kClicked);
 

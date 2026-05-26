@@ -123,7 +123,7 @@ extension BrowserViewController {
 
     // Retrieve the item and offset-time from the current tab's webview.
     let tab = self.tabManager.selectedTab
-    PlaylistCoordinator.shared.getPlaylistController(tab: tab) {
+    PlaylistCoordinator.shared.getPlaylistController(tab: tab, profile: profileController.profile) {
       [weak self] playlistController in
       guard let self = self else { return }
 
@@ -133,26 +133,6 @@ extension BrowserViewController {
         PlaylistCoordinator.shared.isPlaylistControllerPresented = true
         self.present(playlistController, animated: true)
       }
-    }
-  }
-
-  // Present a popup when VPN server region has been changed
-  private func presentVPNServerRegionPopup() {
-    let controller = PopupViewController(
-      rootView: BraveVPNRegionConfirmationView(
-        country: BraveVPN.serverLocationDetailed.country,
-        city: BraveVPN.serverLocationDetailed.city,
-        countryISOCode: BraveVPN.serverLocation.isoCode
-      ),
-      isDismissable: true
-    )
-    if let presentedViewController {
-      presentedViewController.present(controller, animated: true)
-    } else {
-      present(controller, animated: true)
-    }
-    Timer.scheduledTimer(withTimeInterval: 2, repeats: false) { [weak controller] _ in
-      controller?.dismiss(animated: true)
     }
   }
 
@@ -232,11 +212,7 @@ extension BrowserViewController {
           }
         case .vpnRegionPicker:
           let vc = UIHostingController(
-            rootView: BraveVPNRegionListView(
-              onServerRegionSet: { _ in
-                self.presentVPNServerRegionPopup()
-              }
-            )
+            rootView: BraveVPNRegionListView(onServerRegionSet: nil)
           )
           vc.title = Strings.VPN.vpnRegionListServerScreenTitle
           self.dismiss(animated: true) {
@@ -335,9 +311,9 @@ extension BrowserViewController {
         }
       )
     }
-    let printFormatter = tab?.viewPrintFormatter
+    let printFormatter = tab?.view.viewPrintFormatter()
     actions.append(
-      .init(id: .print, attributes: printFormatter == nil ? .disabled : []) {
+      .init(id: .print) {
         @MainActor [unowned self] _ in
         self.dismiss(animated: true) {
           let printController = UIPrintInteractionController.shared
@@ -529,7 +505,10 @@ extension BrowserViewController {
     }
     if profileController.braveWalletAPI.isAllowed {
       actions.append(
-        .init(id: .braveWallet) { @MainActor [unowned self] _ in
+        .init(
+          id: .braveWallet,
+          attributes: isPrivateBrowsing ? .disabled : []
+        ) { @MainActor [unowned self] _ in
           // Present wallet already handles dismiss + present
           self.presentWallet()
           return .none

@@ -5,11 +5,11 @@
 
 #include "brave/components/brave_wallet/browser/asset_discovery_manager.h"
 
-#include "base/containers/contains.h"
+#include <algorithm>
+
 #include "base/memory/raw_ptr.h"
 #include "base/memory/scoped_refptr.h"
 #include "base/test/bind.h"
-#include "base/test/scoped_feature_list.h"
 #include "base/time/time.h"
 #include "brave/components/api_request_helper/api_request_helper.h"
 #include "brave/components/brave_wallet/browser/brave_wallet_constants.h"
@@ -22,7 +22,6 @@
 #include "brave/components/brave_wallet/browser/pref_names.h"
 #include "brave/components/brave_wallet/browser/test_utils.h"
 #include "brave/components/brave_wallet/browser/tx_service.h"
-#include "brave/components/brave_wallet/common/features.h"
 #include "brave/components/brave_wallet/common/test_utils.h"
 #include "chrome/browser/prefs/browser_prefs.h"
 #include "chrome/test/base/testing_profile.h"
@@ -32,7 +31,6 @@
 #include "components/sync_preferences/testing_pref_service_syncable.h"
 #include "content/public/test/browser_task_environment.h"
 #include "net/traffic_annotation/network_traffic_annotation_test_helper.h"
-#include "services/data_decoder/public/cpp/test_support/in_process_data_decoder.h"
 #include "services/network/public/cpp/weak_wrapper_shared_url_loader_factory.h"
 #include "services/network/test/test_url_loader_factory.h"
 #include "testing/gtest/include/gtest/gtest.h"
@@ -96,17 +94,11 @@ class TestBraveWalletServiceObserverForAssetDiscoveryManager
 class AssetDiscoveryManagerUnitTest : public testing::Test {
  public:
   AssetDiscoveryManagerUnitTest()
-      : shared_url_loader_factory_(
-            base::MakeRefCounted<network::WeakWrapperSharedURLLoaderFactory>(
-                &url_loader_factory_)),
-        task_environment_(base::test::TaskEnvironment::TimeSource::MOCK_TIME) {}
+      : task_environment_(base::test::TaskEnvironment::TimeSource::MOCK_TIME) {}
   ~AssetDiscoveryManagerUnitTest() override = default;
 
  protected:
   void SetUp() override {
-    scoped_feature_list_.InitAndEnableFeature(
-        features::kNativeBraveWalletFeature);
-
     brave_wallet::RegisterLocalStatePrefs(local_state_.registry());
 
     TestingProfile::Builder builder;
@@ -116,25 +108,27 @@ class AssetDiscoveryManagerUnitTest : public testing::Test {
     builder.SetPrefService(std::move(prefs));
     profile_ = builder.Build();
     wallet_service_ = std::make_unique<BraveWalletService>(
-        shared_url_loader_factory_,
+        url_loader_factory_.GetSafeWeakWrapper(),
         BraveWalletServiceDelegate::Create(profile_.get()), GetPrefs(),
         GetLocalState());
     network_manager_ = wallet_service_->network_manager();
     json_rpc_service_ = wallet_service_->json_rpc_service();
     keyring_service_ = wallet_service_->keyring_service();
     tx_service_ = wallet_service_->tx_service();
-    simple_hash_client_ =
-        std::make_unique<SimpleHashClient>(shared_url_loader_factory_);
+    simple_hash_client_ = std::make_unique<SimpleHashClient>(
+        url_loader_factory_.GetSafeWeakWrapper());
     asset_discovery_manager_ = std::make_unique<AssetDiscoveryManager>(
-        shared_url_loader_factory_, *wallet_service_, *json_rpc_service_,
-        *keyring_service_, *simple_hash_client_, GetPrefs());
+        url_loader_factory_.GetSafeWeakWrapper(), *wallet_service_,
+        *json_rpc_service_, *keyring_service_, *simple_hash_client_,
+        GetPrefs());
     wallet_service_observer_ = std::make_unique<
         TestBraveWalletServiceObserverForAssetDiscoveryManager>();
     wallet_service_->AddObserver(wallet_service_observer_->GetReceiver());
 
     api_request_helper_ =
         std::make_unique<api_request_helper::APIRequestHelper>(
-            TRAFFIC_ANNOTATION_FOR_TESTS, shared_url_loader_factory_);
+            TRAFFIC_ANNOTATION_FOR_TESTS,
+            url_loader_factory_.GetSafeWeakWrapper());
   }
 
   PrefService* GetPrefs() { return profile_->GetPrefs(); }
@@ -143,7 +137,6 @@ class AssetDiscoveryManagerUnitTest : public testing::Test {
     return network_manager_->GetNetworkURL(chain_id, coin);
   }
   network::TestURLLoaderFactory url_loader_factory_;
-  scoped_refptr<network::SharedURLLoaderFactory> shared_url_loader_factory_;
   std::unique_ptr<TestBraveWalletServiceObserverForAssetDiscoveryManager>
       wallet_service_observer_;
   content::BrowserTaskEnvironment task_environment_;
@@ -157,8 +150,6 @@ class AssetDiscoveryManagerUnitTest : public testing::Test {
   raw_ptr<KeyringService> keyring_service_ = nullptr;
   raw_ptr<JsonRpcService> json_rpc_service_;
   raw_ptr<TxService> tx_service_;
-  base::test::ScopedFeatureList scoped_feature_list_;
-  data_decoder::test::InProcessDataDecoder in_process_data_decoder_;
 
   void TestDiscoverAssetsOnAllSupportedChains(
       std::vector<mojom::AccountIdPtr> accounts,
@@ -190,10 +181,10 @@ TEST_F(AssetDiscoveryManagerUnitTest, GetFungibleSupportedChains) {
   auto chains1 = asset_discovery_manager_->GetFungibleSupportedChains();
   auto chains2 = asset_discovery_manager_->GetFungibleSupportedChains();
   auto chains3 = asset_discovery_manager_->GetFungibleSupportedChains();
-  EXPECT_TRUE(base::Contains(
+  EXPECT_TRUE(std::ranges::contains(
       chains1,
       mojom::ChainId::New(mojom::CoinType::ETH, mojom::kMainnetChainId)));
-  EXPECT_TRUE(base::Contains(
+  EXPECT_TRUE(std::ranges::contains(
       chains1,
       mojom::ChainId::New(mojom::CoinType::SOL, mojom::kSolanaMainnet)));
 
@@ -205,15 +196,15 @@ TEST_F(AssetDiscoveryManagerUnitTest, GetNonFungibleSupportedChains) {
   // Gnosis chain ID should not be included if it's not a custom network
   auto chains = asset_discovery_manager_->GetNonFungibleSupportedChains();
   EXPECT_EQ(chains.size(), 8UL);
-  EXPECT_TRUE(base::Contains(
+  EXPECT_TRUE(std::ranges::contains(
       chains,
       mojom::ChainId::New(mojom::CoinType::ETH, mojom::kMainnetChainId)));
-  EXPECT_TRUE(base::Contains(
+  EXPECT_TRUE(std::ranges::contains(
       chains,
       mojom::ChainId::New(mojom::CoinType::SOL, mojom::kSolanaMainnet)));
 
   // Verify none of the chain IDs == mojom::kGnosisChainId
-  EXPECT_FALSE(base::Contains(
+  EXPECT_FALSE(std::ranges::contains(
       chains,
       mojom::ChainId::New(mojom::CoinType::ETH, mojom::kGnosisChainId)));
 
@@ -225,7 +216,7 @@ TEST_F(AssetDiscoveryManagerUnitTest, GetNonFungibleSupportedChains) {
   EXPECT_EQ(chains.size(), 9UL);
 
   // Verify one of the chain IDs is mojom::kGnosisChainId
-  EXPECT_TRUE(base::Contains(
+  EXPECT_TRUE(std::ranges::contains(
       chains,
       mojom::ChainId::New(mojom::CoinType::ETH, mojom::kGnosisChainId)));
 }

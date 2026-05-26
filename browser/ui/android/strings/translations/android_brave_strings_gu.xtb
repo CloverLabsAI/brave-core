@@ -49,6 +49,14 @@
 <translation id="2998960761270772157">YouTube.com પર સાઇન ઇન, કોમેન્ટ અને વીડિયો ઇન્ફૉ એલિમેન્ટને બ્લોક કરે છે.</translation>
 <translation id="8531835121131500698">YouTube Shortsને બ્લોક કરો</translation>
 <translation id="2167271714269158912">YouTube.com પર હોમ પેજ, ટ્રેન્ડિંગ પેજ અને સર્ચ પરિણામોમાંથી Shortsને બ્લોક કરે છે.</translation>
+<translation id="2564435705466025309">YouTube Shorts આપમાણે બ્લોક કરો</translation>
+<translation id="3603500459037204525">youtube.com હોમ પેજ અને શોધ પરિણામો પર આપમાણે બનેલા વિડિયોને બ્લોક કરે છે.</translation>
+<translation id="4067265130987656010">YouTube થંબનેઇલ્સને બ્લોક કરો</translation>
+<translation id="3034711349887440574">youtube.com હોમ પેજ અને શોધ પરિણામો પર થંબનેઇલ્સને બ્લોક કરે છે.</translation>
+<translation id="8741919213635379855">YouTube Playables બ્લોક કરો</translation>
+<translation id="2216551241986578034">youtube.com હોમ પેજ અને શોધ પરિણામો પર Playables ને બ્લોક કરે છે.</translation>
+<translation id="9038505474874975130">YouTube સભ્ય-માત્ર વીડિયો બ્લોક કરો</translation>
+<translation id="3084239516382196983">youtube.com હોમ પેજ અને શોધ પરિણામો પર સભ્ય-માત્ર વીડિયોને બ્લોક કરે છે.</translation>
 <translation id="6052725679982758334">સમાજ માધ્યમ અવરોધન</translation>
 <translation id="7498695072878479744">તૃતીય પક્ષના સાઇટ્સ પર Google લોગિન બટનને મંજૂરી આપો</translation>
 <translation id="863171915776379000">Facebook લૉગિન અને એમ્બેડેડ પોસ્ટને મંજૂર કરો</translation>
@@ -68,8 +76,6 @@
 <translation id="7304425663107214334">બ્રાઉઝર સૂચનો બતાવો</translation>
 <translation id="8982438328166986164">તમારા બુકમાર્ક્સ અને બ્રાઉઝિંગ ઇતિહાસના આધારે વેબસાઇટ સૂચનો દર્શાવશે.</translation>
 <translation id="924029461438529367">શોધ સૂચનો બતાવો</translation>
-<translation id="6285118765755298263">અન્ય શોધ એન્જિનોને ઇન્ડેક્સ કરો</translation>
-<translation id="919715748352669592">OpenSearch સ્પેસિફિકેશનને ફોલો કરતી વેબસાઇટને આપમેળે ઇન્ડેક્સ કરો.</translation>
 <translation id="9148058034647219655">બહાર નીકળો</translation>
 <translation id="7534079972563542000">અનસ્ટોપેબલ ડોમેન</translation>
 <translation id="6486983549008741930">સંશોધન કન્ટેન્ટ</translation>
@@ -146,6 +152,8 @@ Brave News ખાનગી, અનાન્ય મુદાવળો સાથ�
 <translation id="4690906712010847708">HTTPS માટે કનેક્શન અપગ્રેડ કરશો નહીં (અક્ષમ કરેલું)</translation>
 <translation id="693506469193748756">જ્યારે હું આ સાઇટ બંધ કરું ત્યારે મને ભૂલી જાઓ</translation>
 <translation id="6975864539539353406">શુંકcookies અને અન્ય સાઇડ ડેટા સાફ કરે છે જ્યારે તમે સાઇટ બંધ કરો છો</translation>
+<translation id="7740929262043547697">ખાનગી Windowsમાં એલિમેન્ટ બ્લોક કરવાની મંજૂરી આપો</translation>
+<translation id="1260864846935682371">ખાનગી Windowsમાં 'શિલ્ડ્સ બ્લોક એલિમેન્ટ્સ' ફીચર સક્રિય કરે છે. નોંધો કે ખાનગી Windowsમાં બ્લોક કરેલા એલિમેન્ટ્સ એ નોન-પ્રાઇવેટ Windowsમાં પણ બ્લોક થશે.</translation>
 <translation id="1680858055899097121">બ્રાઉઝિંગ સત્રોની વચ્ચે ટૅબ્સ ચાલુ રાખતા નહીં</translation>
 <translation id="7142548388914389999">ગોપનીયતા જાળવતા પ્રોડક્ટ એનાલિટિક્સને મંજૂરી આપો (P3A)</translation>
 <translation id="5254037869598726291">અનામિક P3A માહિતી Braveને કુલ ઉપયોગનો અંદાજ લગાવવા, અને લોકપ્રિય સુવિધાઓ સુધારાયલી સુનિશ્ચિત કરવા માટે મદદ કરે છે.</translation>
@@ -165,10 +173,6 @@ Brave News ખાનગી, અનાન્ય મુદાવળો સાથ�
 <translation id="9110294136812584522">સાઇટ્સ તૃતીય-પક્ષ કુકી દ્વારા જૂના Google સાઇન-ઇનનો ઉપયોગ કરવાનું કહી શકે છે</translation>
 <translation id="2903783737778379345">તૃતીય-પક્ષ કૂકીઝ દ્વારા લેગસી Google સાઇન-ઇનને મંજૂરી આપશો નહીં</translation>
 <translation id="6880817299303842099">તૃતીય-પક્ષ કૂકીઝ દ્વારા લેગસી Google સાઇન-ઇનને મંજૂરી છે</translation>
-<translation id="2136412236435693622">લોકલહોસ્ટ ઍક્સેસ</translation>
-<translation id="4172219483893066798">સાઇટ્સ લોકલહોસ્ટ સંસાધનોને ઍક્સેસની વિનંતી કરી શકે છે</translation>
-<translation id="7181706637590665047">લોકલહોસ્ટ સંસાધનોને ઍક્સેસ કરવાની મંજૂરી આપશો નહીં</translation>
-<translation id="1485435696620658073">લોકલહોસ્ટ સંસાધનો ઍક્સેસ કરવા માટે મંજૂરી છે</translation>
 <translation id="181905442828471321">Brave શિલ્ડ્સ વૈશ્વિક મૂળભૂત સેટિંગ્સ</translation>
 <translation id="2675679258824361492">અન્ય ગોપનીયતા સેટિંગ્સ</translation>
 <translation id="8026334261755873520">બ્રાઉઝિંગ ડેટા સાફ કરો</translation>
@@ -193,14 +197,27 @@ Brave News ખાનગી, અનાન્ય મુદાવળો સાથ�
 <translation id="834487290629916192">પછીની</translation>
 <translation id="4117451092682672487">ગોપનિયતા. હવે બની સરળ.</translation>
 <translation id="7909375417585209817">Braveને ડિફોલ્ટ રાખ્યું હોય, તો તમે ક્લિક કરો છો તે દરેક લિંક Braveના ગોપનિયતા સંરક્ષણોમાં ખૂલે છે.</translation>
-<translation id="7370959926683925817">જાહેરાતો બ્લોક કરો. ડેટા બચાવો. દરરોજ.</translation>
-<translation id="7281027579943912834">Braveને ડિફોલ્ટ રાખ્યું હોય, તો તમે ક્લિક કરો છો તે દરેક લિંકને Braveનું એડ-બ્લોક સંરક્ષણ પ્રાપ્ત થાય છે. દરેક પેજ, વીડિયો અને સ્ટ્રીમ પર.</translation>
-<translation id="5148943178722443958">Braveને બહેતર બનાવવામાં મદદ કરો.</translation>
+<translation id="763369711159699222">Braveને બહેતર બનાવવામાં મદદ કરો</translation>
+<translation id="8025937231644975408">તમે કયા ફીચર્સનો સૌથી વધુ આનંદ માણી રહ્યા છો તે અમને જણાવો.</translation>
 <translation id="6718362830686703942">જો તમને કોઈ ક્રેશ થવા કે અટકવાનો અનુભવ થાય તો ડાયગ્નોસ્ટિક્સ રિપોર્ટ મોકલો.</translation>
 <translation id="8616157231067364693">Braveના ઉપયોગકર્તાઓ દ્વારા કયા ફીચર્સનો ઉપયોગ થઈ રહ્યો છે તે વિશે ખાનગી અને અનામી પ્રોડક્ટ આંતરદ્રષ્ટિ શેર કરો.</translation>
 <translation id="2888496576732880897">Brave સર્ચને વધારવામાં મદદ કરો</translation>
+<translation id="7198716519700700181">જ્યારે તમે સ્ટ્રીમ કરો ત્યારે વિક્ષેપને બ્લોક કરો</translation>
 <translation id="7044431516245362795">ઇન્ડેક્સને વધારવા અને શોધ પરિણામોને સુધારવા માટે વેબ ડિસ્કવરી પ્રોજેક્ટમાં શામેલ થાઓ. <ph name="LEARN_MORE_START"/>વધુ જાણો.<ph name="LEARN_MORE_END"/></translation>
+<translation id="4847979153841887006">Brave લોગો</translation>
+<translation id="1389386068457132299">ઓનબોર્ડિંગ બેકગ્રાઉન્ડ</translation>
+<translation id="5101985748360228609">ટોપ લીફ સજાવટ</translation>
+<translation id="5270920361877570459">બોટમ લીફ સજાવટ</translation>
+<translation id="4021716437419160885">નીચે સ્ક્રોલ કરો</translation>
+<translation id="4767173360729868049">Brave સર્ચને મદદ કરો ચિત્રણ</translation>
+<translation id="8241918461631453498">વિક્ષેપને બ્લોક કરો ચિત્રણ</translation>
+<translation id="8213310572767907663">Brave ને વધુ સારું બનાવો ચિત્રણ</translation>
+<translation id="2427917529469438577">તમારી પસંદીની સ્ટ્રીમિંગ સાઇટ્સ પર짜짜ધોધ વિક્ષેપને બ્લોક કરો.</translation>
 <translation id="7818938154803162778">ચોક્કસ, હું મદદ કરીશ</translation>
+<translation id="5298784657468199167">ક્રેશ રિપોર્ટ્સ મોકલો</translation>
+<translation id="6188781052835527980">જો તમને કોઈ ક્રેશ થવા કે અટકવાનો અનુભવ થાય તો અનામી ડાયગ્નોસ્ટિક્સ રિપોર્ટ મોકલો.</translation>
+<translation id="4780647518983772446">Brave ફીચર્સ વિશે શું ઉપયોગમાં લેવાઈ રહ્યું છે તે વિશે ખાનગી અને અનામી પ્રોડક્ટ આંતરદ્રષ્ટિ શેર કરો.</translation>
+<translation id="5109496672133133896">ખાનગી પ્રોડક્ટ આંતરદ્રષ્ટિ</translation>
 <translation id="3545804467215833536">Brave શિલ્ડ્સ જોવા માટે ટૅપ કરો</translation>
 <translation id="1724327820822194498">શિલ્ડ્સ સાથે, BraveBlocked બધું ખરાબ છે, દરેક પાને પર.</translation>
 <translation id="5386259141409498372"><ph name="BIG_TECH"/> અને <ph name="TRACKER"/> અન્ય જાહેરાતો અને ટ્રેકર્સને બ્લોક કર્યા</translation>
@@ -379,6 +396,11 @@ Brave News ખાનગી, અનાન્ય મુદાવળો સાથ�
 <translation id="8793108040181436796">વિજેટ્સ</translation>
 <translation id="8643377320501056697">ટોચની સાઇટ્સ બતાવો</translation>
 <translation id="7275773481201277457">Brave આંકડા બતાવો</translation>
+<translation id="7462178177755090262">પ્રારંભ સ્ક્રીન</translation>
+<translation id="5365434987337264071">છેલ્લો ખુલેલ ટૅબ</translation>
+<translation id="6019856124237323989">{HOURS, plural, =1 {અપ્રવૃત્તિ પછી <ph name="HOURS_ONE"/> કલાકમાં નવો ટૅબ} other {અપ્રવૃત્તિ પછી <ph name="HOURS_MANY"/> કલાકોમાં નવો ટૅબ}}</translation>
+<translation id="5233638681132016545">નવું ટૅબ</translation>
+<translation id="8395271296293035055">તમારો તાજેતરનો ટૅબ ફરીથી ખોલો</translation>
 <translation id="8297488609722895137">ફોટો <ph name="PHOTO_BY"/> દ્વારા</translation>
 <translation id="2898634658146274982">બાહરી લિંક Braveમાં ખોલો</translation>
 <translation id="5616508928556767259">અન્ય ઍપની લિંક Brave વેબવ્યૂમાં ખૂલે છે. નોંધ: Brave તમારા ડિફોલ્ટ બ્રાઉઝર તરીકે સેટ કરેલું હોવું જોઈએ.</translation>
@@ -389,7 +411,7 @@ Brave News ખાનગી, અનાન્ય મુદાવળો સાથ�
 <translation id="717952606991220586">અફસોસ, કંઈક ખોટું છે. કૃપા કરીને પછીથી ફરી પ્રયાસ કરો.</translation>
 <translation id="987264212798334818">સામાન્ય</translation>
 <translation id="1116694919640316211">વિશે</translation>
-<translation id="1275213816424141989">કદાચ પછી</translation>
+<translation id="2370739752330685659">કદાચ પછી</translation>
 <translation id="3624048886326677117">ટ્રેકર્સ અને એડ્સ બ્લૉક કરો (આક્રમક)</translation>
 <translation id="7151914815476509258">ટ્રેકર્સ અને એડ્સ બ્લૉક કરો (માનક)</translation>
 <translation id="7384778069178817075">બધા ટ્રેકરો અને જાહેરાતોને મંજૂરી આપો</translation>
@@ -427,6 +449,13 @@ Brave News ખાનગી, અનાન્ય મુદાવળો સાથ�
 <translation id="7141438739990875547">Bitcoin નેટવર્ક્સ</translation>
 <translation id="9055546041146396417">જો આ સાઇટ બરાબર ન દેખાતી હોય, તો શિલ્ડ નીચે કરી જુઓ.</translation>
 <translation id="7898672232170410330">એલિમેંટ બ્લોક કરો</translation>
+<translation id="9064628362799094520">આ સાઇટનો ડેટા કાચરાઓ</translation>
+<translation id="8949611615512336262">ઓટો કાચરાઓ: <ph name="AUTO_SHRED_MODE_TEXT"/></translation>
+<translation id="9140049656798805345">હવે સાઇટ ડેટા કાચરાઓ</translation>
+<translation id="6795622376590884449">ઓટો કાચરાઓ</translation>
+<translation id="7961015016161918242">ક્યારેય નહીં</translation>
+<translation id="1991004083507807299">સાઇટ ટેબ બંધ</translation>
+<translation id="5827277414420724690">એપ્લીકેશન બંધ</translation>
 <translation id="1209739344687072997">બ્રેક થયેલી સાઇટ અંગે રિપોર્ટ કરો</translation>
 <translation id="8510478288840333677">શિલ્ડ્સ સાથે આ સાઇટ યોગ્ય રીતે કામ કરતી નથી તે Brave ના ડેવલપરને જાણ થવા દો:</translation>
 <translation id="1653405824851871276">Braveને બધા માટે વધુ સારો બનાવવા માટે મદદ કરવા બદલ આભાર. આ રિપોર્ટમાં માત્ર આ સાઇટને ઠીક કરવા માટેની માહિતી જ હશે. <ph name="LEARN_MORE"/></translation>
@@ -500,7 +529,6 @@ Brave News ખાનગી, અનાન્ય મુદાવળો સાથ�
 <translation id="5705882733397021510">પાછા જાઓ</translation>
 <translation id="7889432931837317731">જો શક્ય હોય તો આપમેળે ખોલો</translation>
 <translation id="1029304566263314007">ડાઉનલોડ પ્રગતિ સૂચનાઓ બતાવો</translation>
-<translation id="2910433761530295035">ફાઇલો ક્યાં સાચવવી તે પૂછો (જો એસડી કાર્ડ મળ્યું હોય)</translation>
 <translation id="2977501775944575564">સમાનાંતર ડાઉનલોડિંગ</translation>
 <translation id="6224180438946945617">ડાઉનલોડ ઝડપમાં વૃદ્ધિ કરવા માટે સમાનાંતર ડાઉનલોડિંગ સક્રિય કરો</translation>
 <translation id="8967385052772844086">પૂર્ણ ગોપનીયતા રિપોર્ટ જુઓ</translation>
@@ -767,7 +795,6 @@ Brave News ખાનગી, અનાન્ય મુદાવળો સાથ�
 <translation id="6889920539620318793">સક્રિય તરીકે સેટ કરો</translation>
 <translation id="2653659639078652383">સબમિટ કરો</translation>
 <translation id="4945690646623486292">નેટવર્ક પસંદ કરો</translation>
-<translation id="5233638681132016545">નવું ટૅબ</translation>
 <translation id="8006088103295786154">Brave Wallet નો ઉપયોગ કરો</translation>
 <translation id="5308380583665731573">કનેક્ટ કરો</translation>
 <translation id="8030169304546394654">ડિસ્કનેક્ટેડ</translation>
@@ -920,6 +947,9 @@ Brave News ખાનગી, અનાન્ય મુદાવળો સાથ�
 <translation id="703185154752046151">વિજેટ હોમ સ્ક્રીન પર ઉમેર્યું</translation>
 <translation id="4635094429202343515">Brave સર્ચ વિજેટ એ પ્રયાસ કરો</translation>
 <translation id="4809681171446727314">તમારા હોમ સ્ક્રીન પરથી ખાનગી, સ્વતંત્ર શોધ तक पहुंच प्राप्त કરો.</translation>
+<translation id="3280562213547448728">વોઇસ સર્ચ</translation>
+<translation id="3925312712530886302">ખાનગી સર્ચ ખોલો</translation>
+<translation id="9214590551301647710">Leo ખોલો</translation>
 <translation id="7751715172931488388">વિજેટ ઉમેરો</translation>
 <translation id="7285167584112910782">Brave ક્વિક ઍક્શન શોધ</translation>
 <translation id="2326703104633309781">Brave ટ્રાન્સલેટનો ઉપયોગ કરો</translation>
@@ -951,15 +981,25 @@ Brave News ખાનગી, અનાન્ય મુદાવળો સાથ�
 <translation id="5494920125229734069">બધા પસંદ કરો</translation>
 <translation id="2361906291514218784">Leo AI</translation>
 <translation id="944736176598169208">રિવોર્ડ્સ</translation>
-<translation id="4272190451231642425">આપમેળે ક્રેશ રિપોર્ટ મોકલો</translation>
 <translation id="1199170151481311646">ગોપનીયતા જાળવતો વિશ્લેષણ</translation>
 <translation id="1706715315466634757">ઇમેઇલ ઉપનામો</translation>
+<translation id="738840791756723657">AI</translation>
 <translation id="6709133671862442373">News</translation>
 <translation id="5990642573624858459">આંકડાકીય અહેવાલ</translation>
 <translation id="7705524343798198388">VPN</translation>
 <translation id="2441719842399509963">બધાને ડીફોલ્ટ પર રીસેટ કરો</translation>
 <translation id="4922034974043704366">આ ફીચર ચાલુ છે કારણ કે તમે તેમાં સામેલ થયા છો</translation>
-<translation id="3144818380093107753">Brave Origin એ એક સબ્સ્ક્રિપ્શન આધારિત રીત છે Brave ને એક વ્યવસાય તરીકે સમર્થન આપતી આવક જનરેટ કરતી ફીચરોને નિષ્ક્રિય કરવાની. Brave Origin સબ્સ્ક્રાઇબર્સને અમારા ઉદ્યોગનાયક ગોપનીયતા, ઍડબ્લોક અને ઝડપના લાભો (Brave શિલ્ડ્સ મારફતે) મળશે, તેમજ નિયમિત સોફ્ટવેર અપડેટ્સ, Chromium પેચ અને સિક્યોરિટી તથા પ્રાઇવસી સુધારાઓ પણ મળશે. તેઓ Brave Leo, ન્યૂઝ, રિવોર્ડ્સ, વોલેટ, VPN, Web3 ડોમેઇન્સ વગેરે જેવી ફીચરોને નિષ્ક્રિય કરવાની વિકલ્પ પણ ખોલી શકશે.&lt;br/&gt;&lt;br/&gt;સબ્સ્ક્રાઇબર્સને બ્રાઉઝર સેટિંગ્સ મેનૂમાં નવું નિયંત્રણ પેનલ દેખાશે. હાલની ફીચરો—તેમજ અમે ભવિષ્યમાં આપે તેવી નવી ફીચરો—અહીં દેખાશે અને મૂળભૂત રીતે બંધ રાખવામાં આવશે.&lt;br/&gt;&lt;br/&gt;&lt;b&gt; નોંધ: Brave Origin તે બ્રાઉઝર ફીચરોને નિષ્ક્રિય કરશે નહીં જે તમે હાલ ઉપયોગ કરી રહ્યાં છો, અને Brave સર્ચ અથવા Brave સર્ચ એડ્સને કોઈ અસર નહિ થાય. &lt;/b&gt;</translation>
+<translation id="2587535830241068901">Brave ને સપોર્ટ કરતા કરતી વખતે તમારું બ્રાઉઝર કસ્ટમાઇઝ કરો</translation>
+<translation id="7235314227387539944">Brave Origin એ બ્રાઉઝરનું પેઇડ સંસ્કરણ છે એવા વપરાશકર્તાઓ માટે કે જેમને તમામ ફીચર્સની જરૂર નથી જે Brave ને બિઝનેસ તરીકે સમર્થન આપે છે, પરંતુ તેમ છતાં તેઓ માત્ર Brave દ્વારા આપવામાં આવતી ગોપનીયતા ચાહે છે. Origin વપરાશકર્તાઓ આમાંથી ઉદ્યોગ-અગ્રણી ગોપનીયતા, adblock, અને ગતિ (શિલ્ડ્સ દ્વારા) નો લાભ મેળવવાનું ચાલુ રાખશે, તેમજ નિયમિત સોફ્ટવેર અપડેટ્સ, Chromium પેચ્સ, અને સુરક્ષા અને ગોપનીયતા સુધારણાઓ. Origin બ્રાઉઝર્સમાંથી મોટાભાગની અન્ય ફીચર્સને હટાવશે.</translation>
+<translation id="7941943775131052130">નોટ કરો કે Brave Origin ખરીદી તમને Brave સર્ચ પ્રીમિયમ માટે ઍક્સેસ પણ પ્રદાન કરશે, કારણ કે Origin Brave સર્ચ પરિણામ પૃષ્ઠમાંથી એડ્સ હટાવશે.</translation>
+<translation id="2573819149217596923">Brave ફીચર્સ બદલી રહ્યા છીએ</translation>
+<translation id="7415416427817229128">Brave ફીચર સક્ષમ અથવા અક્ષમ કરવા માટે બ્રાઉઝરને ફરીથી શરૂ કરવાની જરૂર છે. શું તમે હમણાં રીસ્ટાર્ટ કરવા માગો છો?</translation>
+<translation id="2256115617011615191">હમણાં રીસ્ટાર્ટ કરો</translation>
+<translation id="2160089182263405907">ફીચર્સ અક્ષમ કરી રહ્યા છીએ</translation>
+<translation id="3362364767724670721">Brave ફીચર સક્ષમ અથવા અક્ષમ કરવા માટે બ્રાઉઝરને પુનરાવર્તન કરવું જરૂરી છે. Origin અપડેટ કરવું સમાપ્ત કર્યા પછી <ph name="BEGIN_BOLD"/>હવે પુનરાવર્તન કરો<ph name="END_BOLD"/> પર ક્લિક કરો.</translation>
+<translation id="1028940738207645746">શું તમે ખરેખર તમામ સેટિંગ્સને ડિફોલ્ટમાં પુનરાવર્તિત કરવા માંગો છો?</translation>
+<translation id="5939518447894949180">રીસેટ કરો</translation>
+<translation id="8554205386170195281">ખરીદો</translation>
 <translation id="8613144770663526433">Brave Wallet સાથે સાઇન ઇન કરો</translation>
 <translation id="3696514931437952995">તમે <ph name="ORIGIN"/> સાઇન ઇન કરી રહ્યા છો. Brave આ સરનામો શેર કરશે <ph name="ORIGIN"/>.</translation>
 <translation id="1028781062521375153">વિગતો જુઓ</translation>
@@ -994,7 +1034,6 @@ Brave News ખાનગી, અનાન્ય મુદાવળો સાથ�
 <translation id="1309636029062006520">તમારા મનપસંદ ઑડિયો અને વિડિઓ પ્લેલિસ્ટ બનાવો, અને કોઈપણ સમયે, ક્યાંય પણ વગાડી શકો.</translation>
 <translation id="7899390017499980820">પ્લેલિસ્ટ બટન ઉમેરો</translation>
 <translation id="6901152954398668317">મીડિયાને ઝડપી ઍક્સેસ માટે 'પ્લેલિસ્ટ ઉમેરો' બટન બતાવો અથવા છુપાવો.</translation>
-<translation id="5939518447894949180">રીસેટ કરો</translation>
 <translation id="8199028711686989861">ટપ્પા સહિત પ્લેલિસ્ટમાંથી તમામ વિડિઓ હટાવો.</translation>
 <translation id="4590997608186539865">પ્લેલિસ્ટ</translation>
 <translation id="7525067979554623046">બનાવો</translation>
@@ -1075,17 +1114,22 @@ Brave News ખાનગી, અનાન્ય મુદાવળો સાથ�
 <translation id="4650851936784160359">ફિલ્ટર લિસ્ટ અપડેટ કરી શકાયા નથી. કૃપા કરીને ફરી પ્રયાસ કરો</translation>
 <translation id="3098054327870766317">ટેબ્સ બંધ થતી વખતે Undo બટન દર્શાવો</translation>
 <translation id="1336494649091412226">શું તમે Braveમાંથી બહાર નીકળવા માટે ખાતરી કરો છો?</translation>
+<translation id="6061635824229591714">આ સાઇટ ડેટાને કાચરાઓ?</translation>
+<translation id="1265051174491933207">કાચરાવવાની કાર્યવાહીમાં સાઇટ ડેટા મિટી જઈને તમામ '<ph name="SITE_NAME"/>' ટૅબ બંધ થઈ જશે. આ પ્રક્રિયાને પાછું ફેરવી શકાય તેમ નથી.</translation>
+<translation id="5528772406060281700">આ સાઇટ ડેટાને કાચરાઓ</translation>
+<translation id="4426990318287827331">ડેટા કાચરો કરો</translation>
 <translation id="7942415993090181327">ચેટનો ઇતિહાસ</translation>
 <translation id="6859935199732075666">સેફ બ્રાઉઝિંગ ભૂલો બતાવો</translation>
 <translation id="2735247450315842119">ખાનગી ટેબ્સમાં સ્ક્રીનશૉટને મંજૂરી આપો</translation>
 <translation id="8420414929552321089">મંજૂર છે તો, અનેક એપ્લિકેશનો ખુલ્લી રમતી વખતે ખાનગી ટેબ્સ પણ દેખાશે.</translation>
 <translation id="7956713633345437162">મોબાઇલ બુકમાર્ક્સ</translation>
+<translation id="7984508421152399880">હવે ખરીદો</translation>
 <translation id="6261139507111008244">અમારા મિશન અને ઓપન-સોર્સ કાર્યને ટેકો આપો</translation>
-<translation id="7882690061170175552">શિલ્ડ્સ પર કેન્દ્રિત મિનિમલ બ્રાઉઝર UI</translation>
+<translation id="6073373503121903099">Brave શિલ્ડ્સ પર કેન્દ્રિત મિનિમલ બ્રાઉઝર UI</translation>
 <translation id="2267973897341040743">મુખ્ય ઍડબ્લોક, ગોપનીયતા અને ઝડપ જાળવો</translation>
-<translation id="1361157028850796410">શ્રેષ્ઠ મૂલ્ય</translation>
-<translation id="7280825497485894053">માસિક સબ્સ્ક્રિપ્શન</translation>
-<translation id="4570901726096223030">Origin વિશે વધુ જાણો</translation>
+<translation id="3339535734679532460">એક જ વખતે ખરીદો, વધુ સબ્સ્ક્રિપશન ખર્ચ નથી</translation>
+<translation id="2805615640226281689">વન ટાઇમ પર્ચેજ</translation>
+<translation id="261433018299584676">લૉગિન કોડ મેળવો</translation>
 <translation id="1943432128510653496">પાસવર્ડ સાચવો</translation>
 <translation id="2100273922101894616">સ્વતઃ સાઇન-ઇન</translation>
 <translation id="363596933471559332">સંગ્રહિત ઓળખપત્રોનો ઉપયોગ કરીને વેબસાઇટમાં ઑટોમૅટિક રીતે સાઇન ઇન કરો. જ્યારે સુવિધા બંધ હોય છે, ત્યારે વેબસાઇટમાં સાઇન ઇન કરતાં પહેલાં દર વખતે તમને ચકાસણી માટે કહેવામાં આવશે.</translation>
@@ -1136,4 +1180,20 @@ Brave News ખાનગી, અનાન્ય મુદાવળો સાથ�
 <translation id="1724977129262658800">તમારા પાસવર્ડમાં ફેરફાર કરવા માટે અનલૉક કરો</translation>
 <translation id="5780792035410621042">પાસવર્ડ કૉપિ કરવા માટે, પહેલાં તમારા ડિવાઇસ પર સ્ક્રીન લૉક સેટ કરો</translation>
 <translation id="7986497153528221272">પાસવર્ડ જોવા માટે, પહેલા તમારા ડિવાઇસ પર સ્ક્રીન લૉક સેટ કરો</translation>
+<translation id="4882237634123415792">કસ્ટમ શોધ એન્જિન</translation>
+<translation id="8364431224461158026">કસ્ટમ શોધ એન્જિન ઉમેરો</translation>
+<translation id="7307935603426295341">કસ્ટમ શોધ એન્જિન સંપાદિત કરો</translation>
+<translation id="4002066346123236978">શીર્ષક</translation>
+<translation id="3653110185270660915">શોધ એન્જિનનું નામ દાખલ કરો</translation>
+<translation id="7400418766976504921">URL</translation>
+<translation id="6410668567036790476">શોધ એન્જિન ઉમેરો</translation>
+<translation id="6289878295410648689">શોધ URL લખો અને ક્વેરીને <ph name="SPECIAL_SYMBOL"/> સાથે બદલો.</translation>
+<translation id="8943582268084103903">ઉદાહરણ તરીકે: https://youtube.com/search?q=<ph name="SPECIAL_SYMBOL"/>. જો સાઇટ OpenSearch સમર્થન આપે તો આ ફીલ્ડને સંપાદિત કરતી વખતે આપમાણે ઉમેરવાનો વિકલ્પ આપવામાં આવશે.</translation>
+<translation id="8706939021136180678">URL અમાન્ય છે.</translation>
+<translation id="6528099556282059181">શોધ એન્જિન પહેલાથી જોડાયેલો છે.</translation>
+<translation id="463451857046640291">શોધ એન્જિન ઉમેરવા માટે નિષ્ફળ.</translation>
+<translation id="1229671956956864948">શોધ એન્જિન અપડેટ કરવા માટે નિષ્ફળ.</translation>
+<translation id="1462771969120037152">શોધ એન્જિન કાઢવા માટે નિષ્ફળ. તમે કાઢવા માટે પ્રયાસ કરી રહ્યા છો તે શોધ એન્જિન ડિફોલ્ટ તરીકે સેટ કરી શકાય છે.</translation>
+<translation id="1079140196216383600">કસ્ટમ શોધ એન્જિન કાઢો</translation>
+<translation id="525276572490219787">શું તમે ખરેખર "<ph name="SEARCH_ENGINE_NAME"/>" કાઢવા માંગો છો? આ ક્રિયા પૂર્વવત્ કરી શકાશે નહીં.</translation>
 </translationbundle>

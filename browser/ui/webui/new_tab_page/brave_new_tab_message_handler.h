@@ -6,6 +6,8 @@
 #ifndef BRAVE_BROWSER_UI_WEBUI_NEW_TAB_PAGE_BRAVE_NEW_TAB_MESSAGE_HANDLER_H_
 #define BRAVE_BROWSER_UI_WEBUI_NEW_TAB_PAGE_BRAVE_NEW_TAB_MESSAGE_HANDLER_H_
 
+#include <optional>
+
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
 #include "brave/components/brave_ads/core/browser/service/ads_service.h"
@@ -17,7 +19,7 @@ class Profile;
 
 namespace base {
 class Time;
-class Value;
+class DictValue;
 }  //  namespace base
 
 namespace content {
@@ -53,19 +55,21 @@ class BraveNewTabMessageHandler : public content::WebUIMessageHandler,
   void OnJavascriptAllowed() override;
   void OnJavascriptDisallowed() override;
 
-  void HandleGetPreferences(const base::Value::List& args);
-  void HandleGetStats(const base::Value::List& args);
-  void HandleGetNewTabAdsData(const base::Value::List& args);
-  void HandleSaveNewTabPagePref(const base::Value::List& args);
-  void HandleRegisterNewTabPageView(const base::Value::List& args);
-  void HandleBrandedWallpaperLogoClicked(const base::Value::List& args);
-  void HandleGetWallpaperData(const base::Value::List& args);
-  void HandleCustomizeClicked(const base::Value::List& args);
+  void HandleGetPreferences(const base::ListValue& args);
+  void HandleGetStats(const base::ListValue& args);
+  void HandleGetNewTabAdsData(const base::ListValue& args);
+  void HandleSaveNewTabPagePref(const base::ListValue& args);
+  void HandleRegisterNewTabPageView(const base::ListValue& args);
+  void HandleBrandedWallpaperLogoClicked(const base::ListValue& args);
+  void HandleGetWallpaperData(const base::ListValue& args);
+  void HandleGetWallpaperDataCallback(base::Value callback_id,
+                                      std::optional<base::DictValue> data);
+  void HandleCustomizeClicked(const base::ListValue& args);
 
   void OnStatsChanged();
   void OnPreferencesChanged();
 
-  base::Value::Dict GetAdsDataDictionary() const;
+  base::DictValue GetAdsDataDictionary() const;
 
   // bat_ads::mojom::BatAdsObserver:
   void OnAdRewardsDidChange() override {}

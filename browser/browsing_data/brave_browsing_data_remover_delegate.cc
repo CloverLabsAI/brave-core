@@ -11,10 +11,16 @@
 #include "base/containers/flat_map.h"
 #include "base/no_destructor.h"
 #include "base/notreached.h"
+#include "brave/browser/misc_metrics/profile_misc_metrics_service.h"
+#include "brave/browser/misc_metrics/profile_misc_metrics_service_factory.h"
+#include "brave/browser/serp_metrics/serp_metrics_service.h"
+#include "brave/browser/serp_metrics/serp_metrics_service_factory.h"
 #include "brave/components/ai_chat/core/common/buildflags/buildflags.h"
 #include "brave/components/brave_news/common/buildflags/buildflags.h"
 #include "brave/components/content_settings/core/browser/brave_content_settings_pref_provider.h"
 #include "brave/components/content_settings/core/browser/brave_content_settings_utils.h"
+#include "brave/components/misc_metrics/page_metrics.h"
+#include "brave/components/serp_metrics/serp_metrics.h"
 #include "build/build_config.h"
 #include "chrome/browser/browsing_data/chrome_browsing_data_remover_constants.h"
 #include "chrome/browser/content_settings/host_content_settings_map_factory.h"
@@ -189,6 +195,28 @@ void BraveBrowsingDataRemoverDelegate::RemoveEmbedderData(
     host_content_settings_map->ClearSettingsForOneTypeWithPredicate(
         ContentSettingsType::BRAVE_SHIELDS_METADATA, delete_begin, delete_end,
         website_settings_filter);
+  }
+
+  if ((remove_mask & chrome_browsing_data_remover::DATA_TYPE_HISTORY)) {
+    if (serp_metrics::SerpMetricsService* serp_metrics_service =
+            serp_metrics::SerpMetricsServiceFactory::GetFor(profile_)) {
+      // Clear SERP metrics because it indicates the user visited Brave,
+      // Google, or another search engine, even though it contains no queries
+      // or URLs.
+      if (serp_metrics::SerpMetrics* serp_metrics =
+              serp_metrics_service->Get()) {
+        serp_metrics->ClearHistory();
+      }
+    }
+
+    if (misc_metrics::ProfileMiscMetricsService* profile_misc_metrics_service =
+            misc_metrics::ProfileMiscMetricsServiceFactory::
+                GetServiceForContext(profile_)) {
+      if (misc_metrics::PageMetrics* page_metrics =
+              profile_misc_metrics_service->GetPageMetrics()) {
+        page_metrics->brave_search_metrics().ClearQueryCounts();
+      }
+    }
   }
 }
 

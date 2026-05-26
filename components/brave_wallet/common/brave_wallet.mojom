@@ -152,6 +152,12 @@ enum CardanoProviderError {
   kInternalError = JsonRpcError.kInternalError,
 };
 
+enum PolkadotProviderError {
+  kSuccess = ProviderError.kSuccess,  // No error
+  kUnknown = ProviderError.kUnknown,
+  kInternalError = JsonRpcError.kInternalError,
+};
+
 union ProviderErrorUnion {
   ProviderError provider_error;
   SolanaProviderError solana_provider_error;
@@ -159,6 +165,7 @@ union ProviderErrorUnion {
   BitcoinProviderError bitcoin_provider_error;
   ZCashProviderError zcash_provider_error;
   CardanoProviderError cardano_provider_error;
+  PolkadotProviderError polkadot_provider_error;
 };
 
 // Result struct for some EthereumProvider's methods.
@@ -250,8 +257,8 @@ interface CardanoApi {
 };
 
 interface CardanoProvider {
-  Enable(pending_receiver<CardanoApi> incoming_connection)
-      => (CardanoProviderErrorBundle? error);
+  Enable()
+      => (pending_remote<CardanoApi>? api, CardanoProviderErrorBundle? error);
 
   IsEnabled() => (bool enabled);
 };
@@ -546,12 +553,12 @@ enum SwapProvider {
   // Providers supported by Gate3
   kAuto,
   kNearIntents,
+  kSquid,
 
   // Providers not supported by Gate3
   kLiFi,
   kZeroEx,
   kJupiter,
-  kSquid,
   kCowSwap,
 };
 
@@ -582,7 +589,6 @@ union SwapTransactionParamsUnion {
   JupiterTransactionParams jupiter_transaction_params;
   SwapQuoteParams zero_ex_transaction_params;
   LiFiStep lifi_transaction_params;
-  SwapQuoteParams squid_transaction_params;
   SwapQuoteParams gate3_transaction_params;
 };
 
@@ -590,7 +596,6 @@ union SwapQuoteUnion {
   JupiterQuote jupiter_quote;
   ZeroExQuote zero_ex_quote;
   LiFiQuote lifi_quote;
-  SquidQuote squid_quote;
   Gate3SwapQuote gate3_quote;
 };
 
@@ -598,12 +603,15 @@ union SwapTransactionUnion {
   string jupiter_transaction;
   ZeroExTransaction zero_ex_transaction;
   LiFiTransactionUnion lifi_transaction;
-  SquidTransactionUnion squid_transaction;
   Gate3SwapRoute gate3_route;
 };
 
 enum Gate3SwapErrorKind {
   kInsufficientLiquidity,
+  kAmountTooLow,
+  kUnsupportedNetwork,
+  kUnsupportedTokens,
+  kInvalidRequest,
   kUnknown,
 };
 
@@ -640,7 +648,7 @@ struct Gate3SwapEvmTransactionParams {
   string to;
   string value;
   string data;
-  string? gas_limit;
+  string gas_limit;
   string? gas_price;
 };
 
@@ -725,8 +733,8 @@ struct Gate3SwapRoute {
   // Address to deposit funds (may not be available for indicative quotes)
   string? deposit_address;
 
-  // Memo required for deposit (if applicable)
-  string? deposit_memo;
+  // Memo required for deposit (null if not applicable)
+  array<uint8>? deposit_memo;
 
   // Quote expiration time (Unix timestamp in seconds); may be unset.
   string? expires_at;
@@ -735,13 +743,39 @@ struct Gate3SwapRoute {
 
   Gate3SwapTransactionParamsUnion? transaction_params;
 
-  bool has_post_submit_hook;
   bool requires_token_allowance;
   bool requires_firm_route;
 };
 
 struct Gate3SwapQuote {
   array<Gate3SwapRoute> routes;
+};
+
+struct Gate3SwapStatusParams {
+  string route_id;
+  string tx_hash;
+  CoinType source_coin;
+  string source_chain_id;
+  CoinType destination_coin;
+  string destination_chain_id;
+  string deposit_address;
+  // Memo required for deposit (null if not applicable)
+  array<uint8>? deposit_memo;
+  SwapProvider provider;
+};
+
+enum Gate3SwapStatusCode {
+  kPending,
+  kProcessing,
+  kSuccess,
+  kFailed,
+  kRefunded,
+};
+
+struct Gate3SwapStatus {
+  Gate3SwapStatusCode status;
+  string internal_status;
+  string explorer_url;
 };
 
 struct ZeroExFee {
@@ -800,7 +834,6 @@ union SwapErrorUnion {
   JupiterError jupiter_error;
   ZeroExError zero_ex_error;
   LiFiError lifi_error;
-  SquidError squid_error;
   Gate3SwapError gate3_error;
 };
 
@@ -1063,83 +1096,6 @@ struct LiFiError {
   LiFiErrorCode code;
 };
 
-// Squid types
-enum SquidActionType {
-  kWrap,
-  kUnwrap,
-  kSwap,
-  kBridge,
-  kUnknown,
-};
-
-struct SquidAction {
-  SquidActionType type;
-  string description;
-  string provider;
-  string logo_uri;
-
-  string from_amount;
-  BlockchainToken from_token;
-
-  string to_amount;
-  string to_amount_min;
-  BlockchainToken to_token;
-};
-
-struct SquidGasCost {
-  string amount;
-  string gas_limit;
-  BlockchainToken token;
-};
-
-struct SquidFeeCost {
-  string amount;
-  string description;
-  string name;
-  BlockchainToken token;
-};
-
-struct SquidQuote {
-  array<SquidAction> actions;
-  string aggregate_price_impact;
-  string aggregate_slippage;
-  string estimated_route_duration;
-  string exchange_rate;
-  array<SquidFeeCost> fee_costs;
-  array<SquidGasCost> gas_costs;
-  bool is_boost_supported;
-  string from_amount;
-  BlockchainToken from_token;
-  string to_amount;
-  string to_amount_min;
-  BlockchainToken to_token;
-  string allowance_target;
-};
-
-enum SquidErrorType {
-  kBadRequest,
-  kSchemaValidationError,
-  kUnknownError,
-};
-
-struct SquidError {
-  string message;
-  SquidErrorType type;
-  bool is_insufficient_liquidity;
-};
-
-union SquidTransactionUnion {
-  SquidEvmTransaction evm_transaction;
-};
-
-struct SquidEvmTransaction {
-  string data;
-  string target;
-  string value;
-  string gas_limit;
-  string chain_id;
-};
-
 enum SwapDiscountCode {
   // No discount
   kNone = 0,
@@ -1181,6 +1137,8 @@ enum KeyringId {
   kCardanoTestnet = 13,
   kPolkadotMainnet = 14,
   kPolkadotTestnet = 15,
+  kPolkadotImport = 16,
+  kPolkadotImportTestnet = 17,
 };
 
 const string kP3ACountTestNetworksSwitch = "p3a-count-wallet-test-networks";
@@ -1226,8 +1184,11 @@ struct AccountId {
   KeyringId keyring_id;
   AccountKind kind;
   // TODO(apaymyshev): should be an index within keyring.
+  // Deprecated. See account_index.
   string address;
-  // Account index for index-based keyrings (BTC and ZEC).
+  // Account index for index-based keyrings. All new keyrings
+  // should be index-based. For now only ETH, SOL and FIL are non-index based
+  // and address is used as an account identifier.
   uint32 account_index;
 
   // Two `AccountIds` equal iff their `unique_key` fields equal. Use this to
@@ -1313,6 +1274,12 @@ struct AllowanceInfo {
   string approver_address;
   string spender_address;
   string amount;
+};
+
+struct AddAccountArgs {
+  CoinType coin;
+  KeyringId keyring_id;
+  string account_name;
 };
 
 interface KeyringServiceObserver {
@@ -1439,6 +1406,15 @@ interface KeyringService {
   AddAccount(CoinType coin, KeyringId keyring_id, string account_name)
       => (AccountInfo? account_info);
 
+  // Adds accounts to the keyring in bulk during wallet creation/restoration.
+  // Account creation can fail in certain cases, such as an account that is
+  // affected by OFAC sanctions. Because this method is intended to only be
+  // called during onboarding, it will return std::nullopt on failure and reset
+  // the keyring.
+  CreateDefaultAccountsForSelectedNetworks(
+      array<AddAccountArgs> account_args)
+      => (array<AccountInfo>? account_infos);
+
   // Encodes the private key for exporting.
   EncodePrivateKeyForExport(AccountId account_id, string password)
       => (string? privateKey);
@@ -1465,6 +1441,12 @@ interface KeyringService {
   // Imports a bitcoin account for a network. Payload is an extended private
   // key.
   ImportBitcoinAccount(string accountName, string payload, string network)
+      => (AccountInfo? account);
+
+  // Imports a Polkadot account from JSON export (Polkadot.js format).
+  // Network is kPolkadotMainnet or kPolkadotTestnet.
+  ImportPolkadotAccount(
+      string accountName, string jsonExport, string password, string network)
       => (AccountInfo? account);
 
   // Imports an account via JSON.
@@ -1523,7 +1505,7 @@ interface KeyringService {
   ValidatePassword(string password) => (bool result);
 
   // Get the checksume'd EthAddress for the specified address
-  GetChecksumEthAddress(string address) => (string checksum_address);
+  GetChecksumEthAddress(string address) => (string? checksum_address);
 
   // Obtains if there's a pending unlock request
   // Note that there is no need for an API to notify unlocked
@@ -1628,6 +1610,10 @@ interface SwapService {
   // Obtains whether the given chain id supports swap
   IsSwapSupported(string chain_id) => (bool result);
 
+  GetStatus(Gate3SwapStatusParams params) => (Gate3SwapStatus? response,
+                                              Gate3SwapError? error,
+                                              string error_string);
+
   // Get LiFi status for a given transaction meta id
   GetLiFiStatus(string tx_hash) => (LiFiStatus? response,
                                     LiFiError? error_response,
@@ -1650,6 +1636,7 @@ interface JsonRpcServiceObserver {
 };
 
 struct TxData {
+  string chain_id;
   string nonce;
   string gas_price;
   string gas_limit;
@@ -1672,10 +1659,8 @@ struct GasEstimation1559 {
 
 struct TxData1559 {
   TxData base_data;
-  string chain_id;
   string max_priority_fee_per_gas;
   string max_fee_per_gas;
-  GasEstimation1559? gas_estimation;
 };
 
 const string kSolanaSystemProgramId = "11111111111111111111111111111111";
@@ -2498,6 +2483,11 @@ interface PolkadotWalletService {
   GetNetworkName(AccountId account)
       => (string? network, string? error_message);
 
+  GetCompatibleNetworks(AccountId account) => (array<NetworkInfo>? networks);
+
+  GetAddress(AccountId account, string chain_id)
+      => (string? address, string? error_message);
+
   GetAccountBalance(AccountId account, string chain_id)
       => (PolkadotAccountInfo? account, string? error_message);
 };
@@ -2530,6 +2520,8 @@ enum TransactionType {
   SolanaSwap = 13,
   ETHFilForwarderTransfer = 14,  // Used to send from FEVM to FVM
   SolanaCompressedNftTransfer = 15,
+  CardanoSendLovelace = 16,
+  CardanoSendToken = 17,
 };
 
 struct FilTxData {
@@ -2585,22 +2577,29 @@ struct ZecTxData {
   array<ZecTxOutput> outputs;
 };
 
+struct CardanoTxTokenValue {
+  string token_id_hex;
+  uint64 value;
+};
+
 struct CardanoTxInput {
   string address;
   string outpoint_txid;
   uint32 outpoint_index;
   uint64 value;
+  array<CardanoTxTokenValue> tokens;
 };
 
 struct CardanoTxOutput {
   string address;
   uint64 value;
+  array<CardanoTxTokenValue> tokens;
 };
 
 struct CardanoTxData {
   string to;
-  uint64 amount;
-  bool sending_max_amount;
+  uint64 sending_lovelace;
+  CardanoTxTokenValue? sending_token;
   uint64 fee;
   array<CardanoTxInput> inputs;
   array<CardanoTxOutput> outputs;
@@ -2748,6 +2747,7 @@ struct NewCardanoTransactionParams {
   string to;
   uint64 amount;
   bool sending_max_amount;
+  string? token;  // Send lovelace if null, otherwise specified token(hex).
   SwapInfo? swap_info;
 };
 
@@ -2982,7 +2982,7 @@ interface BraveWalletServiceObserver {
   // Fired when the default Solana wallet setting changes
   OnDefaultSolanaWalletChanged(DefaultWallet wallet);
 
-  // Fired when the default Colana wallet setting changes
+  // Fired when the default Cardano wallet setting changes
   OnDefaultCardanoWalletChanged(DefaultWallet wallet);
 
   // Fired when the default base currency changes (e.g. USD -> CAD)

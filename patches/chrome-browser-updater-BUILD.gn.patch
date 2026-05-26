@@ -1,12 +1,12 @@
 diff --git a/chrome/browser/updater/BUILD.gn b/chrome/browser/updater/BUILD.gn
-index 8e95c0a6257c9d63e4f439b96e951b8513bb65d4..4fda0a49110f2bffad8126983441c3d821786cb8 100644
+index 924151133e660019818f8f789c44c9d665fe77db..6c7193776c2d9708db358d9890e5f796a4584f67 100644
 --- a/chrome/browser/updater/BUILD.gn
 +++ b/chrome/browser/updater/BUILD.gn
-@@ -81,6 +81,7 @@ source_set("scheduler") {
-   ]
+@@ -36,6 +36,7 @@ source_set("updater") {
+       "//chrome/updater:browser_sources",
+     ]
  
-   deps = [ "//base" ]
-+  import("//brave/browser/updater/sources.gni") deps += brave_chrome_updater_scheduler_deps
- 
-   if (enable_updater) {
-     if (is_mac) {
++    import("//brave/browser/updater/sources.gni") deps += brave_chrome_updater_scheduler_deps
+     if (is_win) {
+       sources += [
+         "browser_updater_client_util_win.cc",

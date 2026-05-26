@@ -8,10 +8,9 @@
 #include "base/functional/callback.h"
 #include "base/path_service.h"
 #include "base/strings/strcat.h"
+#include "base/test/run_until.h"
 #include "base/test/scoped_feature_list.h"
-#include "base/test/thread_test_helper.h"
-#include "brave/components/brave_ads/core/public/prefs/pref_names.h"
-#include "brave/components/brave_rewards/core/pref_names.h"
+#include "brave/components/brave_ads/buildflags/buildflags.h"
 #include "brave/components/brave_search/browser/brave_search_fallback_host.h"
 #include "brave/components/brave_search/common/features.h"
 #include "brave/components/constants/brave_paths.h"
@@ -25,8 +24,9 @@
 #include "chrome/test/base/ui_test_utils.h"
 #include "components/network_session_configurator/common/network_switches.h"
 #include "components/prefs/pref_service.h"
+#include "components/search_engines/search_terms_data.h"
+#include "components/search_engines/template_url.h"
 #include "components/search_engines/template_url_service.h"
-#include "content/public/browser/browser_task_traits.h"
 #include "content/public/browser/web_contents.h"
 #include "content/public/test/browser_test.h"
 #include "content/public/test/browser_test_utils.h"
@@ -35,6 +35,11 @@
 #include "net/test/embedded_test_server/http_request.h"
 #include "net/test/embedded_test_server/http_response.h"
 #include "third_party/abseil-cpp/absl/strings/str_format.h"
+
+#if BUILDFLAG(ENABLE_BRAVE_ADS)
+#include "brave/components/brave_ads/core/public/prefs/pref_names.h"
+#include "brave/components/brave_rewards/core/pref_names.h"
+#endif  // BUILDFLAG(ENABLE_BRAVE_ADS)
 
 using extensions::ExtensionBrowserTest;
 using RequestExpectationsCallback =
@@ -49,8 +54,6 @@ constexpr char kNotAllowedDomain[] = "brave.com";
 constexpr char kBraveSearchPath[] = "/bravesearch.html";
 constexpr char kPageWithCookie[] = "/simple_page_with_cookie.html";
 constexpr char kPageWithoutCookie[] = "/simple_page_without_cookie.html";
-constexpr char kSearchAdsHeader[] = "Brave-Search-Ads";
-constexpr char kSearchAdsDisabledValue[] = "?0";
 constexpr char kBackupSearchRedirectContent[] = R"(
 <html>
 <head>
@@ -69,20 +72,14 @@ constexpr char kBackupSearchContent[] =
 
 constexpr char kScriptDefaultAPIExists[] =
     "!!(window.brave && window.brave.getCanSetDefaultSearchProvider)";
-// Use setTimeout to allow opensearch xml to be fetched
-// and template url created.
-// If this is flakey, consider making TemplateURL manually,
-// or observing the TemplateURLService for changes.
 constexpr char kScriptDefaultAPIGetValue[] = R"(
-  new Promise(resolve => {
-    setTimeout(function () {
-    brave.getCanSetDefaultSearchProvider()
-    .then((canSet) => {
-      resolve(canSet)
-    })
-    }, 1200)
-  });
+  brave.getCanSetDefaultSearchProvider()
 )";
+
+#if BUILDFLAG(ENABLE_BRAVE_ADS)
+constexpr char kSearchAdsHeader[] = "Brave-Search-Ads";
+constexpr char kSearchAdsDisabledValue[] = "?0";
+#endif  // BUILDFLAG(ENABLE_BRAVE_ADS)
 
 std::string GetChromeFetchBackupResultsAvailScript() {
   return absl::StrFormat(R"(
@@ -129,11 +126,14 @@ class BraveSearchTest : public InProcessBrowserTest {
     GURL url = https_server()->GetURL("google.com", "/search");
     brave_search::BraveSearchFallbackHost::SetBackupProviderForTest(url);
 
-    // Force default search engine to Google
-    // Some tests will fail if Brave is default
+    // Force default search engine to Google.
+    // Some tests will fail if Brave is default.
+    // Wait for the service to load first to ensure keyword lookup succeeds.
     auto* template_url_service =
         TemplateURLServiceFactory::GetForProfile(browser()->profile());
+    search_test_utils::WaitForTemplateURLServiceToLoad(template_url_service);
     TemplateURL* google = template_url_service->GetTemplateURLForKeyword(u":g");
+    ASSERT_TRUE(google) << "Google search engine not found by keyword :g";
     template_url_service->SetUserSelectedDefaultSearchProvider(google);
   }
 
@@ -261,26 +261,38 @@ IN_PROC_BROWSER_TEST_F(BraveSearchTest, CheckForAnUndefinedFunction) {
   EXPECT_EQ(base::Value(false), result_first);
 }
 
-// TODO(https://github.com/brave/brave-browser/issues/29631): Test flaky on
-// master for the mac and linux build.
-#if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
-#define MAYBE_DefaultAPIVisibleKnownHost DISABLED_DefaultAPIVisibleKnownHost
-#else
-#define MAYBE_DefaultAPIVisibleKnownHost DefaultAPIVisibleKnownHost
-#endif  // BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
-IN_PROC_BROWSER_TEST_F(BraveSearchTestEnabled,
-                       MAYBE_DefaultAPIVisibleKnownHost) {
+IN_PROC_BROWSER_TEST_F(BraveSearchTestEnabled, DefaultAPIVisibleKnownHost) {
   // Opensearch providers are only allowed in the root of a site,
   // See SearchEngineTabHelper::GenerateKeywordFromNavigationEntry.
   GURL url = https_server()->GetURL(kAllowedDomain, "/");
-  search_test_utils::WaitForTemplateURLServiceToLoad(
-      TemplateURLServiceFactory::GetForProfile(browser()->profile()));
+  auto* template_url_service =
+      TemplateURLServiceFactory::GetForProfile(browser()->profile());
   ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), url));
   content::WebContents* contents =
       browser()->tab_strip_model()->GetActiveWebContents();
   WaitForLoadStop(contents);
   EXPECT_EQ(url, contents->GetURL());
   EXPECT_EQ(true, content::EvalJs(contents, kScriptDefaultAPIExists));
+
+  // Wait for a TemplateURL matching the allowed domain to exist and be eligible
+  // to be made default. This ensures the opensearch XML has been fetched and
+  // processed (or the built-in entry is ready) before calling the JS API.
+  // We check in C++ to avoid calling getCanSetDefaultSearchProvider()
+  // repeatedly, which has side effects (it records each call against a
+  // rate limit, causing subsequent calls to return false).
+  ASSERT_TRUE(base::test::RunUntil([&]() {
+    for (const TemplateURL* t_url : template_url_service->GetTemplateURLs()) {
+      if (t_url->url_ref().GetHost(SearchTermsData()) == kAllowedDomain &&
+          template_url_service->CanMakeDefault(t_url)) {
+        return true;
+      }
+    }
+    return false;
+  })) << "Timeout waiting for a TemplateURL for "
+      << kAllowedDomain << " that can be made default";
+
+  // Now call the JS API exactly once. The preconditions are met so this
+  // should return true.
   EXPECT_EQ(true, content::EvalJs(contents, kScriptDefaultAPIGetValue));
 }
 
@@ -344,6 +356,7 @@ IN_PROC_BROWSER_TEST_F(BraveSearchTestDisabled, DefaultAPIInvisibleKnownHost) {
   EXPECT_EQ(false, content::EvalJs(contents, kScriptDefaultAPIExists));
 }
 
+#if BUILDFLAG(ENABLE_BRAVE_ADS)
 IN_PROC_BROWSER_TEST_F(BraveSearchTest, SearchAdsHeader) {
   base::RunLoop run_loop;
   SetRequestExpectationsCallback(base::BindRepeating(
@@ -518,6 +531,7 @@ IN_PROC_BROWSER_TEST_F(BraveSearchTest, SearchAdsHeaderIncognitoBrowser) {
 
   run_loop.Run();
 }
+#endif  // BUILDFLAG(ENABLE_BRAVE_ADS)
 
 IN_PROC_BROWSER_TEST_F(BraveSearchTest, CheckNoCookieForFallback) {
   // Sets cookie for the search backup provider domain

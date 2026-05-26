@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <grit-part>
-  <message name="IDS_TOOLTIP_WALLET" desc="Tooltip to acccess the Brave Wallet">Wallet</message>
+  <message name="IDS_TOOLTIP_WALLET" desc="Tooltip to acccess the Brave Wallet">Brave Wallet</message>
   <message name="IDS_ACCNAME_BRAVE_WALLET_BUTTON" desc="The accessible name for the Brave Wallet bubble.">Brave Wallet</message>
   <message name="IDS_BRAVE_WALLET" desc="The name of the feature Brave Wallet">Brave Wallet</message>
   <message name="IDS_BRAVE_WALLET_ACCOUNT" desc="General token">account</message>
@@ -149,6 +149,7 @@
   <message name="IDS_BRAVE_WALLET_CONFIRM_BRIDGE" desc="Confirm bridge title">Confirm bridge</message>
   <message name="IDS_BRAVE_WALLET_CONFIRM_SEND" desc="Confirm send title">Confirm send</message>
   <message name="IDS_BRAVE_WALLET_SWAP_PROVIDER " desc="Swap provider label">Provider</message>
+  <message name="IDS_BRAVE_WALLET_SWAP_PROVIDER_STATUS" desc="Swap provider status label in transaction details">Provider status</message>
   <message name="IDS_BRAVE_WALLET_CONFIRM_SHIELD" desc="Confirm shield title">Confirm shield</message>
   <message name="IDS_BRAVE_WALLET_CONFIRM_UNSHIELD" desc="Confirm unshield title">Confirm unshield</message>
   <message name="IDS_BRAVE_WALLET_SPEND" desc="Spend button">Spend</message>
@@ -287,6 +288,7 @@
   <message name="IDS_BRAVE_WALLET_IMPORT_ACCOUNT_FILE" desc="Add account modal import JSON file selector">JSON file</message>
   <message name="IDS_BRAVE_WALLET_IMPORT_ACCOUNT_UPLOAD_BUTTON" desc="Add account modal choose file button">Choose file</message>
   <message name="IDS_BRAVE_WALLET_IMPORT_ACCOUNT_UPLOAD_PLACEHOLDER" desc="Add account modal file placeholder">No file chosen</message>
+  <message name="IDS_BRAVE_WALLET_IMPORT_ACCOUNT_SELECTED_FILE" desc="Polkadot import file button text when a file is selected">Selected file</message>
   <message name="IDS_BRAVE_WALLET_IMPORT_ACCOUNT_ERROR" desc="Add account modal failed to import error">Failed to import account, please try again.</message>
   <message name="IDS_BRAVE_WALLET_IMPORT_ACCOUNT" desc="Import account button">Import account</message>
   <message name="IDS_BRAVE_WALLET_CONNECT_HARDWARE_TITLE" desc="Connect hardware wallet title">Select your hardware wallet device</message>
@@ -338,11 +340,13 @@
   <message name="IDS_BRAVE_WALLET_FIL_EXPORT_PRIVATE_KEY_FORMAT_DESCRIPTION" desc="Filecoin private key format description">NOTE: Private key is provided as a hex-encoded JSON that contains private key and protocol information. <ph name="LINK_START">$1</ph>Learn more<ph name="LINK_END">/$1</ph>.</message>
   <message name="IDS_BRAVE_WALLET_FIL_IMPORT_PRIVATE_KEY_FORMAT_DESCRIPTION" desc="Filecoin private key format description">NOTE: Private key must be provided as a hex-encoded JSON that contains private key and protocol information. <ph name="LINK_START">$1</ph>Learn more<ph name="LINK_END">/$1</ph>.</message>
   <message name="IDS_BRAVE_WALLET_BTC_IMPORT_PRIVATE_KEY_FORMAT_DESCRIPTION" desc="Bitcoin private key input format description">NOTE: Only <ph name="FORMAT"><ex>zprv</ex>$1</ph> extended keys are supported.</message>
+  <message name="IDS_BRAVE_WALLET_POLKADOT_IMPORT_JSON_DESCRIPTION" desc="Polkadot import JSON file description">Import using a JSON file exported from Polkadot.js or compatible wallets. Enter the password used to encrypt the export.</message>
   <message name="IDS_BRAVE_WALLET_TESTNET_ACCOUNTS" desc="Testnet accounts label">Testnet accounts</message>
   <message name="IDS_BRAVE_WALLET_ACCOUNTS_EXPORT" desc="Account list item Export button">Export</message>
   <message name="IDS_BRAVE_WALLET_ACCOUNTS_DEPOSIT" desc="Account list item Deposit button">Deposit</message>
   <message name="IDS_BRAVE_WALLET_ACCOUNTS_REMOVE" desc="Account list item Remove button">Remove</message>
   <message name="IDS_BRAVE_WALLET_ACCOUNT_SETTINGS" desc="Account settings label">Account settings</message>
+  <message name="IDS_BRAVE_WALLET_LAST_UPDATED_AGO" desc="Tooltip showing how long ago prices were last updated, e.g. Last updated 5m ago">Last updated <ph name="TIME_AGO"><ex>5m</ex>$1</ph> ago</message>
   <message name="IDS_BRAVE_WALLET_NO_AVAILABLE_ASSETS" desc="No availible assets title on the portfolio page">No available assets</message>
   <message name="IDS_BRAVE_WALLET_NO_AVAILABLE_ASSETS_DESCRIPTION" desc="No availible assets description on the portfolio page">Deposit or purchase tokens to get started. If you don't see tokens from an imported account, check the filters and display settings. Unknown tokens may need to be added as custom assets.</message>
   <message name="IDS_BRAVE_WALLET_ACCOUNT_SETTINGS_SHOW_KEY" desc="Account settings modal show key button">Show key</message>
@@ -472,12 +476,12 @@
   <message name="IDS_BRAVE_WALLET_PERMISSION_ONE_DAY" desc="Connect with site panel DApp is connected for 1 day">For 24 hours</message>
   <message name="IDS_BRAVE_WALLET_PERMISSION_ONE_WEEK" desc="Connect with site panel DApp is connected for 1 week">For 1 week</message>
   <message name="IDS_BRAVE_WALLET_PERMISSION_FOREVER" desc="Connect with site panel DApp is connected forever">Forever</message>
-  <message name="IDS_BRAVE_WALLET_CONNECT_HARDWARE_PANEL_CONNECTED" desc="Connect Hardware panel connected status"><ph name="DEVICE_NAME"><ex>Ledger</ex>$1</ph> connected</message>
-  <message name="IDS_BRAVE_WALLET_CONNECT_HARDWARE_PANEL_DISCONNECTED" desc="Connect Hardware panel disconnected status"><ph name="DEVICE_NAME"><ex>Ledger</ex>$1</ph> disconnected</message>
-  <message name="IDS_BRAVE_WALLET_CONNECT_HARDWARE_PANEL_INSTRUCTIONS" desc="Connect Hardware panel instructions button">Instructions</message>
-  <message name="IDS_BRAVE_WALLET_CONNECT_HARDWARE_PANEL_CONNECT" desc="Connect Hardware panel title">Connect your <ph name="DEVICE_NAME"><ex>Ledger</ex>$1</ph></message>
+  <message name="IDS_BRAVE_WALLET_CONNECT_HARDWARE_PANEL_CONNECTED" desc="Connect Hardware panel connected status"><ph name="ACCOUNT_NAME"><ex>Ledger account</ex>$1</ph> is connected to <ph name="DEVICE_NAME"><ex>Ledger Nano</ex>$2</ph></message>
+  <message name="IDS_BRAVE_WALLET_CONNECT_HARDWARE_PANEL_DISCONNECTED" desc="Connect Hardware panel disconnected status"><ph name="ACCOUNT_NAME"><ex>Ledger account</ex>$1</ph> is disconnected</message>
+  <message name="IDS_BRAVE_WALLET_CONNECT_HARDWARE_PANEL_INSTRUCTIONS" desc="Connect Hardware panel view instructions button">View instructions</message>
+  <message name="IDS_BRAVE_WALLET_CONNECT_HARDWARE_PANEL_CONNECT" desc="Connect Hardware panel title">Connect your <ph name="ACCOUNT_NAME"><ex>Ledger account</ex>$1</ph> to continue</message>
   <message name="IDS_BRAVE_WALLET_CONNECT_HARDWARE_PANEL_CONFIRMATION" desc="Connect Hardware panel confirmation description">Hardware wallet requires confirmation on device.</message>
-  <message name="IDS_BRAVE_WALLET_CONNECT_HARDWARE_PANEL_OPEN_APP" desc="Connect Hardware panel open app text">Hardware wallet requires <ph name="NETWORK"><ex>Ethereum</ex>$1</ph> App opened on <ph name="DEVICE_NAME"><ex>Ledger</ex>$2</ph></message>
+  <message name="IDS_BRAVE_WALLET_CONNECT_HARDWARE_PANEL_OPEN_APP" desc="Connect Hardware panel open app text">Hardware wallet requires <ph name="NETWORK"><ex>Ethereum</ex>$1</ph> App opened on <ph name="ACCOUNT_NAME"><ex>Ledger account</ex>$2</ph></message>
   <message name="IDS_BRAVE_WALLET_TRANSACTION_SENT" desc="Transaction sent label">sent</message>
   <message name="IDS_BRAVE_WALLET_TRANSACTION_RECEIVED" desc="Transaction received label">received</message>
   <message name="IDS_BRAVE_WALLET_TRANSACTION_EXPLORER_MISSING" desc="Alert for when no block explorer is available">Block explorer URL is not available.</message>
@@ -543,12 +547,12 @@
   <message name="IDS_BRAVE_WALLET_SAME_ADDRESS_ERROR" desc="Send input trying to send crypto to their own address">The receiving address is your own address.</message>
   <message name="IDS_BRAVE_WALLET_CONTRACT_ADDRESS_ERROR" desc="Send input trying to send crypto to a tokens contract address">The receiving address is a token's contract address.</message>
   <message name="IDS_BRAVE_WALLET_ZCASH_UNIFIED_ADDRESS_ERROR" desc="Send input trying to send zcash crypto to wrong unified address">Invalid unified address</message>
-  <message name="IDS_BRAVE_WALLET_FAILED_CHECKSUM_TITLE" desc="Send input failed checksum title">Address doesn’t look correct</message>
-  <message name="IDS_BRAVE_WALLET_FAILED_CHECKSUM_DESCRIPTION" desc="Send input failed checksum title">Check your address to make sure it’s the right address (e.g. letters with lower or upper case).</message>
+  <message name="IDS_BRAVE_WALLET_MISSING_CHECKSUM_TITLE" desc="Send input missing checksum title">Address is missing checksum</message>
+  <message name="IDS_BRAVE_WALLET_MISSING_CHECKSUM_DESCRIPTION" desc="Send input missing checksum description">Validity of this address cannot be verified. To avoid a potential loss of funds, review the address carefully before sending.</message>
+  <message name="IDS_BRAVE_WALLET_INVALID_CHECKSUM_TITLE" desc="Send input invalid checksum title">Address doesn't look correct (invalid checksum)</message>
+  <message name="IDS_BRAVE_WALLET_INVALID_CHECKSUM_DESCRIPTION" desc="Send input invalid checksum description">This address appears to have a typo. Please review the address and type it again.</message>
   <message name="IDS_BRAVE_WALLET_HOW_TO_SOLVE" desc="How to solve button text">How can I solve it?</message>
   <message name="IDS_BRAVE_WALLET_CHECKSUM_WARNING_TITLE" desc="Send input address missing checksum information title">Missing checksum information</message>
-  <message name="IDS_BRAVE_WALLET_ADDRESS_MISSING_CHECKSUM_INFO_WARNING" desc="Send input address missing checksum information">This address cannot be verified (missing checksum). Proceed?</message>
-  <message name="IDS_BRAVE_WALLET_NOT_VALID_CHECKSUM_ADDRESS_ERROR" desc="Send input address has invalid checksum information">Address did not pass verification (invalid checksum). Please try again, replacing lowercase letters with uppercase.</message>
   <message name="IDS_BRAVE_WALLET_MISSING_GAS_LIMIT_ERROR" desc="Transaction has missing gas limit information">Missing gas limit</message>
   <message name="IDS_BRAVE_WALLET_ZERO_BALANCE_ERROR" desc="Send amount must be greater than 0 error">Amount must be greater than 0</message>
   <message name="IDS_BRAVE_WALLET_ADDRESS_REQUIRED_ERROR" desc="Address field is required error">To address is required</message>
@@ -735,6 +739,9 @@
   <message name="IDS_BRAVE_WALLET_BRIDGING" desc="Transaction intent Bridging label">Bridging</message>
   <message name="IDS_BRAVE_WALLET_SWAPPING_OR_BRIDGING_ON_NETWORK" desc="Transaction intent Swapping or Bridging on network description"><ph name="SWAPPING_OR_BRIDGING"><ex>Swapping</ex>$1</ph> on <ph name="NETWORK"><ex>Solana Mainnet Beta</ex>$2</ph></message>
   <message name="IDS_BRAVE_WALLET_ERROR_ATTEMPTING_TO_TRANSACT_ON_NETWORK" desc="Transaction intent error attempting to Swap or Bride on network description">There was an error attempting to <ph name="SWAP_OR_BRIDGE"><ex>swap</ex>$1</ph> on <ph name="NETWORK"><ex>Solana Mainnet Beta</ex>$2</ph></message>
+  <message name="IDS_BRAVE_WALLET_SWAP_PROCESSING" desc="Swap transaction processing title">Processing</message>
+  <message name="IDS_BRAVE_WALLET_SWAP_PENDING" desc="Swap transaction pending title">Pending</message>
+  <message name="IDS_BRAVE_WALLET_SWAP_REFUNDED" desc="Swap transaction refunded title">Refunded</message>
   <message name="IDS_BRAVE_WALLET_SHIELDING_AMOUNT" desc="Transaction intent shielding amount description">Shielding <ph name="AMOUNT"><ex>1.5 ZEC</ex>$1</ph></message>
   <message name="IDS_BRAVE_WALLET_UNSHIELDING_AMOUNT" desc="Transaction intent unshielding amount description">Unshielding <ph name="AMOUNT"><ex>1.5 ZEC</ex>$1</ph></message>
   <message name="IDS_BRAVE_WALLET_AMOUNT_HAS_BEEN_SHIELDED" desc="Transaction intent amount has been shielded description"><ph name="AMOUNT"><ex>1.5 ZEC</ex>$1</ph> has been shielded</message>
@@ -792,6 +799,7 @@
   <message name="IDS_BRAVE_WALLET_INPUTS" desc="Transaction Details Inputs Label">Inputs</message>
   <message name="IDS_BRAVE_WALLET_OUTPUTS" desc="Transaction Details Outputs Label">Outputs</message>
   <message name="IDS_BRAVE_WALLET_VALUE" desc="Transaction Details Value Label">Value</message>
+  <message name="IDS_BRAVE_WALLET_TOKEN" desc="Transaction Details Token Label">Token</message>
   <message name="IDS_BRAVE_WALLET_NETWORK_FILTER_SECONDARY" desc="Network Filter Selector Secondary Networks">Secondary networks</message>
   <message name="IDS_BRAVE_WALLET_NETWORK_FILTER_TEST_NETWORKS" desc="Network Filter Selector Test Networks">Test networks</message>
   <message name="IDS_BRAVE_WALLET_EDIT_GAS_LIMIT_ERROR" desc="An error regarding an incorrect gas limit value">
@@ -1016,6 +1024,10 @@
   <message name="IDS_BRAVE_SWAP_APPROVE_TOKEN" desc="Text for swap button while approving ERC20 token">Approve <ph name="TOKEN">$1</ph></message>
   <message name="IDS_BRAVE_SWAP_INSUFFICIENT_BALANCE" desc="Text for swap button when token token balance is insufficient">Insufficient <ph name="TOKEN">$1</ph> balance</message>
   <message name="IDS_BRAVE_SWAP_INSUFFICIENT_LIQUIDITY" desc="Swap CTA text for insufficient liquidity">Insufficient liquidity</message>
+  <message name="IDS_BRAVE_SWAP_AMOUNT_TOO_LOW" desc="Swap CTA text when the swap amount is too low">Amount too low</message>
+  <message name="IDS_BRAVE_SWAP_UNSUPPORTED_NETWORK" desc="Swap CTA text when the network is not supported">Unsupported network</message>
+  <message name="IDS_BRAVE_SWAP_UNSUPPORTED_TOKENS" desc="Swap CTA text when the token pair is not supported">Unsupported token(s)</message>
+  <message name="IDS_BRAVE_SWAP_INVALID_REQUEST" desc="Swap CTA text when the swap request is invalid">Invalid request</message>
   <message name="IDS_BRAVE_SWAP_SELECT_TOKEN" desc="Dropdown text to select token">Select token</message>
   <message name="IDS_BRAVE_SWAP_HALF" desc="Amount preset button text for half">Half</message>
   <message name="IDS_BRAVE_SWAP_MAX" desc="Amount preset button text for max">Max</message>
@@ -1231,6 +1243,7 @@
   <message name="IDS_BRAVE_WALLET_SHIELD_ZEC" desc="Shield ZEC button label">Shield ZEC</message>
   <message name="IDS_BRAVE_WALLET_UNSHIELD_ZEC" desc="Unshield ZEC button label">Unshield ZEC</message>
   <message name="IDS_BRAVE_WALLET_SHIELD_FUNDS" desc="Shield funds button label">Shield funds</message>
+  <message name="IDS_BRAVE_WALLET_UNSHIELD_FUNDS" desc="Unshield funds button label">Unshield funds</message>
   <message name="IDS_BRAVE_WALLET_SHIELDING_FUNDS_ALERT_DESCRIPTION" desc="Shielding funds alert description">You are sending funds from your transparent account to your shielded account.</message>
   <message name="IDS_BRAVE_WALLET_UNSHIELDING_FUNDS_ALERT_DESCRIPTION" desc="Unshielding funds alert description">You are sending funds from your shielded account to your transparent account.</message>
   <message name="IDS_BRAVE_WALLET_BUTTON_RETRY" desc="Retry an action">Retry</message>
@@ -1283,6 +1296,7 @@
   <message name="IDS_BRAVE_WALLET_TRANSACTION_TYPE_NAME_SPL_TOKEN_TRANSFER_WITH_ASSOCIATED_TOKEN_ACCOUNT_CREATION" desc="Blockchain function name for Solana SPL token transfer with associated token account creation">SPL Token Transfer With Associated Token Account Creation</message>
   <message name="IDS_BRAVE_WALLET_PAGE_NOT_FOUND_TITLE" desc="Page not found title">We can’t find the page you’re looking for right now.</message>
   <message name="IDS_BRAVE_WALLET_PAGE_NOT_FOUND_DESCRIPTION" desc="Page not found description">It may have moved to a different place or the URL may contain a typo.</message>
+  <message name="IDS_BRAVE_WALLET_PROCESS_TRANSACTION_ERROR_MESSAGE" desc="Warning alert in send screen when a UTXO transaction fails due to insufficient balance for the network fee; $1 is the token symbol">There was an error processing your transaction. In many cases, this means there isn't enough <ph name="SYMBOL">$1<ex>ADA</ex></ph> to cover the network fee. Try a smaller amount instead.</message>
   <message name="IDS_BRAVE_WALLET_GO_TO_PORTFOLIO" desc="Go to portfolio button text">Go to Portfolio</message>
   <message name="IDS_BRAVE_WALLET_ADD_TOKEN" desc="Add token button text">Add token</message>
   <message name="IDS_BRAVE_WALLET_UTILITY_PROCESS_WALLET_UTILS_NAME" desc="The display name (in the system task manager, etc) of the service process used for running wallet utils">Brave Wallet Utility Service</message>

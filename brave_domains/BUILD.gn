@@ -23,6 +23,10 @@ source_set("brave_domains") {
   }
 }
 
+source_set("constants") {
+  sources = [ "constants.h" ]
+}
+
 buildflag_header("buildflags") {
   header = "buildflags.h"
   flags = [

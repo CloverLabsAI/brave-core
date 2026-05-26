@@ -3,7 +3,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 
-#include "base/containers/contains.h"
 #include "base/containers/fixed_flat_set.h"
 #include "base/test/bind.h"
 #include "base/test/scoped_feature_list.h"
@@ -22,9 +21,9 @@
 #include "chrome/browser/profiles/profile_test_util.h"
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_finder.h"
-#include "chrome/browser/ui/browser_list.h"
 #include "chrome/browser/ui/browser_window.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
+#include "chrome/browser/ui/browser_window/public/global_browser_collection.h"
 #include "chrome/browser/ui/profiles/profile_picker.h"
 #include "chrome/browser/ui/profiles/profile_view_utils.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
@@ -65,8 +64,7 @@ class AIChatAgentProfileBrowserTest : public InProcessBrowserTest {
 
   void VerifyAIChatSidePanelShowing(Browser* browser,
                                     bool should_open_panel = false) {
-    auto* side_panel_coordinator =
-        browser->GetFeatures().side_panel_coordinator();
+    auto* side_panel_coordinator = SidePanelCoordinator::From(browser);
     ASSERT_TRUE(side_panel_coordinator);
     if (should_open_panel) {
       side_panel_coordinator->Show(SidePanelEntry::Id::kChatUI);
@@ -97,12 +95,15 @@ class AIChatAgentProfileBrowserTest : public InProcessBrowserTest {
   }
 
   Browser* FindAIChatBrowser() {
-    for (Browser* browser : *BrowserList::GetInstance()) {
-      if (browser->profile()->IsAIChatAgent()) {
-        return browser;
-      }
-    }
-    return nullptr;
+    Browser* browser_found = nullptr;
+    GlobalBrowserCollection::GetInstance()->ForEach(
+        [&browser_found](BrowserWindowInterface* browser) {
+          if (browser->GetProfile()->IsAIChatAgent()) {
+            browser_found = browser->GetBrowserForMigrationOnly();
+          }
+          return browser_found == nullptr;
+        });
+    return browser_found;
   }
 
   Profile* GetProfile() { return browser()->profile(); }
@@ -183,7 +184,7 @@ IN_PROC_BROWSER_TEST_F(AIChatAgentProfileBrowserTest,
 
   // Verify all tools match expected names
   for (const auto& tool : tool_provider->GetTools()) {
-    EXPECT_TRUE(base::Contains(kContentAgentToolNames, tool->Name()))
+    EXPECT_TRUE(kContentAgentToolNames.contains(tool->Name()))
         << "Tool " << tool->Name() << " should be in the agent profile";
   }
 
@@ -199,7 +200,7 @@ IN_PROC_BROWSER_TEST_F(AIChatAgentProfileBrowserTest,
   // check it isn't the ContentAgentToolProvider.
   if (regular_tool_provider) {
     for (const auto& tool : regular_tool_provider->GetTools()) {
-      EXPECT_FALSE(base::Contains(kContentAgentToolNames, tool->Name()))
+      EXPECT_FALSE(kContentAgentToolNames.contains(tool->Name()))
           << "Tool " << tool->Name() << " should not be in the regular profile";
     }
   }
@@ -263,7 +264,7 @@ class AIChatAgentProfileWebUIContentBrowserTest
     // TODO(https://github.com/brave/brave-browser/issues/48165): This would be
     // nicer in an interactive_uitest.
     auto* side_panel_web_contents =
-        browser->GetFeatures().side_panel_coordinator()->GetWebContentsForTest(
+        SidePanelCoordinator::From(browser)->GetWebContentsForTest(
             SidePanelEntry::Id::kChatUI);
     constexpr char kWaitForAIChatRenderScript[] = R"(
       new Promise((resolve, reject) => {
@@ -306,7 +307,7 @@ class AIChatAgentProfileWebUIContentBrowserTest
 
   bool IsElementInSidePanel(Browser* browser, const std::string& selector) {
     auto* side_panel_web_contents =
-        browser->GetFeatures().side_panel_coordinator()->GetWebContentsForTest(
+        SidePanelCoordinator::From(browser)->GetWebContentsForTest(
             SidePanelEntry::Id::kChatUI);
     auto result = content::EvalJs(
         side_panel_web_contents,

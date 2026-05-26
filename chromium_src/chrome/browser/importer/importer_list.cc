@@ -13,6 +13,7 @@
 #include "base/values.h"
 #include "brave/common/importer/chrome_importer_utils.h"
 #include "brave/common/importer/importer_constants.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/grit/brave_generated_resources.h"
 #include "chrome/grit/generated_resources.h"
 #include "components/user_data_importer/common/importer_type.h"
@@ -21,7 +22,7 @@
 namespace {
 void AddChromeToProfiles(
     std::vector<user_data_importer::SourceProfile>* profiles,
-    base::Value::List chrome_profiles,
+    base::ListValue chrome_profiles,
     const base::FilePath& user_data_folder,
     const std::string& brand,
     user_data_importer::ImporterType type) {
@@ -130,10 +131,19 @@ void DetectChromeProfiles(
       GetOperaSnapUserDataFolder(), kOperaBrowser,
       user_data_importer::TYPE_OPERA);
 #endif
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  AddChromeToProfiles(
+      profiles,
+      GetChromeSourceProfiles(GetBraveUserDataFolder().Append(
+          base::FilePath::StringType(FILE_PATH_LITERAL("Local State")))),
+      GetBraveUserDataFolder(), kBraveBrowser, user_data_importer::TYPE_BRAVE);
+#endif
 }
 
 }  // namespace
 
+// CHROMIUM_SRC_INTERNAL_USE
 #define IDS_IMPORT_FROM_EDGE_OLD IDS_IMPORT_FROM_EDGE
 #undef IDS_IMPORT_FROM_EDGE
 #define IDS_IMPORT_FROM_EDGE IDS_BRAVE_IMPORT_FROM_EDGE

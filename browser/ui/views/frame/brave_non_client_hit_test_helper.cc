@@ -16,19 +16,24 @@ namespace brave {
 
 int NonClientHitTest(BrowserView* browser_view,
                      const gfx::Point& point_in_widget) {
+  if (!browser_view) {
+    return HTNOWHERE;
+  }
+
   if (!browser_view->toolbar() || !browser_view->toolbar()->GetVisible()) {
     return HTNOWHERE;
   }
 
-  const auto children_count = browser_view->toolbar()->children().size();
-  // Upstream has two more children |background_view_left_| and
-  // |background_view_right_| behind the container view.
-  DCHECK_EQ(3u, children_count);
-  const int container_view_index = 2;
+  // The toolbar must live in the same widget as the browser view to make
+  // this method work properly. If it has been reparented to a different widget
+  // (e.g. overlay_widget_ during macOS immersive fullscreen),
+  // GetHitTestComponent() will convert |point_in_widget| using the wrong
+  // widget's coordinate space, producing spurious HTCAPTION results. Callers
+  // must guard against this before calling NonClientHitTest().
+  CHECK_EQ(browser_view->toolbar()->GetWidget(), browser_view->GetWidget());
 
-  int hit_test_result = views::GetHitTestComponent(
-      browser_view->toolbar()->children()[container_view_index],
-      point_in_widget);
+  int hit_test_result =
+      views::GetHitTestComponent(browser_view->toolbar(), point_in_widget);
   if (hit_test_result == HTNOWHERE || hit_test_result == HTCLIENT) {
     // The |point_in_widget| is out of toolbar or on toolbar's sub views.
     return hit_test_result;

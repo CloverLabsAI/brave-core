@@ -3,7 +3,93 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 
+import { getLocale } from '$web-common/locale'
 import * as Mojom from './mojom'
+
+/**
+ * Replaces citation numbers [1], [2], etc. with actual URLs from allowedLinks.
+ * Adds a space before the URL if there isn't already whitespace before the
+ * citation.
+ *
+ * @param text - The text containing citations to replace
+ * @param allowedLinks - URLs for each citation (index 0 = [1], index 1 = [2])
+ * @returns Text with citations replaced by URLs
+ */
+export function replaceCitationsWithUrls(
+  text: string,
+  allowedLinks: string[],
+): string {
+  if (allowedLinks.length === 0) {
+    return text
+  }
+
+  return text.replace(/\[(\d+)\]/g, (match, citationNumber, offset) => {
+    const index = parseInt(citationNumber) - 1
+    if (index >= 0 && index < allowedLinks.length) {
+      const url = allowedLinks[index]
+      // Add space before URL if citation had no preceding whitespace
+      const charBefore = offset > 0 ? text[offset - 1] : ''
+      const needsSpace = charBefore && !/\s/.test(charBefore)
+      return needsSpace ? ` ${url}` : url
+    }
+    return match
+  })
+}
+
+/**
+ * Extracts allowedLinks from sourcesEvent in a turn's events.
+ *
+ * @param events - The events from a conversation turn
+ * @returns Array of URLs from sourcesEvent
+ */
+export function extractAllowedLinksFromTurn(
+  events?: Mojom.ConversationEntryEvent[],
+): string[] {
+  return (
+    events?.flatMap(
+      (event) =>
+        event.sourcesEvent?.sources?.map((source) => source.url.url) || [],
+    ) || []
+  )
+}
+
+/**
+ * Formats a conversation history into a string suitable for clipboard copy.
+ * Each turn is labeled with a localized "You" for human messages and "Leo AI"
+ * (product name) for assistant messages, separated by double newlines.
+ *
+ * @param conversationHistory - The conversation history to format
+ * @returns Formatted string representation of the conversation
+ */
+export function formatConversationForClipboard(
+  conversationHistory: Mojom.ConversationTurn[],
+): string {
+  return conversationHistory
+    .map((turn) => {
+      const label =
+        turn.characterType === Mojom.CharacterType.HUMAN
+          ? getLocale(S.CHAT_UI_COPY_LABEL_YOU)
+          : 'Leo AI'
+      let text = turn.text
+
+      // For assistant entries, get the completion text from events if available
+      if (turn.characterType === Mojom.CharacterType.ASSISTANT) {
+        const completionEvent = turn.events?.find(
+          (event) => event.completionEvent,
+        )
+        if (completionEvent?.completionEvent?.completion) {
+          text = completionEvent.completionEvent.completion
+        }
+
+        // Extract allowedLinks and replace citations with URLs
+        const allowedLinks = extractAllowedLinksFromTurn(turn.events)
+        text = replaceCitationsWithUrls(text, allowedLinks)
+      }
+
+      return `${label}: ${text}`
+    })
+    .join('\n\n')
+}
 
 /**
  * Checks if a file is a full page screenshot
@@ -55,7 +141,7 @@ export function updateConversationHistory(
  * @returns Filtered array containing only image and screenshot files
  */
 export function getImageFiles(
-  files?: Mojom.UploadedFile[],
+  files?: readonly Mojom.UploadedFile[],
 ): Mojom.UploadedFile[] | undefined {
   return files?.filter(
     (file) =>
@@ -71,7 +157,7 @@ export function getImageFiles(
  * @returns Filtered array containing only document files
  */
 export function getDocumentFiles(
-  files?: Mojom.UploadedFile[],
+  files?: readonly Mojom.UploadedFile[],
 ): Mojom.UploadedFile[] | undefined {
   return files?.filter((file) => file.type === Mojom.UploadedFileType.kPdf)
 }
@@ -111,9 +197,9 @@ export function shouldDisableAttachmentsButton(
  * @returns The files the user can upload after checking limits
  */
 export const processUploadedFilesWithLimits = (
-  files: Mojom.UploadedFile[],
-  conversationHistory: Mojom.ConversationTurn[],
-  currentPendingFiles: Mojom.UploadedFile[],
+  files: readonly Mojom.UploadedFile[],
+  conversationHistory: readonly Mojom.ConversationTurn[],
+  currentPendingFiles: readonly Mojom.UploadedFile[],
 ): Mojom.UploadedFile[] => {
   // Calculate total uploaded files from conversation history
   const totalUploadedImages = conversationHistory.reduce(

@@ -6,19 +6,15 @@
 #ifndef BRAVE_COMPONENTS_BRAVE_ADS_CORE_INTERNAL_ACCOUNT_USER_DATA_FIXED_CONVERSION_USER_DATA_UTIL_H_
 #define BRAVE_COMPONENTS_BRAVE_ADS_CORE_INTERNAL_ACCOUNT_USER_DATA_FIXED_CONVERSION_USER_DATA_UTIL_H_
 
-#include <optional>
-
 #include "base/values.h"
 
 namespace brave_ads {
 
 struct ConversionInfo;
 
-base::Value::Dict BuildConversionActionTypeUserData(
+base::DictValue BuildConversionActionTypeUserData(
     const ConversionInfo& conversion);
 
-std::optional<base::Value::Dict> MaybeBuildVerifiableConversionUserData(
-    const ConversionInfo& conversion);
 
 }  // namespace brave_ads
 

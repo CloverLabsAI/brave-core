@@ -66,7 +66,10 @@ mod ffi {
         type CxxPolkadotChainMetadata;
         type CxxPolkadotChainMetadataResult;
 
+        fn compact_scale_encode_u32(x: u32) -> Vec<u8>;
+
         fn get_ss58_prefix(chain_metadata: &CxxPolkadotChainMetadata) -> u16;
+        fn clone_metadata(self: &CxxPolkadotChainMetadata) -> Box<CxxPolkadotChainMetadata>;
 
         fn is_ok(self: &CxxPolkadotChainMetadataResult) -> bool;
         fn error_message(self: &CxxPolkadotChainMetadataResult) -> String;
@@ -116,6 +119,8 @@ mod ffi {
             block_number: u32,
             sender_nonce: u32,
         ) -> Vec<u8>;
+
+        fn parse_fee_info(input: &[u8], fee_bytes: &mut [u8; 16]) -> bool;
     }
 }
 
@@ -176,6 +181,7 @@ impl fmt::Display for Error {
     }
 }
 
+#[derive(Clone, Copy)]
 struct CxxPolkadotChainMetadata {
     balances_pallet_index: u8,
     transfer_allow_death_call_index: u8,
@@ -184,6 +190,12 @@ struct CxxPolkadotChainMetadata {
 
 fn get_ss58_prefix(chain_metadata: &CxxPolkadotChainMetadata) -> u16 {
     chain_metadata.ss58_prefix
+}
+
+impl CxxPolkadotChainMetadata {
+    fn clone_metadata(self: &CxxPolkadotChainMetadata) -> Box<CxxPolkadotChainMetadata> {
+        Box::new(*self)
+    }
 }
 
 impl_result!(CxxPolkadotChainMetadata, CxxPolkadotChainMetadataResult);
@@ -446,4 +458,56 @@ fn make_signed_extrinsic(
     });
 
     buf
+}
+
+// Definition of the type's binary representation is provided here:
+// https://github.com/polkadot-js/api/blob/eb34741c871ca8d029a9706ae989ba8ce865db0f/packages/types-support/src/metadata/v15/polkadot-types.json#L66282-L66305
+//
+// The general shape of the octets sent from the RPC nodes is:
+// {weight, class, partial_fee}
+// weight = {ref_time (as Compact<u64>), proof_size (as Compact<u64>)}
+// class = 0x00, 0x01, or 0x02
+// partial_fee = LE bytes representing U128
+fn parse_fee_info(input: &[u8], fee_bytes: &mut [u8; 16]) -> bool {
+    // Normally in C++, a reference is an immutable thing that once it's bound to an
+    // object, it can never re-alias. In Rust, a reference _is_ a pointer. The
+    // parity-scale-codec crate takes advantage of this and its API mutates the
+    // input pointer, advancing it as it parses.
+    let mut input = input;
+
+    let ref_time = <Compact<u64>>::decode(&mut input);
+    if ref_time.is_err() {
+        return false;
+    }
+
+    let proof_size = <Compact<u64>>::decode(&mut input);
+    if proof_size.is_err() {
+        return false;
+    }
+
+    const CLASS_NORMAL: u8 = 0;
+    const CLASS_OPERATIONAL: u8 = 1;
+    const CLASS_MANDATORY: u8 = 2;
+
+    let Ok(class) = next_n_bytes(&mut input, 1) else { return false };
+    match class[0] {
+        // These are the only valid values
+        // https://github.com/polkadot-js/api/blob/eb34741c871ca8d029a9706ae989ba8ce865db0f/packages/types-support/src/metadata/v15/polkadot-types.json#L1330-L1349
+        CLASS_NORMAL | CLASS_OPERATIONAL | CLASS_MANDATORY => {}
+        _ => return false,
+    }
+
+    let Ok(fee_le_bytes) = next_n_bytes(&mut input, 16) else { return false };
+    if !input.is_empty() {
+        // Trailing octets, assume invalid input.
+        return false;
+    }
+
+    fee_bytes.copy_from_slice(fee_le_bytes);
+
+    true
+}
+
+fn compact_scale_encode_u32(x: u32) -> Vec<u8> {
+    Compact(x).encode()
 }

@@ -12,6 +12,7 @@
 #include "base/notreached.h"
 #include "base/strings/string_number_conversions.h"
 #include "base/strings/string_split.h"
+#include "base/test/bind.h"
 #include "base/test/values_test_util.h"
 #include "base/values.h"
 #include "brave/components/brave_wallet/browser/bip39.h"
@@ -111,8 +112,7 @@ std::optional<std::string> IsAddressUtxoRequest(
 
 }  // namespace
 
-BitcoinTestRpcServer::BitcoinTestRpcServer()
-    : shared_url_loader_factory_(url_loader_factory_.GetSafeWeakWrapper()) {
+BitcoinTestRpcServer::BitcoinTestRpcServer() {
   url_loader_factory_.SetInterceptor(base::BindRepeating(
       &BitcoinTestRpcServer::RequestInterceptor, base::Unretained(this)));
 }
@@ -127,7 +127,7 @@ BitcoinTestRpcServer::~BitcoinTestRpcServer() = default;
 
 scoped_refptr<network::SharedURLLoaderFactory>
 BitcoinTestRpcServer::GetURLLoaderFactory() {
-  return shared_url_loader_factory_;
+  return url_loader_factory_.GetSafeWeakWrapper();
 }
 
 bitcoin_rpc::AddressStats BitcoinTestRpcServer::EmptyAddressStats(
@@ -240,7 +240,7 @@ void BitcoinTestRpcServer::RequestInterceptor(
 
   if (auto address = IsAddressUtxoRequest(request)) {
     if (utxos_map_.contains(*address)) {
-      base::Value::List items;
+      base::ListValue items;
       for (auto& utxo : utxos_map_[*address]) {
         items.Append(utxo.ToValue());
       }
@@ -267,7 +267,8 @@ void BitcoinTestRpcServer::SetUpBitcoinRpc(
 
   if (mnemonic && account_index) {
     keyring_ = std::make_unique<BitcoinHDKeyring>(
-        *bip39::MnemonicToSeed(*mnemonic), mojom::KeyringId::kBitcoin84);
+        *bip39::MnemonicToSeed(*mnemonic), mojom::KeyringId::kBitcoin84,
+        base::BindLambdaForTesting([](const std::string&) { return true; }));
 
     address_0_ =
         keyring_->GetAddress(*account_index_, *mojom::BitcoinKeyId::New(0, 0))

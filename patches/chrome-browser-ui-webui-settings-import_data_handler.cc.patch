@@ -1,8 +1,8 @@
 diff --git a/chrome/browser/ui/webui/settings/import_data_handler.cc b/chrome/browser/ui/webui/settings/import_data_handler.cc
-index 1e4ecb4f715698a5f7d3f8c885293e92c549d66b..b1147d64653c5a310f6ec8129b0fcf864f5e3d4e 100644
+index 9b70f041c6b8b0c434ffe8b8db8a39f1095e4808..5ac90b75a64930691ab1142853b0a19a25b215ae 100644
 --- a/chrome/browser/ui/webui/settings/import_data_handler.cc
 +++ b/chrome/browser/ui/webui/settings/import_data_handler.cc
-@@ -146,6 +146,7 @@ void ImportDataHandler::HandleImportData(const base::Value::List& args) {
+@@ -149,6 +149,7 @@ void ImportDataHandler::HandleImportData(const base::ListValue& args) {
    if (*type_dict.FindBool(prefs::kImportDialogSearchEngine)) {
      selected_items |= user_data_importer::SEARCH_ENGINES;
    }
@@ -10,7 +10,7 @@ index 1e4ecb4f715698a5f7d3f8c885293e92c549d66b..b1147d64653c5a310f6ec8129b0fcf86
  
    const user_data_importer::SourceProfile& source_profile =
        importer_list_->GetSourceProfileAt(browser_index);
-@@ -226,6 +227,7 @@ void ImportDataHandler::SendBrowserProfileData(const std::string& callback_id) {
+@@ -229,6 +230,7 @@ void ImportDataHandler::SendBrowserProfileData(const std::string& callback_id) {
          "autofillFormData",
          (browser_services & user_data_importer::AUTOFILL_FORM_DATA) != 0);
  

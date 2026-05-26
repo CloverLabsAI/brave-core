@@ -13,13 +13,16 @@ import android.view.ViewGroup;
 import androidx.annotation.Nullable;
 
 import org.chromium.base.Callback;
-import org.chromium.base.supplier.ObservableSupplier;
-import org.chromium.base.supplier.ObservableSupplierImpl;
+import org.chromium.base.supplier.MonotonicObservableSupplier;
+import org.chromium.base.supplier.NonNullObservableSupplier;
+import org.chromium.base.supplier.NullableObservableSupplier;
 import org.chromium.base.supplier.OneshotSupplier;
+import org.chromium.cc.input.BrowserControlsState;
 import org.chromium.chrome.R;
 import org.chromium.chrome.browser.ActivityTabProvider;
 import org.chromium.chrome.browser.bookmarks.BookmarkModel;
 import org.chromium.chrome.browser.browser_controls.BottomControlsStacker;
+import org.chromium.chrome.browser.browser_controls.BottomControlsStacker.LayerType;
 import org.chromium.chrome.browser.browser_controls.BrowserStateBrowserControlsVisibilityDelegate;
 import org.chromium.chrome.browser.compositor.layouts.LayoutManagerImpl;
 import org.chromium.chrome.browser.fullscreen.FullscreenManager;
@@ -46,12 +49,12 @@ public class BraveBottomControlsCoordinator extends BottomControlsCoordinator {
     private final OnLongClickListener mTabSwitcherLongclickListener;
     private final ActivityTabProvider mTabProvider;
     private final ThemeColorProvider mThemeColorProvider;
-    private final ObservableSupplier<AppMenuButtonHelper> mMenuButtonHelperSupplier;
+    private final MonotonicObservableSupplier<AppMenuButtonHelper> mMenuButtonHelperSupplier;
     private final Runnable mOpenHomepageAction;
     private final Callback<Integer> mSetUrlBarFocusAction;
     private final OneshotSupplier<LayoutStateProvider> mLayoutStateProviderSupplier;
     private final ScrollingBottomViewResourceFrameLayout mRoot;
-    private final ObservableSupplier<BookmarkModel> mBookmarkModelSupplier;
+    private final NullableObservableSupplier<BookmarkModel> mBookmarkModelSupplier;
     private final LocationBarModel mLocationBarModel;
 
     public BraveBottomControlsCoordinator(
@@ -60,9 +63,9 @@ public class BraveBottomControlsCoordinator extends BottomControlsCoordinator {
             ActivityTabProvider tabProvider,
             Runnable openHomepageAction,
             Callback<Integer> setUrlBarFocusAction,
-            ObservableSupplier<AppMenuButtonHelper> menuButtonHelperSupplier,
+            MonotonicObservableSupplier<AppMenuButtonHelper> menuButtonHelperSupplier,
             ThemeColorProvider themeColorProvider,
-            ObservableSupplier<BookmarkModel> bookmarkModelSupplier,
+            NullableObservableSupplier<BookmarkModel> bookmarkModelSupplier,
             LocationBarModel locationBarModel,
             /* Below are parameters from BottomControlsCoordinator */
             WindowAndroid windowAndroid,
@@ -71,12 +74,13 @@ public class BraveBottomControlsCoordinator extends BottomControlsCoordinator {
             BottomControlsStacker controlsStacker,
             BrowserStateBrowserControlsVisibilityDelegate browserControlsVisibilityDelegate,
             FullscreenManager fullscreenManager,
-            ObservableSupplier<EdgeToEdgeController> edgeToEdgeControllerSupplier,
+            MonotonicObservableSupplier<EdgeToEdgeController> edgeToEdgeControllerSupplier,
             ScrollingBottomViewResourceFrameLayout root,
+            @LayerType int layerType,
             OneshotSupplier<BottomControlsContentDelegate> contentDelegateSupplier,
             TabObscuringHandler tabObscuringHandler,
-            ObservableSupplier<Boolean> overlayPanelVisibilitySupplier,
-            ObservableSupplier<Integer> constraintsSupplier,
+            NonNullObservableSupplier<Boolean> overlayPanelVisibilitySupplier,
+            NullableObservableSupplier<@BrowserControlsState Integer> constraintsSupplier,
             Supplier<Boolean> readAloudRestoringSupplier) {
         super(
                 windowAndroid,
@@ -87,6 +91,7 @@ public class BraveBottomControlsCoordinator extends BottomControlsCoordinator {
                 fullscreenManager,
                 edgeToEdgeControllerSupplier,
                 root,
+                layerType,
                 contentDelegateSupplier,
                 tabObscuringHandler,
                 overlayPanelVisibilitySupplier,
@@ -172,7 +177,7 @@ public class BraveBottomControlsCoordinator extends BottomControlsCoordinator {
         }
     }
 
-    public ObservableSupplierImpl<Boolean> getBottomToolbarVisibleSupplier() {
+    public NonNullObservableSupplier<Boolean> getBottomToolbarVisibleSupplier() {
         if (mMediator instanceof BraveBottomControlsMediator) {
             return ((BraveBottomControlsMediator) mMediator).getBottomToolbarVisibleSupplier();
         }
@@ -180,7 +185,7 @@ public class BraveBottomControlsCoordinator extends BottomControlsCoordinator {
         return null;
     }
 
-    public ObservableSupplierImpl<Boolean> getTabGroupUiVisibleSupplier() {
+    public NonNullObservableSupplier<Boolean> getTabGroupUiVisibleSupplier() {
         if (mMediator instanceof BraveBottomControlsMediator) {
             return ((BraveBottomControlsMediator) mMediator).getTabGroupUiVisibleSupplier();
         }

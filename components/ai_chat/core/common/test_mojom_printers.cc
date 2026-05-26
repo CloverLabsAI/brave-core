@@ -18,6 +18,56 @@
 namespace ai_chat {
 namespace mojom {
 
+namespace {
+
+void PrintWebSourcesContentBlock(const WebSourcesContentBlock& ws,
+                                 std::ostream* os) {
+  *os << "web_sources(queries: [";
+  for (size_t i = 0; i < ws.queries.size(); ++i) {
+    if (i > 0) {
+      *os << ", ";
+    }
+    *os << ws.queries[i];
+  }
+  *os << "]";
+  *os << ", sources: [";
+  for (size_t i = 0; i < ws.sources.size(); ++i) {
+    if (i > 0) {
+      *os << ", ";
+    }
+    *os << "{title: " << ws.sources[i]->title
+        << ", url: " << ws.sources[i]->url.possibly_invalid_spec()
+        << ", favicon_url: "
+        << ws.sources[i]->favicon_url.possibly_invalid_spec()
+        << ", page_content: "
+        << ws.sources[i]->page_content.value_or("<nullopt>")
+        << ", extra_snippets: ";
+    if (ws.sources[i]->extra_snippets.has_value()) {
+      *os << "[";
+      for (size_t j = 0; j < ws.sources[i]->extra_snippets->size(); ++j) {
+        if (j > 0) {
+          *os << ", ";
+        }
+        *os << ws.sources[i]->extra_snippets.value()[j];
+      }
+      *os << "]";
+    } else {
+      *os << "<nullopt>";
+    }
+    *os << "}";
+  }
+  *os << "], rich_results: [";
+  for (size_t i = 0; i < ws.rich_results.size(); ++i) {
+    if (i > 0) {
+      *os << ", ";
+    }
+    *os << ws.rich_results[i];
+  }
+  *os << "])";
+}
+
+}  // namespace
+
 void PrintTo(const AssociatedContent& content, std::ostream* os) {
   *os << "--AssociatedContent--\n";
   *os << "  uuid: " << content.uuid << "\n";
@@ -77,6 +127,11 @@ void PrintTo(const mojom::ToolUseEvent& event, std::ostream* os) {
             *os << "text: " << txt->text;
             break;
           }
+          case mojom::ContentBlock::Tag::kWebSourcesContentBlock: {
+            PrintWebSourcesContentBlock(*block->get_web_sources_content_block(),
+                                        os);
+            break;
+          }
           default: {
             NOTREACHED() << "Implement PrintTo for new types of content blocks";
           }
@@ -97,6 +152,14 @@ void PrintTo(const mojom::ToolUseEvent& event, std::ostream* os) {
   } else {
     *os << "[nullopt]\n";
   }
+  *os << "is_server_result: " << (event.is_server_result ? "true" : "false")
+      << "\n";
+}
+
+void PrintTo(const InlineSearchEvent& event, std::ostream* os) {
+  *os << "--InlineSearchEvent--\n";
+  *os << "query: " << event.query << "\n";
+  *os << "results: " << event.results_json << "\n";
 }
 
 void PrintTo(const ConversationEntryEvent& event, std::ostream* os) {
@@ -131,6 +194,11 @@ void PrintTo(const ConversationEntryEvent& event, std::ostream* os) {
       for (const auto& r : event.get_sources_event()->rich_results) {
         *os << "  - rich_result: " << r << "\n";
       }
+      break;
+    }
+    case Tag::kInlineSearchEvent: {
+      *os << "inline_search_event:\n";
+      PrintTo(*event.get_inline_search_event(), os);
       break;
     }
     case Tag::kToolUseEvent: {
@@ -199,6 +267,12 @@ void PrintTo(const ContentBlock& block, std::ostream* os) {
     case ContentBlock::Tag::kTextContentBlock:
       *os << " text: \"" << block.get_text_content_block()->text << "\"\n";
       break;
+    case ContentBlock::Tag::kWebSourcesContentBlock: {
+      *os << " ";
+      PrintWebSourcesContentBlock(*block.get_web_sources_content_block(), os);
+      *os << "\n";
+      break;
+    }
     default:
       *os << " type: unknown\n";
   }

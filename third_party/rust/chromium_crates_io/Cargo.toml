@@ -74,7 +74,7 @@ path = "../../../components/brave_wallet/common"
 package = "brave_wallet"
 
 [patch.crates-io.adblock-cxx_v1]
-path = "../../../components/brave_shields/core/browser/adblock/rs"
+path = "../../../components/brave_shields/core/common/adblock/rs"
 package = "adblock-cxx"
 
 [patch.crates-io.constellation-cxx_v0_1]
@@ -134,12 +134,16 @@ path = "../../../../third_party/rust/chromium_crates_io/vendor/clap_builder-v4"
 package = "clap_builder"
 
 [patch.crates-io.clap_lex]
-path = "../../../../third_party/rust/chromium_crates_io/vendor/clap_lex-v0_7"
+path = "../../../../third_party/rust/chromium_crates_io/vendor/clap_lex-v1"
 package = "clap_lex"
 
 [patch.crates-io.codespan-reporting]
 path = "../../../../third_party/rust/chromium_crates_io/vendor/codespan-reporting-v0_13"
 package = "codespan-reporting"
+
+[patch.crates-io.crc32fast]
+path = "../../../../third_party/rust/chromium_crates_io/vendor/crc32fast-v1"
+package = "crc32fast"
 
 [patch.crates-io.cxx-build]
 path = "../../../../third_party/rust/chromium_crates_io/vendor/cxx-build-v1"
@@ -245,10 +249,6 @@ package = "regex-automata"
 path = "../../../../third_party/rust/chromium_crates_io/vendor/regex-syntax-v0_8"
 package = "regex-syntax"
 
-[patch.crates-io.ryu_v1]
-path = "../../../../third_party/rust/chromium_crates_io/vendor/ryu-v1"
-package = "ryu"
-
 [patch.crates-io.serde_core_v1]
 path = "../../../../third_party/rust/chromium_crates_io/vendor/serde_core-v1"
 package = "serde_core"
@@ -280,6 +280,14 @@ package = "syn"
 [patch.crates-io.termcolor]
 path = "../../../../third_party/rust/chromium_crates_io/vendor/termcolor-v1"
 package = "termcolor"
+
+[patch.crates-io.thiserror_v2]
+path = "../../../../third_party/rust/chromium_crates_io/vendor/thiserror-v2"
+package = "thiserror"
+
+[patch.crates-io.thiserror-impl_v2]
+path = "../../../../third_party/rust/chromium_crates_io/vendor/thiserror-impl-v2"
+package = "thiserror-impl"
 
 [patch.crates-io.unicode-ident_v1]
 path = "../../../../third_party/rust/chromium_crates_io/vendor/unicode-ident-v1"
@@ -352,3 +360,7 @@ package = "zcash_primitives"
 [patch.crates-io.zcash_client_backend_v0_12]
 path = "../../../components/brave_wallet/browser/zcash/rust/librustzcash/src/zcash_client_backend"
 package = "zcash_client_backend"
+
+[patch.crates-io.zmij_v1]
+path = "../../../../third_party/rust/chromium_crates_io/vendor/zmij-v1"
+package = "zmij"

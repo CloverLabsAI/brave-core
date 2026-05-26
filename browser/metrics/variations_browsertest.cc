@@ -37,12 +37,8 @@ SignedSeedData GetBraveSignedSeedData() {
       "xmQaBThr1i8ARQ1rKEinHluXeR7ve5fqy7L4AIgNym2PbtlL+9142+"
       "T8gUjjEsoT28J3HqE4IEa1eFvKLw=";
 
-  return {study_names,
-          kBase64UncompressedData,
-          kBase64CompressedData,
-          kBase64Signature,
-          /*in_compressed_data=*/{},
-          /*in_compressed_data_size=*/0};
+  return {study_names, kBase64UncompressedData, kBase64CompressedData,
+          kBase64Signature};
 }
 
 }  // namespace
@@ -64,16 +60,7 @@ IN_PROC_BROWSER_TEST_F(VariationsBrowserTest, PRE_BraveSeedApplied) {
   EXPECT_EQ(variations::GetSeedVersion(), "");
 }
 
-// Ideally this test should be enabled on Android, but the Android test
-// infrastructure does not run PRE_ tests reliably yet (user data dir is not
-// shared). This should be reevaluated when
-// https://issues.chromium.org/issues/40200835 is completed.
-#if BUILDFLAG(IS_ANDROID)
-#define MAYBE_BraveSeedApplied DISABLED_BraveSeedApplied
-#else
-#define MAYBE_BraveSeedApplied BraveSeedApplied
-#endif
-IN_PROC_BROWSER_TEST_F(VariationsBrowserTest, MAYBE_BraveSeedApplied) {
+IN_PROC_BROWSER_TEST_F(VariationsBrowserTest, BraveSeedApplied) {
   histogram_tester_.ExpectUniqueSample("Variations.SeedUsage",
                                        SeedUsage::kRegularSeedUsed, 1);
 

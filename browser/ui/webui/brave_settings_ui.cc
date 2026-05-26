@@ -12,17 +12,17 @@
 #include "base/check_deref.h"
 #include "base/compiler_specific.h"
 #include "base/feature_list.h"
+#include "base/strings/strcat.h"
+#include "brave/brave_domains/service_domains.h"
 #include "brave/browser/brave_account/brave_account_service_factory.h"
 #include "brave/browser/brave_origin/brave_origin_service_factory.h"
-#include "brave/browser/brave_rewards/rewards_util.h"
 #include "brave/browser/email_aliases/email_aliases_service_factory.h"
 #include "brave/browser/resources/settings/grit/brave_settings_resources.h"
 #include "brave/browser/resources/settings/grit/brave_settings_resources_map.h"
 #include "brave/browser/shell_integrations/buildflags/buildflags.h"
 #include "brave/browser/ui/commands/accelerator_service_factory.h"
 #include "brave/browser/ui/page_info/features.h"
-#include "brave/browser/ui/webui/navigation_bar_data_provider.h"
-#include "brave/browser/ui/webui/settings/brave_account_settings_handler.h"
+#include "brave/browser/ui/webui/settings/brave_account/brave_account_settings_handler.h"
 #include "brave/browser/ui/webui/settings/brave_adblock_handler.h"
 #include "brave/browser/ui/webui/settings/brave_appearance_handler.h"
 #include "brave/browser/ui/webui/settings/brave_default_extensions_handler.h"
@@ -32,9 +32,11 @@
 #include "brave/components/ai_chat/core/common/buildflags/buildflags.h"
 #include "brave/components/brave_account/brave_account_service.h"
 #include "brave/components/brave_account/features.h"
+#include "brave/components/brave_origin/brave_origin_service.h"
 #include "brave/components/brave_origin/brave_origin_settings_handler_impl.h"
 #include "brave/components/brave_origin/brave_origin_utils.h"
 #include "brave/components/brave_origin/buildflags/buildflags.h"
+#include "brave/components/brave_rewards/core/buildflags/buildflags.h"
 #include "brave/components/brave_shields/core/common/features.h"
 #include "brave/components/brave_vpn/common/buildflags/buildflags.h"
 #include "brave/components/brave_vpn/common/features.h"
@@ -66,7 +68,6 @@
 #include "content/public/browser/web_ui_data_source.h"
 #include "content/public/common/content_features.h"
 #include "extensions/buildflags/buildflags.h"
-#include "mojo/public/cpp/bindings/self_owned_receiver.h"
 #include "net/base/features.h"
 
 #if BUILDFLAG(ENABLE_AI_CHAT)
@@ -77,6 +78,10 @@
 #include "brave/components/ai_chat/core/browser/ollama/ollama_service.h"
 #include "brave/components/ai_chat/core/browser/utils.h"
 #include "brave/components/ai_chat/core/common/features.h"
+#endif
+
+#if BUILDFLAG(ENABLE_BRAVE_REWARDS)
+#include "brave/browser/brave_rewards/rewards_util.h"
 #endif
 
 #if BUILDFLAG(ENABLE_PIN_SHORTCUT)
@@ -188,7 +193,6 @@ void BraveSettingsUI::AddResources(content::WebUIDataSource* html_source,
   html_source->AddString(
       "braveProductVersion",
       version_info::GetBraveVersionWithoutChromiumMajorVersion());
-  NavigationBarDataProvider::Initialize(html_source, profile);
   html_source->AddBoolean(
       "isIdleDetectionFeatureEnabled",
       base::FeatureList::IsEnabled(features::kIdleDetection));
@@ -228,8 +232,12 @@ void BraveSettingsUI::AddResources(content::WebUIDataSource* html_source,
       "isBlockElementFeatureEnabled",
       base::FeatureList::IsEnabled(
           brave_shields::features::kBraveShieldsElementPicker));
+#if BUILDFLAG(ENABLE_BRAVE_REWARDS)
   html_source->AddBoolean("isBraveRewardsSupported",
                           brave_rewards::IsSupportedForProfile(profile));
+#else
+  html_source->AddBoolean("isBraveRewardsSupported", false);
+#endif
   html_source->AddBoolean(
       "areShortcutsSupported",
       base::FeatureList::IsEnabled(commands::features::kBraveCommands));
@@ -278,8 +286,19 @@ void BraveSettingsUI::AddResources(content::WebUIDataSource* html_source,
                           brave_origin::IsBraveOriginEnabled());
   html_source->AddBoolean("isBraveOriginBrandedBuild",
                           BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED));
+  // STAGING for unofficial builds; official builds always resolve to prod.
+  html_source->AddString(
+      "braveOriginBuyUrl",
+      base::StrCat(
+          {"https://",
+           brave_domains::GetServicesDomain(
+               "account", brave_domains::ServicesEnvironment::STAGING),
+           "/?intent=checkout&product=origin&mtm_campaign=browser-settings"}));
   html_source->AddBoolean("isTreeTabsFlagEnabled",
                           base::FeatureList::IsEnabled(tabs::kBraveTreeTab));
+  html_source->AddBoolean(
+      "isScrollableHorizontalTabStripEnabled",
+      base::FeatureList::IsEnabled(tabs::kBraveScrollableTabStrip));
   html_source->AddString("braveSearchEngineName",
                          TemplateURLPrepopulateData::brave_search.name);
   html_source->AddBoolean("isLocaleJapan", IsLocaleJapan(profile));
@@ -310,7 +329,7 @@ void BraveSettingsUI::BindInterface(
         pending_receiver) {
   auto helper = std::make_unique<ai_chat::AIChatSettingsHelper>(
       web_ui()->GetWebContents()->GetBrowserContext());
-  mojo::MakeSelfOwnedReceiver(std::move(helper), std::move(pending_receiver));
+  MakeOwnedReceiver(std::move(helper), std::move(pending_receiver));
 }
 
 void BraveSettingsUI::BindInterface(
@@ -319,7 +338,7 @@ void BraveSettingsUI::BindInterface(
   auto handler = std::make_unique<ai_chat::CustomizationSettingsHandler>(
       user_prefs::UserPrefs::Get(
           web_ui()->GetWebContents()->GetBrowserContext()));
-  mojo::MakeSelfOwnedReceiver(std::move(handler), std::move(pending_receiver));
+  MakeOwnedReceiver(std::move(handler), std::move(pending_receiver));
 }
 
 void BraveSettingsUI::BindInterface(
@@ -359,7 +378,7 @@ void BraveSettingsUI::BindInterface(
   auto handler = std::make_unique<containers::ContainersSettingsHandler>(
       user_prefs::UserPrefs::Get(
           web_ui()->GetWebContents()->GetBrowserContext()));
-  mojo::MakeSelfOwnedReceiver(std::move(handler), std::move(pending_receiver));
+  MakeOwnedReceiver(std::move(handler), std::move(pending_receiver));
 }
 #endif  // BUILDFLAG(ENABLE_CONTAINERS)
 
@@ -381,6 +400,6 @@ void BraveSettingsUI::BindInterface(
     auto handler =
         std::make_unique<brave_origin::BraveOriginSettingsHandlerImpl>(
             brave_origin_service);
-    mojo::MakeSelfOwnedReceiver(std::move(handler), std::move(receiver));
+    MakeOwnedReceiver(std::move(handler), std::move(receiver));
   }
 }

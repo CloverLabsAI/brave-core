@@ -41,6 +41,7 @@
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_command_controller.h"
 #include "chrome/browser/ui/browser_commands.h"
+#include "chrome/browser/ui/browser_window.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/tabs/features.h"
 #include "chrome/browser/ui/tabs/tab_change_type.h"
@@ -130,18 +131,18 @@ BraveBrowserCommandController::BraveBrowserCommandController(
 
 BraveBrowserCommandController::~BraveBrowserCommandController() = default;
 
-void BraveBrowserCommandController::TabChangedAt(content::WebContents* contents,
-                                                 int index,
-                                                 TabChangeType type) {
+void BraveBrowserCommandController::OnTabChangedAt(tabs::TabInterface* tab,
+                                                   int index,
+                                                   TabChangeType change_type) {
+  BrowserCommandController::OnTabChangedAt(tab, index, change_type);
   UpdateCommandEnabled(IDC_CLOSE_DUPLICATE_TABS,
                        brave::HasDuplicateTabs(&*browser_));
   UpdateCommandsForTabs();
   UpdateCommandsForSend();
 }
 
-void BraveBrowserCommandController::TabPinnedStateChanged(
-    TabStripModel* tab_strip_model,
-    content::WebContents* contents,
+void BraveBrowserCommandController::OnTabPinnedStateChanged(
+    tabs::TabInterface* tab,
     int index) {
   UpdateCommandsForPin();
 }
@@ -161,8 +162,7 @@ void BraveBrowserCommandController::OnTabStripModelChanged(
   UpdateCommandsForSend();
   UpdateCommandsForPin();
 
-  if (base::FeatureList::IsEnabled(features::kSideBySide) &&
-      browser_->is_type_normal() && selection.active_tab_changed()) {
+  if (browser_->is_type_normal() && selection.active_tab_changed()) {
     UpdateCommandForSplitView();
   }
 }
@@ -357,6 +357,22 @@ void BraveBrowserCommandController::InitBraveCommandState() {
     UpdateCommandEnabled(IDC_READING_LIST_MENU_ADD_TAB, true);
     UpdateCommandEnabled(IDC_READING_LIST_MENU_SHOW_UI, true);
   }
+
+  UpdateCommandEnabled(IDC_FORCE_PASTE, true);
+}
+
+void BraveBrowserCommandController::UpdateCommandsForFullscreenMode() {
+  BrowserCommandController::UpdateCommandsForFullscreenMode();
+
+// On macOS, we block vertical tab mode toggling in fullscreen.
+// Immersive fullscreen feeature is enabled by default but
+// it's not compatible with vertical tab. See the comments in
+// BraveBrowserView::UsesImmersiveFullscreenMode() for more datail. Otherwise,
+// crash happens when turn on vertical tab while fullscreen.
+#if BUILDFLAG(IS_MAC)
+  UpdateCommandEnabled(IDC_TOGGLE_VERTICAL_TABS,
+                       window() && !window()->IsFullscreen());
+#endif
 }
 
 void BraveBrowserCommandController::UpdateCommandForBraveRewards() {
@@ -492,13 +508,6 @@ void BraveBrowserCommandController::UpdateCommandsForPin() {
 }
 
 void BraveBrowserCommandController::UpdateCommandForSplitView() {
-  // Some upstream unit test calls split tab apis w/o enabling SideBySide
-  // feature.
-  if (!base::FeatureList::IsEnabled(features::kSideBySide)) {
-    CHECK_IS_TEST();
-    return;
-  }
-
   UpdateCommandEnabled(
       IDC_NEW_SPLIT_VIEW,
       brave::CanOpenNewSplitTabsWithSideBySide(base::to_address(browser_)));
@@ -751,26 +760,26 @@ bool BraveBrowserCommandController::ExecuteBraveCommandWithDisposition(
       brave::BringAllTabs(&*browser_);
       break;
     case IDC_NEW_SPLIT_VIEW: {
-      CHECK(base::FeatureList::IsEnabled(features::kSideBySide));
       chrome::NewSplitTab(base::to_address(browser_),
                           split_tabs::SplitTabCreatedSource::kToolbarButton);
       break;
     }
     case IDC_TILE_TABS: {
-      CHECK(base::FeatureList::IsEnabled(features::kSideBySide));
       brave::SplitTabsWithSideBySide(
           base::to_address(browser_),
           split_tabs::SplitTabCreatedSource::kToolbarButton);
       break;
     }
     case IDC_BREAK_TILE: {
-      CHECK(base::FeatureList::IsEnabled(features::kSideBySide));
       brave::RemoveSplitWithSideBySide(base::to_address(browser_));
       break;
     }
     case IDC_SWAP_SPLIT_VIEW: {
-      CHECK(base::FeatureList::IsEnabled(features::kSideBySide));
       brave::SwapTabsInSplitWithSideBySide(base::to_address(browser_));
+      break;
+    }
+    case IDC_FORCE_PASTE: {
+      brave::ForcePasteInBrowser(base::to_address(browser_));
       break;
     }
     default:

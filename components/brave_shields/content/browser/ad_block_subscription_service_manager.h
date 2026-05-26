@@ -22,7 +22,7 @@
 #include "brave/components/brave_shields/content/browser/ad_block_subscription_download_manager.h"
 #include "brave/components/brave_shields/core/browser/ad_block_filters_provider_manager.h"
 #include "brave/components/brave_shields/core/browser/ad_block_list_p3a.h"
-#include "brave/components/brave_shields/core/browser/adblock/rs/src/lib.rs.h"
+#include "brave/components/brave_shields/core/common/adblock/rs/src/lib.rs.h"
 #include "components/component_updater/timer_update_scheduler.h"
 #include "components/prefs/pref_service.h"
 #include "url/gurl.h"
@@ -147,7 +147,7 @@ class AdBlockSubscriptionServiceManager {
   base::WeakPtr<AdBlockSubscriptionDownloadManager> download_manager_
       GUARDED_BY_CONTEXT(sequence_checker_);
   base::FilePath subscription_path_;
-  base::Value::Dict subscriptions_ GUARDED_BY_CONTEXT(sequence_checker_);
+  base::DictValue subscriptions_ GUARDED_BY_CONTEXT(sequence_checker_);
 
   std::map<GURL, std::unique_ptr<AdBlockSubscriptionFiltersProvider>>
       subscription_filters_providers_ GUARDED_BY_CONTEXT(sequence_checker_);

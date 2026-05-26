@@ -1,19 +1,20 @@
 diff --git a/components/feature_engagement/public/feature_list.h b/components/feature_engagement/public/feature_list.h
-index fd51d73707698b5eda40793cf9a45c5fabcc9a62..73e0e43f5f93006f01a62b4ae1228775d8c5511d 100644
+index 9226cd25d0b03ffd1b806a14ae6e3568e201aece..0ab999b748dfbc6fabc16a9388b44e2cb41c6a74 100644
 --- a/components/feature_engagement/public/feature_list.h
 +++ b/components/feature_engagement/public/feature_list.h
-@@ -611,12 +611,14 @@ DEFINE_VARIATION_PARAM(kIPHiOSLensPromoDesktopFeature,
- DEFINE_VARIATION_PARAM(kIPHiOSEnhancedBrowsingDesktopFeature,
-                        "IPH_iOSEnhancedBrowsingDesktop");
+@@ -580,6 +580,7 @@ DEFINE_VARIATION_PARAM(kIPHiOSTabGroupsDesktopFeature,
+ DEFINE_VARIATION_PARAM(kIPHiOSPriceTrackingDesktopFeature,
+                        "IPH_iOSPriceTrackingDesktop");
  #endif  // !BUILDFLAG(IS_ANDROID)
 +BRAVE_FEATURE_ENGAGEMENT_VARIATION_PARAMS
  
- // Defines the array of which features should be listed in the chrome://flags
- // UI to be able to select them alone for demo-mode. The features listed here
- // are possible to enable on their own in demo mode.
+ #if !BUILDFLAG(IS_IOS)
+ DEFINE_VARIATION_PARAM(kIPHResumptionRailFeature, "IPH_ResumptionRail");
+@@ -591,6 +592,7 @@ DEFINE_VARIATION_PARAM(kIPHResumptionRailFeature, "IPH_ResumptionRail");
  inline constexpr flags_ui::FeatureEntry::FeatureVariation
      kIPHDemoModeChoiceVariations[] = {
+ // clang-format off
 +        BRAVE_FEATURE_ENGAGEMENT_VARIATION_ENTRIES
  #if BUILDFLAG(IS_ANDROID)
-         VARIATION_ENTRY(kIPHAccountSettingsHistorySync),
-         VARIATION_ENTRY(
+ // keep-sorted start case=no
+ // VARIATION_ENTRY_ANDROID_START

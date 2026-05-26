@@ -59,7 +59,10 @@ public class AppState {
           DataController.sharedInMemory.initializeOnce()
           Migration.migrateLostTabsActiveWindow()
 
-          let useChromiumWebViews = FeatureList.kUseChromiumWebViews.enabled
+          // The feature flag is now removed and this is always true, ensure that any users who may
+          // have been using the app with it disabled get their restoration data purged correctly.
+          // This can be removed in the future.
+          let useChromiumWebViews = true
           var purgeSessionData =
             useChromiumWebViews && !Preferences.Chromium.invalidatedRestorationOnUpgrade.value
           if let value = Preferences.Chromium.lastWebViewsFlagState.value,
@@ -189,15 +192,17 @@ public class AppState {
 
     // Initialize BraveCore
     let braveCoreMain = BraveCoreMain(additionalSwitches: switches)
-    // `UserAgent.mobile` requires a feature flag, so it must be initialized after BraveCore
-    braveCoreMain.setUserAgent(UserAgent.mobile)
+    // UserAgentType requires a feature flag, so it must be initialized after BraveCore
+    let userAgentType = GetDefaultBraveIOSUserAgentType()
+    let isDefaultModeDesktop =
+      braveCoreMain.profileController?.defaultHostContentSettings.defaultPageMode == .desktop
+    braveCoreMain.setUserAgent(userAgentType.userAgentForMode(isMobile: !isDefaultModeDesktop))
     return braveCoreMain
   }
 
   private func setupCustomSchemeHandlers() {
     let responders: [(String, InternalSchemeResponse)] = [
-      (AboutHomeHandler.path, AboutHomeHandler()),
-      (ErrorPageHandler.path, ErrorPageHandler()),
+      (LegacyNTPHandler.path, LegacyNTPHandler()),
       (ReaderModeHandler.path, ReaderModeHandler()),
       (Web3DomainHandler.path, Web3DomainHandler()),
       (BlockedDomainHandler.path, BlockedDomainHandler()),

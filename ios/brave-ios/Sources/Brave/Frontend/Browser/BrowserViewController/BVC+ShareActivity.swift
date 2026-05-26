@@ -105,7 +105,11 @@ extension BrowserViewController {
           callback: { [weak self] in
             guard let self = self, let tab = tab else { return }
 
-            if let translateHelper = tab.translateHelper {
+            if let translateTabHelper = tab.translate {
+              translateTabHelper.toggleTranslation()
+            }
+
+            if let translateHelper = tab.legacyTranslateHelper {
               translateHelper.presentUI(on: self)
 
               if tab.translationState == .active {
@@ -210,7 +214,7 @@ extension BrowserViewController {
       }
 
       // Create PDF Activity
-      if let tab, tab.temporaryDocument == nil {
+      if let tab, tab.temporaryDocument == nil, tab.lastCommittedURL?.isWebPage() == true {
         activities.append(
           BasicMenuActivity(
             activityType: .createPDF,
@@ -312,7 +316,6 @@ extension BrowserViewController {
     // Display Certificate Activity
     if let tabURL = tabManager.selectedTab?.visibleURL,
       tabManager.selectedTab?.serverTrust != nil
-        || ErrorPageHelper.hasCertificates(for: tabURL)
     {
       activities.append(
         BasicMenuActivity(

@@ -129,7 +129,7 @@ void FeedFetcher::FetchFeed(const SubscriptionsSnapshot& subscriptions,
 void FeedFetcher::OnFetchFeedFetchedPublishers(
     const SubscriptionsSnapshot& subscriptions,
     FetchFeedCallback callback,
-    Publishers publishers) {
+    const Publishers& publishers) {
   if (publishers.empty()) {
     LOG(ERROR) << "Brave News Publisher list was empty";
     std::move(callback).Run({}, {});
@@ -149,8 +149,7 @@ void FeedFetcher::OnFetchFeedFetchedPublishers(
   auto downloaded_callback = base::BarrierCallback<FeedSourceResult>(
       locales.size() + direct_publishers.size(),
       base::BindOnce(&FeedFetcher::OnFetchFeedFetchedAll,
-                     weak_ptr_factory_.GetWeakPtr(), std::move(callback),
-                     std::move(publishers)));
+                     weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
 
   for (const auto& locale : locales) {
     GURL feed_url(GetFeedUrl(locale));
@@ -224,19 +223,18 @@ void FeedFetcher::OnFetchFeedFetchedFeed(
 }
 
 void FeedFetcher::OnFetchFeedFetchedAll(FetchFeedCallback callback,
-                                        Publishers publishers,
                                         std::vector<FeedSourceResult> results) {
   base::ThreadPool::PostTaskAndReplyWithResult(
-      FROM_HERE, base::BindOnce(&CombineFeedSourceResults, std::move(results)),
+      FROM_HERE, {},
+      base::BindOnce(&CombineFeedSourceResults, std::move(results)),
       base::BindOnce(
           [](base::WeakPtr<FeedFetcher> fetcher, FetchFeedCallback callback,
-             std::tuple<FeedItems, ETags> result) {
+             FeedItems items, ETags tags) {
             // If we've been destroyed, don't run the callback.
             if (!fetcher) {
               return;
             }
-            std::move(callback).Run(std::move(std::get<0>(result)),
-                                    std::move(std::get<1>(result)));
+            std::move(callback).Run(std::move(items), std::move(tags));
           },
           weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
 }
@@ -257,7 +255,7 @@ void FeedFetcher::OnIsUpdateAvailableFetchedPublishers(
     const SubscriptionsSnapshot& subscriptions,
     ETags etags,
     UpdateAvailableCallback callback,
-    Publishers publishers) {
+    const Publishers& publishers) {
   auto locales =
       GetMinimalLocalesSet(subscriptions.GetChannelLocales(), publishers);
   VLOG(1) << __FUNCTION__ << " - going to fetch feed items for "

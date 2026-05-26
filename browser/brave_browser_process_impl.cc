@@ -24,15 +24,14 @@
 #include "brave/browser/profiles/brave_profile_manager.h"
 #include "brave/common/brave_channel_info.h"
 #include "brave/components/ai_chat/core/common/buildflags/buildflags.h"
-#include "brave/components/brave_ads/buildflags/buildflags.h"
 #include "brave/components/brave_component_updater/browser/brave_component_updater_delegate.h"
 #include "brave/components/brave_component_updater/browser/local_data_files_service.h"
 #include "brave/components/brave_origin/brave_origin_policy_manager.h"
 #include "brave/components/brave_policy/ad_block_only_mode/ad_block_only_mode_policy_manager.h"
-#include "brave/components/brave_referrals/browser/brave_referrals_service.h"
 #include "brave/components/brave_shields/content/browser/ad_block_service.h"
 #include "brave/components/brave_shields/content/browser/ad_block_subscription_service_manager.h"
 #include "brave/components/brave_shields/core/common/features.h"
+#include "brave/components/brave_stats/browser/brave_stats_updater_util.h"
 #include "brave/components/brave_sync/network_time_helper.h"
 #include "brave/components/brave_wallet/common/buildflags/buildflags.h"
 #include "brave/components/constants/pref_names.h"
@@ -60,6 +59,11 @@
 #include "services/network/public/cpp/resource_request.h"
 #include "services/network/public/cpp/shared_url_loader_factory.h"
 
+#if BUILDFLAG(ENABLE_EXTENSIONS_CORE)
+#include "chrome/browser/extensions/chrome_component_extension_resource_manager.h"
+#include "chrome/browser/extensions/chrome_extensions_browser_client.h"
+#endif
+
 #if BUILDFLAG(ENABLE_AI_CHAT)
 #include "brave/components/ai_chat/core/common/features.h"
 #endif
@@ -74,6 +78,7 @@
 #endif
 
 #if BUILDFLAG(ENABLE_TOR)
+#include "brave/browser/tor/tor_profile_manager.h"
 #include "brave/components/tor/brave_tor_client_updater.h"
 #include "brave/components/tor/brave_tor_pluggable_transport_updater.h"
 #include "brave/components/tor/pref_names.h"
@@ -90,7 +95,7 @@
 #include "brave/browser/ui/brave_browser_command_controller.h"
 #include "chrome/browser/first_run/first_run.h"
 #include "chrome/browser/ui/browser.h"
-#include "chrome/browser/ui/browser_list.h"
+#include "chrome/browser/ui/browser_window/public/global_browser_collection.h"
 #endif
 
 #if BUILDFLAG(ENABLE_REQUEST_OTR)
@@ -141,22 +146,11 @@ BraveBrowserProcessImpl::BraveBrowserProcessImpl(StartupData* startup_data)
   g_browser_process = this;
   g_brave_browser_process = this;
 
-  // early initialize referrals
-  brave_referrals_service();
-
   // Disabled on mobile platforms, see for instance issues/6176
   // Create P3A Service early to catch more histograms. The full initialization
   // should be started once browser process impl is ready.
   p3a_service();
   histogram_braveizer_ = p3a::HistogramsBraveizer::Create();
-
-#if BUILDFLAG(ENABLE_BRAVE_ADS)
-  // initialize ads stats helper
-  ads_brave_stats_helper();
-#endif  // BUILDFLAG(ENABLE_BRAVE_ADS)
-
-  // early initialize brave stats
-  brave_stats_updater();
 
   // early initialize misc metrics
   process_misc_metrics();
@@ -164,6 +158,19 @@ BraveBrowserProcessImpl::BraveBrowserProcessImpl(StartupData* startup_data)
 
 void BraveBrowserProcessImpl::Init() {
   BrowserProcessImpl::Init();
+
+#if BUILDFLAG(ENABLE_EXTENSIONS_CORE)
+  // ChromeComponentExtensionResourceManager's Data needs to be LazyInit'ed on
+  // the UI thread (due to pdf_extension_util::AddStrings calling
+  // g_browser_process->GetApplicationLocale() that has a DCHECK to that
+  // regard). However, it can't be done in the ExtensionBrowserClient::Init
+  // because ApplicationLocaleStorage hasn't been initialized yet and it's
+  // needed by pdf_extension_util::AddStrings. ApplicationLocaleStorage gets
+  // initialized at the very end of BrowserProcessImpl::Init.
+  std::ignore =
+      extensions_browser_client_->GetComponentExtensionResourceManager()
+          ->GetTemplateReplacementsForExtension("");
+#endif
 
 #if BUILDFLAG(ENABLE_TOR)
   pref_change_registrar_.Add(
@@ -231,10 +238,21 @@ void BraveBrowserProcessImpl::StartTearDown() {
 #if BUILDFLAG(ENABLE_BRAVE_AI_CHAT_AGENT_PROFILE)
   ai_chat_agent_profile_manager_.reset();
 #endif
+#if BUILDFLAG(ENABLE_BRAVE_WALLET)
+  // Reset WalletDataFilesInstaller to prevent dangling pointer to
+  // CrxUpdateService. WalletDataFilesInstaller instance is a static
+  // base::NoDestructor<> and makes use of
+  // component_updater::ComponentUpdateService::Observer, so it needs to be
+  // reset before the CrxUpdateService is destroyed.
+  brave_wallet::WalletDataFilesInstaller::GetInstance().Reset();
+#endif
   // Reset BraveOriginPolicyManager to prevent dangling pointer to local_state_
   brave_origin::BraveOriginPolicyManager::GetInstance()->Shutdown();
   brave_policy::AdBlockOnlyModePolicyManager::GetInstance()->Shutdown();
   brave_sync::NetworkTimeHelper::GetInstance()->Shutdown();
+#if BUILDFLAG(ENABLE_TOR)
+  TorProfileManager::GetInstance().Shutdown();
+#endif
   BrowserProcessImpl::StartTearDown();
 }
 
@@ -419,11 +437,13 @@ BraveBrowserProcessImpl::tor_pluggable_transport_updater() {
 
 void BraveBrowserProcessImpl::OnTorEnabledChanged() {
   // Update all browsers' tor command status.
-  for (Browser* browser : *BrowserList::GetInstance()) {
-    static_cast<chrome::BraveBrowserCommandController*>(
-        browser->command_controller())
-        ->UpdateCommandForTor();
-  }
+  GlobalBrowserCollection::GetInstance()->ForEach(
+      [](BrowserWindowInterface* browser) {
+        static_cast<chrome::BraveBrowserCommandController*>(
+            browser->GetBrowserForMigrationOnly()->command_controller())
+            ->UpdateCommandForTor();
+        return true;
+      });
 }
 #endif
 
@@ -521,6 +541,10 @@ BraveBrowserProcessImpl::process_misc_metrics() {
   if (!process_misc_metrics_) {
     process_misc_metrics_ =
         std::make_unique<misc_metrics::ProcessMiscMetrics>(local_state());
+    if (p3a_service_) {
+      p3a_service_->SetDefaultBrowserMonitor(
+          process_misc_metrics_->default_browser_monitor());
+    }
   }
   return process_misc_metrics_.get();
 }

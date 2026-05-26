@@ -17,7 +17,8 @@
 #include "base/strings/strcat.h"
 #include "base/strings/string_split.h"
 #include "base/strings/string_util.h"
-#include "brave/components/brave_rewards/core/engine/buildflags.h"
+#include "brave/brave_domains/constants.h"
+#include "brave/components/brave_rewards/core/buildflags/buildflags.h"
 #include "brave/components/brave_rewards/core/pref_names.h"
 #include "components/prefs/pref_service.h"
 #include "components/user_prefs/user_prefs.h"
@@ -130,14 +131,23 @@ void MaybeLoadRewardsURL(const GURL& redirect_url, WebContents* web_contents) {
          {GURL(BUILDFLAG(BITFLYER_PRODUCTION_URL)),
           GURL(BUILDFLAG(BITFLYER_SANDBOX_URL))}},
         {"gemini",
-         {GURL(BUILDFLAG(GEMINI_PRODUCTION_OAUTH_URL)),
-          GURL(BUILDFLAG(GEMINI_SANDBOX_OAUTH_URL))}},
+         {
+             GURL(BUILDFLAG(GEMINI_PRODUCTION_OAUTH_URL)),
+             GURL(BUILDFLAG(GEMINI_SANDBOX_OAUTH_URL)),
+             GURL(brave_domains::kGate3URL),
+         }},
         {"uphold",
-         {GURL(BUILDFLAG(UPHOLD_PRODUCTION_OAUTH_URL)),
-          GURL(BUILDFLAG(UPHOLD_SANDBOX_OAUTH_URL))}},
+         {
+             GURL(BUILDFLAG(UPHOLD_PRODUCTION_OAUTH_URL)),
+             GURL(BUILDFLAG(UPHOLD_SANDBOX_OAUTH_URL)),
+             GURL(brave_domains::kGate3URL),
+         }},
         {"zebpay",
-         {GURL(BUILDFLAG(ZEBPAY_PRODUCTION_OAUTH_URL)),
-          GURL(BUILDFLAG(ZEBPAY_SANDBOX_OAUTH_URL))}}};
+         {
+             GURL(BUILDFLAG(ZEBPAY_PRODUCTION_OAUTH_URL)),
+             GURL(BUILDFLAG(ZEBPAY_SANDBOX_OAUTH_URL)),
+             GURL(brave_domains::kGate3URL),
+         }}};
 
     for (const auto& [wallet_provider, urls] : allowed_urls) {
       DCHECK(std::ranges::none_of(

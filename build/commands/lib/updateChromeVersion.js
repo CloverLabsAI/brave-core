@@ -3,11 +3,11 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 
-const assert = require('assert')
-const config = require('./config')
-const fs = require('fs')
-const path = require('path')
-const Log = require('./logging')
+import assert from 'node:assert'
+import config from './config.js'
+import fs from 'node:fs'
+import path from 'node:path'
+import Log from './logging.js'
 
 function updateChromeVersion() {
   const braveVersionParts = config.braveVersion.split('.')
@@ -25,14 +25,17 @@ function updateChromeVersion() {
   const versionLineRegex = /^(MAJOR|MINOR|BUILD|PATCH)=(\d+)$/
   for (let line = 0; line < 4; ++line) {
     assert(
+      // @ts-ignore
       versionLines[line].search(versionLineRegex) === 0,
       `${versionLines[line]} (${line}) doesn't match ${versionLineRegex}`,
     )
     if (line === 0) {
       // Keep MAJOR.
+      // @ts-ignore
       assert(versionLines[line].startsWith('MAJOR='))
     } else {
       // Set MINOR, BUILD, PATCH to Brave version.
+      // @ts-ignore
       versionLines[line] = versionLines[line].replace(
         versionLineRegex,
         `$1=${braveVersionParts[line - 1]}`,
@@ -56,4 +59,4 @@ function updateChromeVersion() {
   }
 }
 
-module.exports = updateChromeVersion
+export default updateChromeVersion

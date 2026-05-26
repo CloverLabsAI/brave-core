@@ -8,7 +8,6 @@
 
 #include "brave/components/ai_chat/core/common/buildflags/buildflags.h"
 #include "brave/components/containers/buildflags/buildflags.h"
-#include "brave/components/containers/core/mojom/containers.mojom-forward.h"
 #include "brave/components/text_recognition/common/buildflags/buildflags.h"
 
 #if BUILDFLAG(ENABLE_AI_CHAT)
@@ -17,23 +16,25 @@
 
 #if BUILDFLAG(ENABLE_CONTAINERS)
 #include "brave/browser/ui/containers/containers_menu_model.h"
+#include "brave/components/containers/core/mojom/containers.mojom-forward.h"
 #endif  // BUILDFLAG(ENABLE_CONTAINERS)
 
-#define BRAVE_RENDER_VIEW_CONTEXT_MENU_H_  \
- private:                                  \
-  friend class BraveRenderViewContextMenu; \
-                                           \
+class RenderViewContextMenu;
+using RenderViewContextMenu_BraveImpl = RenderViewContextMenu;
+
+#define BRAVE_RENDER_VIEW_CONTEXT_MENU_H_ \
+ private:                                 \
+  friend RenderViewContextMenu_BraveImpl; \
+                                          \
  public:
 // define BRAVE_RENDER_VIEW_CONTEXT_MENU_H_
 
 // Get the Chromium declaration.
 #define RenderViewContextMenu RenderViewContextMenu_Chromium
 
-class BraveRenderViewContextMenu;
-
-#define RegisterMenuShownCallbackForTesting                      \
-  RegisterMenuShownCallbackForTesting(                           \
-      base::OnceCallback<void(BraveRenderViewContextMenu*)> cb); \
+#define RegisterMenuShownCallbackForTesting                           \
+  RegisterMenuShownCallbackForTesting(                                \
+      base::OnceCallback<void(RenderViewContextMenu_BraveImpl*)> cb); \
   static void RegisterMenuShownCallbackForTesting_unused
 #define AppendReadAnythingItem virtual AppendReadAnythingItem
 #define AppendDeveloperItems virtual AppendDeveloperItems
@@ -45,19 +46,20 @@ class BraveRenderViewContextMenu;
 #undef BRAVE_RENDER_VIEW_CONTEXT_MENU_H_
 
 // Declare our own subclass with overridden methods.
-class BraveRenderViewContextMenu
-    : public RenderViewContextMenu_Chromium
+class RenderViewContextMenu : public RenderViewContextMenu_Chromium
 #if BUILDFLAG(ENABLE_CONTAINERS)
     ,
-      public containers::ContainersMenuModelDelegate
+                              public containers::ContainersMenuModel::Delegate
 #endif  // BUILDFLAG(ENABLE_CONTAINERS)
 {
  public:
   // Non-const reference passed in the parent class upstream
   // NOLINTNEXTLINE(runtime/references)
-  BraveRenderViewContextMenu(content::RenderFrameHost& render_frame_host,
-                             const content::ContextMenuParams& params);
-  ~BraveRenderViewContextMenu() override;
+  RenderViewContextMenu(content::RenderFrameHost& render_frame_host,
+                        const content::ContextMenuParams& params,
+                        bool is_paste_enabled,
+                        bool is_paste_and_match_style_enabled);
+  ~RenderViewContextMenu() override;
   // RenderViewContextMenuBase:
   bool IsCommandIdEnabled(int command_id) const override;
   void ExecuteCommand(int id, int event_flags) override;
@@ -87,7 +89,7 @@ class BraveRenderViewContextMenu
 #endif
 
  private:
-  friend class BraveRenderViewContextMenuTest;
+  friend class RenderViewContextMenuTest;
   // RenderViewContextMenuBase:
   void InitMenu() override;
   void NotifyMenuShown() override;
@@ -118,8 +120,5 @@ class BraveRenderViewContextMenu
   std::unique_ptr<containers::ContainersMenuModel> containers_submenu_model_;
 #endif  // BUILDFLAG(ENABLE_CONTAINERS)
 };
-
-// Use our own subclass as the real RenderViewContextMenu.
-#define RenderViewContextMenu BraveRenderViewContextMenu
 
 #endif  // BRAVE_CHROMIUM_SRC_CHROME_BROWSER_RENDERER_CONTEXT_MENU_RENDER_VIEW_CONTEXT_MENU_H_

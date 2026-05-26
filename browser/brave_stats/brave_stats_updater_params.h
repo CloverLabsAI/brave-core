@@ -13,11 +13,15 @@
 #include "base/gtest_prod_util.h"
 #include "base/memory/raw_ptr.h"
 #include "base/time/time.h"
-#include "brave/components/brave_stats/browser/brave_stats_updater_util.h"
+#include "brave/components/brave_ads/buildflags/buildflags.h"
 
 class BraveStatsUpdaterTest;
 class GURL;
 class PrefService;
+
+namespace serp_metrics {
+class SerpMetricsAllProfilesAggregator;
+}  // namespace serp_metrics
 
 namespace brave_stats {
 
@@ -27,10 +31,8 @@ bool IsHeadlessOrAutomationMode();
 
 class BraveStatsUpdaterParams {
  public:
-  explicit BraveStatsUpdaterParams(PrefService* stats_pref_service,
-                                   const ProcessArch arch);
+  explicit BraveStatsUpdaterParams(PrefService* stats_pref_service);
   BraveStatsUpdaterParams(PrefService* stats_pref_service,
-                          const ProcessArch arch,
                           const std::string& ymd,
                           int woy,
                           int month);
@@ -45,12 +47,15 @@ class BraveStatsUpdaterParams {
   std::string GetWeekOfInstallationParam() const;
   std::string GetDateOfInstallationParam() const;
   std::string GetReferralCodeParam() const;
+#if BUILDFLAG(ENABLE_BRAVE_ADS)
   std::string GetAdsEnabledParam() const;
-  std::string GetProcessArchParam() const;
+#endif  // BUILDFLAG(ENABLE_BRAVE_ADS)
   GURL GetUpdateURL(const GURL& base_update_url,
                     std::string_view platform_id,
                     std::string_view channel_name,
-                    std::string_view full_brave_version) const;
+                    std::string_view full_brave_version,
+                    serp_metrics::SerpMetricsAllProfilesAggregator*
+                        serp_metrics_aggregator) const;
 
   void SavePrefs();
 
@@ -58,7 +63,6 @@ class BraveStatsUpdaterParams {
   friend class ::BraveStatsUpdaterTest;
 
   raw_ptr<PrefService> stats_pref_service_ = nullptr;
-  ProcessArch arch_;
   std::string ymd_;
   int woy_;
   int month_;

@@ -16,8 +16,11 @@
 #include "base/memory/weak_ptr.h"
 #include "base/observer_list.h"
 #include "base/timer/wall_clock_timer.h"
-#include "base/values.h"
 #include "components/prefs/pref_change_registrar.h"
+
+namespace base {
+class DictValue;
+}  // namespace base
 
 namespace component_updater {
 class ComponentUpdateService;
@@ -48,7 +51,7 @@ class NTPBackgroundImagesService {
     virtual void OnSponsoredImagesDataDidUpdate(NTPSponsoredImagesData* data) {}
 
     // Called when the sponsored content component is updated.
-    virtual void OnSponsoredContentDidUpdate(const base::Value::Dict& data) {}
+    virtual void OnSponsoredContentDidUpdate(const base::DictValue& data) {}
 
    protected:
     virtual ~Observer() = default;

@@ -48,8 +48,9 @@ import org.json.JSONObject;
 
 import org.chromium.base.Log;
 import org.chromium.base.ThreadUtils;
-import org.chromium.base.supplier.ObservableSupplier;
-import org.chromium.base.supplier.ObservableSupplierImpl;
+import org.chromium.base.supplier.MonotonicObservableSupplier;
+import org.chromium.base.supplier.ObservableSuppliers;
+import org.chromium.base.supplier.SettableMonotonicObservableSupplier;
 import org.chromium.base.task.PostTask;
 import org.chromium.base.task.TaskTraits;
 import org.chromium.chrome.R;
@@ -64,6 +65,7 @@ import org.chromium.chrome.browser.sync.BraveSyncDevices;
 import org.chromium.chrome.browser.sync.SyncServiceFactory;
 import org.chromium.chrome.browser.sync.settings.BraveManageSyncSettings;
 import org.chromium.components.browser_ui.settings.SettingsNavigation;
+import org.chromium.components.browser_ui.settings.search.BaseSearchIndexProvider;
 import org.chromium.components.sync.SyncService;
 import org.chromium.ui.base.BraveClipboardHelper;
 import org.chromium.ui.base.DeviceFormFactor;
@@ -144,7 +146,8 @@ public class BraveSyncScreensPreference extends BravePreferenceFragment
         }
     }
 
-    private final ObservableSupplierImpl<String> mPageTitle = new ObservableSupplierImpl<>();
+    private final SettableMonotonicObservableSupplier<String> mPageTitle =
+            ObservableSuppliers.createMonotonic();
 
     BraveSyncWorker getBraveSyncWorker() {
         return BraveSyncWorker.get();
@@ -474,7 +477,7 @@ public class BraveSyncScreensPreference extends BravePreferenceFragment
     }
 
     @Override
-    public ObservableSupplier<String> getPageTitle() {
+    public MonotonicObservableSupplier<String> getPageTitle() {
         return mPageTitle;
     }
 
@@ -1501,4 +1504,11 @@ public class BraveSyncScreensPreference extends BravePreferenceFragment
 
     @Override
     public void onCreatePreferences(Bundle bundle, String s) {} /**/
+
+    // This fragment uses a fully custom view layout (brave_sync_layout); there are no static
+    // preferences to index.
+    public static final BaseSearchIndexProvider SEARCH_INDEX_DATA_PROVIDER =
+            new BaseSearchIndexProvider(
+                    BraveSyncScreensPreference.class.getName(),
+                    BaseSearchIndexProvider.INDEX_OPT_OUT);
 }

@@ -365,7 +365,7 @@ const attachElementPicker = () => {
 
   // Will be resolved by webpack to the file content.
   // It's a trusted content so it's safe to use innerHTML.
-  // eslint-disable-next-line no-unsanitized/property
+  // eslint-disable-next-line no-unsanitized/property, @typescript-eslint/no-require-imports
   shadowRoot.innerHTML = require('./element_picker.html')
 
   const pickerCSSStyle: string = [
@@ -595,8 +595,13 @@ const setShowRulesHiddenBtnState = (
 }
 
 const setMinimizeState = (minimized: boolean) => {
-  if (!pickerDiv) return
-  pickerDiv.classList.toggle('minimized', minimized)
+  if (!shadowRoot) {
+    return
+  }
+  const mainSection = shadowRoot.getElementById('main-section')
+  if (mainSection) {
+    mainSection.classList.toggle('minimized', minimized)
+  }
 }
 
 function initSlider(
@@ -962,5 +967,6 @@ if (!active) {
     },
   )
 } else {
-  active.classList.toggle('minimized', false)
+  // Re-opening existing picker
+  setMinimizeState(false)
 }

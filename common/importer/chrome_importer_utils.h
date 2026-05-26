@@ -33,11 +33,12 @@ base::FilePath GetVivaldiUserDataFolder();
 base::FilePath GetOperaUserDataFolder();
 base::FilePath GetYandexUserDataFolder();
 base::FilePath GetWhaleUserDataFolder();
+base::FilePath GetBraveUserDataFolder();
 
 #if BUILDFLAG(IS_LINUX)
 base::FilePath GetOperaSnapUserDataFolder();
 #endif
-base::Value::List GetChromeSourceProfiles(const base::FilePath& local_state);
+base::ListValue GetChromeSourceProfiles(const base::FilePath& local_state);
 bool ChromeImporterCanImport(const base::FilePath& profile,
                              user_data_importer::ImporterType type,
                              uint16_t* services_supported);

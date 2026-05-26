@@ -3,22 +3,34 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at https://mozilla.org/MPL/2.0/.
 
+static_library("default_browser_monitor") {
+  sources = [
+    "default_browser_monitor.cc",
+    "default_browser_monitor.h",
+  ]
+  deps = [ "//base" ]
+}
+
 static_library("misc_metrics") {
   sources = [
     "autofill_metrics.cc",
     "autofill_metrics.h",
-    "default_browser_monitor.cc",
-    "default_browser_monitor.h",
+    "brave_search_metrics.cc",
+    "brave_search_metrics.h",
     "general_browser_usage.cc",
     "general_browser_usage.h",
     "language_metrics.cc",
     "language_metrics.h",
     "menu_metrics.cc",
     "menu_metrics.h",
+    "navigation_source_metrics.cc",
+    "navigation_source_metrics.h",
     "new_tab_metrics.cc",
     "new_tab_metrics.h",
     "page_metrics.cc",
     "page_metrics.h",
+    "page_percentage_metrics.cc",
+    "page_percentage_metrics.h",
     "pref_names.h",
     "privacy_hub_metrics.cc",
     "privacy_hub_metrics.h",
@@ -28,6 +40,13 @@ static_library("misc_metrics") {
     "tab_metrics.h",
     "uptime_monitor.h",
   ]
+
+  if (is_android) {
+    sources += [
+      "quick_search_metrics.cc",
+      "quick_search_metrics.h",
+    ]
+  }
 
   deps = [
     "//base",
@@ -49,30 +68,41 @@ static_library("misc_metrics") {
     "//url",
   ]
 
-  public_deps = [ "//brave/components/misc_metrics/common:mojom" ]
+  public_deps = [
+    ":default_browser_monitor",
+    "//brave/components/misc_metrics/common:mojom",
+  ]
 }
 
 source_set("unit_tests") {
   testonly = true
 
   sources = [
+    "brave_search_metrics_unittest.cc",
     "default_browser_monitor_unittest.cc",
     "general_browser_usage_unittest.cc",
     "language_metrics_unittest.cc",
     "menu_metrics_unittest.cc",
+    "navigation_source_metrics_unittest.cc",
     "new_tab_metrics_unittest.cc",
     "privacy_hub_metrics_unittest.cc",
     "split_view_metrics_unittest.cc",
     "tab_metrics_unittest.cc",
   ]
 
+  if (is_android) {
+    sources += [ "quick_search_metrics_unittest.cc" ]
+  }
+
   deps = [
     "//base",
     "//base/test:test_support",
     "//brave/components/misc_metrics",
+    "//brave/components/search_engines",
     "//components/language/core/browser",
     "//components/prefs:test_support",
     "//components/search_engines",
+    "//components/search_engines:test_support",
     "//content/test:test_support",
     "//testing/gtest",
   ]

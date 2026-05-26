@@ -14,13 +14,15 @@ import static org.chromium.chrome.browser.password_entry_edit.CredentialEditProp
 import static org.chromium.chrome.browser.password_entry_edit.CredentialEditProperties.UI_ACTION_HANDLER;
 import static org.chromium.chrome.browser.password_entry_edit.CredentialEditProperties.URL_OR_APP;
 
+import android.content.res.Resources;
+
 import org.chromium.build.annotations.Initializer;
 import org.chromium.build.annotations.NullMarked;
 import org.chromium.chrome.browser.feedback.HelpAndFeedbackLauncherFactory;
 import org.chromium.chrome.browser.password_entry_edit.CredentialEntryFragmentViewBase.ComponentStateDelegate;
-import org.chromium.chrome.browser.password_manager.ConfirmationDialogHelper;
 import org.chromium.chrome.browser.password_manager.settings.PasswordAccessReauthenticationHelper;
 import org.chromium.chrome.browser.profiles.Profile;
+import org.chromium.ui.modaldialog.ModalDialogManager;
 import org.chromium.ui.modelutil.PropertyModel;
 import org.chromium.ui.modelutil.PropertyModelChangeProcessor;
 
@@ -50,6 +52,7 @@ class CredentialEditCoordinator implements ComponentStateDelegate {
 
     CredentialEditCoordinator(
             Profile profile,
+            ModalDialogManager modalDialogManager,
             CredentialEntryFragmentViewBase fragmentView,
             UiDismissalHandler dismissalHandler,
             CredentialActionDelegate credentialActionDelegate) {
@@ -58,10 +61,13 @@ class CredentialEditCoordinator implements ComponentStateDelegate {
         mReauthenticationHelper =
                 new PasswordAccessReauthenticationHelper(
                         fragmentView.getActivity(), fragmentView.getParentFragmentManager());
+        Resources resources = mFragmentView.getContext().getResources();
         mMediator =
                 new CredentialEditMediator(
+                        mFragmentView.getActivity(),
+                        modalDialogManager,
                         mReauthenticationHelper,
-                        new ConfirmationDialogHelper(mFragmentView.getContext()),
+                        resources,
                         credentialActionDelegate,
                         this::handleHelp,
                         fragmentView instanceof BlockedCredentialFragmentView);
@@ -115,6 +121,7 @@ class CredentialEditCoordinator implements ComponentStateDelegate {
 
     @Override
     public void onDestroy() {
+        mMediator.dismiss();
         mDismissalHandler.onUiDismissed();
     }
 

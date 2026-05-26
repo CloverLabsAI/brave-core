@@ -4,47 +4,56 @@
  * You can obtain one at https://mozilla.org/MPL/2.0/. */
 package org.chromium.chrome.browser.firstrun;
 
+import static android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
+
+import static org.chromium.build.NullUtil.assumeNonNull;
 import static org.chromium.chrome.browser.set_default_browser.BraveSetDefaultBrowserUtils.isBraveSetAsDefaultBrowser;
 import static org.chromium.chrome.browser.set_default_browser.BraveSetDefaultBrowserUtils.setDefaultBrowser;
-import static org.chromium.ui.base.ViewUtils.dpToPx;
 
-import android.animation.LayoutTransition;
-import android.content.Intent;
+import android.animation.Animator;
+import android.animation.AnimatorInflater;
+import android.app.Activity;
+import android.graphics.drawable.Animatable2;
+import android.graphics.drawable.AnimatedVectorDrawable;
+import android.graphics.drawable.Drawable;
+import android.os.Build;
+import android.os.Bundle;
 import android.os.RemoteException;
 import android.text.SpannableString;
-import android.text.method.LinkMovementMethod;
 import android.view.View;
-import android.view.ViewGroup;
-import android.view.animation.Animation;
-import android.view.animation.Transformation;
-import android.widget.Button;
-import android.widget.CheckBox;
+import android.view.animation.OvershootInterpolator;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.constraintlayout.widget.Guideline;
+import androidx.viewpager2.widget.ViewPager2;
 
 import com.android.installreferrer.api.InstallReferrerClient;
 import com.android.installreferrer.api.InstallReferrerClient.InstallReferrerResponse;
 import com.android.installreferrer.api.InstallReferrerStateListener;
 import com.android.installreferrer.api.ReferrerDetails;
 
+import org.chromium.base.ActivityState;
+import org.chromium.base.ApplicationStatus;
+import org.chromium.base.ApplicationStatus.ActivityStateListener;
 import org.chromium.base.BravePreferenceKeys;
 import org.chromium.base.Log;
+import org.chromium.brave.browser.customize_menu.CustomizeBraveMenu;
+import org.chromium.build.annotations.NullMarked;
+import org.chromium.build.annotations.Nullable;
 import org.chromium.chrome.R;
 import org.chromium.chrome.browser.BraveConfig;
 import org.chromium.chrome.browser.BraveLocalState;
 import org.chromium.chrome.browser.customtabs.CustomTabActivity;
 import org.chromium.chrome.browser.metrics.ChangeMetricsReportingStateCalledFrom;
 import org.chromium.chrome.browser.metrics.UmaSessionStats;
-import org.chromium.chrome.browser.notifications.BravePermissionUtils;
 import org.chromium.chrome.browser.onboarding.OnboardingPrefManager;
 import org.chromium.chrome.browser.preferences.BravePref;
 import org.chromium.chrome.browser.preferences.ChromeSharedPreferences;
 import org.chromium.chrome.browser.privacy.settings.PrivacyPreferencesManagerImpl;
 import org.chromium.chrome.browser.util.BraveConstants;
-import org.chromium.chrome.browser.util.BraveTouchUtils;
 import org.chromium.chrome.browser.util.PackageUtils;
 import org.chromium.components.user_prefs.UserPrefs;
 import org.chromium.components.web_discovery.WebDiscoveryPrefs;
@@ -69,126 +78,37 @@ import org.chromium.ui.text.SpanApplier.SpanInfo;
  * <p>The onboarding flow uses animations and clear UI elements to introduce Brave’s key features
  * and privacy-focused approach.
  */
-public class WelcomeOnboardingActivity extends FirstRunActivityBase {
-    private static final String P3A_URL =
-            "https://support.brave.app/hc/en-us/articles/9140465918093-What-is-P3A-in-Brave";
+@NullMarked
+public class WelcomeOnboardingActivity extends FirstRunActivityBase
+        implements OnboardingStepAdapter.OnboardingNavigationListener {
     private static final String WDP_LINK =
             "https://www.brave.com/browser/privacy/#web-discovery-project";
 
     private static final String TAG = "WelcomeOnboarding";
 
-    private static final float LEAF_SCALE_ANIMATION = 1.5f;
+    private static final String KEY_SPLASH_ANIMATION_FINISHED =
+            "WelcomeOnboardingActivity.SplashAnimationFinished";
+    private static final String KEY_PAGE_INDEX = "WelcomeOnboardingActivity.PageIndex";
+
+    private static final float REDUCED_TENSION_OVERSHOOT_INTERPOLATOR = 1f;
+    private static final float BRAVE_SPLASH_SCALE_ANIMATION = 0.4f;
+    private static final int BRAVE_SPLASH_ANIMATION_DURATION_MS = 600;
 
     private boolean mIsTablet;
-    private int mCurrentStep = -1;
+    private boolean mSplashAnimationFinished;
+    private int mRestoredPageIndex;
 
-    private View mVLeafAlignTop;
-    private View mVLeafAlignBottom;
-    private ImageView mIvLeafTop;
-    private ImageView mIvLeafBottom;
-    private ImageView mIvBrave;
-    private ImageView mIvArrowDown;
-    private LinearLayout mLayoutCard;
-    private TextView mTvCard;
-    private TextView mTvDefault;
-    private Button mBtnPositive;
-    private Button mBtnNegative;
-    private CheckBox mCheckboxCrash;
-    private CheckBox mCheckboxP3a;
+    private ConstraintLayout mOnboardingContainer;
+    private ImageView mBraveSplash;
+    private FrameLayout mBraveSplashContainer;
 
-    private enum CurrentOnboardingPage {
-        SET_AS_DEFAULT,
-        NOTIFICATION_PERMISSION,
-        WDP_PAGE,
-        ANALYTICS_CONSENT_PAGE
-    }
+    private Guideline mSplashGuideline;
+    private ViewPager2 mOnboardingPager;
+    @Nullable private OnboardingStepAdapter mStepAdapter;
 
-    private CurrentOnboardingPage mCurrentOnboardingPage;
-
-    /**
-     * Initializes the views and sets up the onboarding activity UI. This method handles the initial
-     * setup of the welcome onboarding screen, including loading the layout, initializing views and
-     * click listeners, and performing first-run setup tasks.
-     */
-    private void initializeViews() {
-        setContentView(R.layout.activity_welcome_onboarding);
-
-        mIvLeafTop = findViewById(R.id.iv_leaf_top);
-        mIvLeafBottom = findViewById(R.id.iv_leaf_bottom);
-        mVLeafAlignTop = findViewById(R.id.view_leaf_top_align);
-        mVLeafAlignBottom = findViewById(R.id.view_leaf_bottom_align);
-        mIvBrave = findViewById(R.id.iv_brave);
-        mIvArrowDown = findViewById(R.id.iv_arrow_down);
-        mLayoutCard = findViewById(R.id.layout_card);
-        mTvCard = findViewById(R.id.tv_card);
-        mTvDefault = findViewById(R.id.tv_default);
-        mCheckboxCrash = findViewById(R.id.checkbox_crash);
-        mCheckboxP3a = findViewById(R.id.checkbox_p3a);
-        mBtnPositive = findViewById(R.id.btn_positive);
-        mBtnNegative = findViewById(R.id.btn_negative);
-        LinearLayout layoutData = findViewById(R.id.layout_data);
-        LayoutTransition layoutTransition = new LayoutTransition();
-        layoutTransition.setDuration(1000);
-        if (layoutData != null) {
-            layoutData.setLayoutTransition(layoutTransition);
-        }
-
-        int margin = mIsTablet ? 200 : 50;
-
-        if (mVLeafAlignTop != null) {
-            ViewGroup.MarginLayoutParams topLeafParams =
-                    (ViewGroup.MarginLayoutParams) mVLeafAlignTop.getLayoutParams();
-            topLeafParams.bottomMargin = margin;
-            mVLeafAlignTop.setLayoutParams(topLeafParams);
-        }
-
-        if (mVLeafAlignBottom != null) {
-            ViewGroup.MarginLayoutParams bottomLeafParams =
-                    (ViewGroup.MarginLayoutParams) mVLeafAlignBottom.getLayoutParams();
-            bottomLeafParams.topMargin = margin;
-            mVLeafAlignBottom.setLayoutParams(bottomLeafParams);
-        }
-
-        if (mBtnPositive != null) {
-            BraveTouchUtils.ensureMinTouchTarget(mBtnPositive);
-        }
-        if (mCheckboxCrash != null) {
-            BraveTouchUtils.ensureMinTouchTarget(mCheckboxCrash);
-        }
-        if (mCheckboxP3a != null) {
-            BraveTouchUtils.ensureMinTouchTarget(mCheckboxP3a);
-        }
-
-        if (mBtnPositive != null) {
-            mBtnPositive.setOnClickListener(
-                    view -> {
-                        if (mCurrentStep == 0 && !isBraveSetAsDefaultBrowser(this)) {
-                            setDefaultBrowser(this);
-                        } else {
-                            enableWebDiscoverPreference();
-                            nextOnboardingStep();
-                        }
-                    });
-        }
-
-        if (mBtnNegative != null) {
-            mBtnNegative.setOnClickListener(
-                    view -> {
-                        if (mCurrentOnboardingPage
-                                == CurrentOnboardingPage.ANALYTICS_CONSENT_PAGE) {
-                            CustomTabActivity.showInfoPage(this, P3A_URL);
-                        } else {
-                            nextOnboardingStep();
-                        }
-                    });
-        }
-        checkReferral();
-        if (PackageUtils.isFirstInstall(this)) {
-            ChromeSharedPreferences.getInstance()
-                    .writeBoolean(
-                            BravePreferenceKeys.BRAVE_TAB_GROUPS_ENABLED_DEFAULT_VALUE, false);
-        }
-    }
+    @Nullable private PageBounceAnimator mPageBounceAnimator;
+    private boolean mIsP3aManaged;
+    private boolean mIsCrashReportingManaged;
 
     private void checkReferral() {
         InstallReferrerClient referrerClient = InstallReferrerClient.newBuilder(this).build();
@@ -240,324 +160,368 @@ public class WelcomeOnboardingActivity extends FirstRunActivityBase {
     }
 
     private void enableWebDiscoverPreference() {
-        if (isWDPSettingAvailable() && mCurrentOnboardingPage == CurrentOnboardingPage.WDP_PAGE) {
-            UserPrefs.get(getProfileProviderSupplier().get().getOriginalProfile())
-                    .setBoolean(BravePref.WEB_DISCOVERY_ENABLED, true);
+        UserPrefs.get(assumeNonNull(getProfileProviderSupplier().get()).getOriginalProfile())
+                .setBoolean(BravePref.WEB_DISCOVERY_ENABLED, true);
+    }
+
+    private void finalStep(final boolean showSearchWidgetPromoPanel) {
+        if (showSearchWidgetPromoPanel) {
+            ChromeSharedPreferences.getInstance()
+                    .writeBoolean(OnboardingPrefManager.SHOULD_SHOW_SEARCH_WIDGET_PROMO, true);
         }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(
-            int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == BravePermissionUtils.NOTIFICATION_PERMISSION_CODE) {
-            nextOnboardingStep();
-        }
-    }
-
-    private void nextOnboardingStep() {
-        if (isActivityFinishingOrDestroyed()) return;
-
-        mCurrentStep++;
-
-        // Uncomment next line to extract day zero variant
-        // for new onboarding flow when it's ready.
-        // final String variant = DayZeroHelper.getDayZeroVariant();
-
-        handleOnboardingStepForDefaultVariant(mCurrentStep);
-    }
-
-    private void handleOnboardingStepForDefaultVariant(final int step) {
-        if (step == 0) {
-            handleSetAsDefaultStep();
-        } else if (step == 1) {
-            handleWDPStep();
-        } else if (step == 2) {
-            handleAnalyticsConsentPage();
-        } else {
-            finalStep();
-        }
-    }
-
-    private void finalStep() {
+        CustomizeBraveMenu.initDefaultInvisibleItems(getResources());
         OnboardingPrefManager.getInstance().setP3aOnboardingShown(true);
 
         FirstRunStatus.setFirstRunFlowComplete(true);
 
         FirstRunUtils.setEulaAccepted();
 
-        finish();
-        sendFirstRunCompleteIntent();
+        launchPendingIntentAndFinish();
     }
 
-    private void handleSetAsDefaultStep() {
-        mCurrentOnboardingPage = CurrentOnboardingPage.SET_AS_DEFAULT;
-        if (!isBraveSetAsDefaultBrowser(this)) {
-            setDefaultBrowser(this);
+    /**
+     * Sends the post-FRE intent first and delays finishing this activity until either another
+     * activity is resumed or this activity is already stopped/destroyed.
+     *
+     * <p>This avoids handoff races where finishing too early can cause a brief re-show/flash of the
+     * onboarding activity during task/window transitions (for example around fold/unfold state
+     * changes).
+     *
+     * <p>This mirrors the upstream robust pattern used in FirstRunActivity and is specifically
+     * meant to avoid transition glitches (for example on foldable state changes).
+     */
+    private void launchPendingIntentAndFinish() {
+        if (!sendFirstRunCompleteIntent()) {
+            finish();
         } else {
-            nextOnboardingStep();
+            ApplicationStatus.registerStateListenerForAllActivities(
+                    new ActivityStateListener() {
+                        @Override
+                        public void onActivityStateChange(Activity activity, int newState) {
+                            boolean shouldFinish;
+                            if (activity == WelcomeOnboardingActivity.this) {
+                                shouldFinish =
+                                        (newState == ActivityState.STOPPED
+                                                || newState == ActivityState.DESTROYED);
+                            } else {
+                                shouldFinish = newState == ActivityState.RESUMED;
+                            }
+                            if (shouldFinish) {
+                                finish();
+                                ApplicationStatus.unregisterActivityStateListener(this);
+                            }
+                        }
+                    });
         }
-    }
-
-    private void handleWDPStep() {
-        if (!isWDPSettingAvailable()) {
-            nextOnboardingStep();
-            return;
-        }
-
-        mCurrentOnboardingPage = CurrentOnboardingPage.WDP_PAGE;
-        if (mIvBrave != null) {
-            mIvBrave.setVisibility(View.VISIBLE);
-        }
-        showWDPPage();
     }
 
     private boolean isWDPSettingAvailable() {
         if (!BraveConfig.WEB_DISCOVERY_ENABLED) {
             return false;
         }
-
-        return !UserPrefs.get(getProfileProviderSupplier().get().getOriginalProfile())
+        return !UserPrefs.get(
+                        assumeNonNull(getProfileProviderSupplier().get()).getOriginalProfile())
                 .isManagedPreference(WebDiscoveryPrefs.WEB_DISCOVERY_ENABLED);
     }
 
-    private void handleAnalyticsConsentPage() {
-        boolean isP3aManaged = BraveLocalState.get().isManagedPreference(BravePref.P3A_ENABLED);
-        boolean isCrashReportingManaged =
-                !PrivacyPreferencesManagerImpl.getInstance()
-                        .isUsageAndCrashReportingPermittedByPolicy();
-
-        // If both settings are managed by policy, skip this page entirely
-        if (isP3aManaged && isCrashReportingManaged) {
-            nextOnboardingStep();
-            return;
+    private void setMetricsReportingConsent(final boolean consent, final boolean markAsShown) {
+        try {
+            // Updates reporting consent for first run.
+            UmaSessionStats.changeMetricsReportingConsent(
+                    consent, ChangeMetricsReportingStateCalledFrom.UI_FIRST_RUN);
+        } catch (Exception e) {
+            Log.e(TAG, "CrashReportingOnboarding", e);
         }
-
-        mCurrentOnboardingPage = CurrentOnboardingPage.ANALYTICS_CONSENT_PAGE;
-        int margin = mIsTablet ? 250 : 60;
-        setLeafAnimation(mVLeafAlignTop, mIvLeafTop, margin, true);
-        setLeafAnimation(mVLeafAlignBottom, mIvLeafBottom, margin, false);
-
-        if (mLayoutCard != null) {
-            mLayoutCard.setVisibility(View.GONE);
-        }
-        if (mTvDefault != null) {
-            mTvDefault.setVisibility(View.GONE);
-        }
-        if (mIvArrowDown != null) {
-            mIvArrowDown.setVisibility(View.GONE);
-        }
-
-        if (mTvCard != null) {
-            mTvCard.setText(getResources().getString(R.string.p3a_title));
-        }
-        if (mBtnPositive != null) {
-            mBtnPositive.setText(getResources().getString(R.string.continue_text));
-        }
-        if (mBtnNegative != null) {
-            mBtnNegative.setText(getResources().getString(R.string.learn_more_onboarding));
-            mBtnNegative.setVisibility(View.VISIBLE);
-        }
-
-        if (!isCrashReportingManaged) {
-            // Handle crash reporting consent based on installation status
-            if (PackageUtils.isFirstInstall(this)
-                    && !OnboardingPrefManager.getInstance().isP3aCrashReportingMessageShown()) {
-                // For first time installs, enable crash reporting by default
-                if (mCheckboxCrash != null) {
-                    mCheckboxCrash.setChecked(true);
-                }
-                // Update metrics reporting consent
-                UmaSessionStats.changeMetricsReportingConsent(
-                        true, ChangeMetricsReportingStateCalledFrom.UI_FIRST_RUN);
-                // Mark crash reporting message as shown
-                OnboardingPrefManager.getInstance().setP3aCrashReportingMessageShown(true);
-            } else {
-                // For existing installations, restore previous crash reporting preference
-                boolean isCrashReporting = false;
-                try {
-                    // Get current crash reporting permission status
-                    isCrashReporting =
-                            PrivacyPreferencesManagerImpl.getInstance()
-                                    .isUsageAndCrashReportingPermittedByUser();
-                } catch (Exception e) {
-                    Log.e(TAG, "CrashReportingOnboarding", e);
-                }
-                // Update checkbox to match current preference
-                if (mCheckboxCrash != null) {
-                    mCheckboxCrash.setChecked(isCrashReporting);
-                }
-            }
-
-            if (mCheckboxCrash != null) {
-                mCheckboxCrash.setOnCheckedChangeListener(
-                        (buttonView, isChecked) -> {
-                            try {
-                                UmaSessionStats.changeMetricsReportingConsent(
-                                        isChecked,
-                                        ChangeMetricsReportingStateCalledFrom.UI_FIRST_RUN);
-                            } catch (Exception e) {
-                                Log.e(TAG, "CrashReportingOnboarding", e);
-                            }
-                        });
-            }
-        }
-
-        if (!isP3aManaged) {
-            boolean isP3aEnabled = true;
-
-            try {
-                isP3aEnabled = BraveLocalState.get().getBoolean(BravePref.P3A_ENABLED);
-            } catch (Exception e) {
-                Log.e(TAG, "P3aOnboarding", e);
-            }
-
-            if (mCheckboxP3a != null) {
-                mCheckboxP3a.setChecked(isP3aEnabled);
-                mCheckboxP3a.setOnCheckedChangeListener(
-                        (buttonView, isChecked) -> {
-                            try {
-                                BraveLocalState.get().setBoolean(BravePref.P3A_ENABLED, isChecked);
-                                BraveLocalState.get()
-                                        .setBoolean(BravePref.P3A_NOTICE_ACKNOWLEDGED, true);
-                                BraveLocalState.commitPendingWrite();
-                            } catch (Exception e) {
-                                Log.e(TAG, "P3aOnboarding", e);
-                            }
-                        });
-            }
-        }
-
-        if (mTvCard != null) {
-            mTvCard.setVisibility(View.VISIBLE);
-        }
-        if (mCheckboxCrash != null) {
-            mCheckboxCrash.setVisibility(isCrashReportingManaged ? View.GONE : View.VISIBLE);
-        }
-        if (mCheckboxP3a != null) {
-            mCheckboxP3a.setVisibility(isP3aManaged ? View.GONE : View.VISIBLE);
-        }
-        if (mLayoutCard != null) {
-            mLayoutCard.setVisibility(View.VISIBLE);
-        }
-        if (mIvArrowDown != null) {
-            mIvArrowDown.setVisibility(View.VISIBLE);
+        if (markAsShown) {
+            // Marks crash reporting message as shown.
+            OnboardingPrefManager.getInstance().setP3aCrashReportingMessageShown(true);
         }
     }
 
-    private void showWDPPage() {
-        int margin = mIsTablet ? 250 : 60;
-        setLeafAnimation(mVLeafAlignTop, mIvLeafTop, margin, true);
-        setLeafAnimation(mVLeafAlignBottom, mIvLeafBottom, margin, false);
-
-        if (mLayoutCard != null) {
-            mLayoutCard.setVisibility(View.GONE);
+    private void setP3aConsent(final boolean consent) {
+        try {
+            BraveLocalState.get().setBoolean(BravePref.P3A_ENABLED, consent);
+            BraveLocalState.get().setBoolean(BravePref.P3A_NOTICE_ACKNOWLEDGED, true);
+            BraveLocalState.commitPendingWrite();
+        } catch (Exception e) {
+            Log.e(TAG, "P3aOnboarding", e);
         }
-        if (mIvArrowDown != null) {
-            mIvArrowDown.setVisibility(View.GONE);
-        }
-
-        if (mTvCard != null) {
-            mTvCard.setText(getResources().getString(R.string.wdp_title));
-        }
-        if (mTvDefault != null) {
-            ChromeClickableSpan wdpLearnMoreClickableSpan =
-                    new ChromeClickableSpan(
-                            WelcomeOnboardingActivity.this.getColor(R.color.brave_blue_tint_color),
-                            (textView) -> CustomTabActivity.showInfoPage(this, WDP_LINK));
-            String wdpText = getResources().getString(R.string.wdp_text);
-
-            SpannableString wdpLearnMoreSpannableString =
-                    SpanApplier.applySpans(
-                            wdpText,
-                            new SpanInfo(
-                                    "<learn_more>", "</learn_more>", wdpLearnMoreClickableSpan));
-
-            mTvDefault.setMovementMethod(LinkMovementMethod.getInstance());
-            mTvDefault.setText(wdpLearnMoreSpannableString);
-        }
-        if (mBtnPositive != null) {
-            mBtnPositive.setText(getResources().getString(R.string.sure_ill_help_onboarding));
-        }
-        if (mBtnNegative != null) {
-            mBtnNegative.setText(getResources().getString(R.string.maybe_later));
-            mBtnNegative.setVisibility(View.VISIBLE);
-        }
-
-        if (mTvCard != null) {
-            mTvCard.setVisibility(View.VISIBLE);
-        }
-
-        if (mTvDefault != null) {
-            mTvDefault.setVisibility(View.VISIBLE);
-        }
-        if (mLayoutCard != null) {
-            mLayoutCard.setVisibility(View.VISIBLE);
-        }
-        if (mIvArrowDown != null) {
-            mIvArrowDown.setVisibility(View.VISIBLE);
-        }
-        if (mCheckboxCrash != null) {
-            mCheckboxCrash.setVisibility(View.GONE);
-        }
-        if (mCheckboxP3a != null) {
-            mCheckboxP3a.setVisibility(View.GONE);
-        }
-    }
-
-    private void setLeafAnimation(
-            View leafAlignView, ImageView leafView, float leafMargin, boolean isTopLeaf) {
-        if (leafMargin > 0 && leafAlignView != null) {
-            int margin = dpToPx(this, leafMargin);
-            Animation animation =
-                    new Animation() {
-                        @Override
-                        protected void applyTransformation(float time, Transformation t) {
-                            transformLeaf(time, margin, leafAlignView, isTopLeaf);
-                        }
-                    };
-            animation.setDuration(800);
-            leafAlignView.startAnimation(animation);
-        }
-        if (leafView != null) {
-            leafView.animate()
-                    .scaleX(LEAF_SCALE_ANIMATION)
-                    .scaleY(LEAF_SCALE_ANIMATION)
-                    .setDuration(800);
-        }
-    }
-
-    private void transformLeaf(
-            final float time, final int margin, final View leafAlignView, final boolean isTopLeaf) {
-        ViewGroup.MarginLayoutParams layoutParams =
-                (ViewGroup.MarginLayoutParams) leafAlignView.getLayoutParams();
-        if (isTopLeaf) {
-            layoutParams.bottomMargin =
-                    margin - (int) ((margin - layoutParams.bottomMargin) * time);
-        } else {
-            layoutParams.topMargin = margin - (int) ((margin - layoutParams.topMargin) * time);
-        }
-        leafAlignView.setLayoutParams(layoutParams);
-    }
-
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        assert requestCode == BraveConstants.DEFAULT_BROWSER_ROLE_REQUEST_CODE;
-        nextOnboardingStep();
     }
 
     @Override
     protected void performPreInflationStartup() {
         super.performPreInflationStartup();
         mIsTablet = DeviceFormFactor.isNonMultiDisplayContextOnTablet(this);
+        if (mIsTablet && Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            setRequestedOrientation(SCREEN_ORIENTATION_UNSPECIFIED);
+        }
+    }
+
+    @Override
+    public void triggerLayoutInflation() {
+        super.triggerLayoutInflation();
+        setContentView(R.layout.activity_welcome_onboarding);
+
+        mSplashGuideline = findViewById(R.id.splash_anchor);
+        mOnboardingPager = findViewById(R.id.onboarding_steps_pager);
+
+        final ChromeClickableSpan wdpLearnMoreClickableSpan =
+                new ChromeClickableSpan(
+                        getColor(R.color.brave_blue_tint_color),
+                        (textView) -> CustomTabActivity.showInfoPage(this, WDP_LINK));
+        final String wdpText = getResources().getString(R.string.wdp_text);
+
+        final SpannableString wdpLearnMore =
+                SpanApplier.applySpans(
+                        wdpText,
+                        new SpanInfo("<learn_more>", "</learn_more>", wdpLearnMoreClickableSpan));
+
+        if (mOnboardingPager != null) {
+            mOnboardingPager.setUserInputEnabled(false);
+            mPageBounceAnimator = new PageBounceAnimator(mOnboardingPager);
+            mStepAdapter = new OnboardingStepAdapter(wdpLearnMore, this);
+            mOnboardingPager.setAdapter(mStepAdapter);
+        }
+
+        mOnboardingContainer = findViewById(R.id.onboarding_container);
+        mBraveSplash = findViewById(R.id.brave_splash);
+        mBraveSplashContainer = findViewById(R.id.brave_splash_container);
+        assert !mIsTablet || mBraveSplashContainer != null
+                : "R.id.brave_splash_container must be declared on tablet layout.";
+
+        checkReferral();
+        if (PackageUtils.isFirstInstall(this)) {
+            ChromeSharedPreferences.getInstance()
+                    .writeBoolean(
+                            BravePreferenceKeys.BRAVE_TAB_GROUPS_ENABLED_DEFAULT_VALUE, false);
+        }
+        onInitialLayoutInflationComplete();
     }
 
     @Override
     public void finishNativeInitialization() {
         super.finishNativeInitialization();
 
-        nextOnboardingStep();
+        mIsP3aManaged = BraveLocalState.get().isManagedPreference(BravePref.P3A_ENABLED);
+        mIsCrashReportingManaged =
+                !PrivacyPreferencesManagerImpl.getInstance()
+                        .isUsageAndCrashReportingPermittedByPolicy();
+
+        if (!mIsCrashReportingManaged) {
+            final boolean isCrashReporting = getCrashReportingPreference();
+            if (mStepAdapter != null) {
+                mStepAdapter.setCrashReportingChecked(isCrashReporting);
+            }
+        } else if (mStepAdapter != null) {
+            mStepAdapter.setCrashReportingManaged(true);
+        }
+
+        if (!mIsP3aManaged) {
+            final boolean isP3aEnabled = getP3aPreference();
+            if (mStepAdapter != null) {
+                mStepAdapter.setP3aChecked(isP3aEnabled);
+            }
+        } else if (mStepAdapter != null) {
+            mStepAdapter.setP3aManaged(true);
+        }
+        mOnboardingContainer.setVisibility(View.VISIBLE);
+        if (mSplashAnimationFinished) {
+            if (mBraveSplashContainer != null) {
+                mBraveSplashContainer.setVisibility(View.GONE);
+            }
+            if (mOnboardingPager != null) {
+                mOnboardingPager.setCurrentItem(mRestoredPageIndex, false);
+                mOnboardingPager.setVisibility(View.VISIBLE);
+            }
+        } else {
+            final AnimatedVectorDrawable vectorDrawable = getAnimatedVectorDrawable();
+            vectorDrawable.start();
+        }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putBoolean(KEY_SPLASH_ANIMATION_FINISHED, mSplashAnimationFinished);
+        if (mOnboardingPager != null) {
+            outState.putInt(KEY_PAGE_INDEX, mOnboardingPager.getCurrentItem());
+        }
+    }
+
+    @Override
+    protected void onRestoreInstanceState(@Nullable Bundle state) {
+        super.onRestoreInstanceState(state);
+        if (state == null) {
+            return;
+        }
+        mSplashAnimationFinished = state.getBoolean(KEY_SPLASH_ANIMATION_FINISHED, false);
+        mRestoredPageIndex = state.getInt(KEY_PAGE_INDEX, 0);
+    }
+
+    private AnimatedVectorDrawable getAnimatedVectorDrawable() {
+        final AnimatedVectorDrawable result = (AnimatedVectorDrawable) mBraveSplash.getDrawable();
+        result.registerAnimationCallback(
+                new Animatable2.AnimationCallback() {
+
+                    @Override
+                    public void onAnimationStart(Drawable drawable) {
+                        super.onAnimationStart(drawable);
+                        mBraveSplash.setAlpha(1f);
+                    }
+
+                    @Override
+                    public void onAnimationEnd(Drawable drawable) {
+                        if (isActivityFinishingOrDestroyed()) {
+                            return;
+                        }
+                        if (mIsTablet) {
+                            fadeBraveSplashContainer();
+                        } else {
+                            animateBraveSplash(result);
+                        }
+                    }
+                });
+        return result;
+    }
+
+    private boolean getCrashReportingPreference() {
+        if (PackageUtils.isFirstInstall(this)
+                && !OnboardingPrefManager.getInstance().isP3aCrashReportingMessageShown()) {
+            setMetricsReportingConsent(true, true);
+            return true;
+        }
+
+        boolean isCrashReporting = false;
+        try {
+            isCrashReporting =
+                    PrivacyPreferencesManagerImpl.getInstance()
+                            .isUsageAndCrashReportingPermittedByUser();
+        } catch (Exception e) {
+            Log.e(TAG, "CrashReportingOnboarding", e);
+        }
+        return isCrashReporting;
+    }
+
+    private boolean getP3aPreference() {
+        boolean isP3aEnabled = true;
+        try {
+            isP3aEnabled = BraveLocalState.get().getBoolean(BravePref.P3A_ENABLED);
+        } catch (Exception e) {
+            Log.e(TAG, "P3aOnboarding", e);
+        }
+        return isP3aEnabled;
+    }
+
+    private void showPagerAfterSplash() {
+        if (mOnboardingPager != null) {
+            mOnboardingPager.setCurrentItem(isWDPSettingAvailable() ? 0 : 1, false);
+            mOnboardingPager.setVisibility(View.VISIBLE);
+        }
+        mSplashAnimationFinished = true;
+        maybeRequestDefaultBrowser();
+    }
+
+    private void fadeBraveSplashContainer() {
+        if (mBraveSplashContainer == null) {
+            return;
+        }
+        Animator animator =
+                AnimatorInflater.loadAnimator(
+                        WelcomeOnboardingActivity.this, R.animator.ic_brave_splash_fade_out);
+        animator.setTarget(mBraveSplashContainer);
+        animator.addListener(
+                new Animator.AnimatorListener() {
+                    @Override
+                    public void onAnimationCancel(@NonNull Animator animation) {
+                        /* No-op. */
+                    }
+
+                    @Override
+                    public void onAnimationEnd(@NonNull Animator animation) {
+                        mBraveSplashContainer.setVisibility(View.GONE);
+                        showPagerAfterSplash();
+                    }
+
+                    @Override
+                    public void onAnimationRepeat(@NonNull Animator animation) {
+                        /* No-op. */
+                    }
+
+                    @Override
+                    public void onAnimationStart(@NonNull Animator animation) {
+                        /* No-op. */
+                    }
+                });
+        animator.start();
+    }
+
+    private void animateBraveSplash(final AnimatedVectorDrawable vectorDrawable) {
+        vectorDrawable.clearAnimationCallbacks();
+
+        final View parent = (View) mBraveSplash.getParent();
+        final float deltaY = parent.getPaddingTop() - mBraveSplash.getY();
+        final int splashHeight = mBraveSplash.getHeight();
+        // Compensate because shrinking around center moves the top edge down.
+        final float compensation = (splashHeight * (1f - BRAVE_SPLASH_SCALE_ANIMATION)) / 2f;
+
+        mBraveSplash
+                .animate()
+                .translationY(deltaY - compensation)
+                .scaleX(BRAVE_SPLASH_SCALE_ANIMATION)
+                .scaleY(BRAVE_SPLASH_SCALE_ANIMATION)
+                .setDuration(BRAVE_SPLASH_ANIMATION_DURATION_MS)
+                .setInterpolator(new OvershootInterpolator(REDUCED_TENSION_OVERSHOOT_INTERPOLATOR))
+                .setListener(
+                        new Animator.AnimatorListener() {
+                            @Override
+                            public void onAnimationCancel(@NonNull Animator animation) {
+                                /* No-op. */
+                            }
+
+                            @Override
+                            public void onAnimationEnd(@NonNull Animator animation) {
+                                // Splash visual bottom in parent coordinates (center pivot
+                                // scaling).
+                                final float splashBottomPx =
+                                        mBraveSplash.getBottom()
+                                                + mBraveSplash.getTranslationY()
+                                                - splashHeight
+                                                        * (1f - mBraveSplash.getScaleY())
+                                                        / 2f;
+
+                                ConstraintLayout.LayoutParams guidelineLayoutParams =
+                                        (ConstraintLayout.LayoutParams)
+                                                mSplashGuideline.getLayoutParams();
+                                guidelineLayoutParams.guideBegin = Math.round(splashBottomPx);
+                                mSplashGuideline.setLayoutParams(guidelineLayoutParams);
+                                if (mBraveSplashContainer != null) {
+                                    mBraveSplashContainer.setVisibility(View.GONE);
+                                }
+                                showPagerAfterSplash();
+                            }
+
+                            @Override
+                            public void onAnimationRepeat(@NonNull Animator animation) {
+                                /* No-op. */
+                            }
+
+                            @Override
+                            public void onAnimationStart(@NonNull Animator animation) {
+                                /* No-op. */
+                            }
+                        })
+                .start();
+    }
+
+    private boolean maybeRequestDefaultBrowser() {
+        if (isActivityFinishingOrDestroyed()) {
+            return false;
+        }
+        if (!isBraveSetAsDefaultBrowser(this)) {
+            setDefaultBrowser(this);
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -566,9 +530,36 @@ public class WelcomeOnboardingActivity extends FirstRunActivityBase {
     }
 
     @Override
-    public void triggerLayoutInflation() {
-        super.triggerLayoutInflation();
-        initializeViews();
-        onInitialLayoutInflationComplete();
+    public void onRequestPageChange(final int position) {
+        if (position == 2) {
+            // If both settings are managed by policy, skip this page entirely
+            if (mIsP3aManaged && mIsCrashReportingManaged) {
+                finalStep(true);
+                return;
+            }
+        }
+        if (mPageBounceAnimator != null) {
+            mPageBounceAnimator.animateToPosition(position);
+        }
+    }
+
+    @Override
+    public void onDismiss() {
+        finalStep(true);
+    }
+
+    @Override
+    public void onWebDiscoverPreferenceEnabled() {
+        enableWebDiscoverPreference();
+    }
+
+    @Override
+    public void onCrashReportingPreferenceChanged(final boolean enabled) {
+        setMetricsReportingConsent(enabled, false);
+    }
+
+    @Override
+    public void onP3aPreferenceChanged(final boolean enabled) {
+        setP3aConsent(enabled);
     }
 }

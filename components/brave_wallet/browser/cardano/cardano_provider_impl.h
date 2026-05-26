@@ -18,6 +18,7 @@
 #include "brave/components/brave_wallet/browser/keyring_service_observer_base.h"
 #include "brave/components/brave_wallet/common/brave_wallet.mojom.h"
 #include "mojo/public/cpp/bindings/unique_receiver_set.h"
+#include "url/origin.h"
 
 namespace brave_wallet {
 
@@ -30,12 +31,12 @@ class CardanoProviderImpl final : public mojom::CardanoProvider,
   CardanoProviderImpl(const CardanoProviderImpl&) = delete;
   CardanoProviderImpl& operator=(const CardanoProviderImpl&) = delete;
   CardanoProviderImpl(BraveWalletService& brave_wallet_service,
-                      BraveWalletProviderDelegateFactory delegate_factory);
+                      BraveWalletProviderDelegateFactory delegate_factory,
+                      const url::Origin& origin);
   ~CardanoProviderImpl() override;
 
   // mojom::CardanoProvider
-  void Enable(mojo::PendingReceiver<mojom::CardanoApi> cardano_api,
-              EnableCallback callback) override;
+  void Enable(EnableCallback callback) override;
   void IsEnabled(IsEnabledCallback callback) override;
 
 
@@ -66,13 +67,10 @@ class CardanoProviderImpl final : public mojom::CardanoProvider,
   void SelectedDappAccountChanged(mojom::CoinType coin,
                                   mojom::AccountInfoPtr account) override;
 
-  void RequestCardanoPermissions(
-      mojo::PendingReceiver<mojom::CardanoApi> cardano_api,
-      EnableCallback callback,
-      const url::Origin& origin);
+  void RequestCardanoPermissions(EnableCallback callback,
+                                 const url::Origin& origin);
 
   void OnRequestCardanoPermissions(
-      mojo::PendingReceiver<mojom::CardanoApi> cardano_api,
       EnableCallback callback,
       const url::Origin& origin,
       mojom::RequestPermissionsError error,
@@ -81,9 +79,9 @@ class CardanoProviderImpl final : public mojom::CardanoProvider,
   raw_ref<BraveWalletService> brave_wallet_service_;
   BraveWalletProviderDelegateFactory delegate_factory_;
   std::unique_ptr<BraveWalletProviderDelegate> delegate_;
+  const url::Origin origin_;
 
   EnableCallback pending_request_cardano_permissions_callback_;
-  mojo::PendingReceiver<mojom::CardanoApi> pending_cardano_api_;
   url::Origin pending_request_cardano_permissions_origin_;
   bool wallet_page_shown_ = false;
 

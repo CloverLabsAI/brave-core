@@ -7,8 +7,8 @@
 #define BRAVE_COMPONENTS_BRAVE_SHIELDS_CORE_COMMON_BRAVE_SHIELDS_SETTINGS_VALUES_H_
 
 #include <optional>
+#include <utility>
 
-#include "base/types/cxx23_to_underlying.h"
 #include "base/values.h"
 #include "brave/components/brave_shields/core/common/brave_shield_constants.h"
 #include "brave/components/brave_shields/core/common/shields_settings.mojom.h"
@@ -41,7 +41,7 @@ struct SettingTraits<ControlType> {
   static int To(ControlType setting) {
     CHECK(setting >= ControlType::ALLOW && setting <= ControlType::DEFAULT)
         << "Invalid setting.";
-    return base::to_underlying(setting);
+    return std::to_underlying(setting);
   }
 };
 
@@ -57,7 +57,7 @@ struct SettingTraits<mojom::AutoShredMode> {
   }
 
   static int To(mojom::AutoShredMode setting) {
-    return base::to_underlying(setting);
+    return std::to_underlying(setting);
   }
 };
 
@@ -97,9 +97,9 @@ struct BraveShieldsSetting
   static base::Value DefaultValue() { return ToValue(kDefaultValue); }
 
   static base::Value ToValue(SettingType setting) {
-    return base::Value(base::Value::Dict().Set(
-        BraveShieldsSetting::kName,
-        traits::SettingTraits<SettingType>::To(setting)));
+    return base::Value(
+        base::DictValue().Set(BraveShieldsSetting::kName,
+                              traits::SettingTraits<SettingType>::To(setting)));
   }
 
   static SettingType FromValue(const base::Value& value) {

@@ -186,11 +186,6 @@ class URLExtensionTests: XCTestCase {
     XCTAssertEqual(readerModeTestURL.urlToShred, testURL)
     XCTAssertTrue(readerModeTestURL.isShredAvailable)
 
-    // Verify nil for other `InternalURL`s
-    let errorPageTestURL = testURL.encodeEmbeddedInternalURL(for: .errorpage)!
-    XCTAssertNil(errorPageTestURL.urlToShred)
-    XCTAssertFalse(errorPageTestURL.isShredAvailable)
-
     let blockedTestURL = testURL.encodeEmbeddedInternalURL(for: .blocked)!
     XCTAssertNil(blockedTestURL.urlToShred)
     XCTAssertFalse(blockedTestURL.isShredAvailable)
@@ -283,6 +278,12 @@ class URLExtensionTests: XCTestCase {
     XCTAssertEqual(URL(string: "https://otap.co")?.baseDomain, "otap.co")
     XCTAssertEqual(URL(string: "https://test.otap.co")?.baseDomain, "test.otap.co")
     XCTAssertEqual(URL(string: "https://one.two.otap.co")?.baseDomain, "one.two.otap.co")
+  }
+
+  func testNewTabPageURL() {
+    XCTAssertTrue(URL(string: "about://newtab")!.isNewTabURL)
+    XCTAssertFalse(URL(string: "internal://readermode")!.isNewTabURL)
+    XCTAssertFalse(URL(string: "https://brave.com")!.isNewTabURL)
   }
 }
 

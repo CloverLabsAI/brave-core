@@ -36,7 +36,6 @@ EngineConsumerConversationAPIV2::~EngineConsumerConversationAPIV2() = default;
 
 void EngineConsumerConversationAPIV2::GenerateQuestionSuggestions(
     PageContents page_contents,
-    const std::string& selected_language,
     SuggestedQuestionsCallback callback) {
   auto messages = BuildOAIQuestionSuggestionsMessages(
       page_contents, max_associated_content_length_,
@@ -44,8 +43,7 @@ void EngineConsumerConversationAPIV2::GenerateQuestionSuggestions(
   auto on_response = base::BindOnce(
       &EngineConsumerConversationAPIV2::OnGenerateQuestionSuggestionsResponse,
       weak_ptr_factory_.GetWeakPtr(), std::move(callback));
-  api_->PerformRequest(std::move(messages), selected_language, std::nullopt,
-                       std::nullopt, mojom::ConversationCapability::CHAT,
+  api_->PerformRequest(std::move(messages), std::nullopt, std::nullopt, {},
                        base::NullCallback(), std::move(on_response));
 }
 
@@ -76,11 +74,10 @@ void EngineConsumerConversationAPIV2::OnGenerateQuestionSuggestionsResponse(
 void EngineConsumerConversationAPIV2::GenerateAssistantResponse(
     PageContentsMap&& page_contents,
     const ConversationHistory& conversation_history,
-    const std::string& selected_language,
     bool is_temporary_chat,
     const std::vector<base::WeakPtr<Tool>>& tools,
     std::optional<std::string_view> preferred_tool_name,
-    mojom::ConversationCapability conversation_capability,
+    const ConversationCapabilitySet& conversation_capabilities,
     GenerationDataCallback data_received_callback,
     GenerationCompletedCallback completed_callback) {
   if (!CanPerformCompletionRequest(conversation_history)) {
@@ -102,9 +99,8 @@ void EngineConsumerConversationAPIV2::GenerateAssistantResponse(
     model_name = model_service_->GetLeoModelNameByKey(*last_entry->model_key);
   }
 
-  api_->PerformRequest(std::move(messages), selected_language,
-                       ToolApiDefinitionsFromTools(tools), std::nullopt,
-                       conversation_capability,
+  api_->PerformRequest(std::move(messages), ToolApiDefinitionsFromTools(tools),
+                       std::nullopt, conversation_capabilities,
                        std::move(data_received_callback),
                        std::move(completed_callback), model_name);
 }
@@ -112,7 +108,6 @@ void EngineConsumerConversationAPIV2::GenerateAssistantResponse(
 void EngineConsumerConversationAPIV2::GenerateRewriteSuggestion(
     const std::string& text,
     mojom::ActionType action_type,
-    const std::string& selected_language,
     GenerationDataCallback received_callback,
     GenerationCompletedCallback completed_callback) {
   auto messages = BuildOAIRewriteSuggestionMessages(text, action_type);
@@ -121,8 +116,7 @@ void EngineConsumerConversationAPIV2::GenerateRewriteSuggestion(
         .Run(base::unexpected(mojom::APIError::InternalError));
     return;
   }
-  api_->PerformRequest(std::move(*messages), selected_language, std::nullopt,
-                       std::nullopt, mojom::ConversationCapability::CHAT,
+  api_->PerformRequest(std::move(*messages), std::nullopt, std::nullopt, {},
                        std::move(received_callback),
                        std::move(completed_callback));
 }
@@ -143,7 +137,6 @@ bool EngineConsumerConversationAPIV2::RequiresClientSideTitleGeneration()
 void EngineConsumerConversationAPIV2::GenerateConversationTitle(
     const PageContentsMap& page_contents,
     const ConversationHistory& conversation_history,
-    const std::string& selected_language,
     GenerationCompletedCallback completed_callback) {
   auto messages = BuildOAIGenerateConversationTitleMessages(
       page_contents, conversation_history, max_associated_content_length_,
@@ -156,8 +149,7 @@ void EngineConsumerConversationAPIV2::GenerateConversationTitle(
   }
 
   api_->PerformRequest(
-      std::move(*messages), selected_language, std::nullopt, std::nullopt,
-      mojom::ConversationCapability::CHAT,
+      std::move(*messages), std::nullopt, std::nullopt, {},
       base::NullCallback(),  // no streaming needed
       base::BindOnce(
           &EngineConsumerConversationAPIV2::OnConversationTitleGenerated,
@@ -175,8 +167,7 @@ void EngineConsumerConversationAPIV2::DedupeTopics(
   auto messages = BuildOAIDedupeTopicsMessages(*topics_result);
 
   api_->PerformRequest(
-      std::move(messages), "" /* selected_language */, std::nullopt,
-      std::nullopt, mojom::ConversationCapability::CHAT,
+      std::move(messages), std::nullopt, std::nullopt, {},
       base::NullCallback() /* data_received_callback */,
       base::BindOnce(
           [](GetSuggestedTopicsCallback callback,
@@ -190,25 +181,15 @@ void EngineConsumerConversationAPIV2::DedupeTopics(
           std::move(callback)));
 }
 
-void EngineConsumerConversationAPIV2::MergeSuggestTopicsResults(
-    GetSuggestedTopicsCallback callback,
-    std::vector<GenerationResult> results) {
-  if (results.size() == 1) {
-    // No need to dedupe topics if there is only one result.
-    std::move(callback).Run(
-        EngineConsumer::GetStrArrFromTabOrganizationResponses(results));
-    return;
-  }
-
-  // Merge the result and send another request to dedupe topics.
-  DedupeTopics(GetStrArrFromTabOrganizationResponses(results),
-               std::move(callback));
-}
-
 void EngineConsumerConversationAPIV2::GetSuggestedTopics(
     const std::vector<Tab>& tabs,
     GetSuggestedTopicsCallback callback) {
   auto chunked_messages = BuildChunkedTabFocusMessages(tabs, "");
+  if (chunked_messages.empty()) {
+    std::move(callback).Run(base::unexpected(mojom::APIError::InternalError));
+    return;
+  }
+
   const auto barrier_callback = base::BarrierCallback<GenerationResult>(
       chunked_messages.size(),
       base::BindOnce(
@@ -216,9 +197,7 @@ void EngineConsumerConversationAPIV2::GetSuggestedTopics(
           weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
 
   for (auto& messages : chunked_messages) {
-    api_->PerformRequest(std::move(messages), "" /* selected_language */,
-                         std::nullopt, std::nullopt,
-                         mojom::ConversationCapability::CHAT,
+    api_->PerformRequest(std::move(messages), std::nullopt, std::nullopt, {},
                          base::NullCallback() /* data_received_callback */,
                          barrier_callback /* data_completed_callback */);
   }
@@ -229,6 +208,11 @@ void EngineConsumerConversationAPIV2::GetFocusTabs(
     const std::string& topic,
     EngineConsumer::GetFocusTabsCallback callback) {
   auto chunked_messages = BuildChunkedTabFocusMessages(tabs, topic);
+  if (chunked_messages.empty()) {
+    std::move(callback).Run(base::unexpected(mojom::APIError::InternalError));
+    return;
+  }
+
   const auto barrier_callback = base::BarrierCallback<GenerationResult>(
       chunked_messages.size(),
       base::BindOnce(
@@ -241,9 +225,7 @@ void EngineConsumerConversationAPIV2::GetFocusTabs(
           std::move(callback)));
 
   for (auto& messages : chunked_messages) {
-    api_->PerformRequest(std::move(messages), "" /* selected_language */,
-                         std::nullopt, std::nullopt,
-                         mojom::ConversationCapability::CHAT,
+    api_->PerformRequest(std::move(messages), std::nullopt, std::nullopt, {},
                          base::NullCallback() /* data_received_callback */,
                          barrier_callback /* data_completed_callback */);
   }

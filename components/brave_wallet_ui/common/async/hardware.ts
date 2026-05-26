@@ -10,6 +10,7 @@ import {
   HardwareOperationResult,
   HardwareOperationResultEthereumSignatureBytes,
   HardwareOperationResultSolanaSignature,
+  HardwareOperationResultDeviceName,
 } from '../hardware/types'
 import { getLocale } from '../../../common/locale'
 import type WalletApiProxy from '../../common/wallet_api_proxy'
@@ -37,6 +38,7 @@ import {
   LedgerFilecoinKeyring,
   LedgerSolanaKeyring,
 } from '../hardware/interfaces'
+import { LedgerBridgeErrorCodes } from '../hardware/ledgerjs/ledger-messages'
 
 export function dialogErrorFromLedgerErrorCode(
   code: string | number,
@@ -46,6 +48,13 @@ export function dialogErrorFromLedgerErrorCode(
   }
 
   if (code === 'TransportLocked') {
+    return 'deviceBusy'
+  }
+
+  if (
+    code === LedgerBridgeErrorCodes.CommandInProgress
+    || code === LedgerBridgeErrorCodes.BridgeNotReady
+  ) {
     return 'deviceBusy'
   }
 
@@ -416,6 +425,14 @@ export async function cancelHardwareOperation(
   ) {
     return deviceKeyring.cancelOperation()
   }
+}
+
+export const getDeviceNameFromDevice = async (
+  vendor: BraveWallet.HardwareVendor,
+  coin: BraveWallet.CoinType,
+): Promise<HardwareOperationResultDeviceName> => {
+  const keyring = getHardwareKeyring(vendor, coin)
+  return keyring.getDeviceName()
 }
 
 export const loadAccountsFromDevice = async (

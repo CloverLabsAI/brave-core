@@ -10,7 +10,7 @@
 #include "base/notreached.h"
 #include "brave/components/brave_ads/core/mojom/brave_ads.mojom.h"
 #include "brave/components/brave_ads/core/public/ad_units/notification_ad/notification_ad_constants.h"
-#include "brave/grit/brave_generated_resources.h"
+#include "components/grit/brave_components_strings.h"
 #include "ui/base/l10n/l10n_util.h"
 #include "url/gurl.h"
 
@@ -27,8 +27,8 @@ constexpr std::string_view kReminderNotificationAdTargetUrl =
 
 namespace {
 
-base::Value::Dict BuildClickedSameAdMultipleTimesReminder() {
-  return base::Value::Dict()
+base::DictValue BuildClickedSameAdMultipleTimesReminder() {
+  return base::DictValue()
       .Set(kNotificationAdPlacementIdKey, kReminderNotificationAdPlacementId)
       .Set(kNotificationAdTitleKey,
            l10n_util::GetStringUTF16(
@@ -39,8 +39,8 @@ base::Value::Dict BuildClickedSameAdMultipleTimesReminder() {
       .Set(kNotificationAdTargetUrlKey, kReminderNotificationAdTargetUrl);
 }
 
-base::Value::Dict BuildExternalWalletConnectedReminder() {
-  return base::Value::Dict()
+base::DictValue BuildExternalWalletConnectedReminder() {
+  return base::DictValue()
       .Set(kNotificationAdPlacementIdKey, kReminderNotificationAdPlacementId)
       .Set(kNotificationAdTitleKey,
            l10n_util::GetStringUTF16(
@@ -53,7 +53,7 @@ base::Value::Dict BuildExternalWalletConnectedReminder() {
 
 }  // namespace
 
-base::Value::Dict BuildReminder(mojom::ReminderType mojom_reminder_type) {
+base::DictValue BuildReminder(mojom::ReminderType mojom_reminder_type) {
   switch (mojom_reminder_type) {
     case mojom::ReminderType::kClickedSameAdMultipleTimes: {
       return BuildClickedSameAdMultipleTimesReminder();

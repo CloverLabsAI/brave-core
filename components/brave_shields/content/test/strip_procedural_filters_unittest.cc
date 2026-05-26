@@ -6,8 +6,8 @@
 #include <optional>
 
 #include "base/test/values_test_util.h"
-#include "brave/components/brave_shields/content/browser/ad_block_service.h"
-#include "brave/components/brave_shields/core/browser/adblock/rs/src/lib.rs.h"
+#include "brave/components/brave_shields/content/browser/ad_block_engine_wrapper.h"
+#include "brave/components/brave_shields/core/common/adblock/rs/src/lib.rs.h"
 #include "brave/components/brave_shields/core/common/brave_shield_constants.h"
 #include "testing/gmock/include/gmock/gmock.h"
 #include "testing/gtest/include/gtest/gtest.h"
@@ -26,7 +26,7 @@ class StripProceduralFiltersTest : public testing::Test {
 
   void TearDown() override {}
 
-  base::Value::Dict ResourcesForRules(const std::string& rules) {
+  base::DictValue ResourcesForRules(const std::string& rules) {
     auto f = adblock::new_filter_set();
     f->add_filter_list(std::vector<uint8_t>(rules.cbegin(), rules.cend()));
     auto e = adblock::engine_from_filter_set(std::move(f)).value;
@@ -35,8 +35,8 @@ class StripProceduralFiltersTest : public testing::Test {
     return base::test::ParseJsonDict(result.c_str());
   }
 
-  void StripProceduralFilters(base::Value::Dict& resources) {
-    AdBlockService::StripProceduralFilters(resources);
+  void StripProceduralFilters(base::DictValue& resources) {
+    AdBlockEngineWrapper::StripProceduralFilters(resources);
   }
 };
 

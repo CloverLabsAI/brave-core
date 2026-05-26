@@ -3,14 +3,11 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // you can obtain one at https://mozilla.org/MPL/2.0/.
 
-/* eslint-disable max-len */
-
 import { FC } from 'react'
 import styled, { css, CSSProperties } from 'styled-components'
 import { Link } from 'react-router-dom'
 import * as leo from '@brave/leo/tokens/css/variables'
 import Icon from '@brave/leo/react/icon'
-import Button from '@brave/leo/react/button'
 import ProgressRing from '@brave/leo/react/progressRing'
 
 // types
@@ -36,11 +33,11 @@ import SwitchDown from '../../assets/svg-icons/switch-icon.svg'
 import WarningCircleFilled from '../../assets/svg-icons/warning-circle-icon.svg'
 import WarningTriangleFilled from '../../assets/svg-icons/warning-triangle-filled.svg'
 
-export type ThemeColor = StringWithAutocomplete<keyof IThemeProps['color']>
-
 // graphics
 import BraveWalletWithCoins from '../../assets/svg-icons/onboarding/brave-wallet-with-coins.svg'
 import { makePaddingMixin } from '../../utils/style.utils'
+
+export type ThemeColor = StringWithAutocomplete<keyof IThemeProps['color']>
 
 // re-export "send" styles
 export { Text } from '../../page/screens/send/shared.styles'
@@ -573,6 +570,8 @@ export const InputLabelText = styled.label`
 `
 
 export const VerticalDivider = styled.div<{ margin?: string }>`
+  flex-shrink: 0;
+  min-height: 1px;
   height: 1px;
   width: 100%;
   background-color: ${leo.color.divider.subtle};
@@ -591,10 +590,6 @@ export const BraveRewardsIndicator = styled.div`
   padding: 2px 6px;
   border: 1px solid ${leo.color.divider.subtle};
   border-radius: 4px;
-`
-
-export const LeoSquaredButton = styled(Button)`
-  --leo-button-radius: 12px;
 `
 
 export const DefaultPageWrapper = styled.div`

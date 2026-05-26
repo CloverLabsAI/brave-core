@@ -6,9 +6,11 @@
 #include "chrome/browser/ui/webui/chrome_untrusted_web_ui_configs.h"
 
 #include "base/feature_list.h"
+#include "brave/browser/ui/webui/local_ai/local_ai_ui.h"
 #include "brave/components/ai_chat/core/common/buildflags/buildflags.h"
 #include "brave/components/brave_vpn/common/buildflags/buildflags.h"
 #include "brave/components/brave_wallet/common/buildflags/buildflags.h"
+#include "brave/components/local_ai/core/features.h"
 #include "brave/components/playlist/core/common/buildflags/buildflags.h"
 #include "build/build_config.h"
 #include "content/public/browser/webui_config_map.h"
@@ -23,6 +25,7 @@
 
 #if BUILDFLAG(ENABLE_AI_CHAT)
 #include "brave/browser/ui/webui/ai_chat/ai_chat_untrusted_conversation_ui.h"
+#include "brave/browser/ui/webui/ai_chat/chart_display_ui.h"
 #include "brave/browser/ui/webui/ai_chat/code_sandbox_ui.h"
 #include "brave/components/ai_chat/core/common/features.h"
 #endif
@@ -62,6 +65,10 @@ void RegisterChromeUntrustedWebUIConfigs() {
       std::make_unique<trezor::UntrustedTrezorUIConfig>());
 #endif  // !BUILDFLAG(IS_ANDROID)
 #endif  // BUILDFLAG(ENABLE_BRAVE_WALLET)
+  if (base::FeatureList::IsEnabled(local_ai::features::kLocalAIModels)) {
+    content::WebUIConfigMap::GetInstance().AddUntrustedWebUIConfig(
+        std::make_unique<local_ai::UntrustedLocalAIUIConfig>());
+  }
 #if !BUILDFLAG(IS_ANDROID)
 #if BUILDFLAG(ENABLE_BRAVE_VPN)
   if (brave_vpn::IsBraveVPNFeatureEnabled()) {
@@ -82,6 +89,8 @@ void RegisterChromeUntrustedWebUIConfigs() {
   if (ai_chat::features::IsAIChatEnabled()) {
     content::WebUIConfigMap::GetInstance().AddUntrustedWebUIConfig(
         std::make_unique<AIChatUntrustedConversationUIConfig>());
+    content::WebUIConfigMap::GetInstance().AddUntrustedWebUIConfig(
+        std::make_unique<ai_chat::ChartDisplayUIConfig>());
     content::WebUIConfigMap::GetInstance().AddUntrustedWebUIConfig(
         std::make_unique<ai_chat::CodeSandboxUIConfig>());
   }

@@ -19,6 +19,7 @@
 <translation id="1544192797660353713">વૉલેટ</translation>
 <translation id="2361906291514218784">Leo AI</translation>
 <translation id="8275068909952022340">વધુ...</translation>
+<translation id="71316462802471551">ઇમેઇલ ઉપનામો</translation>
 <translation id="1990886731975529483">Google Widevine ઇન્સ્ટોલ કરો અને ચલાવો</translation>
 <translation id="8926389886865778422">ફરિથી પુછશો નહીં</translation>
 <translation id="4900351245762303149">Google Widevine ઇન્સ્ટોલ કરો</translation>
@@ -130,17 +131,12 @@
 <translation id="8184318863960255706">વધુ માહિતી</translation>
 <translation id="780301667611848630">નહીં, આભાર</translation>
 <translation id="1162706247109707219">OK ક્લિક કરીને, તમે માન્ય કરો છો કે તમારું Brave ઇન્સ્ટોલેશન ક્રિટિકલ સિક્યુરિટી ફિક્સિસ નથી મેળવશે જ્યાર સુધી તમે Windows 10 અથવા નવી વર્ઝન પર અપડેટ નથી કર્યું. આ ચેતવણી ફરીથી દેખાશે નહીં.</translation>
-<translation id="9164786361657554526">OK ક્લિક કરીને, તમે માન્ય કરો છો કે તમારું Brave ઇન્સ્ટોલેશન ક્રિટિકલ સિક્યુરિટી ફિક્સિસ નથી મેળવશે જ્યાર સુધી તમે macOS 10.15 અથવા નવી વર્ઝન પર અપડેટ નથી કર્યું. આ ચેતવણી ફરીથી દેખાશે નહીં.</translation>
-<translation id="2770465223704140727">સૂચિમાંથી દૂર કરો</translation>
+<translation id="2971591422768125177">OK ક્લિક કરીને, તમે માન્ય કરો છો કે તમારું Brave ઇન્સ્ટોલેશન ક્રિટિકલ સિક્યુરિટી ફિક્સિસ નથી મેળવશે જ્યાર સુધી તમે macOS 10.15 અથવા નવી વર્ઝન પર અપડેટ નથી કર્યું. આ ચેતવણી ફરીથી દેખાશે નહીં.</translation>
 <translation id="6020553119523541665">આ ટેબ અન્ય વિંડોમાં સક્રિય છે</translation>
 <translation id="4987392683074136770">આ ટેબ ક્લિક કરતા તે વિંડોમાં તેની સામગ્રી લાવશે</translation>
 <translation id="8355523213948477234">વિભાવ વિંડો મેનૂ બટન</translation>
 <translation id="6040143037577758943">બંધ કરો</translation>
 <translation id="6665472986740899785">Brave Notification એડ</translation>
-<translation id="5582087890067572966">🎉 તમે હવે કમાઈ રહ્યા છો!</translation>
-<translation id="4364336119478610380">તમે કમાશો જ્યારે આવી ચેતવણી તમારી સ્ક્રીન પર દેખાશે. કમાવા માટે તમારે ક્લિક કરવાની જરૂર નથી.</translation>
-<translation id="5893017172751072752">Brave Adsની ચેતવણી દેખાતા તમે કમાશો</translation>
-<translation id="3447730462826640312">કમાવા માટે ક્લિક કરવાની જરૂર નથી, પરંતુ રસ હોય તો ક્લિક કરો!</translation>
 <translation id="5253166205743627564">Brave Search ને પોતાના પ્રાઇવેટ એડ પર ક્લિક કરીને સપોર્ટ આપવા બદલ આભાર. Big Tech ના વિપરીત, તમારી ગોપનીયતા જાળવવા માટે આપણે એડ પરફોર્મન્સ અનામી રીતે માપીએ છીએ.</translation>
 <translation id="8748471354357836070">વધુ જાણો / ઓપ્ટ આઉટ પસંગીઓ</translation>
 <translation id="5927196110206824867">પ્રાયોજિત બૅકગ્રાઉન્ડ ઇમેજ Braveના સ્વતંત્ર, વપરાશકર્તા-પ્રથમ વેબ બનાવવાના મિશનને સપોર્ટ કરે છે. અને Big Techથી વિપરીત, અમે તમારી ગોપનીયતા જાળવવા માટે અનામી રીતે જાહેરાત પ્રદર્શનને માપીએ છીએ.</translation>
@@ -205,7 +201,6 @@
 <translation id="253980346046488815">ડુપ્લિકેટ ટૅબ્સ બંધ કરો</translation>
 <translation id="8670218546624422041">કન્ટેનરમાં ખોલો</translation>
 <translation id="8638526693050780542">કન્ટેનર્સ મેનેજ કરો</translation>
-<translation id="7302999361397024774">ટૅબનું નામ બદલો</translation>
 <translation id="2336228925368920074">બધા ટૅબ્સ બુકમાર્ક  કરો...</translation>
 <translation id="2523967823495420116">વર્ટિકલ ટેબ્સ વાપરો</translation>
 <translation id="3785071023202624850">{NUM_TABS,plural, =1{ટૅબને મ્યૂટ કરો}one{ટૅબને મ્યૂટ કરો}other{ટૅબને મ્યૂટ કરો}}</translation>
@@ -216,7 +211,6 @@
 <translation id="2703180365855369896">પ્રતિ માસ બંધ ટૅબ્સ</translation>
 <translation id="1987871867023021397">કન્ટેનરમાં ખોલો</translation>
 <translation id="6745991613881384719">કન્ટેનર્સ મેનેજ કરો</translation>
-<translation id="3917844427669888979">ટૅબનું નામ બદલો</translation>
 <translation id="3704707436873245822">છબીમાંથી લખાણ કોપી કરો</translation>
 <translation id="5268098808165185458">લખાણ છબીમાંથી કોપી કરાઈ રહ્યું છે...</translation>
 <translation id="4046485130884276245">છબીમાંથી લખાણ કોપી કર્યું</translation>
@@ -224,6 +218,8 @@
 <translation id="3960619311638643872">Brave VPN</translation>
 <translation id="2506438154311626334">Brave VPN માં WireGuard પ્રોટોકોલ વાપરો</translation>
 <translation id="8519170191215826548">આ સેટિંગ Brave VPN કનેક્ટેડ હોવાપર બદલાઈ શકતું નથી.</translation>
+<translation id="1177917174080821247">Windows પર VPN tray ચિહ્ન બતાવો</translation>
+<translation id="3747459938663420752">જ્યારે સક્રિય હોય ત્યારે Brave VPN માટે Windows ટાસ્કબાર પર ટ્રે આયકોન દેખાશે.</translation>
 <translation id="4235920711083356755">VPN બટન બતાવો</translation>
 <translation id="4070612712151038707">ટૂલબારમાં VPN બટન બતાવે છે</translation>
 <translation id="7705524343798198388">VPN</translation>
@@ -235,7 +231,6 @@
 <translation id="8030169304546394654">ડિસ્કનેક્ટેડ</translation>
 <translation id="1863950594388384201">ટૂલબારમાં VPN બટન બતાવો</translation>
 <translation id="5187139277471084437">ટૂલબારમાં VPN બટન છુપાવો</translation>
-<translation id="1177917174080821247">Windows પર VPN tray ચિહ્ન બતાવો</translation>
 <translation id="8041089156583427627">પ્રતિસાદ મોકલો</translation>
 <translation id="4049186905514157504">મારી યોજના મેનેજ કરો</translation>
 <translation id="7570585565843385325">ટૂલબારમાં VPN બટન બતાવો</translation>
@@ -324,6 +319,8 @@
 <translation id="8813509417421129632"><ph name="SITE"/> ખાતે એમ્બેડ પેજ સાચવવા માંગે છે</translation>
 <translation id="7700010743463174379">આ પેજ સાચવવા માંગે છે</translation>
 <translation id="6774238875569752630">આ પેજ પર એમ્બેડ પેજ સાચવવા માંગે છે</translation>
+<translation id="1383876407941801731">શોધો</translation>
+<translation id="5496587651328244253">સંગઠિત કરો</translation>
 <translation id="1233913566967531780">સભ્યો ટૅબ</translation>
 <translation id="4034992002364254340">સંબંધિત ટૅબ્સને નવી વિન્ડોમાં ભેગાં કરો</translation>
 <translation id="8012125596344613514">સૂચવાયેલા વિષયો</translation>
@@ -336,11 +333,14 @@
 <translation id="7557539689487606886">પ્રીમિયમ સભ્ય બનો</translation>
 <translation id="1035309871698658326">ઓપન હોવા પર, આ Leo ને ક્લાસિફાઈ કરવા માટે તમામ નોન-પ્રાઈવેટ ટૅબ્સના શીર્ષકો અને મૂળ આપોઆપ મોકલી દેશે.</translation>
 <translation id="3435896845095436175">સક્ષમ કરો</translation>
+<translation id="9031526219709160683">Brave આ સાઇટની ગોપનીયતા સેટિંગ્સને ઑપ્ટિમાઇজ કરવામાં તમને મદદ કરી શકે છે. શું તમે Brave ની સૂચનોની સમીક્ષા કરવા માંગો છો?</translation>
+<translation id="5739953050957336013">સૂચનોની સમીક્ષા કરો</translation>
 <translation id="9082792303833649978">આ સેટિંગ તમારા સંચાલક દ્વારા અથવા બીજાં Brave પોલીસી દ્વારા સંચાલિત છે.</translation>
 <translation id="1940221956626514677">ટૂલબાર કસ્ટમાઇઝ કરો</translation>
 <translation id="6501807887341963552">થીમ અને રંગો</translation>
 <translation id="6724227215236550330">સાચવેલા પાસવર્ડ્સ અહીં દેખાશે. આ ડિવાઇસ પર <ph name="BRAND"/> પર પાસવર્ડ ઇમ્પોર્ટ કરવા માટે, <ph name="BEGIN_LINK"/> એક CSV ફાઇલ પસંદ કરો<ph name="END_LINK"/></translation>
 <translation id="3575561030014162610">આ ડિવાઇસ પર <ph name="BRAND"/> પર પાસવર્ડ ઇમ્પોર્ટ કરવા માટે, એક CSV ફાઇલ પસંદ કરો</translation>
+<translation id="8570228839666486945">ઑન-ડિવાઇસ AI</translation>
 <translation id="9156965752763025780">તમારા ફેરફારો તમે આગલી વખતે Brave ફરીથી લોંચ કરશો ત્યારે પ્રભાવમાં આવશે.</translation>
 <translation id="7179921470347911571">હવે ફરીથી લોંચ કરો</translation>
 <translation id="1426410128494586442">હા</translation>
@@ -381,6 +381,7 @@
 <translation id="5860254591544742609">શીર્ષક બાર બતાવો</translation>
 <translation id="4691131445504068802">મિનિમાઇઝ કરેલ હોવા પર સંપૂર્ણ રીતે છુપાવો</translation>
 <translation id="6763346436728173884">ટૅબ બંધ કરો બટન હંમેશા છુપાવો</translation>
+<translation id="8082625757059443808">ટૅબ્સ બંધ કરવા માટે મધ્યમ બટન ક્લિકને અનુમતિ આપો</translation>
 <translation id="4909269867860362936">મિનિમાઇઝ કરેલ હોવા પર હવરને આધારે આપમેળે વિસ્તારો</translation>
 <translation id="3367129510799209147">ટેબ હૉવર મોડ</translation>
 <translation id="8925055964134259461">દરે વિન્ડો માટે ઊભા ટૅબ આપમેળે જુદાંપણે વિસ્તારો</translation>
@@ -390,8 +391,15 @@
 <translation id="2113977810652731515">કાર્ડ</translation>
 <translation id="4096343215397759358">પૂર્વાવલોકન સાથે કાર્ડ</translation>
 <translation id="5297085818601043899">ટૂલટિપ</translation>
+<translation id="1033676453210290920">ન્યૂનતમ ટેબ પહોળાઈ</translation>
+<translation id="562967218762447012">ન્યૂનતમ (ડિફોલ્ટ)</translation>
+<translation id="574392208103952083">મધ્યમ</translation>
+<translation id="4209092469652827314">મોટું</translation>
+<translation id="2658845370685508484">સંપૂર્ણ પહોળાઈ</translation>
+<translation id="1215972473274650670">સ્ક્રોલ કરી શકાય તેવી ટેબ સ્ટ્રિપ વાપરો</translation>
 <translation id="5219886318310413094">બધા વિંડોઝમાં પિન્યું ટેબ બતાવો</translation>
 <translation id="2396127686705429331">બુકમાર્ક્સ બટન બતાવો</translation>
+<translation id="443318149139185498">મુખ્ય મેનુ બટન પર આઉટલાઇન લોગો વાપરો</translation>
 <translation id="2814998458708016836">વિશાળ સરનામું બાર વાપરો</translation>
 <translation id="4749586705247636385">મુખ્ય સામગ્રી વિસ્તારોમાં રાઉન્ડ કરેલા ખૂણા બતાવો</translation>
 <translation id="4109670531935487117">એડ્રેસ બારમાં ઓટોકમ્પ્લીટ સૂચનો બતાવો</translation>
@@ -512,16 +520,20 @@
 <translation id="1199170151481311646">ગોપનીયતા જાળવતો વિશ્લેષણ</translation>
 <translation id="5990642573624858459">આંકડાકીય અહેવાલ</translation>
 <translation id="2441719842399509963">બધાને ડીફોલ્ટ પર રીસેટ કરો</translation>
+<translation id="4530494379350999373">મૂળ</translation>
+<translation id="2964215604640804042">Brave Origin એ બ્રાઉઝરનું પેઇડ સંસ્કરણ છે એવા વપરાશકર્તાઓ માટે કે જેમને તમામ ફીચર્સની જરૂર નથી જે Brave ને બિઝનેસ તરીકે સમર્થન આપે છે, પરંતુ તેમ છતાં તેઓ માત્ર Brave દ્વારા આપવામાં આવતી ગોપનીયતા ચાહે છે. Brave Origin વપરાશકર્તાઓ આমાંથી ઉદ્યોગ-અગ્રણી ગોપનીયતા, adblock, અને ગતિ (Brave શિલ્ડ્સ દ્વારા) નો લાભ મેળવવાનું ચાલુ રાખશે, તેમજ નિયમિત સોફ્ટવેર અપડેટ્સ, Chromium પેચ્સ, અને સુરક્ષા અને ગોપનીયતા સુધારણાઓ. તેઓ AI, Rewards, Wallet, VPN, Web3 ડોમેઇન્સ, અને વધુ જેવી ફીચર્સને અક્ષમ કરવાનો વિકલ્પ પણ અનલૉક કરશે.</translation>
+<translation id="9130916892338379417">Brave Origin એકમાત્ર ખરીદી દ્વારા ઉપલબ્ધ છે. મોબાઇલ (Android અને iOS) અને ડેસ્કટોપ પર, Origin તમારા હાલના રીલીઝ સંસ્કરણમાં અપગ્રેડ તરીકે ખરીદી શકાય છે. ડેસ્કટોપ પર, Origin એક અલગ, સ્વતંત્ર એપ્લિકેશન તરીકે પણ ઉપલબ્ધ છે. Origin વપરાશકર્તાઓ સેટિંગ્સ મેનુમાં નવું નિયંત્રણ પ્যાનલ જોશે. હાલની ફીચર્સ — તેમજ કોઈ પણ નવી ફીચર્સ જે આપણે ભવિષ્યમાં શિપ કરીશું — અહીં દેખાશે, અને ડિફૉલ્ટ રૂપે બંધ હશે.</translation>
+<translation id="7984508421152399880">હવે ખરીદો</translation>
 <translation id="5567412479632285879">Brave Rewards નિષ્ક્રિય છે</translation>
 <translation id="413570371620795359">સક્રિય કરવા અને પ્રારંભ કરવા માટે_rewards પેનલ ખુલ્લો</translation>
 <translation id="1051600834033686945">સંપૂર્ણ Brave Rewards સેટિંગ્સ ખોલો</translation>
 <translation id="8826461509529116322">Brave Rewards બટન બતાવો</translation>
-<translation id="3328713589982547433">માત્ર એડ બ્લોક મોડ</translation>
-<translation id="1574253307550419595">માત્ર એડ બ્લોક મોડને ઉપયોગમાં લો</translation>
-<translation id="738717058053657696">માત્ર એડ બ્લોક મોડ Brave શિલ્ડ્સના મુખ્ય એડ બ્લોકિંગ નિયમો જાળવે છે. ચેતવણી: આ બધા ગોપનીયતા સંરક્ષણોને દૂર કરે છે. કૃપા કરીને નોંધો કે Brave નો ગોપનીયતા સંરક્ષણ તૂટી ગયેલા વ્યક્તિગત વેબસાઇટ માટે, તમે શિલ્ડ્સને ડાઉન સેટ કરી શકો છો. આ એક પરીક્ષણ મોડ છે. <ph name="BEGIN_LINK"/>વધુ શીખો<ph name="END_LINK"/></translation>
+<translation id="4859866966646365361">માત્ર એડ બ્લોક મોડ</translation>
+<translation id="4146834954839563870">માત્ર એડ બ્લોક મોડને ઉપયોગમાં લો</translation>
+<translation id="420732343671200734">માત્ર એડ બ્લોક મોડ Brave શિલ્ડ્સના મુખ્ય એડ બ્લોકિંગ નિયમો જાળવે છે. ચેતવણી: આ બધા ગોપનીયતા સંરક્ષણોને દૂર કરે છે. કૃપા કરીને નોંધો કે Brave નો ગોપનીયતા સંરક્ષણ તૂટી ગયેલા વ્યક્તિગત વેબસાઇટ માટે, તમે શિલ્ડ્સને DOWN સેટ કરી શકો છો. આ એક પરીક્ષણ મોડ છે. <ph name="BEGIN_LINK"/>વધુ શીખો<ph name="END_LINK"/></translation>
 <translation id="3055675200351793825">શિલ્ડ્સ વિકલ્પો હાલમાં નિષ્ક્રિય છે.</translation>
-<translation id="516439939408671102">માત્ર એડ બ્લોક મોડ Brave શિલ્ડ્સના મુખ્ય એડ બ્લોકિંગ નિયમો જાળવે છે અને ગોપનીયતા સંરક્ષણો બંધ કરે છે. જો તમે પ્રમાણભૂત શિલ્ડ્સ સક્ષમ કરવા માંગતા હોવ, તો આ મોડને નિષ્ક્રિય કરો.</translation>
-<translation id="177233004755519660">માત્ર એડ બ્લોક મોડ બંધ કરો</translation>
+<translation id="2687830906359353344">માત્ર એડ બ્લોક મોડ Brave શિલ્ડ્સના મુખ્ય એડ બ્લોકિંગ નિયમો જાળવે છે અને ગોપનીયતા સંરક્ષણો બંધ કરે છે. જો તમે પ્રમાણભૂત શિલ્ડ્સ સક્ષમ કરવા માંગતા હોવ, તો આ મોડને નિષ્ક્રિય કરો.</translation>
+<translation id="3809423899581611047">માત્ર એડ બ્લોક મોડ બંધ કરો</translation>
 <translation id="9185018653595759199">સામાજિક મીડિયા અવરોધન</translation>
 <translation id="863171915776379000">Facebook લૉગિન અને એમ્બેડેડ પોસ્ટને મંજૂર કરો</translation>
 <translation id="7791141927430186653">X ને (અગાઉ Twitter) એમ્બેડેડ ટ્વીટ્સની મંજૂરી આપો</translation>
@@ -541,7 +553,7 @@
 <translation id="509873765238158442">Microsoft Recallને બ્લોક કરો</translation>
 <translation id="4763421121695677716">Microsoft Windows કમ્પ્યુટર પરથી Recall ફીચરને કોઈપણ ખુલ્લી Brave ટૅબના આપમેળે સ્ક્રીનશૉટ લેવાથી બ્લોક કરો.</translation>
 <translation id="1968895725257436430">માહિતી સંગ્રહ</translation>
-<translation id="4846154056248462491">બહાર નીકળતી વખતે</translation>
+<translation id="1700052872056357670">બહાર નીકળતી વખતે ડેટા સાફ કરો</translation>
 <translation id="216468847346280584">Brave આધારનાં ડેટા સાફ કરો...</translation>
 <translation id="2808630562319398131">Brave Rewards ડેટા ફરીથી સેટ કરો...</translation>
 <translation id="6438096877646138757">તેઓને બંધ કરવાથી તમે કૂકીઝ સાફ કરવી/ કરવું છે તેવી સાઇટ્સ</translation>
@@ -554,7 +566,6 @@
 <translation id="5747552184818312860">સમાપ્ત થાય છે</translation>
 <translation id="3858860766373142691">નામ</translation>
 <translation id="361106536627977100">ફ્લૅશ ડેટા</translation>
-<translation id="4530494379350999373">મૂળ</translation>
 <translation id="8195027750202970175">ડિસ્ક પર કદ</translation>
 <translation id="9116465289595958864">છેલ્લે સંશોધિત</translation>
 <translation id="4590324241397107707">ડેટાબેસ સ્ટોરેજ</translation>
@@ -587,11 +598,6 @@
 <translation id="2903783737778379345">તૃતીય-પક્ષ કૂકીઝ દ્વારા લેગસી Google સાઇન-ઇનને મંજૂરી આપશો નહીં</translation>
 <translation id="2570833232754279153">લેગસી Google Sign-In માટે તૃતીય-પક્ષ કૂકીઝનો ઉપયોગ કરવાની મંજૂરી આપવામાં આવતી નથી</translation>
 <translation id="6880817299303842099">તૃતીય-પક્ષ કૂકીઝ દ્વારા લેગસી Google સાઇન-ઇનને મંજૂરી છે</translation>
-<translation id="2136412236435693622">લોકલહોસ્ટ ઍક્સેસ</translation>
-<translation id="4172219483893066798">સાઇટ્સ લોકલહોસ્ટ સંસાધનોને ઍક્સેસની વિનંતી કરી શકે છે</translation>
-<translation id="7181706637590665047">લોકલહોસ્ટ સંસાધનોને ઍક્સેસ કરવાની મંજૂરી આપશો નહીં</translation>
-<translation id="1336116824874668514">લોકલહોસ્ટ સંસાધનો ઍક્સેસ કરવાની મંજૂરી નથી</translation>
-<translation id="1485435696620658073">લોકલહોસ્ટ સંસાધનો ઍક્સેસ કરવા માટે મંજૂરી છે</translation>
 <translation id="5794692721727586076">Leo AI ચેટ</translation>
 <translation id="8115153008662981040">સાઇટ્સ Leo AI ચેટ ખોલવા માટે પૂછે શકે છે</translation>
 <translation id="1145070115730668595">Leo AI ચેટ ખોલવા માટે સાઇટને મંજૂરી આપશો નહીં</translation>
@@ -664,8 +670,6 @@
 <translation id="7029809446516969842">પાસવર્ડ્સ</translation>
 <translation id="6011308810877101166">શોધ સૂચનો સુધારો</translation>
 <translation id="2332576387809612040">જ્યારે સમર્થન કરેલા Brave એ સરનામાં બાર અથવા સ્પર્ધક બોકસમાં તમરા લખેલા શબ્દો ને મોડલ કરવા માટે તમારા ફોલ્ટ સર્ચ એન્જિન ને મોકલે છે. જયારે બંધ હોય ત્યારે, Brave માત્ર આપના ઉપકરણમાં બનાવેલ સૂચનો દેખડાવે છે. આ પ્રાઇવેટ વિન્ડોઝમાં હંમેશા બંધ હોઈ છે.</translation>
-<translation id="6285118765755298263">અન્ય શોધ એન્જિનોને ઇન્ડેક્સ કરો</translation>
-<translation id="5526883767168905185">OpenSearch સ્પેસિફિકેશનને ફોલો કરતી વેબસાઇટને આપમેળે ઇન્ડેક્સ કરો.</translation>
 <translation id="5522403133543437426">એડ્રેસ બારમાં વપરાશમાં આવેલી સર્ચ એન્જિન.</translation>
 <translation id="280472502078788655">છુપાયેલ વિન્ડોઝ માટે એડ્રેસ બારમાં વપરાશમાં આવેલી સર્ચ એન્જિન.</translation>
 <translation id="7232120595886556478">સામાન્ય વિન્ડો</translation>
@@ -795,6 +799,7 @@
 <translation id="1529674267267221673">Leoકન્ટેક્સ્ટ મેનુમાં વેબસાઇટ્સ પર રાઇટ-ક્લિક પર દેખાશે. આ વાચકને વર્તમાન વેબ પૃષ્ઠનું સંદર્ભ મોકલશે.</translation>
 <translation id="5226020406479918122">ટૅબ ફોકસ મોડ</translation>
 <translation id="3705539672403311123">ટૅબ સર્ચ પેજમાં ટૅબ નિયમન સક્ષમ કરો. ઓપન હોવા પર, આ Leo ને ક્લાસિફાઈ કરવા માટે તમામ નોન-પ્રાઈવેટ ટૅબ્સના શીર્ષકો અને મૂળ આપોઆપ મોકલી દેશે. <ph name="BEGIN_LINK"/>વધુ જાણો<ph name="END_LINK"/></translation>
+<translation id="9049433973274198706">ટેબ ફોકસ માટે ડિફોલ્ટ મોડેલ</translation>
 <translation id="8172263161008556851">વાતચીતમાં સૂચિત સૂચનો બતાવો</translation>
 <translation id="5781842473834867765">મારી વાતચીતના ઇતિહાસને સ્ટોર કરો</translation>
 <translation id="1082960401708055995">કૉન્વર્સેશન સ્ટોરેજ અક્ષમ કરવાથી અગાઉ સ્ટોર કરેલી બધી કોલવિચારો કાયમ માટે મિટાવી નાખશે. આ ક્રિયા પૂર્વવત્ થઈ શકતી નથી.</translation>
@@ -818,6 +823,8 @@
 <translation id="6374563306438145841">API કી</translation>
 <translation id="3295756655687327124">વિઝન સપોર્ટ</translation>
 <translation id="1415432774589088566">જો આ મોડેલ ઇમેજની ઈનપુટ તરીકે લે છે, જેમ કે, લામે 3.2બિ વિઝન</translation>
+<translation id="5718897035062884425">સાધન સપોર્ટ</translation>
+<translation id="2120046556683363911">જો આ મોડેલ ફંક્શન કૉલિંગ / ટૂલ વાપર સપોર્ટ કરે છે</translation>
 <translation id="8008271349880309090">મોડલ પસંદગીઅનુ મેનૂમાં તે કેવી રીતે દેખાશે તેમ મોડલનુ નામ</translation>
 <translation id="1355326130503900056">વિનંતિ માટે સર્વિંગ ફ્રેમવર્કમાં તેમ દેખાવું જોઈએ તેમ મોડલનુ નામ, ઉદાહરણ તરીકે phi-3 (ચુક્કી વાય ટુ સર્વિંગ ફ્રેમવર્કની અપેક્ષા પ્રમાણે નામ સરખું ન જ હોય તો ઈન્ટિગ્રેશન કામ નહીં કરે)</translation>
 <translation id="3213787232304349732">URL જ્યાં તમારી સર્વિંગ ફ્રેમવર્ક ડિમાન્ડ માટે સાંભળી રહી છે. જો તમને ખાતરી નથી, તો સર્વિંગ ફ્રેમવર્ક ડોક્યૂમેન્ટેશન તપાસો. ઉદાહરણ તરીકે,ઃOllama માટે, આ હંમેશા http://localhost:11434/v1/chat/completions છે.</translation>
@@ -870,6 +877,8 @@
 <translation id="7311244614769792472">કોઈ પરિણામ મળ્યાં નથી</translation>
 <translation id="1838374766361614909">શોધ સાફ કરો</translation>
 <translation id="5126255551970171328">સ્મૃતિ માટે શોધો</translation>
+<translation id="7402116145895962069">તમારા Ollama સ્થાનિક મોડલ્સને સync કરો</translation>
+<translation id="4835154437390745810">Ollama દ્વારા વ્યવસ્થિત</translation>
 <translation id="5985516785067818307">સર્વે પેનલિસ્ટ</translation>
 <translation id="8347743943525229984">Brave સર્વેને મંજૂરી આપો</translation>
 <translation id="3204080538332044581">Braveને નવા ટૅબ પેજ પર પ્રાઇવેટ સર્વેની લિંક દર્શાવવાની મંજૂરી આપે છે. સર્વે અમને બહેતર ફીચર બનાવવા અને બ્રાઉઝર-આધારિત જાહેરાત પ્રચારોની અસરકારકતા માપવામાં મદદ કરે છે. <ph name="BEGIN_LINK"/>વધુ જાણો<ph name="END_LINK"/></translation>

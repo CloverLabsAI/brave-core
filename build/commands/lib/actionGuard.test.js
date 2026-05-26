@@ -3,9 +3,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 
-const fs = require('fs-extra')
-const path = require('path')
-const ActionGuard = require('./actionGuard')
+import fs from 'fs-extra'
+import path from 'node:path'
+import ActionGuard from './actionGuard.js'
 
 describe('ActionGuard', () => {
   const guardFilePath = '/path/to/guard/file'
@@ -182,7 +182,7 @@ describe('ActionGuard', () => {
     })
 
     it('should handle action interruption and cleanup correctly', () => {
-      expect(!fs.existsSync(guardFilePath))
+      expect(fs.existsSync(guardFilePath)).toBe(false)
 
       const actionGuard = new ActionGuard(guardFilePath, cleanupClosure)
       expect(() => {
@@ -191,7 +191,7 @@ describe('ActionGuard', () => {
         })
       }).toThrow()
 
-      expect(fs.existsSync(guardFilePath))
+      expect(fs.existsSync(guardFilePath)).toBe(true)
       expect(cleanupClosure).not.toHaveBeenCalled()
       expect(actionGuard.wasInterrupted()).toBe(true)
 
@@ -199,7 +199,7 @@ describe('ActionGuard', () => {
       actionGuard.run(actionClosure)
       expect(cleanupClosure).toHaveBeenCalled()
       expect(actionClosure).toHaveBeenCalledWith(true)
-      expect(!fs.existsSync(guardFilePath))
+      expect(fs.existsSync(guardFilePath)).toBe(false)
 
       cleanupClosure.mockClear()
       actionClosure.mockClear()
@@ -207,7 +207,7 @@ describe('ActionGuard', () => {
       actionGuard.run(actionClosure)
       expect(cleanupClosure).not.toHaveBeenCalled()
       expect(actionClosure).toHaveBeenCalledWith(false)
-      expect(!fs.existsSync(guardFilePath))
+      expect(fs.existsSync(guardFilePath)).toBe(false)
     })
   })
 

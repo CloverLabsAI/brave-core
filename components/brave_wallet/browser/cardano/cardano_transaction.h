@@ -21,6 +21,32 @@
 
 namespace brave_wallet {
 
+struct TxBuilderParms {
+  TxBuilderParms(CardanoAddress send_to_address, CardanoAddress change_address);
+  ~TxBuilderParms();
+  TxBuilderParms(const TxBuilderParms&);
+  TxBuilderParms& operator=(const TxBuilderParms&);
+  TxBuilderParms(TxBuilderParms&&);
+  TxBuilderParms& operator=(TxBuilderParms&&);
+
+  // Amount of a lovelaces or tokens being sent.
+  uint64_t amount = 0;
+  // True if exact amount was not specified but we are sending all possible
+  // amount of given token or lovelaces.
+  bool sending_max_amount = false;
+  // Token being sent if set, otherwise lovelaces are being sent.
+  std::optional<cardano_rpc::TokenId> token_to_send;
+
+  // Destination address for funds being sent.
+  CardanoAddress send_to_address;
+  // Change address in case we need to send change.
+  CardanoAddress change_address;
+  // Current state of blockchain. Used to calculate fee.
+  cardano_rpc::EpochParameters epoch_parameters;
+
+  uint64_t invalid_after = 0u;
+};
+
 // This class is used to make Cardano transactions for sending to blockchain.
 class CardanoTransaction {
  public:
@@ -34,8 +60,8 @@ class CardanoTransaction {
     Outpoint& operator=(Outpoint&& other);
     auto operator<=>(const Outpoint& other) const = default;
 
-    base::Value::Dict ToValue() const;
-    static std::optional<Outpoint> FromValue(const base::Value::Dict& value);
+    base::DictValue ToValue() const;
+    static std::optional<Outpoint> FromValue(const base::DictValue& value);
 
     std::array<uint8_t, kCardanoTxHashSize> txid = {};
     uint32_t index = 0;
@@ -43,7 +69,7 @@ class CardanoTransaction {
 
   // Input of cardano transaction.
   struct TxInput {
-    TxInput();
+    explicit TxInput(CardanoAddress utxo_address);
     ~TxInput();
     TxInput(const TxInput& other);
     TxInput& operator=(const TxInput& other);
@@ -51,8 +77,8 @@ class CardanoTransaction {
     TxInput& operator=(TxInput&& other);
     auto operator<=>(const TxInput& other) const = default;
 
-    base::Value::Dict ToValue() const;
-    static std::optional<TxInput> FromValue(const base::Value::Dict& value);
+    base::DictValue ToValue() const;
+    static std::optional<TxInput> FromValue(const base::DictValue& value);
 
     static TxInput FromRpcUtxo(const cardano_rpc::UnspentOutput& utxo);
 
@@ -75,8 +101,8 @@ class CardanoTransaction {
     TxWitness& operator=(TxWitness&& other);
     auto operator<=>(const TxWitness& other) const = default;
 
-    base::Value::Dict ToValue() const;
-    static std::optional<TxWitness> FromValue(const base::Value::Dict& value);
+    base::DictValue ToValue() const;
+    static std::optional<TxWitness> FromValue(const base::DictValue& value);
 
     std::array<uint8_t, kCardanoPubKeySize> public_key = {};
     std::array<uint8_t, kCardanoSignatureSize> signature = {};
@@ -86,7 +112,7 @@ class CardanoTransaction {
 
   // Output of cardano transaction. Has type of either `kTarget` or `kChange`.
   struct TxOutput {
-    TxOutput();
+    explicit TxOutput(CardanoAddress address);
     ~TxOutput();
     TxOutput(const TxOutput& other);
     TxOutput& operator=(const TxOutput& other);
@@ -94,8 +120,8 @@ class CardanoTransaction {
     TxOutput& operator=(TxOutput&& other);
     auto operator<=>(const TxOutput& other) const = default;
 
-    base::Value::Dict ToValue() const;
-    static std::optional<TxOutput> FromValue(const base::Value::Dict& value);
+    base::DictValue ToValue() const;
+    static std::optional<TxOutput> FromValue(const base::DictValue& value);
 
     CardanoTxDecoder::SerializableTxOutput ToSerializableTxOutput() const;
 
@@ -113,9 +139,20 @@ class CardanoTransaction {
   CardanoTransaction& operator=(CardanoTransaction&& other);
   bool operator==(const CardanoTransaction& other) const;
 
-  base::Value::Dict ToValue() const;
+  uint64_t fee() const { return fee_; }
+  void set_fee(uint64_t fee) { fee_ = fee; }
+
+  uint64_t invalid_after() const { return invalid_after_; }
+  void set_invalid_after(uint64_t invalid_after) {
+    invalid_after_ = invalid_after;
+  }
+
+  base::DictValue ToValue() const;
   static std::optional<CardanoTransaction> FromValue(
-      const base::Value::Dict& value);
+      const base::DictValue& value);
+
+  // Adds target output.
+  void SetupTargetOutput(CardanoAddress target_address);
 
   // Adds change output.
   void SetupChangeOutput(CardanoAddress change_address);
@@ -132,19 +169,9 @@ class CardanoTransaction {
   // Sum of all outputs' token amounts.
   std::optional<cardano_rpc::Tokens> GetTotalOutputTokensAmount() const;
 
-  const CardanoAddress& to() const { return to_; }
-  void set_to(CardanoAddress to) { to_ = std::move(to); }
+  std::optional<CardanoAddress> GetToAddress() const;
 
-  uint64_t amount() const { return amount_; }
-  void set_amount(uint64_t amount) { amount_ = amount; }
-
-  uint64_t fee() const { return fee_; }
-  void set_fee(uint64_t fee) { fee_ = fee; }
-
-  bool sending_max_amount() const { return sending_max_amount_; }
-  void set_sending_max_amount(bool sending_max_amount) {
-    sending_max_amount_ = sending_max_amount;
-  }
+  bool IsSendTokenTransaction() const;
 
   const std::vector<TxInput>& inputs() const { return inputs_; }
   void AddInput(TxInput input);
@@ -168,30 +195,20 @@ class CardanoTransaction {
   // Adjust change output so all input tokens are also sent to change output.
   bool EnsureTokensInChangeOutput();
 
-  uint32_t invalid_after() const { return invalid_after_; }
-  void set_invalid_after(uint32_t invalid_after) {
-    invalid_after_ = invalid_after;
-  }
-
-  // Arrange order of inputs and outputs so transaction binary form is suitable
-  // for testing.
-  void ArrangeTransactionForTesting();
-
   std::optional<CardanoTxDecoder::SerializableTx> ToSerializableTx() const;
 
  private:
   FRIEND_TEST_ALL_PREFIXES(CardanoTransactionSerializerTest, ValidateAmounts);
   FRIEND_TEST_ALL_PREFIXES(CardanoTransactionSerializerTest,
                            ValidateAmountsWithTokens);
+  FRIEND_TEST_ALL_PREFIXES(CardanoTxDecoderTest,
+                           EncodeTransaction_FailsOnDuplicateInputs);
 
   std::vector<TxInput> inputs_;
   std::vector<TxOutput> outputs_;
   std::vector<TxWitness> witnesses_;
-  uint32_t invalid_after_ = 0;
-  CardanoAddress to_;
-  uint64_t amount_ = 0;
+  uint64_t invalid_after_ = 0;
   uint64_t fee_ = 0;
-  bool sending_max_amount_ = false;
 };
 
 }  // namespace brave_wallet

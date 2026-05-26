@@ -5,36 +5,37 @@
 
 import * as React from 'react'
 import * as Mojom from '../../../common/mojom'
-import { render, act, within } from '@testing-library/react'
+import { render, act, within, waitFor } from '@testing-library/react'
 import { ModelSelector } from '.'
 import '@testing-library/jest-dom'
-import { useAIChat } from '../../state/ai_chat_context'
-import { useConversation } from '../../state/conversation_context'
-
-// Mock the contexts
-jest.mock('../../state/ai_chat_context', () => ({
-  useAIChat: jest.fn(),
-}))
-
-jest.mock('../../state/conversation_context', () => ({
-  useConversation: jest.fn(),
-}))
+import { MockContext } from '../../state/mock_context'
+import { clearAllDataForTesting } from '$web-common/api'
 
 describe('ModelSelector', () => {
-  const mockUseAIChat = useAIChat as jest.MockedFunction<typeof useAIChat>
-  const mockUseConversation = useConversation as jest.MockedFunction<
-    typeof useConversation
-  >
+  beforeEach(() => {
+    clearAllDataForTesting()
+  })
 
-  const mockModels = [
+  const mockModels: Mojom.Model[] = [
     {
       key: 'chat-automatic',
       displayName: 'Automatic',
       isSuggestedModel: true,
       isNearModel: false,
+      visionSupport: true,
       supportsTools: true,
+      supportedCapabilities: [
+        Mojom.ConversationCapability.CHAT,
+        Mojom.ConversationCapability.CONTENT_AGENT,
+      ],
       options: {
+        customModelOptions: undefined,
         leoModelOptions: {
+          name: 'A model',
+          displayMaker: 'Brave',
+          category: Mojom.ModelCategory.CHAT,
+          longConversationWarningCharacterLimit: 1,
+          maxAssociatedContentLength: 2,
           access: Mojom.ModelAccess.BASIC_AND_PREMIUM,
         },
       },
@@ -45,8 +46,19 @@ describe('ModelSelector', () => {
       isSuggestedModel: true,
       isNearModel: false,
       supportsTools: true,
+      supportedCapabilities: [
+        Mojom.ConversationCapability.CHAT,
+        Mojom.ConversationCapability.CONTENT_AGENT,
+      ],
+      visionSupport: true,
       options: {
+        customModelOptions: undefined,
         leoModelOptions: {
+          name: 'A model',
+          displayMaker: 'Brave',
+          category: Mojom.ModelCategory.CHAT,
+          longConversationWarningCharacterLimit: 1,
+          maxAssociatedContentLength: 2,
           access: Mojom.ModelAccess.BASIC_AND_PREMIUM,
         },
       },
@@ -57,8 +69,16 @@ describe('ModelSelector', () => {
       isSuggestedModel: false,
       isNearModel: false,
       supportsTools: false,
+      supportedCapabilities: [Mojom.ConversationCapability.CHAT],
+      visionSupport: true,
       options: {
+        customModelOptions: undefined,
         leoModelOptions: {
+          name: 'A model',
+          displayMaker: 'Brave',
+          category: Mojom.ModelCategory.CHAT,
+          longConversationWarningCharacterLimit: 1,
+          maxAssociatedContentLength: 2,
           access: Mojom.ModelAccess.BASIC_AND_PREMIUM,
         },
       },
@@ -69,8 +89,19 @@ describe('ModelSelector', () => {
       isSuggestedModel: true,
       isNearModel: true,
       supportsTools: true,
+      supportedCapabilities: [
+        Mojom.ConversationCapability.CHAT,
+        Mojom.ConversationCapability.CONTENT_AGENT,
+      ],
+      visionSupport: true,
       options: {
+        customModelOptions: undefined,
         leoModelOptions: {
+          name: 'A model',
+          displayMaker: 'Brave',
+          category: Mojom.ModelCategory.CHAT,
+          longConversationWarningCharacterLimit: 1,
+          maxAssociatedContentLength: 2,
           access: Mojom.ModelAccess.PREMIUM,
         },
       },
@@ -81,9 +112,37 @@ describe('ModelSelector', () => {
       isSuggestedModel: false,
       isNearModel: false,
       supportsTools: false,
+      supportedCapabilities: [Mojom.ConversationCapability.CHAT],
+      visionSupport: true,
       options: {
+        customModelOptions: undefined,
         leoModelOptions: {
+          name: 'A model',
+          displayMaker: 'Brave',
+          category: Mojom.ModelCategory.CHAT,
+          longConversationWarningCharacterLimit: 1,
+          maxAssociatedContentLength: 2,
           access: Mojom.ModelAccess.PREMIUM,
+        },
+      },
+    },
+    {
+      key: 'chat-brave-summary',
+      displayName: 'Brave Summary',
+      isSuggestedModel: false,
+      isNearModel: false,
+      visionSupport: true,
+      supportsTools: false,
+      supportedCapabilities: [Mojom.ConversationCapability.CHAT],
+      options: {
+        customModelOptions: undefined,
+        leoModelOptions: {
+          name: 'A summary model',
+          displayMaker: 'Brave',
+          longConversationWarningCharacterLimit: 1,
+          maxAssociatedContentLength: 2,
+          category: Mojom.ModelCategory.SUMMARY,
+          access: Mojom.ModelAccess.BASIC_AND_PREMIUM,
         },
       },
     },
@@ -92,9 +151,19 @@ describe('ModelSelector', () => {
       key: 'chat-custom',
       displayName: 'Custom Model',
       isNearModel: false,
+      visionSupport: false,
+      supportsTools: false,
+      supportedCapabilities: [Mojom.ConversationCapability.CHAT],
+      isSuggestedModel: false,
       options: {
+        leoModelOptions: undefined,
         customModelOptions: {
           modelRequestName: 'Custom Model Request',
+          contextSize: 3,
+          apiKey: '',
+          modelSystemPrompt: '',
+          longConversationWarningCharacterLimit: 1,
+          maxAssociatedContentLength: 2,
           endpoint: {
             url: 'http://localhost:8080',
           },
@@ -102,22 +171,6 @@ describe('ModelSelector', () => {
       },
     },
   ]
-
-  const defaultAIChatContext = {
-    isPremiumUser: false,
-  }
-
-  const defaultConversationContext = {
-    allModels: mockModels,
-    currentModel: mockModels[1],
-    setCurrentModel: jest.fn(),
-  }
-
-  beforeEach(() => {
-    jest.clearAllMocks()
-    mockUseAIChat.mockReturnValue(defaultAIChatContext as any)
-    mockUseConversation.mockReturnValue(defaultConversationContext as any)
-  })
 
   const getAnchorButton = () => {
     const anchorButton = document.querySelector<HTMLButtonElement>('leo-button')
@@ -142,8 +195,32 @@ describe('ModelSelector', () => {
     return showAllModelsButton
   }
 
+  const renderModelSelector = (
+    props?: Partial<React.ComponentProps<typeof MockContext>>,
+  ) => {
+    return render(
+      <MockContext
+        initialState={{
+          conversationState: {
+            allModels: mockModels,
+            currentModelKey: 'chat-basic',
+          },
+          ...props?.initialState,
+        }}
+        aiChatOverrides={{
+          isAIChatAgentProfile: false,
+          isAIChatAgentProfileFeatureEnabled: false,
+          ...props?.aiChatOverrides,
+        }}
+        conversationHandler={props?.conversationHandler}
+      >
+        <ModelSelector />
+      </MockContext>,
+    )
+  }
+
   it('renders the component with the current model', async () => {
-    render(<ModelSelector />)
+    renderModelSelector()
 
     // Make sure the anchor button is visible
     const anchorButton = getAnchorButton()
@@ -166,7 +243,7 @@ describe('ModelSelector', () => {
   })
 
   it('shows all models if Show all models button is clicked', async () => {
-    render(<ModelSelector />)
+    renderModelSelector()
 
     // Click the anchor button to show menu
     const anchorButton = getAnchorButton()
@@ -190,15 +267,23 @@ describe('ModelSelector', () => {
       'CHAT_UI_RECOMMENDED_MODELS_BUTTON',
     )
 
-    // Check that all model items are visible
+    // Check that all model items are visible (wait for re-render).
+    // SUMMARY category (chat-brave-summary) is hidden, so 6 models + footer = 7 items.
+    await waitFor(() => {
+      const allMenuItems =
+        document.querySelectorAll<HTMLElement>('leo-menu-item')
+      expect(allMenuItems).toHaveLength(7)
+    })
     const allMenuItems = document.querySelectorAll<HTMLElement>('leo-menu-item')
-    expect(allMenuItems).toHaveLength(7)
     expect(allMenuItems[0]).toHaveTextContent('Automatic')
     expect(allMenuItems[1]).toHaveTextContent('Basic Model')
     expect(allMenuItems[2]).toHaveTextContent('Another Basic Model')
     expect(allMenuItems[3]).toHaveTextContent('Premium Model')
     expect(allMenuItems[4]).toHaveTextContent('Another Premium Model')
     expect(allMenuItems[5]).toHaveTextContent('Custom Model')
+    expect(allMenuItems[6]).toHaveTextContent(
+      'CHAT_UI_RECOMMENDED_MODELS_BUTTON',
+    )
 
     const labels = document.querySelectorAll<HTMLElement>('leo-label')
 
@@ -220,14 +305,33 @@ describe('ModelSelector', () => {
     expect(labels[3]).toHaveTextContent('CHAT_UI_MODEL_LOCAL_LABEL')
   })
 
+  it('hides internal models from the dropdown', async () => {
+    renderModelSelector()
+
+    const anchorButton = getAnchorButton()
+    await act(async () => {
+      anchorButton?.shadowRoot?.querySelector('button')?.click()
+    })
+
+    const menu = getMenu()
+    expect(menu).not.toHaveTextContent('Brave Ocelot')
+
+    const showAllModelsButton = getShowAllModelsButton()
+    await act(async () => {
+      showAllModelsButton?.click()
+    })
+
+    expect(menu).not.toHaveTextContent('Brave Ocelot')
+  })
+
   it('should call setCurrentModel when a model is clicked', async () => {
     const mockSetCurrentModel = jest.fn()
-    mockUseConversation.mockReturnValue({
-      ...defaultConversationContext,
-      setCurrentModel: mockSetCurrentModel,
-    } as any)
 
-    render(<ModelSelector />)
+    renderModelSelector({
+      conversationHandler: {
+        changeModel: mockSetCurrentModel,
+      },
+    })
 
     // Click the anchor button to show menu
     const anchorButton = getAnchorButton()
@@ -246,15 +350,18 @@ describe('ModelSelector', () => {
       showAllModelsButton?.click()
     })
 
-    // Select another model
+    // Wait for re-render and select another model
+    await waitFor(() => {
+      const items = document.querySelectorAll<HTMLElement>('leo-menu-item')
+      expect(items).toHaveLength(7)
+    })
     const allMenuItems = document.querySelectorAll<HTMLElement>('leo-menu-item')
-    expect(allMenuItems).toHaveLength(7)
     await act(async () => {
       allMenuItems[1].click()
     })
 
-    // Verify setCurrentModel was called with the premium model
-    expect(mockSetCurrentModel).toHaveBeenCalledWith(mockModels[1])
+    // Verify setCurrentModel was called with the model key
+    expect(mockSetCurrentModel).toHaveBeenCalledWith(mockModels[1].key)
     expect(menu).toHaveAttribute('isOpen', 'false')
   })
 
@@ -262,24 +369,27 @@ describe('ModelSelector', () => {
     'should only show compatible models in the model selector if in'
       + 'agent mode',
     async () => {
-      mockUseAIChat.mockReturnValue({
-        ...defaultAIChatContext,
-        isAIChatAgentProfileFeatureEnabled: true,
-        isAIChatAgentProfile: true,
-      } as any)
-
       // Simulate the real context behavior: in agent mode,
-      // filter models by supportsTools. This mimics the logic
+      // filter models by supportedCapabilities. This mimics the logic
       // in Conversation Context.
-      const filteredModels = mockModels.filter(
-        (model) => model.supportsTools === true,
+      const filteredModels = mockModels.filter((model) =>
+        model.supportedCapabilities.includes(
+          Mojom.ConversationCapability.CONTENT_AGENT,
+        ),
       )
-      mockUseConversation.mockReturnValue({
-        ...defaultConversationContext,
-        allModels: filteredModels,
-      } as any)
 
-      render(<ModelSelector />)
+      renderModelSelector({
+        initialState: {
+          conversationState: {
+            allModels: filteredModels,
+            currentModelKey: 'chat-basic',
+          },
+        },
+        aiChatOverrides: {
+          isAIChatAgentProfileFeatureEnabled: true,
+          isAIChatAgentProfile: true,
+        },
+      })
 
       // Click the anchor button to show menu
       const anchorButton = getAnchorButton()
@@ -314,7 +424,7 @@ describe('ModelSelector', () => {
     },
   )
   it('should display near icon and beta label for near models', async () => {
-    render(<ModelSelector />)
+    renderModelSelector()
 
     // Make sure the anchor button is visible
     const anchorButton = getAnchorButton()

@@ -9,7 +9,6 @@
 #include <utility>
 #include <vector>
 
-#include "base/containers/contains.h"
 #include "base/containers/flat_map.h"
 #include "base/functional/bind.h"
 #include "brave/components/brave_news/browser/channel_migrator.h"
@@ -19,16 +18,16 @@
 
 namespace brave_news {
 
-std::vector<std::string> GetChannelsForPublisher(
+absl::flat_hash_set<std::string> GetChannelsForPublisher(
     const std::string& locale,
     const mojom::PublisherPtr& publisher) {
-  std::vector<std::string> result;
+  absl::flat_hash_set<std::string> result;
   for (const auto& locale_info : publisher->locales) {
     if (locale_info->locale != locale) {
       continue;
     }
     for (const auto& channel : locale_info->channels) {
-      result.push_back(channel);
+      result.insert(channel);
     }
   }
   return result;
@@ -66,7 +65,8 @@ Channels ChannelsController::GetChannelsFromPublishers(
     for (const auto& locale_info : it.second->locales) {
       for (auto& [channel_id, channel] : channels) {
         // We already know we're subscribed to this channel in this locale.
-        if (base::Contains(channel->subscribed_locales, locale_info->locale)) {
+        if (std::ranges::contains(channel->subscribed_locales,
+                                  locale_info->locale)) {
           continue;
         }
 
@@ -87,7 +87,8 @@ void ChannelsController::GetAllChannels(
   publishers_controller_->GetOrFetchPublishers(
       subscriptions, base::BindOnce(
                          [](const SubscriptionsSnapshot& subscriptions,
-                            ChannelsCallback callback, Publishers publishers) {
+                            ChannelsCallback callback,
+                            const Publishers& publishers) {
                            std::move(callback).Run(GetChannelsFromPublishers(
                                publishers, subscriptions));
                          },

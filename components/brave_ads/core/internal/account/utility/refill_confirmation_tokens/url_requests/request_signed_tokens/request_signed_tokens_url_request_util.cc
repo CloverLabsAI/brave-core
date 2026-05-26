@@ -7,6 +7,8 @@
 
 #include <string_view>
 
+#include "base/values.h"
+
 namespace brave_ads {
 
 namespace {
@@ -16,11 +18,11 @@ constexpr std::string_view kNonceKey = "nonce";
 
 }  // namespace
 
-std::optional<bool> ParseIsEligible(const base::Value::Dict& dict) {
+std::optional<bool> ParseIsEligible(const base::DictValue& dict) {
   return dict.FindBool(kIsEligibleKey);
 }
 
-std::optional<std::string> ParseNonce(const base::Value::Dict& dict) {
+std::optional<std::string> ParseNonce(const base::DictValue& dict) {
   const std::string* const nonce = dict.FindString(kNonceKey);
   if (!nonce || nonce->empty()) {
     return std::nullopt;

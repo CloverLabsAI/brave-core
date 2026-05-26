@@ -17,9 +17,9 @@ namespace ai_chat::features {
 
 BASE_FEATURE(kAIChat, base::FEATURE_ENABLED_BY_DEFAULT);
 const base::FeatureParam<std::string> kAIModelsDefaultKey{
-    &kAIChat, "default_model", "chat-automatic"};
+    &kAIChat, "default_model", kChatAutomaticModelKey};
 const base::FeatureParam<std::string> kAIModelsPremiumDefaultKey{
-    &kAIChat, "default_premium_model", "chat-automatic"};
+    &kAIChat, "default_premium_model", kChatAutomaticModelKey};
 const base::FeatureParam<std::string> kAIModelsVisionDefaultKey{
     &kAIChat, "default_vision_model", kClaudeHaikuModelKey};
 const base::FeatureParam<std::string> kAIModelsPremiumVisionDefaultKey{
@@ -39,6 +39,9 @@ const base::FeatureParam<size_t> kMaxCountLargeToolUseEvents{
     &kAIChat, "max_count_large_tool_use_events", 2};
 const base::FeatureParam<size_t> kContentSizeLargeToolUseEvent{
     &kAIChat, "content_size_large_tool_use_events", 1000};
+
+const base::FeatureParam<size_t> kMaxFullWebSourcesToolOutputs{
+    &kAIChat, "max_full_web_sources_tool_outputs", 4};
 
 const base::FeatureParam<bool> kAutomaticModelSupportsTools{
     &kAIChat, "automatic_model_supports_tools", true};
@@ -126,12 +129,26 @@ bool IsTabOrganizationEnabled() {
   return base::FeatureList::IsEnabled(features::kTabOrganization);
 }
 
+#if BUILDFLAG(ENABLE_AI_CHAT_TAB_MANAGEMENT_TOOL)
+BASE_FEATURE(kTabManagementTool,
+             "BraveTabManagementTool",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+#endif
+
 BASE_FEATURE(kNEARModels,
              "AIChatNEARModels",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 bool IsNEARModelsEnabled() {
   return base::FeatureList::IsEnabled(features::kNEARModels);
+}
+
+BASE_FEATURE(kBraveSummaryModel,
+             "AIChatBraveSummaryModel",
+             base::FEATURE_ENABLED_BY_DEFAULT);
+
+bool IsBraveSummaryModelEnabled() {
+  return base::FeatureList::IsEnabled(features::kBraveSummaryModel);
 }
 
 BASE_FEATURE(kRichSearchWidgets, base::FEATURE_ENABLED_BY_DEFAULT);
@@ -150,8 +167,33 @@ BASE_FEATURE(kCodeExecutionTool,
              "AIChatCodeExecutionTool",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
+const base::FeatureParam<bool> kCodeExecutionToolCharts{&kCodeExecutionTool,
+                                                        "charts", false};
+
 bool IsCodeExecutionToolEnabled() {
   return base::FeatureList::IsEnabled(features::kCodeExecutionTool);
+}
+
+#if BUILDFLAG(IS_IOS)
+BASE_FEATURE(kAIChatWebUIEnabled, base::FEATURE_DISABLED_BY_DEFAULT);
+
+bool IsAIChatWebUIEnabled() {
+  return base::FeatureList::IsEnabled(kAIChatWebUIEnabled);
+}
+#endif
+
+BASE_FEATURE(kShowAIChatInputOnNewTabPage, base::FEATURE_DISABLED_BY_DEFAULT);
+
+bool IsShowAIChatInputOnNewTabPageEnabled() {
+  return base::FeatureList::IsEnabled(features::kShowAIChatInputOnNewTabPage);
+}
+
+BASE_FEATURE(kAIChatDeepResearch,
+             "AIChatDeepResearch",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
+bool IsAIChatDeepResearchEnabled() {
+  return base::FeatureList::IsEnabled(features::kAIChatDeepResearch);
 }
 
 }  // namespace ai_chat::features

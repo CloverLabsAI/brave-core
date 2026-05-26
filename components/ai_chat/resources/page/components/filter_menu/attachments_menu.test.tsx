@@ -6,64 +6,33 @@
 import '$test-utils/disable_custom_elements'
 
 import * as React from 'react'
-import {
-  AIChatContext,
-  AIChatReactContext,
-  defaultContext as defaultAIChatContext,
-} from '../../state/ai_chat_context'
-import {
-  ConversationReactContext,
-  ConversationContext,
-  defaultContext as defaultConversationContext,
-} from '../../state/conversation_context'
-import { act, render } from '@testing-library/react'
-import TabsMenu from './attachments_menu'
+import { act, render, waitFor } from '@testing-library/react'
+import { clearAllDataForTesting } from '$web-common/api'
 import { ContentType } from 'gen/brave/components/ai_chat/core/common/mojom/common.mojom.m.js'
-
-const MockContext = (
-  props: React.PropsWithChildren<Partial<AIChatContext & ConversationContext>>,
-) => {
-  return (
-    <AIChatReactContext.Provider
-      value={{
-        ...defaultAIChatContext,
-        ...props,
-      }}
-    >
-      <ConversationReactContext.Provider
-        value={{
-          ...defaultConversationContext,
-          ...props,
-        }}
-      >
-        {props.children}
-      </ConversationReactContext.Provider>
-    </AIChatReactContext.Provider>
-  )
-}
+import * as Mojom from '../../../common/mojom'
+import { MockContext } from '../../state/mock_context'
+import TabsMenu from './attachments_menu'
 
 describe('TabsMenu', () => {
-  it('should render tabs', () => {
+  it('should render tabs', async () => {
     const { getByText, container } = render(
       <MockContext
-        tabs={[
-          {
-            contentId: 1,
-            title: 'Test 1',
-            url: {
-              url: 'https://tes1t.com',
+        initialState={{
+          tabs: [
+            {
+              contentId: 1,
+              title: 'Test 1',
+              url: { url: 'https://tes1t.com' },
+              id: 1,
             },
-            id: 1,
-          },
-          {
-            contentId: 2,
-            title: 'Test 2',
-            url: {
-              url: 'https://test2.com',
+            {
+              contentId: 2,
+              title: 'Test 2',
+              url: { url: 'https://test2.com' },
+              id: 2,
             },
-            id: 2,
-          },
-        ]}
+          ],
+        }}
       >
         <TabsMenu />
       </MockContext>,
@@ -75,40 +44,40 @@ describe('TabsMenu', () => {
     expect(container.querySelector('img[src*="test2.com"]')).toBeInTheDocument()
   })
 
-  it('should filter out attached tabs', () => {
+  it('should filter out attached tabs', async () => {
     const { queryByText } = render(
       <MockContext
-        associatedContentInfo={[
-          {
-            conversationTurnUuid: '1',
-            contentId: 1,
-            title: 'Test 1',
-            url: {
-              url: 'https://test1.com',
-            },
-            contentType: ContentType.PageContent,
-            contentUsedPercentage: 0,
-            uuid: '1',
+        initialState={{
+          conversationState: {
+            associatedContent: [
+              {
+                conversationTurnUuid: '1',
+                contentId: 1,
+                title: 'Test 1',
+                url: {
+                  url: 'https://test1.com',
+                },
+                contentType: ContentType.PageContent,
+                contentUsedPercentage: 0,
+                uuid: '1',
+              },
+            ],
           },
-        ]}
-        tabs={[
-          {
-            contentId: 1,
-            title: 'Test 1',
-            url: {
-              url: 'https://tes1t.com',
+          tabs: [
+            {
+              contentId: 1,
+              title: 'Test 1',
+              url: { url: 'https://tes1t.com' },
+              id: 1,
             },
-            id: 1,
-          },
-          {
-            contentId: 2,
-            title: 'Test 2',
-            url: {
-              url: 'https://test2.com',
+            {
+              contentId: 2,
+              title: 'Test 2',
+              url: { url: 'https://test2.com' },
+              id: 2,
             },
-            id: 2,
-          },
-        ]}
+          ],
+        }}
       >
         <TabsMenu />
       </MockContext>,
@@ -118,20 +87,20 @@ describe('TabsMenu', () => {
     expect(queryByText('Test 2')).toBeInTheDocument()
   })
 
-  it('should be open when query starts with @', () => {
+  it('should be open when query starts with @', async () => {
     const { container } = render(
       <MockContext
-        inputText={['@']}
-        tabs={[
-          {
-            contentId: 1,
-            title: 'Test 1',
-            url: {
-              url: 'https://tes1t.com',
+        conversationOverrides={{ inputText: ['@'] }}
+        initialState={{
+          tabs: [
+            {
+              contentId: 1,
+              title: 'Test 1',
+              url: { url: 'https://tes1t.com' },
+              id: 1,
             },
-            id: 1,
-          },
-        ]}
+          ],
+        }}
       >
         <TabsMenu />
       </MockContext>,
@@ -142,15 +111,15 @@ describe('TabsMenu', () => {
     expect(menu).toHaveProperty('isOpen', true)
   })
 
-  it('should be close when @ is removed', () => {
+  it('should be close when @ is removed', async () => {
     render(
-      <MockContext inputText={['@']}>
+      <MockContext conversationOverrides={{ inputText: ['@'] }}>
         <TabsMenu />
       </MockContext>,
     )
 
     const { container } = render(
-      <MockContext inputText={['hi']}>
+      <MockContext conversationOverrides={{ inputText: ['hi'] }}>
         <TabsMenu />
       </MockContext>,
     )
@@ -161,32 +130,28 @@ describe('TabsMenu', () => {
   })
 
   it('should filter by text after @', async () => {
-    const { container } = await act(async () =>
-      render(
-        <MockContext
-          inputText={['@2']}
-          tabs={[
+    const { container } = render(
+      <MockContext
+        conversationOverrides={{ inputText: ['@2'] }}
+        initialState={{
+          tabs: [
             {
               contentId: 1,
               title: 'Test 1',
-              url: {
-                url: 'https://tes1t.com',
-              },
+              url: { url: 'https://tes1t.com' },
               id: 1,
             },
             {
               contentId: 2,
               title: 'Test 2',
-              url: {
-                url: 'https://test2.com',
-              },
+              url: { url: 'https://test2.com' },
               id: 2,
             },
-          ]}
-        >
-          <TabsMenu />
-        </MockContext>,
-      ),
+          ],
+        }}
+      >
+        <TabsMenu />
+      </MockContext>,
     )
 
     const matches = Array.from(container.querySelectorAll('.matchedText'))
@@ -194,7 +159,7 @@ describe('TabsMenu', () => {
     expect(matches[0]).toHaveTextContent('2')
   })
 
-  it('selecting an element should clear text and attempt to associate with current conversation', () => {
+  it('selecting an element should clear text and attempt to associate with current conversation', async () => {
     const associateTab = jest.fn()
     const tab1 = {
       contentId: 1,
@@ -204,34 +169,32 @@ describe('TabsMenu', () => {
       },
       id: 1,
     }
-    const { queryByText } = render(
+    const { queryByText, findByText } = render(
       <MockContext
-        conversationUuid='1'
-        inputText={['@']}
-        uiHandler={
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-          {
-            associateTab,
-            ...defaultAIChatContext.uiHandler,
-          } as any
-        }
-        tabs={[
-          tab1,
-          {
-            contentId: 2,
-            title: 'Test 2',
-            url: {
-              url: 'https://test2.com',
+        conversationOverrides={{ inputText: ['@'] }}
+        initialState={{
+          tabs: [
+            tab1,
+            {
+              contentId: 2,
+              title: 'Test 2',
+              url: { url: 'https://test2.com' },
+              id: 2,
             },
-            id: 2,
+          ],
+          conversationState: {
+            conversationUuid: '1',
           },
-        ]}
+        }}
+        uiHandler={{ associateTab }}
       >
         <TabsMenu />
       </MockContext>,
     )
 
-    queryByText('Test 1')?.click()
+    // Wait for tabs to render and async data to load
+    const item = await findByText('Test 1')
+    await act(() => item.click())
 
     expect(associateTab).toHaveBeenCalledWith(tab1, '1')
     expect(queryByText('@')).not.toBeInTheDocument()
@@ -240,20 +203,23 @@ describe('TabsMenu', () => {
   it('should render bookmarks in the list', async () => {
     const { findByText } = render(
       <MockContext
-        getBookmarks={() =>
-          Promise.resolve([
-            {
-              id: BigInt(1),
-              title: 'Brave Browser',
-              url: { url: 'https://brave.com' },
-            },
-            {
-              id: BigInt(2),
-              title: 'MDN Web Docs',
-              url: { url: 'https://developer.mozilla.org' },
-            },
-          ])
-        }
+        bookmarksService={{
+          getBookmarks: () =>
+            Promise.resolve({
+              bookmarks: [
+                {
+                  id: BigInt(1),
+                  title: 'Brave Browser',
+                  url: { url: 'https://brave.com' },
+                },
+                {
+                  id: BigInt(2),
+                  title: 'MDN Web Docs',
+                  url: { url: 'https://developer.mozilla.org' },
+                },
+              ],
+            }),
+        }}
       >
         <TabsMenu />
       </MockContext>,
@@ -264,52 +230,64 @@ describe('TabsMenu', () => {
   })
 
   it('should filter bookmarks by query', async () => {
-    const { container } = await act(async () =>
-      render(
-        <MockContext
-          inputText={['@brave']}
-          getBookmarks={() =>
-            Promise.resolve([
-              {
-                id: BigInt(1),
-                title: 'Brave Browser',
-                url: { url: 'https://brave.com' },
-              },
-              {
-                id: BigInt(2),
-                title: 'MDN Web Docs',
-                url: { url: 'https://developer.mozilla.org' },
-              },
-            ])
-          }
-        >
-          <TabsMenu />
-        </MockContext>,
-      ),
+    const onFetch = jest.fn()
+
+    const { container } = render(
+      <MockContext
+        conversationOverrides={{ inputText: ['@brave'] }}
+        bookmarksService={{
+          getBookmarks: () => {
+            onFetch()
+            return Promise.resolve({
+              bookmarks: [
+                {
+                  id: BigInt(1),
+                  title: 'Brave Browser',
+                  url: { url: 'https://brave.com' },
+                },
+                {
+                  id: BigInt(2),
+                  title: 'MDN Web Docs',
+                  url: { url: 'https://developer.mozilla.org' },
+                },
+              ],
+            })
+          },
+        }}
+      >
+        <TabsMenu />
+      </MockContext>,
     )
 
-    const matches = Array.from(container.querySelectorAll('.matchedText'))
-    expect(matches).toHaveLength(1)
-    expect(matches[0]).toHaveTextContent('Brave')
+    await waitFor(() => expect(onFetch).toHaveBeenCalled())
+
+    await waitFor(() => {
+      const matches = Array.from(container.querySelectorAll('.matchedText'))
+      expect(matches).toHaveLength(1)
+      expect(matches[0]).toHaveTextContent('Brave')
+    })
   })
 
   it('should render history in the list', async () => {
     const { findByText } = render(
       <MockContext
-        getHistory={() =>
-          Promise.resolve([
-            {
-              id: BigInt(1),
-              title: 'Brave Search',
-              url: { url: 'https://search.brave.com' },
-            },
-            {
-              id: BigInt(2),
-              title: 'GitHub',
-              url: { url: 'https://github.com' },
-            },
-          ])
-        }
+        historyService={{
+          getHistory: () =>
+            Promise.resolve({
+              history: [
+                {
+                  id: BigInt(1),
+                  title: 'Brave Search',
+                  url: { url: 'https://search.brave.com' },
+                },
+                {
+                  id: BigInt(2),
+                  title: 'GitHub',
+                  url: { url: 'https://github.com' },
+                },
+              ],
+            }),
+        }}
       >
         <TabsMenu />
       </MockContext>,
@@ -320,88 +298,107 @@ describe('TabsMenu', () => {
   })
 
   it('should filter history by query', async () => {
-    const { container } = await act(async () =>
-      render(
-        <MockContext
-          inputText={['@search']}
-          getHistory={() =>
-            Promise.resolve([
-              {
-                id: BigInt(1),
-                title: 'Brave Search',
-                url: { url: 'https://search.brave.com' },
-              },
-              {
-                id: BigInt(2),
-                title: 'GitHub',
-                url: { url: 'https://github.com' },
-              },
-            ])
-          }
-        >
-          <TabsMenu />
-        </MockContext>,
-      ),
-    )
+    const onFetchHistory = jest.fn()
 
-    const matches = Array.from(container.querySelectorAll('.matchedText'))
-    expect(matches).toHaveLength(1)
-    expect(matches[0]).toHaveTextContent('Search')
-  })
-
-  it('should pass query to getHistory when query length >= 2', async () => {
-    const getHistory = jest.fn(() =>
-      Promise.resolve([
-        {
-          id: BigInt(1),
-          title: 'Test History',
-          url: { url: 'https://test.com' },
-        },
-      ]),
-    )
-
-    render(
+    const { container } = render(
       <MockContext
-        inputText={['@ab']}
-        getHistory={getHistory}
+        conversationOverrides={{ inputText: ['@search'] }}
+        historyService={{
+          getHistory: () => {
+            onFetchHistory()
+            return Promise.resolve({
+              history: [
+                {
+                  id: BigInt(1),
+                  title: 'Brave Search',
+                  url: { url: 'https://search.brave.com' },
+                },
+                {
+                  id: BigInt(2),
+                  title: 'GitHub',
+                  url: { url: 'https://github.com' },
+                },
+              ],
+            })
+          },
+        }}
       >
         <TabsMenu />
       </MockContext>,
     )
 
-    expect(getHistory).toHaveBeenCalledWith('ab')
+    // Wait for history to be queried
+    await waitFor(() => expect(onFetchHistory).toHaveBeenCalled())
+
+    await waitFor(() => {
+      const matches = Array.from(container.querySelectorAll('.matchedText'))
+      expect(matches).toHaveLength(1)
+      expect(matches[0]).toHaveTextContent('Search')
+    })
+  })
+
+  it('should pass query to getHistory when query length >= 2', async () => {
+    const getHistory = jest.fn(() =>
+      Promise.resolve({
+        history: [
+          {
+            id: BigInt(1),
+            title: 'Test History',
+            url: { url: 'https://test.com' },
+          },
+        ] satisfies Mojom.HistoryEntry[],
+      }),
+    )
+
+    render(
+      <MockContext
+        conversationOverrides={{ inputText: ['@ab'] }}
+        historyService={{ getHistory }}
+      >
+        <TabsMenu />
+      </MockContext>,
+    )
+
+    expect(getHistory).toHaveBeenCalledWith('ab', null)
   })
 
   it('should filter out already attached history items', async () => {
     const { findByText, queryByText } = render(
       <MockContext
-        associatedContentInfo={[
-          {
-            conversationTurnUuid: undefined,
-            contentId: 1,
-            title: 'Brave Search',
-            url: {
-              url: 'https://search.brave.com',
-            },
-            contentType: ContentType.PageContent,
-            contentUsedPercentage: 0,
-            uuid: '1',
+        initialState={{
+          conversationState: {
+            associatedContent: [
+              {
+                conversationTurnUuid: undefined,
+                contentId: 1,
+                title: 'Brave Search',
+                url: {
+                  url: 'https://search.brave.com',
+                },
+                contentType: ContentType.PageContent,
+                contentUsedPercentage: 0,
+                uuid: '1',
+              },
+            ],
           },
-        ]}
-        getHistory={() =>
-          Promise.resolve([
-            {
-              id: BigInt(1),
-              title: 'Brave Search',
-              url: { url: 'https://search.brave.com' },
-            },
-            {
-              id: BigInt(2),
-              title: 'GitHub',
-              url: { url: 'https://github.com' },
-            },
-          ])
-        }
+        }}
+        historyService={{
+          getHistory: () =>
+            Promise.resolve({
+              history: [
+                {
+                  id: BigInt(1),
+                  title: 'Brave Search',
+                  url: { url: 'https://search.brave.com' },
+                },
+                {
+                  id: BigInt(2),
+                  title: 'GitHub',
+                  url: { url: 'https://github.com' },
+                },
+              ],
+            }),
+        }}
       >
         <TabsMenu />
       </MockContext>,

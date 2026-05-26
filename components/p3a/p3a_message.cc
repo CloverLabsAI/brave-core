@@ -19,6 +19,7 @@
 #include "base/strings/string_number_conversions.h"
 #include "base/strings/string_split.h"
 #include "base/strings/string_util.h"
+#include "base/strings/to_string.h"
 #include "brave/components/brave_stats/browser/brave_stats_updater_util.h"
 #include "brave/components/l10n/common/locale_util.h"
 #include "brave/components/p3a/metric_config.h"
@@ -57,11 +58,13 @@ constexpr char kRegionAttributeName[] = "region";
 constexpr char kSubregionAttributeName[] = "subregion";
 constexpr char kCadenceAttributeName[] = "cadence";
 constexpr char kRefAttributeName[] = "ref";
+constexpr char kIsBrowserDefaultAttributeName[] = "is_default";
 
 constexpr char kSlowCadence[] = "slow";
 constexpr char kTypicalCadence[] = "typical";
 constexpr char kExpressCadence[] = "express";
 
+constexpr char kCustomAttributeKeyPrefix[] = "custom_";
 constexpr char kOrganicRefPrefix[] = "BRV";
 constexpr char kNone[] = "none";
 constexpr char kRefOther[] = "other";
@@ -111,6 +114,26 @@ std::string InferActivationDate(const MessageMetainfo& meta,
   return FormatUTCDateFromTime(*activation_date);
 }
 
+std::optional<std::array<std::string, 2>> FetchCustomAttribute(
+    const MessageMetainfo& meta,
+    const MetricConfig* metric_config,
+    size_t custom_attr_index) {
+  if (!metric_config ||
+      custom_attr_index >= metric_config->custom_attributes.size()) {
+    return std::nullopt;
+  }
+  const auto& key_opt = metric_config->custom_attributes[custom_attr_index];
+  if (!key_opt) {
+    return std::nullopt;
+  }
+  auto value = meta.GetCustomAttribute(*key_opt);
+  if (!value) {
+    return std::nullopt;
+  }
+  return std::array<std::string, 2>{
+      base::StrCat({kCustomAttributeKeyPrefix, *key_opt}), std::move(*value)};
+}
+
 std::vector<std::array<std::string, 2>> PopulateConstellationAttributes(
     const std::string_view metric_name,
     const uint64_t metric_value,
@@ -132,6 +155,7 @@ std::vector<std::array<std::string, 2>> PopulateConstellationAttributes(
     attributes = {{kMetricNameAttributeName, std::string(metric_name)}};
   }
   std::string attribute_value;
+  size_t custom_attr_index = 0;
 
   for (const auto& attribute : attributes_to_load) {
     switch (attribute) {
@@ -215,6 +239,17 @@ std::vector<std::array<std::string, 2>> PopulateConstellationAttributes(
       case MetricAttribute::kRef:
         attributes.push_back({kRefAttributeName, meta.ref()});
         break;
+      case MetricAttribute::kIsBrowserDefault:
+        attributes.push_back(
+            {kIsBrowserDefaultAttributeName,
+             base::ToString(meta.is_browser_default().value_or(false))});
+        break;
+      case MetricAttribute::kCustomAttribute:
+        if (auto attr = FetchCustomAttribute(meta, metric_config,
+                                             custom_attr_index++)) {
+          attributes.push_back(std::move(*attr));
+        }
+        break;
     }
   }
   return attributes;
@@ -225,12 +260,12 @@ std::vector<std::array<std::string, 2>> PopulateConstellationAttributes(
 MessageMetainfo::MessageMetainfo() = default;
 MessageMetainfo::~MessageMetainfo() = default;
 
-base::Value::Dict GenerateP3AMessageDict(std::string_view metric_name,
-                                         uint64_t metric_value,
-                                         MetricLogType log_type,
-                                         const MessageMetainfo& meta,
-                                         const std::string& upload_type) {
-  base::Value::Dict result;
+base::DictValue GenerateP3AMessageDict(std::string_view metric_name,
+                                       uint64_t metric_value,
+                                       MetricLogType log_type,
+                                       const MessageMetainfo& meta,
+                                       const std::string& upload_type) {
+  base::DictValue result;
 
   // Fill basic meta.
   result.Set(kPlatformAttributeName, meta.platform());
@@ -446,6 +481,10 @@ const std::string& MessageMetainfo::GetCountryCodeForNormalMetrics(
 #endif  // BUILDFLAG(IS_IOS)
 }
 
+void MessageMetainfo::SetIsBrowserDefault(bool is_default) {
+  is_browser_default_ = is_default;
+}
+
 std::optional<base::Time> MessageMetainfo::GetActivationDate(
     std::string_view histogram_name) const {
   const auto& activation_dates =
@@ -457,6 +496,16 @@ std::optional<base::Time> MessageMetainfo::GetActivationDate(
   }
 
   return base::ValueToTime(*time_val);
+}
+
+std::optional<std::string> MessageMetainfo::GetCustomAttribute(
+    std::string_view attribute_name) const {
+  const auto* value = local_state_->GetDict(kCustomAttributesDictPref)
+                          .FindString(attribute_name);
+  if (!value || value->empty()) {
+    return std::nullopt;
+  }
+  return *value;
 }
 
 }  // namespace p3a

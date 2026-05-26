@@ -8,13 +8,14 @@
 // Designed to be used on CI, but should work locally too.
 // The script includes syncing; there is no need to run npm run sync before.
 
-const config = require('./config')
-const util = require('./util')
-const path = require('path')
-const fs = require('fs-extra')
-const depotTools = require('./depotTools')
-const syncUtil = require('./syncUtils')
-const Log = require('./logging')
+import config from './config.js'
+import util from './util.js'
+import path from 'node:path'
+import fs from 'fs-extra'
+import depotTools from './depotTools.js'
+import syncUtil from './syncUtils.js'
+import Log from './logging.js'
+import { isCI } from './ciDetect.ts'
 
 // Use the same filename as for Brave archive.
 const getOutputFilename = () => {
@@ -35,8 +36,8 @@ const chromiumConfigs = {
     buildTargets: ['mini_installer'],
     processArtifacts: () => {
       // Repack it to reduce the size and use .zip instead of .7z.
-      input = path.join(config.outputDir, 'chrome.7z')
-      output = path.join(config.outputDir, `${getOutputFilename()}.zip`)
+      const input = path.join(config.outputDir, 'chrome.7z')
+      const output = path.join(config.outputDir, `${getOutputFilename()}.zip`)
       util.run(
         'python3',
         [
@@ -94,10 +95,10 @@ const chromiumConfigs = {
     },
   },
   'android': {
-    buildTargets: ['monochrome_64_public_apk'],
+    buildTargets: ['chrome_public_apk'],
     processArtifacts: () => {
       fs.moveSync(
-        path.join(config.outputDir, 'apks', 'MonochromePublic64.apk'),
+        path.join(config.outputDir, 'apks', 'ChromePublic.apk'),
         path.join(config.outputDir, `${getOutputFilename()}.apk`),
       )
     },
@@ -111,6 +112,7 @@ const chromiumConfigs = {
 function getChromiumGnArgs() {
   const targetOs = config.targetOS
   const targetArch = config.targetArch
+  /** @type {Record<string, any>} */
   const args = {
     target_cpu: targetArch,
     target_os: targetOs,
@@ -146,7 +148,7 @@ function getChromiumGnArgs() {
 }
 
 function buildChromiumRelease(buildOptions = {}) {
-  if (!config.isCI && !buildOptions.force) {
+  if (!isCI && !buildOptions.force) {
     console.error(
       'Warning: the command resets all changes in src/ folder.\n'
         + 'src/brave stays untouched. Pass --force to continue.',
@@ -209,6 +211,7 @@ function buildChromiumRelease(buildOptions = {}) {
   Log.progressScope('make archive', () => {
     chromiumConfig.processArtifacts()
   })
+  return 0
 }
 
-module.exports = buildChromiumRelease
+export default buildChromiumRelease

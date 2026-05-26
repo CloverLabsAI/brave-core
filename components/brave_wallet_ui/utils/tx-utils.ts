@@ -17,7 +17,6 @@ import {
   TransactionInfo,
   ParsedSwapInfo,
 } from '../constants/types'
-import { SolanaTransactionTypes } from '../common/constants/solana'
 import {
   MAX_UINT256,
   NATIVE_EVM_ASSET_CONTRACT_ADDRESS,
@@ -50,21 +49,44 @@ import {
 } from '../common/slices/entities/network.entity'
 import { Uint128ToBigInt } from './polkadot-utils'
 
+type TxDataUnionAllUndefined = {
+  ethTxData: undefined
+  ethTxData1559: undefined
+  solanaTxData: undefined
+  filTxData: undefined
+  btcTxData: undefined
+  zecTxData: undefined
+  cardanoTxData: undefined
+  polkadotTxData: undefined
+}
+
 export type FileCoinTransactionInfo = TransactionInfo & {
-  txDataUnion: {
+  txDataUnion: Omit<TxDataUnionAllUndefined, 'filTxData'> & {
     filTxData: BraveWallet.FilTxData
-    ethTxData1559: undefined
-    ethTxData: undefined
-    solanaTxData: undefined
   }
 }
 
 export type SolanaTransactionInfo = TransactionInfo & {
-  txDataUnion: {
+  txDataUnion: Omit<TxDataUnionAllUndefined, 'solanaTxData'> & {
     solanaTxData: BraveWallet.SolanaTxData
-    ethTxData1559: undefined
-    ethTxData: undefined
-    filTxData: undefined
+  }
+}
+
+export type BitcoinTransactionInfo = TransactionInfo & {
+  txDataUnion: Omit<TxDataUnionAllUndefined, 'btcTxData'> & {
+    btcTxData: BraveWallet.BtcTxData
+  }
+}
+
+export type ZCashTransactionInfo = TransactionInfo & {
+  txDataUnion: Omit<TxDataUnionAllUndefined, 'zecTxData'> & {
+    zecTxData: BraveWallet.ZecTxData
+  }
+}
+
+export type CardanoTransactionInfo = TransactionInfo & {
+  txDataUnion: Omit<TxDataUnionAllUndefined, 'cardanoTxData'> & {
+    cardanoTxData: BraveWallet.CardanoTxData
   }
 }
 
@@ -204,40 +226,62 @@ export function isSolanaTransaction(
   if (!tx) {
     return false
   }
-  const {
-    txType,
-    txDataUnion: { solanaTxData },
-  } = tx
-  return (
-    SolanaTransactionTypes.includes(txType)
-    || (txType === BraveWallet.TransactionType.Other
-      && solanaTxData !== undefined)
-  )
+  return tx.txDataUnion.solanaTxData !== undefined
 }
 
 export function isBitcoinTransaction(
   tx?: Pick<TransactionInfo, 'txDataUnion'>,
-) {
+): tx is BitcoinTransactionInfo {
   if (!tx) {
     return false
   }
   return tx.txDataUnion.btcTxData !== undefined
 }
 
-export function isZCashTransaction(tx?: Pick<TransactionInfo, 'txDataUnion'>) {
+export function isZCashTransaction(
+  tx?: Pick<TransactionInfo, 'txDataUnion'>,
+): tx is ZCashTransactionInfo {
   if (!tx) {
     return false
   }
   return tx.txDataUnion.zecTxData !== undefined
 }
 
+export function transactionUsesShieldedPool(
+  tx?: Pick<TransactionInfo, 'txDataUnion'>,
+): boolean {
+  return tx?.txDataUnion.zecTxData?.useShieldedPool ?? false
+}
+
 export function isCardanoTransaction(
   tx?: Pick<TransactionInfo, 'txDataUnion'>,
-) {
+): tx is CardanoTransactionInfo {
   if (!tx) {
     return false
   }
   return tx.txDataUnion.cardanoTxData !== undefined
+}
+
+export function isCardanoSendLovelaceTransaction(
+  tx: TransactionInfo,
+): tx is CardanoTransactionInfo {
+  return (
+    isCardanoTransaction(tx)
+    && tx.txType === BraveWallet.TransactionType.CardanoSendLovelace
+  )
+}
+
+export function isCardanoSendTokenTransaction(
+  tx: TransactionInfo,
+): tx is CardanoTransactionInfo & {
+  txDataUnion: {
+    cardanoTxData: { sendingToken: BraveWallet.CardanoTxTokenValue }
+  }
+} {
+  return (
+    isCardanoTransaction(tx)
+    && tx.txType === BraveWallet.TransactionType.CardanoSendToken
+  )
 }
 
 export function isEthereumTransaction(
@@ -369,7 +413,7 @@ export const getTransactionToAddress = (
   }
 
   if (isCardanoTransaction(tx)) {
-    return tx.txDataUnion.cardanoTxData?.to ?? ''
+    return tx.txDataUnion.cardanoTxData.to
   }
 
   if (isPolkadotTransaction(tx)) {
@@ -377,6 +421,36 @@ export const getTransactionToAddress = (
   }
 
   assertNotReached('Unknown transaction type')
+}
+
+/**
+ * Extracts the memo from a transaction if available.
+ * Currently only ZCash shielded transactions support memos.
+ *
+ * @param tx - The transaction to extract memo from
+ * @returns The memo as a string, or empty string if not available
+ */
+export const getTransactionMemo = (
+  tx?: TransactionInfo | SerializableTransactionInfo,
+): string => {
+  if (!tx) {
+    return ''
+  }
+
+  // ZCash shielded transactions have a memo field (byte array)
+  // Orchard memos may have trailing zeros that need to be trimmed
+  if (isZCashTransaction(tx) && tx.txDataUnion.zecTxData?.memo) {
+    try {
+      const memoBytes = new Uint8Array(tx.txDataUnion.zecTxData.memo)
+      const end = memoBytes.indexOf(0)
+      const slice = end === -1 ? memoBytes : memoBytes.slice(0, end)
+      return new TextDecoder('utf-8').decode(slice)
+    } catch {
+      return ''
+    }
+  }
+
+  return ''
 }
 
 export function getTransactionInteractionAddress(
@@ -399,7 +473,7 @@ export function getTransactionInteractionAddress(
   }
 
   if (isCardanoTransaction(tx)) {
-    return tx.txDataUnion.cardanoTxData?.to ?? ''
+    return tx.txDataUnion.cardanoTxData.to
   }
 
   if (isEthereumTransaction(tx)) {
@@ -449,6 +523,7 @@ export const findTransactionToken = <
     || tx.txType === BraveWallet.TransactionType.SolanaDappSignTransaction
     || tx.txType === BraveWallet.TransactionType.ETHSend
     || tx.txType === BraveWallet.TransactionType.Other
+    || tx.txType === BraveWallet.TransactionType.CardanoSendLovelace
     || tx.txDataUnion.filTxData
     || tx.txDataUnion.btcTxData
     || tx.txDataUnion.zecTxData
@@ -458,8 +533,7 @@ export const findTransactionToken = <
         t.contractAddress === ''
         && t.chainId === tx.chainId
         && t.coin === tx.fromAccountId.coin
-        && t.isShielded
-          === (tx.txDataUnion.zecTxData?.useShieldedPool ?? false),
+        && t.isShielded === transactionUsesShieldedPool(tx),
     )
   }
 
@@ -467,6 +541,14 @@ export const findTransactionToken = <
   if (isSolanaSplTransaction(tx)) {
     return findTokenByContractAddress(
       tx.txDataUnion.solanaTxData.tokenAddress ?? '',
+      tokensList,
+    )
+  }
+
+  // Cardano Send Token
+  if (isCardanoSendTokenTransaction(tx)) {
+    return findTokenByContractAddress(
+      tx.txDataUnion.cardanoTxData.sendingToken.tokenIdHex,
       tokensList,
     )
   }
@@ -677,8 +759,12 @@ export function getTransactionBaseValue(tx: TransactionInfo) {
     return tx.txDataUnion.zecTxData?.amount.toString() ?? ''
   }
 
-  if (isCardanoTransaction(tx)) {
-    return tx.txDataUnion.cardanoTxData?.amount.toString() ?? ''
+  if (isCardanoSendLovelaceTransaction(tx)) {
+    return tx.txDataUnion.cardanoTxData.sendingLovelace.toString()
+  }
+
+  if (isCardanoSendTokenTransaction(tx)) {
+    return tx.txDataUnion.cardanoTxData.sendingToken.value.toString()
   }
 
   if (isPolkadotTransaction(tx)) {
@@ -779,6 +865,15 @@ export function getTransactionTransferredValue(
     return {
       wei,
       normalized: wei.divideByDecimals(token?.decimals ?? 9),
+    }
+  }
+
+  // Cardano Send Token
+  if (isCardanoSendTokenTransaction(tx)) {
+    const wei = new Amount(getTransactionBaseValue(tx))
+    return {
+      wei,
+      normalized: wei.divideByDecimals(token?.decimals ?? txNetwork.decimals),
     }
   }
 
@@ -886,11 +981,14 @@ export const getTransactionGasFee = (transaction: TransactionInfo): string => {
   }
 
   if (isCardanoTransaction(transaction)) {
-    return transaction.txDataUnion.cardanoTxData?.fee.toString() || ''
+    return transaction.txDataUnion.cardanoTxData.fee.toString()
   }
 
   if (isPolkadotTransaction(transaction)) {
-    return transaction.txDataUnion.polkadotTxData?.fee.toString() || ''
+    return (
+      Uint128ToBigInt(transaction.txDataUnion.polkadotTxData?.fee)?.toString()
+      || ''
+    )
   }
 
   const { maxFeePerGas, gasPrice } = getTransactionGas(transaction)
@@ -1233,6 +1331,16 @@ export const accountHasInsufficientFundsForTransaction = ({
 }): boolean => {
   const { txType, txArgs } = tx
 
+  // For utxo based coins we have a pending tx only when utxos and matching fee
+  // were found to construct a transaction.
+  if (
+    isBitcoinTransaction(tx)
+    || isZCashTransaction(tx)
+    || isCardanoTransaction(tx)
+  ) {
+    return false
+  }
+
   if (isSolanaDappTransaction(tx)) {
     const lamportsMovedFromInstructions = getLamportsMovedFromInstructions(
       getTypedSolanaTxInstructions(tx.txDataUnion.solanaTxData) || [],
@@ -1326,6 +1434,7 @@ export function getTransactionTransferredToken({
     || tx.txType === BraveWallet.TransactionType.ERC721TransferFrom
     || tx.txType === BraveWallet.TransactionType.ERC721SafeTransferFrom
     || isSolanaSplTransaction(tx)
+    || isCardanoSendTokenTransaction(tx)
   ) {
     return token
   }
@@ -1360,6 +1469,7 @@ export function getTransactionTokenSymbol({
     || tx.txType === BraveWallet.TransactionType.ERC721TransferFrom
     || tx.txType === BraveWallet.TransactionType.ERC721SafeTransferFrom
     || isSolanaSplTransaction(tx)
+    || isCardanoSendTokenTransaction(tx)
   ) {
     return token?.symbol || ''
   }

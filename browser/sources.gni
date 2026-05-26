@@ -8,8 +8,6 @@ import("//brave/browser/autocomplete/sources.gni")
 import("//brave/browser/brave_account/android/sources.gni")
 import("//brave/browser/brave_news/sources.gni")
 import("//brave/browser/brave_referrals/sources.gni")
-import("//brave/browser/brave_rewards/android/sources.gni")
-import("//brave/browser/brave_shields/sources.gni")
 import("//brave/browser/brave_vpn/sources.gni")
 import("//brave/browser/browsing_data/sources.gni")
 import("//brave/browser/cosmetic_filters/sources.gni")
@@ -20,7 +18,6 @@ import("//brave/browser/infobars/sources.gni")
 import("//brave/browser/misc_metrics/sources.gni")
 import("//brave/browser/net/sources.gni")
 import("//brave/browser/new_tab/sources.gni")
-import("//brave/browser/notifications/sources.gni")
 import("//brave/browser/onboarding/sources.gni")
 import("//brave/browser/perf/sources.gni")
 import("//brave/browser/permissions/sources.gni")
@@ -40,10 +37,11 @@ import("//brave/build/config.gni")
 import("//brave/chromium_src/chrome/browser/prefs/sources.gni")
 import("//brave/chromium_src/chrome/browser/sources.gni")
 import("//brave/components/ai_chat/core/common/buildflags/buildflags.gni")
-import("//brave/components/ai_rewriter/common/buildflags/buildflags.gni")
 import("//brave/components/brave_ads/buildflags/buildflags.gni")
 import("//brave/components/brave_education/buildflags.gni")
 import("//brave/components/brave_news/common/buildflags/buildflags.gni")
+import("//brave/components/brave_origin/buildflags/buildflags.gni")
+import("//brave/components/brave_rewards/core/buildflags/buildflags.gni")
 import("//brave/components/brave_talk/buildflags/buildflags.gni")
 import("//brave/components/brave_vpn/common/buildflags/buildflags.gni")
 import("//brave/components/brave_wallet/common/buildflags/buildflags.gni")
@@ -58,10 +56,16 @@ import("//chrome/browser/buildflags.gni")
 import("//extensions/buildflags/buildflags.gni")
 import("//printing/buildflags/buildflags.gni")
 
+if (enable_brave_rewards) {
+  import("//brave/browser/brave_rewards/android/sources.gni")
+}
+
 if (enable_brave_wallet) {
   import("//brave/browser/brave_wallet/android/sources.gni")
   import("//brave/browser/brave_wallet/notifications/sources.gni")
 }
+
+brave_chrome_browser_allow_circular_includes_from = []
 
 brave_chrome_browser_visibility = [
   "//brave/browser/*",
@@ -132,35 +136,47 @@ if (enable_brave_wallet) {
 brave_chrome_browser_deps = [
   "//base",
   "//brave/app:brave_generated_resources_grit",
+  "//brave/browser:brave_global_features_impl",
   "//brave/browser:browser_process",
   "//brave/browser:sparkle_buildflags",
+  "//brave/browser/bluetooth",
   "//brave/browser/brave_account",
   "//brave/components/brave_fingerprinting/mojom:mojom",
   "//brave/browser/brave_adaptive_captcha",
   "//brave/browser/brave_adaptive_captcha:impl",
   "//brave/browser/brave_origin",
-  "//brave/browser/brave_rewards:brave_rewards_impl",
-  "//brave/browser/brave_rewards:util",
   "//brave/browser/brave_search",
+  "//brave/browser/brave_shields",
+  "//brave/browser/brave_shields:brave_shields_impl",
   "//brave/browser/brave_stats",
   "//brave/browser/component_updater",
   "//brave/browser/email_aliases",
+  "//brave/browser/local_ai",
   "//brave/browser/metrics/buildflags",
   "//brave/browser/misc_metrics",
   "//brave/browser/misc_metrics:misc_metrics_impl",
+  "//brave/browser/net:features",
   "//brave/browser/ntp_background",
   "//brave/browser/policy/handlers",
+  "//brave/browser/serp_metrics",
+  "//brave/browser/serp_metrics:impl",
   "//brave/browser/skus",
   "//brave/browser/sync",
   "//brave/browser/themes",
   "//brave/browser/ui",
   "//brave/browser/ui/webui/brave_account",
   "//brave/browser/ui/webui/email_aliases",
+  "//brave/browser/ui/webui/local_ai",
   "//brave/browser/updater:buildflags",
   "//brave/common",
   "//brave/common:mojo_bindings",
   "//brave/components/ai_chat/core/common/buildflags",
-  "//brave/components/ai_rewriter/common/buildflags",
+
+  # Unconditional for gn check as the NTP WebUI always needs the mojom
+  # types since typescript cannnot yet conditionally import during typecheck.
+  # TODO(https://github.com/brave/brave-browser/issues/53190): remove when
+  # fixed.
+  "//brave/components/ai_chat/core/common/mojom",
   "//brave/components/body_sniffer",
   "//brave/components/brave_account",
   "//brave/components/brave_account:features",
@@ -217,6 +233,9 @@ brave_chrome_browser_deps = [
   "//brave/components/ipfs",
   "//brave/components/ipfs/buildflags",
   "//brave/components/l10n/common",
+  "//brave/components/local_ai/core",
+  "//brave/components/local_ai/core:features",
+  "//brave/components/local_ai/core:mojom",
   "//brave/components/ntp_background_images/browser",
   "//brave/components/ntp_background_images/buildflags",
   "//brave/components/ntp_background_images/common",
@@ -228,6 +247,9 @@ brave_chrome_browser_deps = [
   "//brave/components/privacy_sandbox",
   "//brave/components/request_otr/common/buildflags",
   "//brave/components/resources",
+  "//brave/components/serp_metrics",
+  "//brave/components/serp_metrics:features",
+  "//brave/components/serp_metrics:prefs",
   "//brave/components/skus/browser",
   "//brave/components/skus/common",
   "//brave/components/skus/common:mojom",
@@ -291,6 +313,13 @@ brave_chrome_browser_deps = [
   "//url",
 ]
 
+if (enable_brave_rewards) {
+  brave_chrome_browser_deps += [
+    "//brave/browser/brave_rewards:brave_rewards_impl",
+    "//brave/browser/brave_rewards:util",
+  ]
+}
+
 if (enable_psst) {
   brave_chrome_browser_deps += [
     "//brave/browser/psst",
@@ -306,6 +335,7 @@ if (enable_brave_ads) {
     "//brave/browser/brave_ads:impl",
     "//brave/browser/brave_ads/creatives/search_result_ad",
     "//brave/browser/brave_ads/tabs",
+    "//brave/browser/notifications",
     "//brave/browser/ui/webui/ads_internals",
     "//brave/components/brave_ads/browser",
     "//brave/components/brave_ads/core",
@@ -325,6 +355,25 @@ if (enable_brave_wallet) {
     "//brave/components/decentralized_dns/content",
     "//brave/components/decentralized_dns/core",
   ]
+}
+
+if (!is_android) {
+  # BraveHidDelegate inherits from ChromeHidDelegate, and referenced by
+  # BraveContentBrowserClient, so we put into the same source_set.
+  brave_chrome_browser_sources += [
+    "//brave/browser/hid/brave_hid_delegate.cc",
+    "//brave/browser/hid/brave_hid_delegate.h",
+  ]
+  brave_chrome_browser_deps += [
+    "//brave/components/brave_wallet/common/buildflags",
+    "//chrome/browser/hid",
+    "//chrome/browser/ui/hid",
+    "//services/device/public/cpp/hid",
+  ]
+  if (enable_brave_wallet) {
+    brave_chrome_browser_deps +=
+        [ "//brave/browser/brave_wallet:brave_wallet_hid_chooser" ]
+  }
 }
 
 if (!is_android) {
@@ -370,6 +419,13 @@ if (enable_brave_education) {
   brave_chrome_browser_deps += [ "//brave/browser/ui/webui/brave_education" ]
 }
 
+if (is_brave_origin_branded) {
+  brave_chrome_browser_deps += [
+    "//brave/browser/ui/views/brave_origin",
+    "//brave/browser/ui/webui/brave_origin_startup",
+  ]
+}
+
 if (enable_ai_chat) {
   brave_chrome_browser_deps += [
     "//brave/browser/ai_chat",
@@ -378,7 +434,6 @@ if (enable_ai_chat) {
     "//brave/components/ai_chat/content/browser",
     "//brave/components/ai_chat/core/browser",
     "//brave/components/ai_chat/core/common",
-    "//brave/components/ai_chat/core/common/mojom",
   ]
 
   if (!is_android) {
@@ -392,7 +447,12 @@ if (enable_ai_chat && is_android) {
 }
 
 if (enable_containers) {
+  brave_chrome_browser_allow_circular_includes_from +=
+      [ "//brave/browser/containers" ]
   brave_chrome_browser_deps += [
+    "//brave/browser/containers",
+    "//brave/components/containers/content/browser",
+    "//brave/components/containers/content/browser:tab_restore",
     "//brave/components/containers/core/browser",
     "//brave/components/containers/core/common",
   ]
@@ -465,10 +525,6 @@ if (enable_request_otr) {
   brave_chrome_browser_deps += [ "//brave/components/request_otr/common" ]
 }
 
-if (enable_ai_rewriter) {
-  brave_chrome_browser_deps += [ "//brave/components/ai_rewriter/common" ]
-}
-
 if (enable_web_discovery_native) {
   brave_chrome_browser_deps += [
     "//brave/browser/web_discovery",
@@ -500,9 +556,13 @@ if (is_android) {
   ]
 
   brave_chrome_browser_sources += brave_browser_brave_account_android_sources
-  brave_chrome_browser_sources += brave_browser_brave_rewards_android_sources
   brave_chrome_browser_sources += brave_browser_misc_metrics_android_sources
   brave_chrome_browser_deps += brave_browser_brave_account_android_deps
+
+  if (enable_brave_rewards) {
+    brave_chrome_browser_sources += brave_browser_brave_rewards_android_sources
+    brave_chrome_browser_deps += brave_browser_brave_rewards_android_deps
+  }
 
   if (enable_brave_wallet) {
     brave_chrome_browser_sources += brave_browser_brave_wallet_android_sources
@@ -649,7 +709,6 @@ brave_chrome_browser_sources += brave_browser_profiles_sources
 brave_chrome_browser_sources += brave_browser_autocomplete_sources
 brave_chrome_browser_sources += brave_browser_brave_news_sources
 brave_chrome_browser_sources += brave_browser_brave_referrals_sources
-brave_chrome_browser_sources += brave_browser_brave_shields_sources
 brave_chrome_browser_sources += brave_browser_brave_vpn_sources
 brave_chrome_browser_sources += brave_browser_browsing_data_sources
 brave_chrome_browser_sources += brave_browser_cosmetic_filters_sources
@@ -660,7 +719,6 @@ brave_chrome_browser_sources += brave_browser_infobar_sources
 brave_chrome_browser_sources += brave_browser_misc_metrics_sources
 brave_chrome_browser_sources += brave_browser_net_sources
 brave_chrome_browser_sources += brave_browser_new_tab_sources
-brave_chrome_browser_sources += brave_browser_notifications_sources
 brave_chrome_browser_sources += brave_browser_perf_sources
 brave_chrome_browser_sources += brave_browser_permissions_sources
 brave_chrome_browser_sources += brave_browser_playlist_sources
@@ -676,7 +734,6 @@ brave_chrome_browser_sources += brave_browser_webcompat_reporter_sources
 brave_chrome_browser_deps += brave_browser_autocomplete_deps
 brave_chrome_browser_deps += brave_browser_brave_news_deps
 brave_chrome_browser_deps += brave_browser_brave_referrals_deps
-brave_chrome_browser_deps += brave_browser_brave_shields_deps
 brave_chrome_browser_deps += brave_browser_brave_vpn_deps
 brave_chrome_browser_deps += brave_browser_browsing_data_deps
 brave_chrome_browser_deps += brave_browser_cosmetic_filters_deps
@@ -687,7 +744,6 @@ brave_chrome_browser_deps += brave_browser_infobar_deps
 brave_chrome_browser_deps += brave_browser_misc_metrics_deps
 brave_chrome_browser_deps += brave_browser_net_deps
 brave_chrome_browser_deps += brave_browser_new_tab_deps
-brave_chrome_browser_deps += brave_browser_notifications_deps
 brave_chrome_browser_deps += brave_browser_perf_deps
 brave_chrome_browser_deps += brave_browser_permissions_deps
 brave_chrome_browser_deps += brave_browser_playlist_deps
@@ -712,10 +768,13 @@ brave_chrome_browser_ui_allow_circular_includes_from = [ "//brave/browser/ui" ]
 brave_chrome_browser_ui_allow_circular_includes_from +=
     brave_ui_allow_circular_includes_from
 
-brave_chrome_browser_allow_circular_includes_from = [
+brave_chrome_browser_allow_circular_includes_from += [
+  "//brave/browser/brave_shields:brave_shields_impl",
   "//brave/browser/ui",
   "//brave/browser/brave_stats",
   "//brave/browser/ntp_background",
+  "//brave/browser/serp_metrics:impl",
+  "//brave/browser:brave_global_features_impl",
 ]
 
 if (enable_ai_chat) {
@@ -741,17 +800,13 @@ if (enable_brave_ads) {
 
 if (toolkit_views) {
   brave_chrome_browser_deps += [
-    "//brave/browser/ui/sidebar",
+    "//brave/browser/ui/sidebar:sidebar_impl",
     "//brave/browser/ui/views/location_bar",
     "//brave/browser/ui/views/page_info",
   ]
   brave_chrome_browser_allow_circular_includes_from += [
-    "//brave/browser/ui/sidebar",
+    "//brave/browser/ui/sidebar:sidebar_impl",
     "//brave/browser/ui/views/location_bar",
-
-    # TODO(https://github.com/brave/brave-browser/issues/50542): Remove this
-    # once a target has been created for `//brave/browser/brave_shields`.
-    "//brave/browser/ui/views/page_info",
   ]
 }
 
@@ -792,6 +847,7 @@ if (is_android) {
     "//brave/browser/android:android_browser_process",
     "//brave/browser/android:tabs_impl",
     "//brave/browser/android/preferences",
+    "//brave/browser/notifications",
   ]
 }
 

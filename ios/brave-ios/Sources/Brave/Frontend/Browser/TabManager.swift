@@ -56,7 +56,7 @@ class TabManager: NSObject {
   weak var stateDelegate: TabManagerStateDelegate?
 
   /// Internal url to access the new tab page.
-  static let ntpInteralURL = URL(string: "\(InternalURL.baseUrl)/\(AboutHomeHandler.path)#panel=0")!
+  static let ntpInteralURL = URL(string: "about://newtab")!
 
   /// When a URL is invalid and can't be restored or loaded, we display about:blank#blocked (same as on Desktop)
   static let aboutBlankBlockedURL = URL(string: "about:blank")!
@@ -90,6 +90,7 @@ class TabManager: NSObject {
   var tempTabs: [any TabState]?
   private weak var rewards: BraveRewards?
   private var braveCore: BraveProfileController?
+  private let profile: any Profile
   private weak var tabGeneratorAPI: BraveTabGeneratorAPI?
   private var domainFrc = Domain.frc()
   private let syncedTabsQueue = DispatchQueue(label: "synced-tabs-queue")
@@ -98,6 +99,7 @@ class TabManager: NSObject {
   private let historyAPI: BraveHistoryAPI?
   public let privateBrowsingManager: PrivateBrowsingManager
   private var forgetTasks: [Bool: [String: Task<Void, Error>]] = [:]
+  private let tabCreationFactory: (TabStateFactory.CreateTabParams) -> any TabState
 
   let windowId: UUID
 
@@ -105,7 +107,7 @@ class TabManager: NSObject {
   var isBrowserEmptyForCurrentMode: Bool {
     guard tabsForCurrentMode.count == 1,
       let tabURL = tabsForCurrentMode.first?.visibleURL,
-      InternalURL(tabURL)?.isAboutHomeURL == true
+      tabURL.isNewTabURL
     else {
       return false
     }
@@ -117,19 +119,22 @@ class TabManager: NSObject {
     windowId: UUID,
     rewards: BraveRewards?,
     braveCore: BraveProfileController?,
-    privateBrowsingManager: PrivateBrowsingManager
+    profile: any Profile,
+    privateBrowsingManager: PrivateBrowsingManager,
+    tabCreationFactory: @escaping (TabStateFactory.CreateTabParams) -> any TabState
   ) {
     assert(Thread.isMainThread)
 
     self.windowId = windowId
     self.rewards = rewards
     self.braveCore = braveCore
+    self.profile = profile
     self.tabGeneratorAPI = braveCore?.tabGeneratorAPI
     self.historyAPI = braveCore?.historyAPI
     self.privateBrowsingManager = privateBrowsingManager
+    self.tabCreationFactory = tabCreationFactory
     super.init()
 
-    Preferences.General.nightModeEnabled.observe(from: self)
     Preferences.Chromium.syncOpenTabsEnabled.observe(from: self)
 
     domainFrc.delegate = self
@@ -198,7 +203,7 @@ class TabManager: NSObject {
   var openedWebsitesCount: Int {
     tabsForCurrentMode.filter {
       if let url = $0.visibleURL {
-        return url.isWebPage() && !(InternalURL(url)?.isAboutHomeURL ?? false)
+        return url.isWebPage()
       }
       return false
     }.count
@@ -267,43 +272,22 @@ class TabManager: NSObject {
   private(set) static var privateConfiguration = getNewConfiguration(isPrivate: true)
 
   private class func getNewConfiguration(isPrivate: Bool = false) -> WKWebViewConfiguration {
+    assert(
+      !FeatureList.kUseProfileWebViewConfiguration.enabled,
+      "Creating a web view configuration with this flag enabled is not valid"
+    )
     let configuration: WKWebViewConfiguration = .init()
-    configuration.processPool = WKProcessPool()
-    configuration.preferences.javaScriptCanOpenWindowsAutomatically = true
     configuration.websiteDataStore = isPrivate ? sharedNonPersistentStore() : .default()
-
-    // Dev note: Do NOT add `.link` to the list, it breaks interstitial pages
-    // and pages that don't want the URL highlighted!
-    configuration.dataDetectorTypes = [.phoneNumber]
     configuration.userContentController = WKUserContentController()
-    configuration.preferences.isFraudulentWebsiteWarningEnabled =
-      Preferences.Shields.googleSafeBrowsing.value
-    configuration.allowsInlineMediaPlayback = true
-    // Enables Zoom in website by ignoring their javascript based viewport Scale limits.
-    configuration.ignoresViewportScaleLimits = true
-    configuration.upgradeKnownHostsToHTTPS = Preferences.Shields.httpsUpgradeLevel.isEnabled
-
-    if FeatureList.kWebKitAdvancedPrivacyProtections.enabled {
-      let senderKeyPath = String(format: "_setNetw%@rityEnabled:", "orkConnectionInteg")
-      let selector = Selector(senderKeyPath)
-      if configuration.defaultWebpagePreferences.responds(to: selector) {
-        configuration.defaultWebpagePreferences.perform(selector, with: true)
-      }
-    }
-
-    if configuration.urlSchemeHandler(forURLScheme: InternalURL.scheme) == nil {
-      configuration.setURLSchemeHandler(
-        InternalSchemeHandler(),
-        forURLScheme: InternalURL.scheme
-      )
-    }
-
+    configuration.prepareBraveConfiguration()
     return configuration
   }
 
   func reset() {
-    Self.defaultConfiguration = Self.getNewConfiguration(isPrivate: false)
-    Self.privateConfiguration = Self.getNewConfiguration(isPrivate: true)
+    if !FeatureList.kUseProfileWebViewConfiguration.enabled {
+      Self.defaultConfiguration = Self.getNewConfiguration(isPrivate: false)
+      Self.privateConfiguration = Self.getNewConfiguration(isPrivate: true)
+    }
     for tab in allTabs {
       if tab.isWebViewCreated {
         tab.deleteWebView()
@@ -364,7 +348,6 @@ class TabManager: NSObject {
 
     if let t = selectedTab, !t.isWebViewCreated, t.opener == nil {
       selectedTab?.createWebView()
-      restoreTab(t)
     }
 
     guard tab === selectedTab else {
@@ -379,16 +362,13 @@ class TabManager: NSObject {
     }
 
     UIImpactFeedbackGenerator(style: .light).vibrate()
-    if tab?.opener == nil {
-      selectedTab?.createWebView()
-    }
 
     if let selectedTab = selectedTab,
-      selectedTab.visibleURL == nil
+      selectedTab.lastCommittedURL == nil,
+      !selectedTab.isLoading
     {
-      selectedTab.setVirtualURL(selectedTab.visibleURL ?? TabManager.ntpInteralURL)
+      // Realize a zombie tab with restoration data
       restoreTab(selectedTab)
-      Logger.module.error("Force Restored a Zombie (any TabState)?!")
     }
 
     delegates.forEach { $0.get()?.tabManager(self, didSelectedTabChange: tab, previous: previous) }
@@ -409,26 +389,18 @@ class TabManager: NSObject {
     else { return }
 
     if !privateBrowsingManager.isPrivateBrowsing {
-      if previousTab.displayFavicon == nil {
+      if previousTab.faviconTabHelper?.displayFavicon == nil {
         adsRewardsLog.warning("No favicon found in tab to report to rewards panel")
       }
-      rewards?.maybeNotifyTabDidChange(
-        tab: previousTab,
-        isSelected: false
-      )
       rewards?.reportTabUpdated(
         tab: previousTab,
         isSelected: false,
         isPrivate: previousTab.isPrivate
       )
 
-      if newSelectedTab.displayFavicon == nil && !newTabUrl.isLocal {
+      if newSelectedTab.faviconTabHelper?.displayFavicon == nil && !newTabUrl.isLocal {
         adsRewardsLog.warning("No favicon found in tab to report to rewards panel")
       }
-      rewards?.maybeNotifyTabDidChange(
-        tab: newSelectedTab,
-        isSelected: true
-      )
       rewards?.reportTabUpdated(
         tab: newSelectedTab,
         isSelected: true,
@@ -458,10 +430,14 @@ class TabManager: NSObject {
   @MainActor func addPopupForParentTab(
     _ parentTab: any TabState
   ) -> any TabState {
-    let popup = TabStateFactory.create(
-      with: .init(
-        initialConfiguration: parentTab.configuration,
-        braveCore: braveCore
+    var wkConfiguration: WKWebViewConfiguration?
+    if !FeatureList.kUseProfileWebViewConfiguration.enabled {
+      wkConfiguration = parentTab.configuration
+    }
+    let popup = tabCreationFactory(
+      .init(
+        profile: parentTab.profile,
+        initialConfiguration: wkConfiguration
       )
     )
     configureTab(
@@ -508,12 +484,6 @@ class TabManager: NSObject {
       )
       tab.lastTitle = url.absoluteDisplayString
       tab.setVirtualURL(url)
-      tab.favicon = Favicon.default
-      Task { @MainActor in
-        if let icon = await FaviconFetcher.getIconFromCache(for: url) {
-          tab.favicon = icon
-        }
-      }
       tabs.append(tab)
     }
 
@@ -537,13 +507,16 @@ class TabManager: NSObject {
     assert(Thread.isMainThread)
 
     let tabId = id ?? UUID()
-    let initialConfiguration = isPrivate ? Self.privateConfiguration : Self.defaultConfiguration
-    let tab = TabStateFactory.create(
-      with: .init(
+    var initialConfiguration: WKWebViewConfiguration?
+    if !FeatureList.kUseProfileWebViewConfiguration.enabled {
+      initialConfiguration = isPrivate ? Self.privateConfiguration : Self.defaultConfiguration
+    }
+    let tab = tabCreationFactory(
+      .init(
         id: tabId,
+        profile: isPrivate ? profile.offTheRecordProfile : profile,
         initialConfiguration: initialConfiguration,
-        lastActiveTime: lastActiveTime,
-        braveCore: braveCore
+        lastActiveTime: lastActiveTime
       )
     )
     configureTab(
@@ -700,47 +673,24 @@ class TabManager: NSObject {
 
     if !zombie {
       tab.createWebView()
-    }
 
-    if let request = request {
-      tab.loadRequest(request)
-      tab.setVirtualURL(request.url)
-    } else if !isPopup {
-      tab.loadRequest(PrivilegedRequest(url: TabManager.ntpInteralURL) as URLRequest)
-      tab.setVirtualURL(TabManager.ntpInteralURL)
+      if let request = request {
+        tab.loadRequest(request)
+      } else if !isPopup {
+        tab.loadRequest(PrivilegedRequest(url: TabManager.ntpInteralURL) as URLRequest)
+      }
+    } else {
+      // Set virtual urls for unrealized/zombie tabs
+      if let request = request {
+        tab.setVirtualURL(request.url)
+      } else if !isPopup {
+        tab.setVirtualURL(TabManager.ntpInteralURL)
+      }
     }
 
     // Ignore on restore.
     if flushToDisk && !zombie && isPersistentTab {
       saveTab(tab, saveOrder: true)
-    }
-
-    // When the state of the page changes, we debounce a call to save the screenshots and tab information
-    // This fixes pages that have dynamic URL via changing history
-    // as well as regular pages that load DOM normally.
-    tab.onPageReadyStateChanged = { [weak tab] state in
-      guard let tab = tab else { return }
-      tab.webStateDebounceTimer?.invalidate()
-      tab.webStateDebounceTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) {
-        [weak self, weak tab] _ in
-        guard let self = self, let tab = tab else { return }
-        tab.webStateDebounceTimer?.invalidate()
-
-        if state == .complete || state == .loaded || state == .pushstate || state == .popstate
-          || state == .replacestate
-        {
-
-          if Preferences.Privacy.privateBrowsingOnly.value
-            || (tab.isPrivate && !Preferences.Privacy.persistentPrivateBrowsing.value)
-          {
-            return
-          }
-
-          tab.browserData?.resetExternalAlertProperties()
-          self.preserveScreenshot(for: tab)
-          self.saveTab(tab)
-        }
-      }
     }
   }
 
@@ -789,8 +739,7 @@ class TabManager: NSObject {
     Task { @MainActor in
       var shredOnAppExitURLs: [URL] = []
       if FeatureList.kBraveShieldsContentSettings.enabled {
-        guard let profile = self.braveCore?.profile,
-          let braveShieldsSettings = BraveShieldsSettingsServiceFactory.get(profile: profile)
+        guard let braveShieldsSettings = BraveShieldsSettingsServiceFactory.get(profile: profile)
         else { return }
         // iterate over WKWebsiteDataStore data records
         let dataRecords = await WKWebsiteDataStore.default().dataRecords(
@@ -886,10 +835,22 @@ class TabManager: NSObject {
     }
   }
 
+  private var websiteDataStoreForCurrentMode: WKWebsiteDataStore {
+    let isPrivateBrowsing = privateBrowsingManager.isPrivateBrowsing
+    if FeatureList.kUseProfileWebViewConfiguration.enabled, let braveCore {
+      let configuration =
+        isPrivateBrowsing
+        ? braveCore.defaultWebViewConfiguration : braveCore.nonPersistentWebViewConfiguration
+      return configuration.websiteDataStore
+    } else {
+      let configuration = isPrivateBrowsing ? Self.privateConfiguration : Self.defaultConfiguration
+      return configuration.websiteDataStore
+    }
+  }
+
   /// Shreds data for a set of tabs and returns tabs that are to be shredded/removed.
   @MainActor func shredDataForTabs(_ tabs: [any TabState]) -> Set<TabState.ID> {
     let isPrivateBrowsing = privateBrowsingManager.isPrivateBrowsing
-    let configuration = isPrivateBrowsing ? Self.privateConfiguration : Self.defaultConfiguration
     let urlsToShred = Set(tabs.compactMap(\.visibleURL?.urlToShred))
     let tabsToRemove = self.tabs(isPrivate: isPrivateBrowsing).filter({
       if let url = $0.visibleURL?.urlToShred {
@@ -899,18 +860,17 @@ class TabManager: NSObject {
     })
     Task {
       removeTabs(tabsToRemove)
-      await forgetData(for: Array(urlsToShred), dataStore: configuration.websiteDataStore)
+      await forgetData(for: Array(urlsToShred), dataStore: websiteDataStoreForCurrentMode)
     }
     return Set(tabsToRemove.map(\.id))
   }
 
   @MainActor func shredAllTabsForCurrentMode() {
     let isPrivateBrowsing = privateBrowsingManager.isPrivateBrowsing
-    let configuration = isPrivateBrowsing ? Self.privateConfiguration : Self.defaultConfiguration
     let urlsToShred = Set(tabs(isPrivate: isPrivateBrowsing).compactMap(\.visibleURL))
     Task {
       removeAllTabsForPrivateMode(isPrivate: isPrivateBrowsing)
-      await forgetData(for: Array(urlsToShred), dataStore: configuration.websiteDataStore)
+      await forgetData(for: Array(urlsToShred), dataStore: websiteDataStoreForCurrentMode)
     }
   }
 
@@ -987,7 +947,7 @@ class TabManager: NSObject {
   }
 
   @MainActor private func forgetData(for url: URL, in tab: (any TabState)?) async {
-    await forgetData(for: [url], dataStore: tab?.configuration.websiteDataStore)
+    await forgetData(for: [url], dataStore: tab?.configuration?.websiteDataStore)
 
     ContentBlockerManager.log.debug("Cleared website data for `\(url.baseDomain ?? "")`")
     if let baseDomain = url.baseDomain, let tab {
@@ -1071,12 +1031,13 @@ class TabManager: NSObject {
       if tabsCountForMode(isPrivate: true) <= 1 {
         removeAllBrowsingDataForTab(tab)
 
-        // After clearing the very last webview from the storage, give it a blank persistent store
-        // This is the only way to guarantee that the last reference to the shared persistent store
-        // reaches zero and destroys all its data.
-
-        Self.nonPersistentDataStore = nil
-        Self.privateConfiguration = Self.getNewConfiguration(isPrivate: true)
+        if !FeatureList.kUseProfileWebViewConfiguration.enabled {
+          // After clearing the very last webview from the storage, give it a blank persistent store
+          // This is the only way to guarantee that the last reference to the shared persistent store
+          // reaches zero and destroys all its data.
+          Self.nonPersistentDataStore = nil
+          Self.privateConfiguration = Self.getNewConfiguration(isPrivate: true)
+        }
       }
     }
 
@@ -1186,8 +1147,12 @@ class TabManager: NSObject {
     _ tab: some TabState,
     completionHandler: @escaping () -> Void = {}
   ) {
+    guard let configuration = tab.configuration else {
+      completionHandler()
+      return
+    }
     let dataTypes = WKWebsiteDataStore.allWebsiteDataTypes()
-    tab.configuration.websiteDataStore.removeData(
+    configuration.websiteDataStore.removeData(
       ofTypes: dataTypes,
       modifiedSince: Date.distantPast,
       completionHandler: completionHandler
@@ -1366,8 +1331,7 @@ class TabManager: NSObject {
         shouldShredTab = shouldShredDomain
       } else {
         if FeatureList.kBraveShieldsContentSettings.enabled {
-          guard let braveCore = self.braveCore else { return false }
-          let profile = isPrivate ? braveCore.profile.offTheRecordProfile : braveCore.profile
+          let profile = isPrivate ? self.profile.offTheRecordProfile : self.profile
           let braveShieldsSettings = BraveShieldsSettingsServiceFactory.get(profile: profile)
           shouldShredTab =
             braveShieldsSettings?.autoShredMode(
@@ -1415,20 +1379,14 @@ class TabManager: NSObject {
         )
 
         tab.lastTitle = savedTab.title
-        tab.favicon = Favicon.default
         tab.browserData?.setScreenshot(savedTab.screenshot)
 
         Task { @MainActor in
-          tab.favicon = try await FaviconFetcher.loadIcon(
-            url: tabURL,
-            kind: .smallIcon,
-            persistent: !tab.isPrivate
-          )
           tab.browserData?.setScreenshot(savedTab.screenshot)
         }
 
-        // Do not select the private tab since we always restore to regular mode!
-        if savedTab.isSelected && !savedTab.isPrivate {
+        // Select the tab if it was selected and matches current mode (private vs regular)
+        if savedTab.isSelected && savedTab.isPrivate == privateBrowsingManager.isPrivateBrowsing {
           tabToSelect = tab
         }
       } else {
@@ -1441,11 +1399,10 @@ class TabManager: NSObject {
         )
 
         tab.lastTitle = savedTab.title
-        tab.favicon = Favicon.default
         tab.browserData?.setScreenshot(savedTab.screenshot)
 
-        // Do not select the private tab since we always restore to regular mode!
-        if savedTab.isSelected && !savedTab.isPrivate {
+        // Select the tab if it was selected and matches current mode (private vs regular)
+        if savedTab.isSelected && savedTab.isPrivate == privateBrowsingManager.isPrivateBrowsing {
           tabToSelect = tab
         }
       }
@@ -1557,22 +1514,27 @@ class TabManager: NSObject {
     }
   }
 
-  /// Function to add all the tabs to recently closed before the list is removed entirely by Close All Tabs
-  func addAllTabsToRecentlyClosed(isActiveTabIncluded: Bool) {
+  /// Adds a list of tabs that are to be closed to the recently closed list
+  func addTabsToRecentlyClosed(_ tabs: [any TabState]) {
     var allRecentlyClosed: [SavedRecentlyClosed] = []
 
-    for tab in tabs(isPrivate: false) {
-      // Do not include the active tab for case isActiveTabIncluded is false
-      if !isActiveTabIncluded, let currentTab = selectedTab, currentTab.id == tab.id {
-        continue
-      }
-
+    for tab in tabs {
       if let savedItem = createRecentlyClosedFromActiveTab(tab) {
         allRecentlyClosed.append(savedItem)
       }
     }
 
     RecentlyClosed.insertAll(allRecentlyClosed)
+  }
+
+  /// Function to add all the tabs to recently closed before the list is removed entirely by
+  /// Close All Tabs
+  func addAllTabsToRecentlyClosed(isActiveTabIncluded: Bool) {
+    var tabs = tabs(isPrivate: false)
+    if let selectedTab, !selectedTab.isPrivate, !isActiveTabIncluded {
+      tabs.removeAll(where: { $0.id == selectedTab.id })
+    }
+    addTabsToRecentlyClosed(tabs)
   }
 
   /// Function invoked when a Recently Closed item is selected
@@ -1586,7 +1548,7 @@ class TabManager: NSObject {
     // The NTP shold be removed if last recently close opened using empty tab
     if let currentTab = selectedTab,
       let currentTabURL = currentTab.visibleURL,
-      InternalURL(currentTabURL)?.isAboutHomeURL == true
+      currentTabURL.isNewTabURL
     {
       removeTab(currentTab)
     }
@@ -1619,18 +1581,15 @@ class TabManager: NSObject {
       return nil
     }
 
-    guard var recentlyClosedURL = tab.visibleURL ?? SessionTab.from(tabId: tab.id)?.url else {
+    guard var recentlyClosedURL = tab.visibleURL ?? SessionTab.from(tabId: tab.id)?.url,
+      !recentlyClosedURL.isNewTabURL
+    else {
       return nil
     }
 
     if let internalURL = InternalURL(recentlyClosedURL) {
-      // NTP should not be passed as a Recently Closed item
-      if internalURL.isAboutHomeURL {
-        return nil
-      }
-
       // Convert any internal URLs to their real URL for the Recently Closed item
-      if let actualURL = internalURL.extractedUrlParam ?? internalURL.originalURLFromErrorPage {
+      if let actualURL = internalURL.extractedUrlParam {
         recentlyClosedURL = actualURL
       }
     }
@@ -1655,11 +1614,6 @@ extension TabManagerDelegate {
 extension TabManager: PreferencesObserver {
   func preferencesDidChange(for key: String) {
     switch key {
-    case Preferences.General.nightModeEnabled.key:
-      DarkReaderScriptHandler.set(
-        tabManager: self,
-        enabled: Preferences.General.nightModeEnabled.value
-      )
     case Preferences.Chromium.syncOpenTabsEnabled.key:
       if Preferences.Chromium.syncOpenTabsEnabled.value {
         addRegularTabsToSyncChain()
@@ -1709,6 +1663,30 @@ extension TabManager: NSFetchedResultsControllerDelegate {
           tab.browserData?.accountsChangedEvent(accounts: Array(allowedEthAccountAddresses))
         }
       }
+    }
+  }
+}
+
+extension WKWebViewConfiguration {
+  /// Updates a WebKit configuration with Brave's defaults and preferences that can't be done
+  /// from inside Chromium's `WKWebViewConfigurationProvider::ResetWithWebViewConfiguration`
+  func prepareBraveConfiguration() {
+    upgradeKnownHostsToHTTPS = Preferences.Shields.httpsUpgradeLevel.isEnabled
+    preferences.isFraudulentWebsiteWarningEnabled = Preferences.Shields.googleSafeBrowsing.value
+
+    if FeatureList.kWebKitAdvancedPrivacyProtections.enabled {
+      let senderKeyPath = String(format: "_setNetw%@rityEnabled:", "orkConnectionInteg")
+      let selector = Selector(senderKeyPath)
+      if defaultWebpagePreferences.responds(to: selector) {
+        defaultWebpagePreferences.perform(selector, with: true)
+      }
+    }
+
+    if urlSchemeHandler(forURLScheme: InternalURL.scheme) == nil {
+      setURLSchemeHandler(
+        InternalSchemeHandler(),
+        forURLScheme: InternalURL.scheme
+      )
     }
   }
 }

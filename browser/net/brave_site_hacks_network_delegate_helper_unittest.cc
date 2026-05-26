@@ -10,6 +10,8 @@
 #include <utility>
 #include <vector>
 
+#include "base/test/scoped_feature_list.h"
+#include "brave/browser/net/features.h"
 #include "brave/browser/net/url_context.h"
 #include "brave/components/constants/network_constants.h"
 #include "brave/components/query_filter/pref_names.h"
@@ -23,6 +25,22 @@
 
 using brave::ResponseCallback;
 
+namespace {
+
+// Pointer strategy types for parameterized testing
+struct SharedPtrStrategy {
+  template <typename T>
+  using Ptr = std::shared_ptr<T>;
+};
+
+struct WeakPtrStrategy {
+  template <typename T>
+  using Ptr = base::WeakPtr<T>;
+};
+
+}  // namespace
+
+template <typename PtrStrategy>
 class BraveSiteHacksNetworkDelegateHelperTest : public testing::Test {
  public:
   BraveSiteHacksNetworkDelegateHelperTest() {
@@ -30,22 +48,46 @@ class BraveSiteHacksNetworkDelegateHelperTest : public testing::Test {
     profile_ = builder.Build();
   }
 
+  void SetUp() override {
+    // Enable feature flag if using WeakPtrStrategy, disable if
+    // SharedPtrStrategy
+    bool enable_flag = std::is_same_v<
+        typename PtrStrategy::template Ptr<brave::BraveRequestInfo>,
+        base::WeakPtr<brave::BraveRequestInfo>>;
+    scoped_feature_list_.InitWithFeatureState(
+        features::kBraveRequestInfoUniquePtr, enable_flag);
+  }
+
   sync_preferences::TestingPrefServiceSyncable* GetPrefs() {
     return profile_->GetTestingPrefService();
   }
 
-  std::shared_ptr<brave::BraveRequestInfo> MakeRequest(const GURL& url) {
-    auto request = std::make_shared<brave::BraveRequestInfo>(url);
-    request->browser_context = profile_.get();
-    return request;
+  typename PtrStrategy::template Ptr<brave::BraveRequestInfo> MakeRequest(
+      const GURL& url) {
+    if constexpr (std::is_same_v<typename PtrStrategy::template Ptr<
+                                     brave::BraveRequestInfo>,
+                                 std::shared_ptr<brave::BraveRequestInfo>>) {
+      auto request = std::make_shared<brave::BraveRequestInfo>(url);
+      request->set_browser_context(profile_.get());
+      return request;
+    } else {
+      owned_request_ = std::make_unique<brave::BraveRequestInfo>(url);
+      owned_request_->set_browser_context(profile_.get());
+      return owned_request_->AsWeakPtr();
+    }
   }
 
  private:
   content::BrowserTaskEnvironment task_environment_;
   std::unique_ptr<TestingProfile> profile_;
+  std::unique_ptr<brave::BraveRequestInfo> owned_request_;
+  base::test::ScopedFeatureList scoped_feature_list_;
 };
 
-TEST_F(BraveSiteHacksNetworkDelegateHelperTest, UANotAllowedTest) {
+using PtrStrategies = testing::Types<SharedPtrStrategy, WeakPtrStrategy>;
+TYPED_TEST_SUITE(BraveSiteHacksNetworkDelegateHelperTest, PtrStrategies);
+
+TYPED_TEST(BraveSiteHacksNetworkDelegateHelperTest, UANotAllowedTest) {
   const std::vector<GURL> urls({GURL("https://brianbondy.com"),
                                 GURL("https://bravecombo.com"),
                                 GURL("https://brave.example.com"),
@@ -56,7 +98,7 @@ TEST_F(BraveSiteHacksNetworkDelegateHelperTest, UANotAllowedTest) {
     headers.SetHeader(kUserAgentHeader,
                       "Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 "
                       "(KHTML, like Gecko) Chrome/33.0.1750.117 Safari/537.36");
-    auto brave_request_info = MakeRequest(url);
+    auto brave_request_info = this->MakeRequest(url);
     int rc = brave::OnBeforeStartTransaction_SiteHacksWork(
         &headers, ResponseCallback(), brave_request_info);
     auto user_agent = headers.GetHeader(kUserAgentHeader);
@@ -68,7 +110,7 @@ TEST_F(BraveSiteHacksNetworkDelegateHelperTest, UANotAllowedTest) {
   }
 }
 
-TEST_F(BraveSiteHacksNetworkDelegateHelperTest, ReferrerPreserved) {
+TYPED_TEST(BraveSiteHacksNetworkDelegateHelperTest, ReferrerPreserved) {
   const std::vector<GURL> urls({GURL("https://brianbondy.com/7"),
                                 GURL("https://www.brianbondy.com/5"),
                                 GURL("https://brian.bondy.brianbondy.com")});
@@ -76,59 +118,59 @@ TEST_F(BraveSiteHacksNetworkDelegateHelperTest, ReferrerPreserved) {
     net::HttpRequestHeaders headers;
     const GURL original_referrer("https://hello.brianbondy.com/about");
 
-    auto brave_request_info = MakeRequest(url);
-    brave_request_info->referrer = original_referrer;
+    auto brave_request_info = this->MakeRequest(url);
+    brave_request_info->set_referrer(original_referrer);
     int rc = brave::OnBeforeURLRequest_SiteHacksWork(ResponseCallback(),
                                                      brave_request_info);
     EXPECT_EQ(rc, net::OK);
     // new_url should not be set.
-    EXPECT_TRUE(brave_request_info->new_url_spec.empty());
-    EXPECT_EQ(brave_request_info->referrer, original_referrer);
+    EXPECT_TRUE(brave_request_info->new_url_spec().empty());
+    EXPECT_EQ(brave_request_info->referrer(), original_referrer);
   }
 }
 
-TEST_F(BraveSiteHacksNetworkDelegateHelperTest, ReferrerTruncated) {
+TYPED_TEST(BraveSiteHacksNetworkDelegateHelperTest, ReferrerTruncated) {
   const std::vector<GURL> urls({GURL("https://digg.com/7"),
                                 GURL("https://slashdot.org/5"),
                                 GURL("https://bondy.brian.org")});
   for (const auto& url : urls) {
     const GURL original_referrer("https://hello.brianbondy.com/about");
 
-    auto brave_request_info = MakeRequest(url);
-    brave_request_info->referrer = original_referrer;
+    auto brave_request_info = this->MakeRequest(url);
+    brave_request_info->set_referrer(original_referrer);
     int rc = brave::OnBeforeURLRequest_SiteHacksWork(ResponseCallback(),
                                                      brave_request_info);
     EXPECT_EQ(rc, net::OK);
     // new_url should not be set.
-    EXPECT_TRUE(brave_request_info->new_url_spec.empty());
-    EXPECT_TRUE(brave_request_info->new_referrer.has_value());
-    EXPECT_EQ(brave_request_info->new_referrer.value(),
+    EXPECT_TRUE(brave_request_info->new_url_spec().empty());
+    EXPECT_TRUE(brave_request_info->new_referrer().has_value());
+    EXPECT_EQ(brave_request_info->new_referrer().value(),
               url::Origin::Create(original_referrer).GetURL());
   }
 }
 
-TEST_F(BraveSiteHacksNetworkDelegateHelperTest,
-       ReferrerWouldBeClearedButExtensionSite) {
+TYPED_TEST(BraveSiteHacksNetworkDelegateHelperTest,
+           ReferrerWouldBeClearedButExtensionSite) {
   const std::vector<GURL> urls({GURL("https://digg.com/7"),
                                 GURL("https://slashdot.org/5"),
                                 GURL("https://bondy.brian.org")});
   for (const auto& url : urls) {
-    auto brave_request_info = MakeRequest(url);
-    brave_request_info->tab_origin =
-        GURL("chrome-extension://aemmndcbldboiebfnladdacbdfmadadm/");
+    auto brave_request_info = this->MakeRequest(url);
+    brave_request_info->set_tab_origin(
+        GURL("chrome-extension://aemmndcbldboiebfnladdacbdfmadadm/"));
     const GURL original_referrer("https://hello.brianbondy.com/about");
-    brave_request_info->referrer = original_referrer;
+    brave_request_info->set_referrer(original_referrer);
 
     int rc = brave::OnBeforeURLRequest_SiteHacksWork(ResponseCallback(),
                                                      brave_request_info);
     EXPECT_EQ(rc, net::OK);
     // new_url should not be set
-    EXPECT_TRUE(brave_request_info->new_url_spec.empty());
-    EXPECT_EQ(brave_request_info->referrer, original_referrer);
+    EXPECT_TRUE(brave_request_info->new_url_spec().empty());
+    EXPECT_EQ(brave_request_info->referrer(), original_referrer);
   }
 }
 
-TEST_F(BraveSiteHacksNetworkDelegateHelperTest, OnionReferrerStripped) {
+TYPED_TEST(BraveSiteHacksNetworkDelegateHelperTest, OnionReferrerStripped) {
   const GURL original_referrer(
       "https://"
       "brave4u7jddbv7cyviptqjc7jusxh72uik7zt6adtckl5f4nwy2v72qd.onion/");
@@ -145,7 +187,7 @@ TEST_F(BraveSiteHacksNetworkDelegateHelperTest, OnionReferrerStripped) {
   EXPECT_EQ(url2, destination);
 }
 
-TEST_F(BraveSiteHacksNetworkDelegateHelperTest, QueryStringUntouched) {
+TYPED_TEST(BraveSiteHacksNetworkDelegateHelperTest, QueryStringUntouched) {
   const std::vector<std::string> urls(
       {"https://example.com/",
        "https://example.com/?",
@@ -168,19 +210,19 @@ TEST_F(BraveSiteHacksNetworkDelegateHelperTest, QueryStringUntouched) {
        "https://example.com/?mkt_unsubscribe=1&fake_param=abc&mkt_tok=123",
        "https://example.com/Unsubscribe.html?fake_param=abc&mkt_tok=123"});
   for (const auto& url : urls) {
-    auto brave_request_info = MakeRequest(GURL(url));
-    brave_request_info->initiator_url =
-        GURL("https://example.net");  // cross-site
-    brave_request_info->method = "GET";
+    auto brave_request_info = this->MakeRequest(GURL(url));
+    brave_request_info->set_initiator_url(
+        GURL("https://example.net"));  // cross-site
+    brave_request_info->set_method("GET");
     int rc = brave::OnBeforeURLRequest_SiteHacksWork(ResponseCallback(),
                                                      brave_request_info);
     EXPECT_EQ(rc, net::OK);
     // new_url should not be set
-    EXPECT_TRUE(brave_request_info->new_url_spec.empty());
+    EXPECT_TRUE(brave_request_info->new_url_spec().empty());
   }
 }
 
-TEST_F(BraveSiteHacksNetworkDelegateHelperTest, QueryStringExempted) {
+TYPED_TEST(BraveSiteHacksNetworkDelegateHelperTest, QueryStringExempted) {
   const GURL tracking_url("https://example.com/?fbclid=1");
 
   const std::string initiators[] = {
@@ -189,64 +231,64 @@ TEST_F(BraveSiteHacksNetworkDelegateHelperTest, QueryStringExempted) {
   };
 
   for (const auto& initiator : initiators) {
-    auto brave_request_info = MakeRequest(tracking_url);
-    brave_request_info->initiator_url = GURL(initiator);
-    brave_request_info->method = "GET";
+    auto brave_request_info = this->MakeRequest(tracking_url);
+    brave_request_info->set_initiator_url(GURL(initiator));
+    brave_request_info->set_method("GET");
     int rc = brave::OnBeforeURLRequest_SiteHacksWork(ResponseCallback(),
                                                      brave_request_info);
     EXPECT_EQ(rc, net::OK);
     // new_url should not be set
-    EXPECT_TRUE(brave_request_info->new_url_spec.empty());
+    EXPECT_TRUE(brave_request_info->new_url_spec().empty());
   }
 
   // Internal redirect
   {
-    auto brave_request_info = MakeRequest(tracking_url);
-    brave_request_info->initiator_url =
-        GURL("https://example.net");  // cross-site
-    brave_request_info->method = "GET";
-    brave_request_info->internal_redirect = true;
-    brave_request_info->redirect_source =
-        GURL("https://example.org");  // cross-site
+    auto brave_request_info = this->MakeRequest(tracking_url);
+    brave_request_info->set_initiator_url(
+        GURL("https://example.net"));  // cross-site
+    brave_request_info->set_method("GET");
+    brave_request_info->set_internal_redirect(true);
+    brave_request_info->set_redirect_source(
+        GURL("https://example.org"));  // cross-site
     int rc = brave::OnBeforeURLRequest_SiteHacksWork(ResponseCallback(),
                                                      brave_request_info);
     EXPECT_EQ(rc, net::OK);
     // new_url should not be set
-    EXPECT_TRUE(brave_request_info->new_url_spec.empty());
+    EXPECT_TRUE(brave_request_info->new_url_spec().empty());
   }
 
   // POST requests
   {
-    auto brave_request_info = MakeRequest(tracking_url);
-    brave_request_info->initiator_url =
-        GURL("https://example.net");  // cross-site
-    brave_request_info->method = "POST";
-    brave_request_info->redirect_source =
-        GURL("https://example.org");  // cross-site
+    auto brave_request_info = this->MakeRequest(tracking_url);
+    brave_request_info->set_initiator_url(
+        GURL("https://example.net"));  // cross-site
+    brave_request_info->set_method("POST");
+    brave_request_info->set_redirect_source(
+        GURL("https://example.org"));  // cross-site
     int rc = brave::OnBeforeURLRequest_SiteHacksWork(ResponseCallback(),
                                                      brave_request_info);
     EXPECT_EQ(rc, net::OK);
     // new_url should not be set
-    EXPECT_TRUE(brave_request_info->new_url_spec.empty());
+    EXPECT_TRUE(brave_request_info->new_url_spec().empty());
   }
 
   // Same-site redirect
   {
-    auto brave_request_info = MakeRequest(tracking_url);
-    brave_request_info->initiator_url =
-        GURL("https://example.net");  // cross-site
-    brave_request_info->method = "GET";
-    brave_request_info->redirect_source =
-        GURL("https://sub.example.com");  // same-site
+    auto brave_request_info = this->MakeRequest(tracking_url);
+    brave_request_info->set_initiator_url(
+        GURL("https://example.net"));  // cross-site
+    brave_request_info->set_method("GET");
+    brave_request_info->set_redirect_source(
+        GURL("https://sub.example.com"));  // same-site
     int rc = brave::OnBeforeURLRequest_SiteHacksWork(ResponseCallback(),
                                                      brave_request_info);
     EXPECT_EQ(rc, net::OK);
     // new_url should not be set
-    EXPECT_TRUE(brave_request_info->new_url_spec.empty());
+    EXPECT_TRUE(brave_request_info->new_url_spec().empty());
   }
 }
 
-TEST_F(BraveSiteHacksNetworkDelegateHelperTest, QueryStringFiltered) {
+TYPED_TEST(BraveSiteHacksNetworkDelegateHelperTest, QueryStringFiltered) {
   const std::vector<std::pair<std::string, std::string>> urls(
       {// { original url, expected url after filtering ("" means unchanged) }
        {"https://example.com/?fbclid=1234", "https://example.com/"},
@@ -283,111 +325,115 @@ TEST_F(BraveSiteHacksNetworkDelegateHelperTest, QueryStringFiltered) {
        {"https://example.com/?mkt_tok=123&foo=bar",
         "https://example.com/?foo=bar"}});
   for (const auto& pair : urls) {
-    auto brave_request_info = MakeRequest(GURL(pair.first));
-    brave_request_info->initiator_url =
-        GURL("https://example.net");  // cross-site
-    brave_request_info->method = "GET";
+    auto brave_request_info = this->MakeRequest(GURL(pair.first));
+    brave_request_info->set_initiator_url(
+        GURL("https://example.net"));  // cross-site
+    brave_request_info->set_method("GET");
     int rc = brave::OnBeforeURLRequest_SiteHacksWork(ResponseCallback(),
                                                      brave_request_info);
     EXPECT_EQ(rc, net::OK);
-    EXPECT_EQ(brave_request_info->new_url_spec, pair.second);
+    EXPECT_EQ(brave_request_info->new_url_spec(), pair.second);
   }
 
   // Cross-site redirect
   {
     auto brave_request_info =
-        MakeRequest(GURL("https://example.com/?fbclid=1"));
-    brave_request_info->initiator_url =
-        GURL("https://example.com");  // same-origin
-    brave_request_info->method = "GET";
-    brave_request_info->redirect_source =
-        GURL("https://example.net");  // cross-site
+        this->MakeRequest(GURL("https://example.com/?fbclid=1"));
+    brave_request_info->set_initiator_url(
+        GURL("https://example.com"));  // same-origin
+    brave_request_info->set_method("GET");
+    brave_request_info->set_redirect_source(
+        GURL("https://example.net"));  // cross-site
     int rc = brave::OnBeforeURLRequest_SiteHacksWork(ResponseCallback(),
                                                      brave_request_info);
     EXPECT_EQ(rc, net::OK);
-    EXPECT_EQ(brave_request_info->new_url_spec, "https://example.com/");
+    EXPECT_EQ(brave_request_info->new_url_spec(), "https://example.com/");
   }
 
   // Direct navigation
   {
     auto brave_request_info =
-        MakeRequest(GURL("https://example.com/?fbclid=2"));
-    brave_request_info->initiator_url = GURL();
-    brave_request_info->method = "GET";
+        this->MakeRequest(GURL("https://example.com/?fbclid=2"));
+    brave_request_info->set_initiator_url(GURL());
+    brave_request_info->set_method("GET");
     int rc = brave::OnBeforeURLRequest_SiteHacksWork(ResponseCallback(),
                                                      brave_request_info);
     EXPECT_EQ(rc, net::OK);
-    EXPECT_EQ(brave_request_info->new_url_spec, "https://example.com/");
+    EXPECT_EQ(brave_request_info->new_url_spec(), "https://example.com/");
   }
 }
 
-TEST_F(BraveSiteHacksNetworkDelegateHelperTest,
-       QueryParametersFilteringDisabledByPolicy) {
-  GetPrefs()->SetManagedPref(
+TYPED_TEST(BraveSiteHacksNetworkDelegateHelperTest,
+           QueryParametersFilteringDisabledByPolicy) {
+  this->GetPrefs()->SetManagedPref(
       query_filter::kTrackingQueryParametersFilteringEnabled,
       base::Value(false));
 
-  auto brave_request_info = MakeRequest(GURL("https://example.com/?fbclid=1"));
-  brave_request_info->initiator_url = GURL("https://example.net");
-  brave_request_info->method = "GET";
+  auto brave_request_info =
+      this->MakeRequest(GURL("https://example.com/?fbclid=1"));
+  brave_request_info->set_initiator_url(GURL("https://example.net"));
+  brave_request_info->set_method("GET");
   int rc = brave::OnBeforeURLRequest_SiteHacksWork(ResponseCallback(),
                                                    brave_request_info);
   EXPECT_EQ(rc, net::OK);
 
   // new_url should not be set because the query parameters filtering is
   // disabled by policy
-  EXPECT_TRUE(brave_request_info->new_url_spec.empty());
+  EXPECT_TRUE(brave_request_info->new_url_spec().empty());
 }
 
-TEST_F(BraveSiteHacksNetworkDelegateHelperTest,
-       QueryParametersFilteringEnabledByPolicy) {
-  GetPrefs()->SetManagedPref(
+TYPED_TEST(BraveSiteHacksNetworkDelegateHelperTest,
+           QueryParametersFilteringEnabledByPolicy) {
+  this->GetPrefs()->SetManagedPref(
       query_filter::kTrackingQueryParametersFilteringEnabled,
       base::Value(true));
 
-  auto brave_request_info = MakeRequest(GURL("https://example.com/?fbclid=1"));
-  brave_request_info->initiator_url = GURL("https://example.net");
-  brave_request_info->method = "GET";
+  auto brave_request_info =
+      this->MakeRequest(GURL("https://example.com/?fbclid=1"));
+  brave_request_info->set_initiator_url(GURL("https://example.net"));
+  brave_request_info->set_method("GET");
   int rc = brave::OnBeforeURLRequest_SiteHacksWork(ResponseCallback(),
                                                    brave_request_info);
   EXPECT_EQ(rc, net::OK);
 
   // new_url should be set because the query parameters filtering is
   // enabled by policy
-  EXPECT_EQ(brave_request_info->new_url_spec, "https://example.com/");
+  EXPECT_EQ(brave_request_info->new_url_spec(), "https://example.com/");
 }
 
-TEST_F(BraveSiteHacksNetworkDelegateHelperTest,
-       QueryParametersFilteringEnabledByPolicyWhenBraveShieldsDisabled) {
-  GetPrefs()->SetManagedPref(
+TYPED_TEST(BraveSiteHacksNetworkDelegateHelperTest,
+           QueryParametersFilteringEnabledByPolicyWhenBraveShieldsDisabled) {
+  this->GetPrefs()->SetManagedPref(
       query_filter::kTrackingQueryParametersFilteringEnabled,
       base::Value(true));
 
-  auto brave_request_info = MakeRequest(GURL("https://example.com/?fbclid=1"));
-  brave_request_info->initiator_url = GURL("https://example.net");
-  brave_request_info->method = "GET";
-  brave_request_info->allow_brave_shields = false;
+  auto brave_request_info =
+      this->MakeRequest(GURL("https://example.com/?fbclid=1"));
+  brave_request_info->set_initiator_url(GURL("https://example.net"));
+  brave_request_info->set_method("GET");
+  brave_request_info->set_allow_brave_shields(false);
   int rc = brave::OnBeforeURLRequest_SiteHacksWork(ResponseCallback(),
                                                    brave_request_info);
   EXPECT_EQ(rc, net::OK);
 
   // new_url should not be set because Brave Shields is disabled
-  EXPECT_TRUE(brave_request_info->new_url_spec.empty());
+  EXPECT_TRUE(brave_request_info->new_url_spec().empty());
 }
 
-TEST_F(BraveSiteHacksNetworkDelegateHelperTest,
-       QueryParametersFilteringPreferenceIsNotManagedByPolicy) {
-  GetPrefs()->SetBoolean(query_filter::kTrackingQueryParametersFilteringEnabled,
-                         false);
+TYPED_TEST(BraveSiteHacksNetworkDelegateHelperTest,
+           QueryParametersFilteringPreferenceIsNotManagedByPolicy) {
+  this->GetPrefs()->SetBoolean(
+      query_filter::kTrackingQueryParametersFilteringEnabled, false);
 
-  auto brave_request_info = MakeRequest(GURL("https://example.com/?fbclid=1"));
-  brave_request_info->initiator_url = GURL("https://example.net");
-  brave_request_info->method = "GET";
+  auto brave_request_info =
+      this->MakeRequest(GURL("https://example.com/?fbclid=1"));
+  brave_request_info->set_initiator_url(GURL("https://example.net"));
+  brave_request_info->set_method("GET");
   int rc = brave::OnBeforeURLRequest_SiteHacksWork(ResponseCallback(),
                                                    brave_request_info);
   EXPECT_EQ(rc, net::OK);
 
   // new_url should be set because the query parameters filtering remains
   // enabled by default since the pref is not managed by policy
-  EXPECT_EQ(brave_request_info->new_url_spec, "https://example.com/");
+  EXPECT_EQ(brave_request_info->new_url_spec(), "https://example.com/");
 }

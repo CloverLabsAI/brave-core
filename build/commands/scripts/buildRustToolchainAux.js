@@ -3,10 +3,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-const config = require('../lib/config')
-const path = require('path')
-const program = require('commander')
-const util = require('../lib/util')
+import config from '../lib/config.js'
+import path from 'node:path'
+import program from 'commander'
+import util from '../lib/util.js'
 
 program
   .option('--out_dir <out_dir>', 'Path to put the build artifacts.')
@@ -35,7 +35,7 @@ program
         'src@refs/tags/' + options.tag,
       ])
     }
-    args = [
+    const args = [
       path.join(
         config.srcDir,
         'brave',

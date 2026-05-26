@@ -4,29 +4,29 @@
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 
 // Check environment before doing anything.
-require('../lib/checkEnvironment')
+import '../lib/checkEnvironment.js'
 
-const program = require('commander')
-const path = require('path')
-const fs = require('fs-extra')
-const config = require('../lib/config')
-const util = require('../lib/util')
-const build = require('../lib/build')
-const buildChromiumRelease = require('../lib/buildChromiumRelease')
-const { buildFuzzer, runFuzzer } = require('../lib/fuzzer')
-const versions = require('../lib/versions')
-const start = require('../lib/start')
-const applyPatches = require('../lib/applyPatches')
-const updatePatches = require('./updatePatches')
-const pullL10n = require('../lib/pullL10n')
-const pushL10n = require('../lib/pushL10n')
-const chromiumRebaseL10n = require('../lib/chromiumRebaseL10n')
-const test = require('../lib/test')
-const gnCheck = require('../lib/gnCheck')
-const genGradle = require('../lib/genGradle')
-const perfTests = require('../lib/perfTests')
-const registerListAffectedTestsCommand = require('./listAffectedTests')
-const registerGenerateCoverageReportCommand = require('./generateCoverageReport')
+import program from 'commander'
+import path from 'node:path'
+import fs from 'fs-extra'
+import config from '../lib/config.js'
+import util from '../lib/util.js'
+import build from '../lib/build.js'
+import buildChromiumRelease from '../lib/buildChromiumRelease.js'
+import { buildFuzzer, runFuzzer } from '../lib/fuzzer.js'
+import versions from '../lib/versions.js'
+import start from '../lib/start.js'
+import applyPatches from '../lib/applyPatches.js'
+import updatePatches from './updatePatches.js'
+import pullL10n from '../lib/pullL10n.js'
+import pushL10n from '../lib/pushL10n.js'
+import chromiumRebaseL10n from '../lib/chromiumRebaseL10n.js'
+import test from '../lib/test.js'
+import gnCheck from '../lib/gnCheck.js'
+import genGradle from '../lib/genGradle.js'
+import perfTests from '../lib/perfTests.js'
+import registerListAffectedTestsCommand from './listAffectedTests.js'
+import registerGenerateCoverageReportCommand from './generateCoverageReport.js'
 
 const collect = (value, accumulator) => {
   accumulator.push(value)
@@ -48,6 +48,7 @@ function parseInteger(string) {
 
 const parsedArgs = program.parseOptions(process.argv)
 
+// @ts-ignore
 program.version(process.env.npm_package_version)
 
 program.command('versions').action(versions)
@@ -398,7 +399,7 @@ program
   .option(
     '--android_test_emulator_name <emulator_name',
     'set name of the Android emulator for tests',
-    'android_33_google_atd_x64',
+    'android_33_google_apis_x64',
   )
   .option(
     '--use_remoteexec [arg]',
@@ -428,23 +429,6 @@ program
   .option('--offline', 'use offline mode for RBE')
   .arguments('[build_config]')
   .action(test.bind(null, parsedArgs.unknown))
-
-program
-  .command('presubmit')
-  .option('--base <base branch>', 'set the destination branch for the PR')
-  .option('--all', 'run presubmit on all files')
-  .option(
-    '--files <file list>',
-    'semicolon-separated list files to run presubmit on',
-  )
-  .option(
-    '--verbose [arg]',
-    'pass --verbose 2 for more debugging info',
-    JSON.parse,
-  )
-  .option('--fix', 'try to fix found issues automatically')
-  .option('--json <output>', 'An output file for a JSON report')
-  .action(util.presubmit)
 
 program.command('mass_rename').action(util.massRename)
 

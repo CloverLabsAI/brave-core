@@ -13,6 +13,7 @@ import classnames from '$web-common/classnames'
 import { getLocale } from '$web-common/locale'
 import * as Mojom from '../../../common/mojom'
 import { useUntrustedConversationContext } from '../../untrusted_conversation_context'
+import { getToolArtifacts } from '../conversation_entries/conversation_entries_utils'
 import AssistantResponse from '../assistant_response'
 import ToolEvent, { ToolEventThinking } from '../assistant_response/tool_event'
 import styles from './assistant_task.module.scss'
@@ -45,6 +46,9 @@ interface TabProps {
   toolUseTaskState: Mojom.TaskState
 
   taskData: TaskData
+
+  // Tool call artifacts to pass to AssistantResponse
+  toolArtifacts: Mojom.ToolArtifact[] | null
 }
 
 /**
@@ -60,6 +64,9 @@ export default function AssistantTask(props: Props) {
   const [taskThumbnail, setTaskThumbnail] = React.useState<string>()
   const conversationContext = useUntrustedConversationContext()
 
+  const contentTaskTabId =
+    conversationContext.api.useCurrentContentTaskStarted().data?.[0]
+
   React.useEffect(() => {
     // We only currently support a single task per conversation - only show or
     // update a thumbnail if this task is active otherwise it will seem like
@@ -67,34 +74,33 @@ export default function AssistantTask(props: Props) {
     // TODO(https://github.com/brave/brave-browser/issues/49258): support a
     // tab-per-ToolUseEvent and keep track of which tool uses are for which tab
     // when multi-tab agent conversations are supported.
-    if (!conversationContext.contentTaskTabId || !props.isActiveTask) {
+    if (!contentTaskTabId || !props.isActiveTask) {
       return
     }
 
     // Task is active task - if we get thumbnails for a related Tab, display
     // it.
-    const id = conversationContext.uiObserver?.thumbnailUpdated.addListener(
-      (tabId: number, dataURI: string) => {
-        if (tabId === conversationContext.contentTaskTabId) {
-          setTaskThumbnail(dataURI)
-        }
-      },
-    )
+    const thumbnailUnsubscribe =
+      conversationContext.api.subscribeToThumbnailUpdated(
+        (tabId: number, dataURI: string) => {
+          if (tabId === contentTaskTabId) {
+            setTaskThumbnail(dataURI)
+          }
+        },
+      )
 
     // Let the thumbnail tracker know we want to track the thumbnail of
     // the active task's tab.
-    conversationContext.uiHandler?.addTabToThumbnailTracker(
-      conversationContext.contentTaskTabId,
-    )
+    conversationContext.api.uiHandler.addTabToThumbnailTracker(contentTaskTabId)
 
     // Stop listening for thumbnails when we stop being the active task.
     return () => {
-      conversationContext.uiObserver?.removeListener(id)
-      conversationContext.uiHandler?.removeTabFromThumbnailTracker(
-        conversationContext.contentTaskTabId!,
+      thumbnailUnsubscribe()
+      conversationContext.api.uiHandler.removeTabFromThumbnailTracker(
+        contentTaskTabId,
       )
     }
-  }, [props.isActiveTask, conversationContext.contentTaskTabId])
+  }, [props.isActiveTask, contentTaskTabId, conversationContext.api])
 
   const taskData = useExtractTaskData(props.assistantEntries)
 
@@ -103,12 +109,19 @@ export default function AssistantTask(props: Props) {
     && !conversationContext.isToolExecuting
     && conversationContext.toolUseTaskState === Mojom.TaskState.kRunning
 
+  const shouldOmitArtifacts =
+    props.isActiveTask && conversationContext.isGenerating
+  const toolArtifacts = !shouldOmitArtifacts
+    ? getToolArtifacts(props.assistantEntries)
+    : null
+
   const tabProps: TabProps = {
     isGenerating: conversationContext.isGenerating,
     isToolExecuting: conversationContext.isToolExecuting,
     toolUseTaskState: conversationContext.toolUseTaskState,
     isThinking: isThinking,
     taskData: taskData,
+    toolArtifacts: toolArtifacts,
   }
 
   return (
@@ -139,6 +152,7 @@ export default function AssistantTask(props: Props) {
             <Progress
               {...props}
               {...tabProps}
+              toolArtifacts={toolArtifacts}
             />
           )}
 
@@ -206,6 +220,18 @@ function Progress(props: Props & TabProps) {
       && !props.taskData.importantToolUseEvents.includes(event.toolUseEvent),
   )
 
+  // We need to include inline search events so the AssistantResponse knows
+  // what search results to display.
+  const inlineSearchEvents = lastTaskItem.filter((t) => t.inlineSearchEvent)
+
+  // Collect source/query events from all entries so web sources render
+  // with the completion in the Progress view. These events may be in
+  // earlier entries when server search results arrive before the final
+  // completion entry.
+  const allSourceEvents = props.assistantEntries
+    .flatMap((entry) => entry.events ?? [])
+    .filter((ev) => ev.sourcesEvent || ev.searchQueriesEvent)
+
   return (
     <div className={styles.progress}>
       {props.taskData.importantToolUseEvents.map((event, index) => (
@@ -219,11 +245,16 @@ function Progress(props: Props & TabProps) {
       {currentCompletionEvent && (
         <div className={styles.progressText}>
           <AssistantResponse
-            events={[currentCompletionEvent]}
+            events={[
+              ...allSourceEvents,
+              ...inlineSearchEvents,
+              currentCompletionEvent,
+            ]}
             isEntryInteractivityAllowed={false}
             isEntryInProgress={props.isGenerating}
-            allowedLinks={[]}
+            allowedLinks={props.taskData.allowedLinks}
             isLeoModel={props.isLeoModel}
+            toolArtifacts={props.toolArtifacts}
           />
         </div>
       )}
@@ -244,6 +275,16 @@ function Steps(props: Props & TabProps) {
   // Render every event in the task, split by completion event
   // so that the LLM tells a story of the task by it's own progress
   // description.
+
+  // Collect source/query events from non-last taskItems so they can
+  // be shown with the last (completion) step. These events may be in
+  // earlier entries when server search results arrive before the
+  // final completion entry.
+  const nonLastSourceEvents = props.taskData.taskItems
+    .slice(0, -1)
+    .flat()
+    .filter((ev) => ev.sourcesEvent || ev.searchQueriesEvent)
+
   return props.taskData.taskItems.map((taskItem, index) => {
     // Can we interact or run any pending tools?
     const isRunnable =
@@ -262,6 +303,14 @@ function Steps(props: Props & TabProps) {
 
     const isThinking = isRunnable && props.isThinking
 
+    // Non-last steps: strip source/query events (they belong with
+    // the completion). Last step: prepend earlier source/query events
+    // and keep its own.
+    const isLastItem = index === props.taskData.taskItems.length - 1
+    const events = isLastItem
+      ? [...nonLastSourceEvents, ...taskItem]
+      : taskItem.filter((ev) => !ev.sourcesEvent && !ev.searchQueriesEvent)
+
     return (
       <div
         key={index}
@@ -279,7 +328,7 @@ function Steps(props: Props & TabProps) {
           )}
         </div>
         <AssistantResponse
-          events={taskItem}
+          events={events}
           isEntryInteractivityAllowed={isRunnable}
           isEntryInProgress={isActive}
           allowedLinks={props.taskData.allowedLinks}

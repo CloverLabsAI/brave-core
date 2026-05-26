@@ -10,17 +10,24 @@
 #include <utility>
 
 #include "base/strings/string_number_conversions.h"
+#include "base/test/scoped_feature_list.h"
+#include "brave/components/brave_wallet/browser/internal/orchard_bundle_manager.h"
 #include "brave/components/brave_wallet/browser/zcash/zcash_transaction.h"
 #include "brave/components/brave_wallet/common/common_utils.h"
+#include "brave/components/brave_wallet/common/features.h"
 #include "brave/components/brave_wallet/common/hex_utils.h"
 #include "brave/components/brave_wallet/common/zcash_utils.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
-#if BUILDFLAG(ENABLE_ORCHARD)
-#include "brave/components/brave_wallet/browser/internal/orchard_bundle_manager.h"
-#endif
-
 namespace brave_wallet {
+
+namespace {
+
+bool IsAddressAllowed(const std::string&) {
+  return true;
+}
+
+}  // namespace
 
 TEST(ZCashSerializerTest, HashPrevouts) {
   ZCashTransaction zcash_transaciton;
@@ -200,8 +207,6 @@ TEST(ZCashSerializerTest, TxId_TransparentOnly) {
       "0x360d056309669faf0d7937f41581418be5e46b04e2cea0a7b14261d7bff1d825");
 }
 
-#if BUILDFLAG(ENABLE_ORCHARD)
-
 namespace {
 void AppendMerklePath(OrchardNoteWitness& witness, const std::string& hex) {
   OrchardMerkleHash hash;
@@ -212,6 +217,15 @@ void AppendMerklePath(OrchardNoteWitness& witness, const std::string& hex) {
 
 // https://blockexplorer.one/zcash/testnet/tx/496dfffff625ada462cbc8a733f305fdef1ca584ceb8e7efa5e28e38249b466e
 TEST(ZCashSerializerTest, OrchardToTransparentBundle) {
+#if BUILDFLAG(IS_IOS)
+  base::test::ScopedFeatureList feature_list;
+  feature_list.InitWithFeaturesAndParameters(
+      {{features::kBraveWalletZCashFeature,
+        {{"zcash_shielded_transactions_enabled", "true"}}},
+       {features::kBraveWalletWebUIFeature, {}}},
+      {}  // disabled features
+  );
+#endif
   OrchardBundleManager::OverrideRandomSeedForTesting(6675565u);
 
   ZCashKeyring keyring(
@@ -219,7 +233,7 @@ TEST(ZCashSerializerTest, OrchardToTransparentBundle) {
           "0xe2c0aa2746fc727734c3beec18493053ca3e624fc6d4c4bffbcd7d56ae0f12c864"
           "70226552ba119ecb4de091bf51bc77ba22e1bd264af84ff5da575029edeab9")
           .value(),
-      mojom::KeyringId::kZCashTestnet);
+      mojom::KeyringId::kZCashTestnet, base::BindRepeating(IsAddressAllowed));
 
   keyring.AddNewHDAccount(0u);
   ZCashTransaction tx;
@@ -1068,7 +1082,7 @@ TEST(ZCashSerializerTest, OrchardBundle) {
                             0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
                             0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
                             0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f}),
-      mojom::KeyringId::kZCashMainnet);
+      mojom::KeyringId::kZCashMainnet, base::BindRepeating(IsAddressAllowed));
 
   auto key_id = mojom::ZCashKeyId::New(0, 0, 0);
   auto address = keyring.GetTransparentAddress(*key_id)->address_string;
@@ -1678,6 +1692,5 @@ TEST(ZCashSerializerTest, OrchardBundle) {
       "ace55bd2bc12bca438a4d99807e91d5d1571742922b099a46ebdea8f161720",
       ToHex(ZCashSerializer::SerializeRawTransaction(tx)));
 }
-#endif  // BUILDFLAG(ENABLE_ORCHARD)
 
 }  // namespace brave_wallet

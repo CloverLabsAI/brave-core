@@ -90,6 +90,9 @@ export class ModelConfigUI extends ModelConfigUIBase {
       },
       hasVisionSupport : {
         type: Boolean
+      },
+      supportsTools: {
+        type: Boolean
       }
     }
   }
@@ -111,6 +114,7 @@ export class ModelConfigUI extends ModelConfigUIBase {
   declare shouldShowUnsafeEndpointModal: boolean
   declare invalidUrlErrorMessage: string
   declare hasVisionSupport: boolean
+  declare supportsTools: boolean
 
   override ready() {
     super.ready()
@@ -133,9 +137,6 @@ export class ModelConfigUI extends ModelConfigUIBase {
       return
     }
 
-    const mojomUrl = { url: '' }
-    mojomUrl.url = this.endpointUrl
-
     // Send empty string if adding new model
     const modelKey = this.isEditing_ ? this.modelItem?.key : ''
 
@@ -154,19 +155,22 @@ export class ModelConfigUI extends ModelConfigUIBase {
           // Determined at runtime based on contextSize
           longConversationWarningCharacterLimit: -1,
           modelSystemPrompt: this.modelSystemPrompt,
-          endpoint: mojomUrl,
+          endpoint: this.endpointUrl,
           apiKey: this.apiKey
         }
       },
       key: modelKey,
       displayName: this.label,
       visionSupport: this.hasVisionSupport,
-      supportsTools: false,
+      audioSupport: false,
+      videoSupport: false,
+      supportsTools: this.supportsTools,
+      supportedCapabilities: [mojom.ConversationCapability.CHAT],
       isSuggestedModel: false,
       isNearModel: false,
-    }
+    };
 
-    this.fire('save', { modelConfig })
+    this.fire('save', {modelConfig})
   }
 
   handleCloseClick_() {
@@ -221,6 +225,10 @@ export class ModelConfigUI extends ModelConfigUIBase {
     this.hasVisionSupport = e.checked
   }
 
+  onSupportsToolsChanged_(e: any) {
+    this.supportsTools = e.checked
+  }
+
   private saveEnabled_() {
     // Make sure all required fields are filled
     return this.label && this.modelRequestName && this.endpointUrl && !this.isUrlInvalid
@@ -243,16 +251,17 @@ export class ModelConfigUI extends ModelConfigUIBase {
 
   private onModelItemChange_(newValue: mojom.Model | null) {
     if (newValue?.options.customModelOptions) {
-      this.label = newValue.displayName
+      this.label = newValue.displayName;
       this.modelRequestName =
-        newValue.options.customModelOptions.modelRequestName
+        newValue.options.customModelOptions.modelRequestName;
       this.contextSize =
-        newValue.options.customModelOptions.contextSize
-      this.endpointUrl = newValue.options.customModelOptions.endpoint.url
-      this.apiKey = newValue.options.customModelOptions.apiKey
+        newValue.options.customModelOptions.contextSize;
+      this.endpointUrl = newValue.options.customModelOptions.endpoint;
+      this.apiKey = newValue.options.customModelOptions.apiKey;
       this.modelSystemPrompt =
-        newValue.options.customModelOptions.modelSystemPrompt
-      this.hasVisionSupport = newValue.visionSupport
+        newValue.options.customModelOptions.modelSystemPrompt;
+      this.hasVisionSupport = newValue.visionSupport;
+      this.supportsTools = newValue.supportsTools
     }
     this.constructTokenEstimateString_()
   }

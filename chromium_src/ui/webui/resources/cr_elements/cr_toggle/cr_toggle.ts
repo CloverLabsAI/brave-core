@@ -5,26 +5,24 @@
 
 import '//resources/brave/leo.bundle.js'
 
-import { CrLitElement, css } from '//resources/lit/v3_0/lit.rollup.js';
-import { getHtml } from './cr_toggle.html.js';
+import {CrLitElement, css} from '//resources/lit/v3_0/lit.rollup.js';
+import type {CSSResultGroup} from '//resources/lit/v3_0/lit.rollup.js';
+
+import {getHtml} from './cr_toggle.html.js';
 
 export const MOVE_THRESHOLD_PX: number = 5;
-
-export interface CrToggleElement {
-  $: {
-    toggle: HTMLElement
-    knob: HTMLElement
-  }
-}
 
 export class CrToggleElement extends CrLitElement {
   static get is() {
     return 'cr-toggle';
   }
 
-  static override get styles() {
-    return css``
+  declare $: {
+    toggle: HTMLElement
+    knob: HTMLElement
   }
+
+  static override get styles(): CSSResultGroup{ return css`` }
 
   override render() {
     return getHtml.bind(this)();
@@ -67,7 +65,7 @@ export class CrToggleElement extends CrLitElement {
     // with 2-way bindings on the `checked` attribute are updated first.
     await this.updateComplete
 
-    this.dispatchEvent(new CustomEvent('change', { bubbles: true, composed: true, detail: this.checked }))
+    this.fire('change', this.checked)
   }
 }
 

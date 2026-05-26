@@ -9,9 +9,12 @@
 #include <memory>
 #include <string>
 
-#include "base/values.h"
 #include "components/security_interstitials/content/security_interstitial_page.h"
 #include "url/gurl.h"
+
+namespace base {
+class DictValue;
+}  // namespace base
 
 namespace content {
 class WebContents;
@@ -53,7 +56,7 @@ class DomainBlockPage
 
  protected:
   // SecurityInterstitialPage:: overrides
-  void PopulateInterstitialStrings(base::Value::Dict& load_time_data) override;
+  void PopulateInterstitialStrings(base::DictValue& load_time_data) override;
   int GetHTMLTemplateId() override;
 };
 

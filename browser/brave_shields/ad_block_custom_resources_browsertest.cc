@@ -31,7 +31,7 @@ namespace {
 
 base::Value CreateResource(const std::string& name,
                            const std::string& content) {
-  base::Value::Dict resource;
+  base::DictValue resource;
   resource.Set("name", name);
   resource.Set("content", base::Base64Encode(content));
   resource.SetByDottedPath("kind.mime", "application/javascript");
@@ -162,8 +162,6 @@ bool ClickCustomScriplet(content::WebContents* web_contents,
 class AdblockCustomResourcesTest : public AdBlockServiceTest {
  public:
   AdblockCustomResourcesTest() {
-    feature_list_.InitAndEnableFeature(
-        brave_shields::features::kCosmeticFilteringCustomScriptlets);
     BraveSettingsUI::ShouldExposeElementsForTesting() = true;
   }
 
@@ -240,7 +238,7 @@ IN_PROC_BROWSER_TEST_F(AdblockCustomResourcesTest, Edit) {
   ASSERT_TRUE(
       ClickCustomScriplet(web_contents(), "user-custom-script.js", "edit"));
 
-  EXPECT_EQ("user-custom-script.js", GetCustomScriptletName(web_contents()));
+  EXPECT_EQ("custom-script", GetCustomScriptletName(web_contents()));
   EXPECT_EQ("window.test = 'custom-script'",
             GetCustomScriptletContent(web_contents()));
 
@@ -316,7 +314,7 @@ IN_PROC_BROWSER_TEST_F(AdblockCustomResourcesTest, NameConflicts) {
   constexpr const char kContent[] = "window.test = 'custom-script'";
 
   ASSERT_TRUE(ClickAddCustomScriptlet(web_contents()));
-  SaveCustomScriptlet("user-Fix", kContent);
+  SaveCustomScriptlet("Fix", kContent);
 
   UpdateAdBlockInstanceWithRules("a.com##+js(user-Fix)");
 

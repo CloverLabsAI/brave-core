@@ -14,6 +14,7 @@
 #include "base/values.h"
 #include "brave/components/brave_wallet/common/brave_wallet.mojom.h"
 #include "brave/components/brave_wallet/common/buildflags/buildflags.h"
+#include "crypto/process_bound_string.h"
 
 static_assert(BUILDFLAG(ENABLE_BRAVE_WALLET));
 namespace brave_wallet {
@@ -23,6 +24,7 @@ using int256_t = _BitInt(256);
 
 using uint128_t = unsigned _BitInt(128);
 using int128_t = _BitInt(128);
+using SecureVector = std::vector<uint8_t, crypto::SecureAllocator<uint8_t>>;
 
 // 2^255 - 1
 inline constexpr int256_t kMax256BitInt = std::numeric_limits<int256_t>::max();
@@ -104,9 +106,9 @@ struct SolanaSignatureStatus {
   SolanaSignatureStatus(const SolanaSignatureStatus&) = default;
   bool operator==(const SolanaSignatureStatus&) const;
 
-  base::Value::Dict ToValue() const;
+  base::DictValue ToValue() const;
   static std::optional<SolanaSignatureStatus> FromValue(
-      const base::Value::Dict& value);
+      const base::DictValue& value);
 
   // The slot the transaction was processed.
   uint64_t slot = 0;

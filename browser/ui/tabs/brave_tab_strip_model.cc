@@ -12,11 +12,9 @@
 #include <vector>
 
 #include "base/containers/span.h"
-#include "base/feature_list.h"
-#include "base/functional/bind.h"
-#include "base/strings/utf_string_conversions.h"
 #include "brave/browser/ui/brave_browser_window.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
+#include "brave/browser/ui/tabs/brave_tree_tab_strip_collection_delegate.h"
 #include "brave/browser/ui/tabs/tree_tab_model.h"
 #include "brave/components/constants/pref_names.h"
 #include "brave/components/tabs/public/brave_tab_strip_collection.h"
@@ -26,9 +24,7 @@
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_finder.h"
 #include "chrome/browser/ui/browser_window.h"
-#include "chrome/browser/ui/tab_ui_helper.h"
 #include "chrome/browser/ui/tabs/features.h"
-#include "chrome/browser/ui/tabs/public/tab_features.h"
 #include "chrome/browser/ui/tabs/tab_strip_model_delegate.h"
 #include "chrome/browser/ui/tabs/tab_strip_model_observer.h"
 #include "components/prefs/pref_service.h"
@@ -60,9 +56,25 @@ BraveTabStripModel::BraveTabStripModel(
 
 BraveTabStripModel::~BraveTabStripModel() = default;
 
+void BraveTabStripModel::SetTreeTabNodeCollapsed(
+    const tree_tab::TreeTabNodeId& id,
+    bool collapsed) {
+  if (!tree_tab_model_) {
+    return;
+  }
+
+  if (tree_tab_model_->SetCollapsed(id, collapsed)) {
+    auto* node = tree_tab_model_->GetNode(id);
+    CHECK(node);
+    auto change =
+        TreeTabChange(id, TreeTabChange::CollapsedStateChangedChange(*node));
+    observers_.Notify(&TabStripModelObserver::OnTreeTabChanged, change);
+  }
+}
+
 void BraveTabStripModel::SelectRelativeTab(TabRelativeDirection direction,
                                            TabStripUserGestureDetails detail) {
-  if (GetTabCount() == 0) {
+  if (count() == 0) {
     return;
   }
 
@@ -73,17 +85,6 @@ void BraveTabStripModel::SelectRelativeTab(TabRelativeDirection direction,
   } else {
     TabStripModel::SelectRelativeTab(direction, detail);
   }
-}
-
-void BraveTabStripModel::UpdateWebContentsStateAt(int index,
-                                                  TabChangeType change_type) {
-  if (base::FeatureList::IsEnabled(tabs::kBraveRenamingTabs)) {
-    // Make sure that the tab's last origin is updated when the url changes.
-    // When last origin changes, the custom title is reset.
-    GetTabAtIndex(index)->GetTabFeatures()->tab_ui_helper()->UpdateLastOrigin();
-  }
-
-  TabStripModel::UpdateWebContentsStateAt(index, change_type);
 }
 
 void BraveTabStripModel::SelectMRUTab(TabRelativeDirection direction,
@@ -146,26 +147,6 @@ void BraveTabStripModel::CloseTabs(base::span<int> indices,
   TabStripModel::CloseTabs(contentses, close_types);
 }
 
-void BraveTabStripModel::SetCustomTitleForTab(
-    int index,
-    const std::optional<std::u16string>& title) {
-  CHECK(base::FeatureList::IsEnabled(tabs::kBraveRenamingTabs));
-
-  auto* tab_interface = GetTabAtIndex(index);
-  CHECK(tab_interface);
-  auto* tab_ui_helper = tab_interface->GetTabFeatures()->tab_ui_helper();
-  CHECK(tab_ui_helper);
-  tab_ui_helper->SetCustomTitle(title);
-
-  for (auto& observer : observers_) {
-    observer.TabCustomTitleChanged(
-        GetWebContentsAt(index),
-        title.has_value() ? base::UTF16ToUTF8(*title) : std::string());
-  }
-
-  NotifyTabChanged(tab_interface, TabChangeType::kAll);
-}
-
 void BraveTabStripModel::OnTreeTabRelatedPrefChanged() {
   if (*tree_tabs_enabled_ && *vertical_tabs_enabled_) {
     BuildTreeTabs();
@@ -192,15 +173,9 @@ void BraveTabStripModel::BuildTreeTabs() {
                   &BraveTabStripModel::NotifyTreeTabNodeWillBeDestroyed,
                   base::Unretained(this))));
 
-  auto* unpinned = contents_data_->unpinned_collection();
-  CHECK(unpinned);
-
-  tabs::TreeTabNodeTabCollection::BuildTreeTabs(
-      *unpinned,
-      base::BindRepeating(&TreeTabModel::AddTreeTabNode,
-                          tree_tab_model_->GetWeakPtr()),
-      base::BindRepeating(&TreeTabModel::RemoveTreeTabNode,
-                          tree_tab_model_->GetWeakPtr()));
+  contents_data()->SetDelegate(
+      std::make_unique<BraveTreeTabStripCollectionDelegate>(
+          *contents_data(), tree_tab_model_->GetWeakPtr()));
 }
 
 void BraveTabStripModel::FlattenTreeTabs() {
@@ -210,13 +185,9 @@ void BraveTabStripModel::FlattenTreeTabs() {
     return;
   }
 
-  auto* unpinned = contents_data_->unpinned_collection();
-  CHECK(unpinned);
-
-  tabs::TreeTabNodeTabCollection::FlattenTreeTabs(*unpinned);
-
-  tree_tab_node_created_subscription_.reset();
+  contents_data()->SetDelegate(nullptr);
   tree_tab_node_will_be_destroyed_subscription_.reset();
+  tree_tab_node_created_subscription_.reset();
   tree_tab_model_.reset();
 }
 
@@ -238,7 +209,21 @@ void BraveTabStripModel::NotifyTreeTabNodeWillBeDestroyed(
   }
 }
 
+const tree_tab::TreeTabNodeId* BraveTabStripModel::GetTreeTabNodeIdForGroup(
+    tab_groups::TabGroupId group_id) const {
+  return static_cast<const tabs::BraveTabStripCollection*>(contents_data_.get())
+      ->GetTreeTabNodeIdForGroup(group_id);
+}
+
 tabs::TabStripCollection&
 BraveTabStripModel::GetTabStripCollectionForTesting() {
   return *contents_data_;
+}
+
+void BraveTabStripModel::SetSplitPinnedImplForTesting(
+    split_tabs::SplitTabId split,
+    bool pinned) {
+  auto* split_collection = contents_data_->GetSplitTabCollection(split);
+  CHECK(split_collection);
+  TabStripModel::SetSplitPinnedImpl(split_collection, pinned);  // IN-TEST
 }

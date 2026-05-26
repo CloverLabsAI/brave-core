@@ -20,18 +20,6 @@ public enum FaviconError: Error {
 /// Handles obtaining favicons for URLs from local files, database or internet
 public class FaviconFetcher {
 
-  /// The size requirement for the favicon
-  public enum Kind {
-    /// Load favicons marked as `apple-touch-icon`.
-    ///
-    /// Usage: NTP, Favorites
-    case largeIcon
-    /// Load smaller favicons
-    ///
-    /// Usage: History, Search, Tab Tray
-    case smallIcon
-  }
-
   public static func clearCache() async {
     SDImageCache.shared.memoryCache.removeAllObjects()
     SDImageCache.shared.diskCache.removeAllData()
@@ -46,7 +34,6 @@ public class FaviconFetcher {
   ///      Requests are only made in FaviconScriptHandler, when the user visits the page.
   public static func loadIcon(
     url: URL,
-    kind: FaviconFetcher.Kind = .smallIcon,
     persistent: Bool
   ) async throws -> Favicon {
     try Task.checkCancellation()
@@ -111,7 +98,7 @@ public class FaviconFetcher {
     // Handle internal URLs
     var url = url
     if let internalURL = InternalURL(url),
-      let realUrl = internalURL.originalURLFromErrorPage ?? internalURL.extractedUrlParam
+      let realUrl = internalURL.extractedUrlParam
     {
       url = realUrl
     }

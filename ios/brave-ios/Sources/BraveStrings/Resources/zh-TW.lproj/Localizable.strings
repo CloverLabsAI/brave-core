@@ -62,7 +62,7 @@
 "paywall.braveAccountCheckoutOptionTitle" = "Brave 帳戶";
 
 /* Button action text which will bring user to Brave VPN web page for more information. */
-"paywall.braveVPNLearnMoreButtonTitle" = "深入瞭解 Brave VPN 的更多資訊";
+"paywall.braveVPNLearnMoreButtonTitle" = "深入瞭解 Brave VPN";
 
 /* Title label text for entering a promo code. */
 "paywall.havePromoCodeTitle" = "有優惠代碼嗎？";
@@ -126,6 +126,9 @@
 
 /* The error message when the App Store Receipt was not found in the Application Bundle */
 "storekitReceiptViewer.noReceiptFoundTitle" = "抱歉，未找到 App Store 收据";
+
+/* The title of the Brave Origin product */
+"storekitReceiptViewer.originPurchaseName" = "Brave Origin";
 
 /* The title of the label that shows the date when the product subscription was cancelled */
 "storekitReceiptViewer.receiptCancellationDate" = "取消日期";

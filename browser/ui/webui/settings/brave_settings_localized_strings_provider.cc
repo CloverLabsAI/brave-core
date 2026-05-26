@@ -54,6 +54,7 @@
 
 #if BUILDFLAG(ENABLE_AI_CHAT)
 #include "brave/components/ai_chat/core/browser/model_validator.h"
+#include "brave/components/ai_chat/core/common/features.h"
 #endif
 
 #if BUILDFLAG(ENABLE_TOR)
@@ -238,6 +239,8 @@ void BraveAddCommonStrings(content::WebUIDataSource* html_source,
        IDS_SETTINGS_APPEARANCE_SETTINGS_LOCATION_BAR_IS_WIDE},
       {"appearanceSettingsWebViewRoundedCorners",
        IDS_SETTINGS_APPEARANCE_SETTINGS_WEB_VIEW_ROUNDED_CORNERS},
+      {"appearanceSettingsSubtleAppMenuLogo",
+       IDS_SETTINGS_APPEARANCE_SETTINGS_SUBTLE_APP_MENU_LOGO},
       {"appearanceSettingsShowBraveNewsButtonLabel",
        IDS_SETTINGS_SHOW_BRAVE_NEWS_BUTTON_LABEL},
       {"appearanceSettingsShowLeoButtonLabel",
@@ -300,6 +303,18 @@ void BraveAddCommonStrings(content::WebUIDataSource* html_source,
        IDS_SETTINGS_APPEARANCE_SETTINGS_BRAVE_TAB_HOVER_MODE_CARD_WITH_PREVIEW},
       {"appearanceSettingsTabHoverModeTooltip",
        IDS_SETTINGS_APPEARANCE_SETTINGS_BRAVE_TAB_HOVER_MODE_TOOLTIP},
+      {"appearanceSettingsTabMinWidthMode",
+       IDS_SETTINGS_APPEARANCE_SETTINGS_BRAVE_TAB_MIN_WIDTH_MODE},
+      {"appearanceSettingsTabMinWidthMinimum",
+       IDS_SETTINGS_APPEARANCE_SETTINGS_BRAVE_TAB_MIN_WIDTH_MINIMUM},
+      {"appearanceSettingsTabMinWidthMedium",
+       IDS_SETTINGS_APPEARANCE_SETTINGS_BRAVE_TAB_MIN_WIDTH_MEDIUM},
+      {"appearanceSettingsTabMinWidthLarge",
+       IDS_SETTINGS_APPEARANCE_SETTINGS_BRAVE_TAB_MIN_WIDTH_LARGE},
+      {"appearanceSettingsTabMinWidthFull",
+       IDS_SETTINGS_APPEARANCE_SETTINGS_BRAVE_TAB_MIN_WIDTH_FULL},
+      {"appearanceSettingsScrollableHorizontalTabStrip",
+       IDS_SETTINGS_APPEARANCE_SETTINGS_BRAVE_SCROLLABLE_HORIZONTAL_TAB_STRIP},
       {"appearanceSettingsSharedPinnedTab",
        IDS_SETTINGS_APPEARANCE_SETTINGS_BRAVE_SHARED_PINNED_TAB},
       {"sideBar", IDS_SETTINGS_APPEARNCE_SETTINGS_SIDEBAR_PART_TITLE},
@@ -562,6 +577,8 @@ void BraveAddCommonStrings(content::WebUIDataSource* html_source,
        IDS_SETTINGS_LEO_ASSISTANT_SHOW_IN_CONTEXT_MENU_DESC},
       {"braveLeoAssistantTabOrganizationLabel",
        IDS_SETTINGS_LEO_ASSISTANT_TAB_ORGANIZATION_LABEL},
+      {"braveLeoAssistantTabOrganizationModelLabel",
+       IDS_SETTINGS_LEO_ASSISTANT_TAB_ORGANIZATION_MODEL_LABEL},
       {"braveLeoAssistantHistoryPreferenceLabel",
        IDS_SETTINGS_LEO_ASSISTANT_HISTORY_PREFERENCE_LABEL},
       {"braveLeoAssistantHistoryPreferenceConfirm",
@@ -591,10 +608,10 @@ void BraveAddCommonStrings(content::WebUIDataSource* html_source,
       {"braveLeoModelSubtitle-chat-claude-sonnet",
        IDS_CHAT_UI_CHAT_CLAUDE_SONNET_SUBTITLE},
       {"braveLeoModelSubtitle-chat-qwen", IDS_CHAT_UI_CHAT_QWEN_SUBTITLE},
-      {"braveLeoModelSubtitle-chat-near-deepseek-v3-1",
-       IDS_CHAT_UI_CHAT_NEAR_DEEPSEEK_V3_1_SUBTITLE},
-      {"braveLeoModelSubtitle-chat-llama-4-scout",
-       IDS_CHAT_UI_CHAT_LLAMA_4_SCOUT_SUBTITLE},
+      {"braveLeoModelSubtitle-chat-near-glm-5",
+       IDS_CHAT_UI_CHAT_NEAR_GLM_5_SUBTITLE},
+      {"braveLeoModelSubtitle-chat-glm-4-7-flash",
+       IDS_CHAT_UI_CHAT_GLM_4_7_FLASH_SUBTITLE},
       {"braveLeoModelSubtitle-chat-llama-4-maverick",
        IDS_CHAT_UI_CHAT_LLAMA_4_MAVERICK_SUBTITLE},
       {"braveLeoModelSubtitle-chat-gpt-oss-20b",
@@ -603,16 +620,18 @@ void BraveAddCommonStrings(content::WebUIDataSource* html_source,
        IDS_CHAT_UI_CHAT_GPT_OSS_120B_SUBTITLE},
       {"braveLeoModelSubtitle-chat-mistral-large",
        IDS_CHAT_UI_CHAT_MISTRAL_LARGE_SUBTITLE},
-      {"braveLeoModelSubtitle-chat-pixtral-large",
-       IDS_CHAT_UI_CHAT_PIXTRAL_LARGE_SUBTITLE},
+      {"braveLeoModelSubtitle-chat-kimi-k2-5",
+       IDS_CHAT_UI_CHAT_KIMI_K2_5_SUBTITLE},
       {"braveLeoModelSubtitle-chat-qwen-3-235b",
        IDS_CHAT_UI_CHAT_QWEN_3_235B_SUBTITLE},
-      {"braveLeoModelSubtitle-chat-deepseek-v3-1",
-       IDS_CHAT_UI_CHAT_DEEPSEEK_V3_1_SUBTITLE},
+      {"braveLeoModelSubtitle-chat-deepseek-v3-2",
+       IDS_CHAT_UI_CHAT_DEEPSEEK_V3_2_SUBTITLE},
       {"braveLeoModelSubtitle-chat-qwen-3-coder-480b",
        IDS_CHAT_UI_CHAT_QWEN_3_CODER_480B_SUBTITLE},
       {"braveLeoModelSubtitle-chat-claude-opus",
        IDS_CHAT_UI_CHAT_CLAUDE_OPUS_SUBTITLE},
+      {"braveLeoModelSubtitle-chat-brave-summary",
+       IDS_CHAT_UI_CHAT_BRAVE_SUMMARY_SUBTITLE},
       {"braveLeoAssistantManageUrlLabel",
        IDS_SETTINGS_LEO_ASSISTANT_MANAGE_URL},
       {"braveLeoAssistantByomLabel", IDS_SETTINGS_LEO_ASSISTANT_BYOM_LABEL},
@@ -636,6 +655,10 @@ void BraveAddCommonStrings(content::WebUIDataSource* html_source,
        IDS_SETTINGS_LEO_ASSISTANT_INPUT_MODEL_VISION_SUPPORT},
       {"braveLeoAssistantInputModelVisionSupportTooltipInfo",
        IDS_SETTINGS_LEO_ASSISTANT_INPUT_MODEL_VISION_SUPPORT_TOOLTIP_INFO},
+      {"braveLeoAssistantInputModelToolSupport",
+       IDS_SETTINGS_LEO_ASSISTANT_MODEL_TOOL_SUPPORT_TOGGLE},
+      {"braveLeoAssistantInputModelToolSupportTooltipInfo",
+       IDS_SETTINGS_LEO_ASSISTANT_INPUT_MODEL_TOOL_SUPPORT_TOOLTIP_INFO},
       {"braveLeoAssistantInputContextSizeLabel",
        IDS_SETTINGS_LEO_ASSISTANT_INPUT_CONTEXT_SIZE},
       {"braveLeoAssistantInputContextSizeTooltipInfo",
@@ -1096,6 +1119,9 @@ void BraveAddCommonStrings(content::WebUIDataSource* html_source,
 
   html_source->AddString("braveLeoAssistantTabOrganizationLearnMoreURL",
                          kTabOrganizationLearnMoreURL);
+
+  html_source->AddBoolean("isTabOrganizationFeatureEnabled",
+                          ai_chat::features::IsTabOrganizationEnabled());
 #endif
 
 #if BUILDFLAG(ENABLE_EXTENSIONS)
@@ -1217,47 +1243,9 @@ void BraveAddEmailAliasesStrings(content::WebUIDataSource* html_source) {
 }
 
 void BraveAddBraveAccountStrings(content::WebUIDataSource* html_source) {
-  if (!brave_account::features::IsBraveAccountEnabled()) {
-    return;
+  if (brave_account::features::IsBraveAccountEnabled()) {
+    html_source->AddLocalizedStrings(webui::kBraveAccountSettingsStrings);
   }
-
-  webui::LocalizedString localized_strings[] = {
-      {"braveAccountLoggedOutRowTitle",
-       IDS_SETTINGS_BRAVE_ACCOUNT_LOGGED_OUT_ROW_TITLE},
-      {"braveAccountLoggedOutRowDescription",
-       IDS_SETTINGS_BRAVE_ACCOUNT_LOGGED_OUT_ROW_DESCRIPTION},
-      {"braveAccountGetStartedButtonLabel",
-       IDS_SETTINGS_BRAVE_ACCOUNT_GET_STARTED_BUTTON_LABEL},
-      {"braveAccountVerificationRowTitle",
-       IDS_SETTINGS_BRAVE_ACCOUNT_VERIFICATION_ROW_TITLE},
-      {"braveAccountVerificationRowDescription1",
-       IDS_SETTINGS_BRAVE_ACCOUNT_VERIFICATION_ROW_DESCRIPTION_1},
-      {"braveAccountVerificationRowDescription2",
-       IDS_SETTINGS_BRAVE_ACCOUNT_VERIFICATION_ROW_DESCRIPTION_2},
-      {"braveAccountResendConfirmationEmailButtonLabel",
-       IDS_SETTINGS_BRAVE_ACCOUNT_RESEND_CONFIRMATION_EMAIL_BUTTON_LABEL},
-      {"braveAccountCancelRegistrationButtonLabel",
-       IDS_SETTINGS_BRAVE_ACCOUNT_CANCEL_REGISTRATION_BUTTON_LABEL},
-      {"braveAccountLoggedInRowTitle",
-       IDS_SETTINGS_BRAVE_ACCOUNT_LOGGED_IN_ROW_TITLE},
-      {"braveAccountLogOutButtonLabel",
-       IDS_SETTINGS_BRAVE_ACCOUNT_LOG_OUT_BUTTON_LABEL},
-      {"braveAccountError", IDS_BRAVE_ACCOUNT_ERROR},
-      {"braveAccountClientError", IDS_BRAVE_ACCOUNT_CLIENT_ERROR},
-      {"braveAccountServerError", IDS_BRAVE_ACCOUNT_SERVER_ERROR},
-      {"braveAccountResendConfirmationEmailSuccessTitle",
-       IDS_BRAVE_ACCOUNT_RESEND_CONFIRMATION_EMAIL_SUCCESS_TITLE},
-      {"braveAccountResendConfirmationEmailSuccess",
-       IDS_BRAVE_ACCOUNT_RESEND_CONFIRMATION_EMAIL_SUCCESS},
-      {"braveAccountResendConfirmationEmailErrorTitle",
-       IDS_BRAVE_ACCOUNT_RESEND_CONFIRMATION_EMAIL_ERROR_TITLE},
-      {"braveAccountResendConfirmationEmailMaximumSendAttemptsExceeded",
-       IDS_BRAVE_ACCOUNT_RESEND_CONFIRMATION_EMAIL_MAXIMUM_SEND_ATTEMPTS_EXCEEDED},
-      {"braveAccountResendConfirmationEmailAlreadyVerified",
-       IDS_BRAVE_ACCOUNT_RESEND_CONFIRMATION_EMAIL_ALREADY_VERIFIED},
-  };
-
-  html_source->AddLocalizedStrings(localized_strings);
 }
 
 }  // namespace
@@ -1311,11 +1299,6 @@ void BraveAddLocalizedStrings(content::WebUIDataSource* html_source,
   if (base::FeatureList::IsEnabled(commands::features::kBraveCommands)) {
     html_source->AddLocalizedStrings(webui::kShortcutsStrings);
   }
-
-  html_source->AddBoolean(
-      "cosmeticFilteringCustomScriptletsEnabled",
-      base::FeatureList::IsEnabled(
-          brave_shields::features::kCosmeticFilteringCustomScriptlets));
 
   html_source->AddBoolean(
       "isAdBlockOnlyModeSupportedAndFeatureEnabled",

@@ -65,6 +65,9 @@
         <ignore regexp="The resource `R.style.BottomSheetActivityTheme` appears to be unused" />
         <ignore regexp="The resource `R.style.BraveAccountTheme` appears to be unused" />
         <ignore regexp="The resource `R.style.BottomSheetAnimation` appears to be unused" />
+        <ignore regexp="The resource `R.style.FadeEnterAnimation` appears to be unused" />
+        <ignore regexp="The resource `R.style.Theme_Brave_WelcomeOnboarding` appears to be unused" />
+        <ignore regexp="The resource `R.anim.fast_fade_in` appears to be unused" />
 
         <!-- These are used at brave/android/java/brave-res/xml/quick_action_search_and_bookmark_widget_info.xml -->
         <ignore regexp="The resource `R.xml.quick_action_search_and_bookmark_widget_info` appears to be unused" />
@@ -75,6 +78,11 @@
 
         <!-- Is used at brave_base_module_resources -->
         <ignore regexp="The resource `R.drawable.themed_app_icon` appears to be unused" />
+
+        <!-- Was used at upstream's settings_no_match.xml, settings_zero_state.xml which we have overridden -->
+        <ignore regexp="The resource `R.color.settings_search_logo_color_1` appears to be unused" />
+        <ignore regexp="The resource `R.color.settings_search_logo_color_2` appears to be unused" />
+        <ignore regexp="The resource `R.color.settings_search_logo_color_3` appears to be unused" />
     </issue>
     <issue id="ImpliedQuantity">
         <ignore regexp="brave/build/android/android_brave_strings_grd"/>

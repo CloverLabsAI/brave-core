@@ -19,8 +19,10 @@ class PolkadotKeyring {
  public:
   // Construct the keyring for Polkadot using the provided seed, derived from
   // the bip39::MnemonicToEntropyToSeed() method.
-  PolkadotKeyring(base::span<const uint8_t, kPolkadotSeedSize> seed,
-                  mojom::KeyringId keyring_id);
+  PolkadotKeyring(
+      base::span<const uint8_t, kPolkadotSeedSize> seed,
+      mojom::KeyringId keyring_id,
+      base::RepeatingCallback<bool(const std::string&)> is_address_allowed);
   ~PolkadotKeyring();
 
   // Get the address of the account denoted by `//<network>//<account_index>`,
@@ -61,10 +63,27 @@ class PolkadotKeyring {
       uint32_t account_index,
       std::string_view password);
 
+  // Encodes the provided Polkadot sr25519 keypair in Polkadot.js JSON export
+  // format using the Substrate address prefix.
+  static std::optional<std::string> EncodePrivateKeyForExport(
+      const HDKeySr25519& keypair,
+      std::string_view password,
+      const std::optional<std::array<uint8_t, kScryptSaltSize>>&
+          salt_for_testing = std::nullopt,
+      const std::optional<std::array<uint8_t, kSecretboxNonceSize>>&
+          nonce_for_testing = std::nullopt);
+
   // Sets random bytes for testing for private key export.
   void SetRandBytesForTesting(
       const std::array<uint8_t, kScryptSaltSize>& seed_bytes,
       const std::array<uint8_t, kSecretboxNonceSize>& nonce_bytes);
+
+  std::array<uint8_t, kSr25519Pkcs8Size> GetPkcs8KeyForTesting(
+      uint32_t account_index);
+
+  // Set the RNG used by the underlying Schnorr signing routines to be
+  // deterministic for the sake of testing.
+  void SetSignatureRngForTesting();
 
  private:
   HDKeySr25519& EnsureKeyPair(uint32_t account_index);
@@ -72,6 +91,8 @@ class PolkadotKeyring {
   HDKeySr25519 root_account_key_;
   mojom::KeyringId keyring_id_;
   base::flat_map<uint32_t, HDKeySr25519> secondary_keys_;
+
+  base::RepeatingCallback<bool(const std::string&)> is_address_allowed_;
 
   std::optional<std::array<uint8_t, kScryptSaltSize>>
       rand_salt_bytes_for_testing_;

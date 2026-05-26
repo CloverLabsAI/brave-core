@@ -27,6 +27,7 @@ interface PanelHandler {
   CloseUI();
 
   GetPosition() => (gfx.mojom.Vector2d? vec);
+  GetBrowserWindowHeight() => (int32? height);
   SetAdvancedViewEnabled(bool is_enabled);
   GetAdvancedViewEnabled() => (bool is_enabled);
 };
@@ -64,6 +65,10 @@ interface DataHandler {
   // Checks is there any element blocked (by Element blocker feature)
   // on the current page
   AreAnyBlockedElementsPresent() => (bool is_available);
+
+  // Returns a value indicating whether a favicon is available for the
+  // specified page URL.
+  IsResourceFaviconAvailable(url.mojom.Url url) => (bool is_available);
 };
 
 struct SiteBlockInfo {

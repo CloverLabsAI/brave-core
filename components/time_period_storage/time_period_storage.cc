@@ -14,29 +14,55 @@
 #include "base/time/clock.h"
 #include "base/time/default_clock.h"
 #include "base/values.h"
+#include "brave/components/time_period_storage/pref_time_period_store.h"
+#include "brave/components/time_period_storage/time_period_store.h"
 #include "components/prefs/pref_service.h"
-#include "components/prefs/scoped_user_pref_update.h"
 
 namespace {
+
 // Used to compensate for DST-related differences. i.e. time
 // method arguments not matching up with stored time values.
 constexpr base::TimeDelta kPotentialDSTOffset = base::Hours(1);
+
+// Used by `NextMidnight` when `should_use_fixed_day` is `false`. 24 hours
+// covers a standard day; the extra 2 hours covers the maximum DST shift
+// (Antarctica/Troll), guaranteeing the result lands inside the next calendar
+// day without overshooting into the day after.
+constexpr base::TimeDelta kNextMidnightOffset =
+    base::Hours(24) + base::Hours(2);
+
 }  // namespace
+
+TimePeriodStorage::TimePeriodStorage(std::unique_ptr<TimePeriodStore> store,
+                                     size_t period_days,
+                                     bool should_offset_dst)
+    : clock_(std::make_unique<base::DefaultClock>()),
+      store_(std::move(store)),
+      period_days_(period_days),
+      should_offset_dst_(should_offset_dst) {
+  CHECK(store_);
+  Load();
+}
 
 TimePeriodStorage::TimePeriodStorage(PrefService* prefs,
                                      const char* pref_name,
-                                     size_t period_days)
-    : TimePeriodStorage(prefs, pref_name, nullptr, period_days) {}
+                                     size_t period_days,
+                                     bool should_offset_dst)
+    : TimePeriodStorage(prefs,
+                        pref_name,
+                        nullptr,
+                        period_days,
+                        should_offset_dst) {}
 
 TimePeriodStorage::TimePeriodStorage(PrefService* prefs,
                                      const char* pref_name,
                                      const char* dict_key,
-                                     size_t period_days)
+                                     size_t period_days,
+                                     bool should_offset_dst)
     : clock_(std::make_unique<base::DefaultClock>()),
-      prefs_(prefs),
-      pref_name_(pref_name),
-      dict_key_(dict_key),
-      period_days_(period_days) {
+      store_(std::make_unique<PrefTimePeriodStore>(prefs, pref_name, dict_key)),
+      period_days_(period_days),
+      should_offset_dst_(should_offset_dst) {
   DCHECK(pref_name);
   if (prefs) {
     Load();
@@ -47,12 +73,12 @@ TimePeriodStorage::TimePeriodStorage(PrefService* prefs,
                                      const char* pref_name,
                                      const char* dict_key,
                                      size_t period_days,
-                                     std::unique_ptr<base::Clock> clock)
+                                     std::unique_ptr<base::Clock> clock,
+                                     bool should_offset_dst)
     : clock_(std::move(clock)),
-      prefs_(prefs),
-      pref_name_(pref_name),
-      dict_key_(dict_key),
-      period_days_(period_days) {
+      store_(std::make_unique<PrefTimePeriodStore>(prefs, pref_name, dict_key)),
+      period_days_(period_days),
+      should_offset_dst_(should_offset_dst) {
   DCHECK(prefs);
   DCHECK(pref_name);
   Load();
@@ -109,17 +135,20 @@ void TimePeriodStorage::ReplaceIfGreaterForDate(const base::Time& date,
 uint64_t TimePeriodStorage::GetPeriodSumInTimeRange(
     const base::Time& start_time,
     const base::Time& end_time) const {
+  base::TimeDelta dst_offset =
+      should_offset_dst_ ? kPotentialDSTOffset : base::TimeDelta();
   // We only record values between the specified time range (inclusive).
-  return std::accumulate(daily_values_.begin(), daily_values_.end(), 0ull,
-                         [start_time, end_time](uint64_t acc, const auto& u2) {
-                           uint64_t add = 0;
-                           // Check only last continious days.
-                           if (u2.day >= start_time - kPotentialDSTOffset &&
-                               u2.day <= end_time + kPotentialDSTOffset) {
-                             add = u2.value;
-                           }
-                           return acc + add;
-                         });
+  return std::accumulate(
+      daily_values_.begin(), daily_values_.end(), 0ull,
+      [start_time, end_time, dst_offset](uint64_t acc, const auto& u2) {
+        uint64_t add = 0;
+        // Check only last continious days.
+        if (u2.day >= start_time - dst_offset &&
+            u2.day <= end_time + dst_offset) {
+          add = u2.value;
+        }
+        return acc + add;
+      });
 }
 
 uint64_t TimePeriodStorage::GetPeriodSum() const {
@@ -155,55 +184,82 @@ bool TimePeriodStorage::IsOnePeriodPassed() const {
   return daily_values_.size() == period_days_;
 }
 
-void TimePeriodStorage::FilterToPeriod() {
-  base::Time now_midnight = clock_->Now().LocalMidnight();
-  base::Time last_saved_midnight;
+void TimePeriodStorage::Clear() {
+  daily_values_.clear();
+  store_->Clear();
+}
 
-  if (!daily_values_.empty()) {
-    last_saved_midnight = daily_values_.front().day;
+base::Time TimePeriodStorage::NextMidnight(base::Time time) const {
+  // No precondition is enforced on `time` being at midnight. Two legitimate
+  // cases produce non-midnight inputs: legacy prefs written by the old
+  // DST-offset code contain timestamps 1 hour past midnight, and travel across
+  // timezones means a timestamp that was midnight in the original timezone is
+  // no longer midnight in the current one. Adding `kNextMidnightOffset` always
+  // lands within the next calendar day regardless of the input, so `Midnight`
+  // returns its correct start.
+  //
+  // Known limitation: if `time` appears later than 22:00 in the current local
+  // timezone (possible when crossing more than 22 timezone hours, e.g. UTC+12
+  // to UTC-11), `time + kNextMidnightOffset` overshoots into the day after next
+  // and one empty bucket is silently skipped. A correct fix requires ICU
+  // calendar arithmetic to advance by exactly one calendar day. DST transitions
+  // shift clocks by at most 2 hours, so the 22:00 bound is never reached for
+  // DST and all DST cases are handled correctly. Migrating all
+  // `TimePeriodStorage` callers to UTC buckets would eliminate both the DST and
+  // timezone-travel edge cases entirely.
+  return (time + kNextMidnightOffset).LocalMidnight();
+}
+
+base::TimeDelta TimePeriodStorage::GetDstOffset() const {
+  if (!should_offset_dst_) {
+    return base::TimeDelta();
   }
 
-  // Push daily values for new days. In loop condition, add one hour
-  // to now_midnight to account for DST changes.
-  for (base::Time day_midnight = last_saved_midnight + base::Days(1);
-       day_midnight <= (now_midnight + kPotentialDSTOffset);
-       day_midnight += base::Days(1)) {
-    // Day changed. Since we consider only small incoming intervals, lets just
-    // save it with a new timestamp.
-    if (last_saved_midnight.is_null()) {
-      // If this is a brand new list, insert one daily value
-      // with now_midnight...
-      day_midnight = now_midnight;
-    }
-    daily_values_.push_front({day_midnight, 0});
+  return kPotentialDSTOffset;
+}
+
+void TimePeriodStorage::FilterToPeriod() {
+  const base::Time now_midnight = clock_->Now().LocalMidnight();
+
+  if (daily_values_.empty()) {
+    // No prior data; seed the list with an empty bucket for today.
+    daily_values_.push_front({now_midnight, 0});
+    return;
+  }
+
+  // When DST offsetting is disabled and local time is used (SERP), use
+  // `NextMidnight` to correctly handle short calendar days at DST start.
+  // For P3A, `GetDstOffset` extends the loop condition by one hour to cover
+  // a potential DST shift.
+  const bool should_use_fixed_day = should_offset_dst_;
+  const base::Time last_recorded_midnight = daily_values_.front().day;
+  base::Time bucket_midnight = should_use_fixed_day
+                                   ? last_recorded_midnight + base::Days(1)
+                                   : NextMidnight(last_recorded_midnight);
+  while (bucket_midnight <= now_midnight + GetDstOffset()) {
+    // Add an empty bucket for the missed day.
+    daily_values_.push_front({bucket_midnight, 0});
+
     if (daily_values_.size() > period_days_) {
+      // Drop the oldest bucket outside the window.
       daily_values_.pop_back();
     }
-    if (last_saved_midnight.is_null()) {
-      // ...and break, so we only insert one element. We only want
-      // to insert multiple elements to make up for inactive days on
-      // existing lists, so that IsOnePeriodPassed works correctly.
-      break;
-    }
+
+    // Advance to the next bucket.
+    bucket_midnight = should_use_fixed_day ? bucket_midnight + base::Days(1)
+                                           : NextMidnight(bucket_midnight);
   }
 }
 
 void TimePeriodStorage::Load() {
   DCHECK(daily_values_.empty());
-  const auto& pref_value = prefs_->GetValue(pref_name_);
-
-  const base::Value::List* list;
-  if (dict_key_) {
-    list = pref_value.GetDict().FindList(dict_key_);
-  } else {
-    list = pref_value.GetIfList();
-  }
+  const base::ListValue* list = store_->Get();
   if (!list) {
     return;
   }
   for (const auto& it : *list) {
     DCHECK(it.is_dict());
-    const base::Value::Dict& dict = it.GetDict();
+    const base::DictValue& dict = it.GetDict();
     auto day = dict.FindDouble("day");
     auto value = dict.FindDouble("value");
     if (!day || !value) {
@@ -221,19 +277,14 @@ void TimePeriodStorage::Save() {
   DCHECK(!daily_values_.empty());
   DCHECK_LE(daily_values_.size(), period_days_);
 
-  base::Value::List list;
+  base::ListValue list;
   // TODO(iefremov): Optimize if needed.
   list.clear();
   for (const auto& u : daily_values_) {
-    base::Value::Dict value;
+    base::DictValue value;
     value.Set("day", u.day.InSecondsFSinceUnixEpoch());
     value.Set("value", static_cast<double>(u.value));
     list.Append(std::move(value));
   }
-  if (dict_key_) {
-    ScopedDictPrefUpdate update(prefs_, pref_name_);
-    update->Set(dict_key_, std::move(list));
-  } else {
-    prefs_->SetList(pref_name_, std::move(list));
-  }
+  store_->Set(std::move(list));
 }

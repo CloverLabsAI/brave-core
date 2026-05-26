@@ -21,6 +21,7 @@
 #include "brave/components/brave_adaptive_captcha/brave_adaptive_captcha_service.h"
 #include "brave/components/brave_ads/buildflags/buildflags.h"
 #include "brave/components/brave_ads/core/browser/service/ads_service.h"
+#include "brave/components/brave_ads/core/mojom/brave_ads.mojom.h"
 #include "brave/components/brave_rewards/content/rewards_p3a.h"
 #include "brave/components/brave_rewards/content/rewards_service.h"
 #include "brave/components/brave_rewards/content/rewards_service_observer.h"
@@ -494,7 +495,7 @@ void RewardsPageHandler::GetAdsHistory(GetAdsHistoryCallback callback) {
       now - brave_ads::kAdHistoryRetentionPeriod.Get() - base::Days(1);
 
   auto on_history = [](decltype(callback) callback,
-                       std::optional<base::Value::List> list) {
+                       std::optional<base::ListValue> list) {
     // The Ads service provides Ads history data as a `base::Value` (i.e. JSON).
     // Rather than sending a Mojo `base::Value` interface to the client (which
     // is awkward to use in this context), send the data to the WebUI as a JSON
@@ -503,7 +504,7 @@ void RewardsPageHandler::GetAdsHistory(GetAdsHistoryCallback callback) {
 
     if (!list) {
       // If there is no Ads history data, send an empty JSON array.
-      list = base::Value::List();
+      list = base::ListValue();
     }
 
     std::string json;
@@ -765,6 +766,15 @@ void RewardsPageHandler::RecordOfferView(RecordOfferViewCallback callback) {
 
 void RewardsPageHandler::RecordOfferClick(RecordOfferClickCallback callback) {
   p3a::RecordOfferClicks(prefs_, true);
+  std::move(callback).Run();
+}
+
+void RewardsPageHandler::RecordNewTabOnboardingClick(
+    RecordNewTabOnboardingClickCallback callback) {
+  if (!prefs_->GetBoolean(prefs::kEnabled)) {
+    rewards_service_->GetP3AConversionMonitor()->RecordPanelTrigger(
+        p3a::PanelTrigger::kNTP);
+  }
   std::move(callback).Run();
 }
 

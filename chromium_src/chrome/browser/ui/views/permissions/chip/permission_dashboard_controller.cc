@@ -18,7 +18,7 @@ bool IsAutoplay(content_settings::PageSpecificContentSettings* content_settings,
   // If upstream adds other types to the dashboard we may need to update this
   // code.
   DCHECK(model->image_type() ==
-         ContentSettingImageModel::ImageType::MEDIASTREAM);
+         ContentSettingImageModel::ImageType::kMediaStream);
 
   if (!content_settings) {
     return false;
@@ -43,17 +43,16 @@ std::u16string GetAutoplayIndicatorTitle() {
 }  // namespace
 
 // PermissionDashboardController::Update shows permissions chip for
-// ContentSettingImageModel::ImageType::MEDIASTREAM, which upstream limits to
+// ContentSettingImageModel::ImageType::kMediaStream, which upstream limits to
 // Camera and Microphone. We add AUTOPLAY to MEDIASTREAM, so we need to return
 // the appropriate title for it. Update is called from LocationBarView's
 // RefreshContentSettingViews.
-#define SetMessage(...)                                                     \
-  SetMessage(                                                               \
-      IsAutoplay(                                                           \
-          content_settings::PageSpecificContentSettings::GetForFrame(       \
-              location_bar_view_->GetWebContents()->GetPrimaryMainFrame()), \
-          indicator_model)                                                  \
-          ? GetAutoplayIndicatorTitle()                                     \
+#define SetMessage(...)                                                       \
+  SetMessage(                                                                 \
+      IsAutoplay(content_settings::PageSpecificContentSettings::GetForFrame(  \
+                     location_bar_->GetWebContents()->GetPrimaryMainFrame()), \
+                 indicator_model)                                             \
+          ? GetAutoplayIndicatorTitle()                                       \
           : GetIndicatorTitle(indicator_model))
 
 #include <chrome/browser/ui/views/permissions/chip/permission_dashboard_controller.cc>

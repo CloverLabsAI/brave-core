@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <title>$i18n{CHAT_UI_TITLE}</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <link rel="stylesheet" href="//resources/brave/css/reset.css">
     <link rel="stylesheet" href="//resources/css/text_defaults.css">
     <link rel="stylesheet" href="//resources/brave/fonts/manrope.css">
@@ -19,9 +19,15 @@
 </if>
     <style>
       body {
-        /* This page is designed to be embedded in an opaque iframe */
         overflow: hidden;
         background-color: transparent;
+      }
+      #mountPoint {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
       }
     </style>
   </head>

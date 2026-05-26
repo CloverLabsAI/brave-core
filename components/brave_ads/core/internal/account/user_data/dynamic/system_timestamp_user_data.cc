@@ -8,7 +8,7 @@
 #include <string_view>
 
 #include "base/time/time.h"
-#include "brave/components/brave_ads/core/internal/common/time/time_util.h"
+#include "brave/components/brave_ads/core/internal/common/time/time_formatting_util.h"
 #include "brave/components/brave_ads/core/internal/settings/settings.h"
 
 namespace brave_ads {
@@ -17,12 +17,12 @@ namespace {
 constexpr std::string_view kSystemTimestampKey = "systemTimestamp";
 }  // namespace
 
-base::Value::Dict BuildSystemTimestampUserData() {
+base::DictValue BuildSystemTimestampUserData() {
   if (!UserHasJoinedBraveRewards()) {
     return {};
   }
 
-  return base::Value::Dict().Set(
+  return base::DictValue().Set(
       kSystemTimestampKey, TimeToPrivacyPreservingIso8601(base::Time::Now()));
 }
 

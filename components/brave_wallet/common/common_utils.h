@@ -30,6 +30,9 @@ bool IsZCashShieldedTransactionsEnabled();
 bool IsAnkrBalancesEnabled();
 bool IsTransactionSimulationsEnabled();
 bool IsWalletDebugEnabled();
+#if BUILDFLAG(IS_IOS)
+bool IsWalletWebUIEnabled();
+#endif
 
 bool IsEthereumKeyring(mojom::KeyringId keyring_id);
 bool IsEthereumAccount(const mojom::AccountIdPtr& account_id);
@@ -73,11 +76,13 @@ std::string GetNetworkForCardanoKeyring(const mojom::KeyringId& keyring_id);
 std::string GetNetworkForCardanoAccount(const mojom::AccountIdPtr& account_id);
 
 bool IsPolkadotKeyring(mojom::KeyringId keyring_id);
+bool IsPolkadotImportKeyring(mojom::KeyringId keyring_id);
 bool IsPolkadotNetwork(std::string_view network_id);
 std::string GetNetworkForPolkadotKeyring(const mojom::KeyringId& keyring_id);
 std::string GetNetworkForPolkadotAccount(const mojom::AccountIdPtr& account_id);
 
 mojom::CoinType GetCoinForKeyring(mojom::KeyringId keyring_id);
+bool IsAccountBasedCoin(mojom::CoinType coin);
 
 mojom::CoinType GetCoinTypeFromTxDataUnion(
     const mojom::TxDataUnion& tx_data_union);
@@ -92,6 +97,10 @@ std::vector<mojom::KeyringId> GetSupportedKeyringsForNetwork(
 
 // True for coins which support dApps.
 bool CoinSupportsDapps(mojom::CoinType coin);
+
+// True for legacy coins/keyrings that still use address-based AccountId.
+bool IsDeprecatedAddressBasedCoin(mojom::CoinType coin);
+bool IsDeprecatedAddressBasedKeyring(mojom::KeyringId keyring_id);
 
 // True for coins which don't need to store selected network in prefs. I.e. for
 // corresponding account there is only and only available

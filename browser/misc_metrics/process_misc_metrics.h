@@ -8,12 +8,17 @@
 
 #include <memory>
 
+#include "base/memory/raw_ptr.h"
 #include "build/build_config.h"
+#include "components/prefs/pref_change_registrar.h"
 
 class PrefRegistrySimple;
 class PrefService;
 
 namespace misc_metrics {
+
+inline constexpr char kWidevineEnabledHistogramName[] =
+    "Brave.Core.WidevineEnabled";
 
 #if !BUILDFLAG(IS_ANDROID)
 class MenuMetrics;
@@ -26,6 +31,7 @@ class TabMetrics;
 #endif
 class DefaultBrowserMonitor;
 class DohMetrics;
+class MediaSessionMetrics;
 class UptimeMonitorImpl;
 
 class ProcessMiscMetrics {
@@ -49,8 +55,14 @@ class ProcessMiscMetrics {
 #endif
   DefaultBrowserMonitor* default_browser_monitor();
   UptimeMonitorImpl* uptime_monitor();
+  MediaSessionMetrics* media_session_metrics();
 
  private:
+  void ReportSimpleMetrics();
+
+  raw_ptr<PrefService> local_state_;
+  PrefChangeRegistrar pref_change_registrar_;
+
 #if !BUILDFLAG(IS_ANDROID)
   std::unique_ptr<MenuMetrics> menu_metrics_;
   std::unique_ptr<NewTabMetrics> new_tab_metrics_;
@@ -63,6 +75,7 @@ class ProcessMiscMetrics {
   std::unique_ptr<DefaultBrowserMonitor> default_browser_monitor_;
   std::unique_ptr<DohMetrics> doh_metrics_;
   std::unique_ptr<UptimeMonitorImpl> uptime_monitor_;
+  std::unique_ptr<MediaSessionMetrics> media_session_metrics_;
 };
 
 }  // namespace misc_metrics

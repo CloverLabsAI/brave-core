@@ -19,6 +19,7 @@
 <translation id="1544192797660353713">ዋሌት</translation>
 <translation id="2361906291514218784">Leo AI</translation>
 <translation id="8275068909952022340">የበለጠ…</translation>
+<translation id="71316462802471551">ኢሜል ዳሰሳዎች</translation>
 <translation id="1990886731975529483">Google Widevine ን ይጫኑት እና ይክፈቱ</translation>
 <translation id="8926389886865778422">ደግመው አይጠይቁ</translation>
 <translation id="4900351245762303149">Google Widevine ን ይጫኑት</translation>
@@ -133,17 +134,12 @@
 <translation id="8184318863960255706">ተጨማሪ መረጃ</translation>
 <translation id="780301667611848630">አይ፣ አመሰግናለሁ</translation>
 <translation id="1162706247109707219">እሺን ጠቅ በማድረግ የ Brave ጭነትዎ ወደ Windows 10 ወይም ከዚያ በኋላ እስካላዘመኑ ድረስ ወሳኝ የደህንነት ጥገናዎችን እንደማይቀበል እውቅና ይሰጣሉ። ይህ ማሳሰቢያ እንደገና አይታይም።</translation>
-<translation id="9164786361657554526">እሺን ጠቅ በማድረግ የ Brave ጭነትዎ ወደ macOS 10.15 ወይም ከዚያ በኋላ እስካላዘመኑ ድረስ ወሳኝ የደህንነት ጥገናዎችን እንደማይቀበል እውቅና ይሰጣሉ። ይህ ማሳሰቢያ እንደገና አይታይም።</translation>
-<translation id="2770465223704140727">ከዝርዝር  አስወግድ</translation>
+<translation id="2971591422768125177">እሺን ጠቅ በማድረግ የ Brave ጭነትዎ ወደ macOS 10.15 ወይም ከዚያ በኋላ እስካላዘመኑ ድረስ ወሳኝ የደህንነት ጥገናዎችን እንደማይቀበል እውቅና ይሰጣሉ። ይህ ማሳሰቢያ እንደገና አይታይም።</translation>
 <translation id="6020553119523541665">ይህ ሳብ በሌላ መስኮት ውስጥ አቅል።</translation>
 <translation id="4987392683074136770">ከህዝብ ነበኘውበጋሌውና ወደ እነዚህ አሥርታ እና የተከታታይ ገናቅሎ.</translation>
 <translation id="8355523213948477234">ትክክለኛ እይታ ስርዓት አዝራር</translation>
 <translation id="6040143037577758943">ዝጋ</translation>
 <translation id="6665472986740899785">የBrave ማሳወቂያ ማስታወቂያ</translation>
-<translation id="5582087890067572966">🎉 አሁን ገንዘብ እያገኙ ነው!</translation>
-<translation id="4364336119478610380">እንደዚህ አይነት ማሳወቂያ በማያ ገጽዎ ላይ ሲታይ ገንዘብ ያገኛሉ። ገንዘብ ለማግኘት ጠቅ ማድረግ አያስፈልግዎትም።</translation>
-<translation id="5893017172751072752">የBrave ማስታወቂያዎች ማሳወቂያ ሲታይ ገንዘብ ያገኛሉ</translation>
-<translation id="3447730462826640312">ገንዘብ ለማግኘት ጠቅ ማድረግ አያስፈልግዎትም፣ ነገር ግን ፍላጎት ካለዎት ጠቅ ያድርጉት!</translation>
 <translation id="5253166205743627564">ስለሚጠቀሙት በማምለጥ በ Brave Search ደጋፍ አመሰግናለሁ። እንደ Big Tech በባህሪ መጠቆም በጥንቃቄ እንዳይውርዱ የማንክበር ውጤት እናመናለን።</translation>
 <translation id="8748471354357836070">ተጨማሪ ያስተማሩ / ከእና ማስቀመጥ ይምረጡ</translation>
 <translation id="5927196110206824867">ምንጭ ቀላል የአሰቡት ምርታት ተገቢ፣ ቤት ጠባቂዎች። እና እንደ Big Tech ብዛትሽ!</translation>
@@ -208,7 +204,6 @@
 <translation id="253980346046488815">የተባዙ ትሮችን ዝጋ</translation>
 <translation id="8670218546624422041">በመያዣ ውስጥ ክፈት</translation>
 <translation id="8638526693050780542">መያዣዎችን ያቀናብሩ</translation>
-<translation id="7302999361397024774">ትር እንድትሰርጉ</translation>
 <translation id="2336228925368920074">ለሁሉም ትሮች ዕልባት አብጅ...</translation>
 <translation id="2523967823495420116">አቀባዊ ትሮችን ተጠቀም</translation>
 <translation id="3785071023202624850">{NUM_TABS,plural, =1{ትር ላይ ድምጸ-ከል አድርግ}one{ትሮች ላይ ድምጸ-ከል አድርግ}other{ትሮች ላይ ድምጸ-ከል አድርግ}}</translation>
@@ -219,7 +214,6 @@
 <translation id="2703180365855369896">የተደጋገሙ ትሮችን ይዝጉ</translation>
 <translation id="1987871867023021397">በመያዣ ውስጥ ክፈት</translation>
 <translation id="6745991613881384719">መያዣዎችን ያቀናብሩ</translation>
-<translation id="3917844427669888979">ትር አርትዕ እንድትሰርጉ</translation>
 <translation id="3704707436873245822">ጽሑፍን ከምስል ቅዳ</translation>
 <translation id="5268098808165185458">ጽሑፍን ከምስል በመቅዳት ላይ...</translation>
 <translation id="4046485130884276245">ጽሑፍ ከምስል ተቀድቷል</translation>
@@ -227,6 +221,8 @@
 <translation id="3960619311638643872">Brave VPN</translation>
 <translation id="2506438154311626334">በ Brave VPN ውስጥ የ WireGuard ፕሮቶኮልን ይጠቀሙ</translation>
 <translation id="8519170191215826548">Brave VPN ሲገናኝ ይህ ቅንብር ሊቀየር አይችልም።</translation>
+<translation id="1177917174080821247">VPN ትሪ አዶን አሳይ</translation>
+<translation id="3747459938663420752">ሲነቃቃ ነፃ ቀጠሮ ሲኖረው፣ የWindows ሥርዓት አሞሌ ላይ የBrave VPN አዶ አይኮን ይታያል።</translation>
 <translation id="4235920711083356755">የ VPN ቁልፍን ማሳየት</translation>
 <translation id="4070612712151038707">በቱልባር ውስጥ የ VPN ቁልፍን ያሳያል</translation>
 <translation id="7705524343798198388">VPN</translation>
@@ -238,7 +234,6 @@
 <translation id="8030169304546394654">ግንኙነቱ ተቋርጧል</translation>
 <translation id="1863950594388384201">በቱልባር ውስጥ የ VPN ቁልፍን ማሳየት</translation>
 <translation id="5187139277471084437">በቱልባር ውስጥ የ VPN ቁልፍን መደበቅ</translation>
-<translation id="1177917174080821247">VPN ትሪ አዶን አሳይ</translation>
 <translation id="8041089156583427627">ግብረ መልስ ላክ</translation>
 <translation id="4049186905514157504">My Plan ማስተዳደር</translation>
 <translation id="7570585565843385325">በቱልባር ውስጥ የ VPN ቁልፍን ማሳየት</translation>
@@ -327,6 +322,8 @@
 <translation id="8813509417421129632">በ<ph name="SITE"/> ላይ የተካተተ ገጽ ማስቀመጥ ይፈልጋል</translation>
 <translation id="7700010743463174379">ይህ ገፅ መቀመጥ ይፈልጋል</translation>
 <translation id="6774238875569752630">እነዚህ ገፆች ማቀናበር ከፈለጉ</translation>
+<translation id="1383876407941801731">ፍለጋ</translation>
+<translation id="5496587651328244253">ማደራጀት</translation>
 <translation id="1233913566967531780">ትር አመለካከት</translation>
 <translation id="4034992002364254340">ሁሉንም ተዛማጅ ትሮች በአሰሳማ መስኮት ውስጥ ሰብስቡ</translation>
 <translation id="8012125596344613514">የተጠቃሚ ጭንስ መዝሙር</translation>
@@ -339,11 +336,14 @@
 <translation id="7557539689487606886">ፕሪሚየም አባል ይሁኑ</translation>
 <translation id="1035309871698658326">ሲክፈት ይሄ ሁሉንም ትሮች ስምምነቶችን እና ምንጮችን ለማለፍ ወደ ማስላት ይላካል።</translation>
 <translation id="3435896845095436175">አንቃ</translation>
+<translation id="9031526219709160683">ብሬቭ ይህንን ሳይት የግላዊነት ቅንብሮችን ለማመቻቸት ሊረዳዎት ይችላል። የብሬቭ ጥቆማዎችን ለመገምገም ይፈልጋሉ?</translation>
+<translation id="5739953050957336013">ጥቆማዎችን ይገምግሙ</translation>
 <translation id="9082792303833649978">ይህ ቅኝት በአስተዳዳሪዎ ወይም በሌላ Brave ፖሊሲ የሚነደው ነው።</translation>
 <translation id="1940221956626514677">መሳሪያ አሞሌን አብጅ</translation>
 <translation id="6501807887341963552">ገጽታ እና ቀለም</translation>
 <translation id="6724227215236550330">የተቀመጡ የይለፍ ቃሎች እዚህ ይታያሉ። እንደ ተለይነት የይለፍ ቃሎችን ወደ <ph name="BRAND"/> በዚህ መሳሪያ ለማምጣት <ph name="BEGIN_LINK"/> የCSV ፋይል ይምረጡ <ph name="END_LINK"/></translation>
 <translation id="3575561030014162610">የይለፍ ቃሎችን ወደ <ph name="BRAND"/> በዚህ መሳሪያ ለማምጣት የCSV ፋይል ይምረጡ</translation>
+<translation id="8570228839666486945">በመሳሪያ ላይ ያለ AI</translation>
 <translation id="9156965752763025780">ለውጦችዎ Brave በሚያስጀምሩበት ቀጣዩ ጊዜ ላይ ይተገበራሉ።</translation>
 <translation id="7179921470347911571">አሁን እንደገና ያስጀምሩ</translation>
 <translation id="1426410128494586442">አዎ</translation>
@@ -384,6 +384,7 @@
 <translation id="5860254591544742609">የርዕስ አሞሌ አሳይ</translation>
 <translation id="4691131445504068802">ሲቀነስ ሙሉ በሙሉ ደብቅ</translation>
 <translation id="6763346436728173884">የትር መዝጊያ አዝራርን ሁልጊዜ ደብቅ</translation>
+<translation id="8082625757059443808">ታብዎችን ለመዝጋት የመካከለኛውን አዝራር መጫን ፍቀድ</translation>
 <translation id="4909269867860362936">ሲቀነስ በመቆየት ራሱን በራሱ ያሰፋ</translation>
 <translation id="3367129510799209147">የትር ማንዣበብ ሁናቴ</translation>
 <translation id="8925055964134259461">ሁሉም መስኮቶች ለተለያዩ በራሳቸው በቀስታ ታብ እንዲተፉ አድርግ</translation>
@@ -393,8 +394,15 @@
 <translation id="2113977810652731515">ካርድ</translation>
 <translation id="4096343215397759358">ካርድ ከቅድመ እይታ ጋር</translation>
 <translation id="5297085818601043899">አጭር መረጃ</translation>
+<translation id="1033676453210290920">ትንሹ ትር ስፋት</translation>
+<translation id="562967218762447012">ትንሹ (ነባር)</translation>
+<translation id="574392208103952083">መካከለኛ</translation>
+<translation id="4209092469652827314">ትልቅ</translation>
+<translation id="2658845370685508484">ሙሉ ስፋት</translation>
+<translation id="1215972473274650670">ተንሸራታች ትር ስ្ទ្រីပ ይጠቀሙ</translation>
 <translation id="5219886318310413094">ያፈላ ጠባቂዎችን በሁሉም Windows የሚታያቸው ቴቦሎችን አሳይ</translation>
 <translation id="2396127686705429331">የዕልባቶች አዝራር አሳይ</translation>
+<translation id="443318149139185498">ርቅ ዓምዲ ምልክት በዋናው ምናሌ ቁልፍ ላይ ይጠቀሙ</translation>
 <translation id="2814998458708016836">ሰፊ የአድራሻ አሞሌን ተጠቀም</translation>
 <translation id="4749586705247636385">ዋና የይዘት ክልሎች ላይ ዙሪያ አጠቃላይ ዳራዎችን አሳይ</translation>
 <translation id="4109670531935487117">በአድራሻ ማስገቢያው ላይ የራስ-አጠናቅቅ ጥቆማዎችን አሳይ</translation>
@@ -515,16 +523,20 @@
 <translation id="1199170151481311646">ግላዊነትን የሚጠብቁ ትንታኔዎች</translation>
 <translation id="5990642573624858459">የስታቲስቲክስ ሪፖርት</translation>
 <translation id="2441719842399509963">ወደ ነባሪዎች አካል አስጀምር</translation>
+<translation id="4530494379350999373">መነሻ</translation>
+<translation id="2964215604640804042">Brave Origin የ browser ክፍያ ሰሪ የተደረገ ስሪት ነው ሁሉንም ለ Brave እንደ ንግድ ድጋፍ ሰጪ ባህሪያት ያልፈለጉ ግን Brave ብቻ የሚሰጠውን ግላዊነት ሌላ ማንም ምንም ባይ ሊጣሉ። Brave Origin ተጠቃሚዎች ከ industry-leading privacy፣ adblock፣ speed (via Brave Shields) እንዲሁም መደበኛ software updates፣ Chromium patches፣ security and privacy improvements ሊያገኙ ይቀጥላሉ። እንዲሁም AI፣ Rewards፣ Wallet፣ VPN፣ Web3 domains፣ እና ሌሎችንም ባህሪያት ተሳል ለማድረግ ዕድል ይከፍታሉ።</translation>
+<translation id="9130916892338379417">Brave Origin በአንድ ጊዜ ክፍያ በኩል ይገኛል። ሞባይል (Android እና iOS) እና desktop ላይ Origin ወደ የእርስዎ existing release version ያሉ upgrade ሊገዛ ይችላል። ደስክቶፕ ላይ Origin ሌላ standalone app ነውም ይገኛል። Origin ተጠቃሚዎች በ Settings ምናሌ ውስጥ አዲሱን control panel ይታያሉ። Existing features—እንዲሁም ወደፊት በ ማንኛውም አዲስ ባህሪያት—እዚህ ይታያሉ፣ እና በ default ተሳል ይሆናሉ።</translation>
+<translation id="7984508421152399880">አሁን ግዛ</translation>
 <translation id="5567412479632285879">የ Brave Rewards ታግዷል</translation>
 <translation id="413570371620795359">ለማስቻል እና ለማስጀመር የሽልማት ፓነልን ይክፈቱ</translation>
 <translation id="1051600834033686945">ሙሉ የ Brave Rewards ቅንብሮችን ይክፈቱ</translation>
 <translation id="8826461509529116322">የBrave ሽልማቶችን ቁልፍ አሳይ</translation>
-<translation id="3328713589982547433">ማስታወቂያ መከልከያ ብቻ የሚያከናውን አብቃ</translation>
-<translation id="1574253307550419595">በማስታወቂያ መከልከያ ብቻ ሁኔታ ውስጥ Brave Shields ያካትቱ</translation>
-<translation id="738717058053657696">ማስታወቂያ መከልከያ ብቻ ዘዴ የBrave Shields ዋና የማስታወቂያ መከልከያ መመሪያዎችን ይጠብቃል። ማስጠንቀቂያ፡ መስተዋትነትን ሁሉንም ያስወግዳል። እባክዎን፣ በBrave የመስተዋትነት መከላከያ ቢሰበሩ ነው የነበሩ መስመሮችን ለእያንዳንዱ ድህረገፅ Shieldsን ወደ ታች ማሰናከል እንደሚቻል ያስታውሰናል። ይህ የሙከራ ሁኔታ ነው። <ph name="BEGIN_LINK"/>ተጨማሪ ተመልከት<ph name="END_LINK"/></translation>
+<translation id="4859866966646365361">ማስታወቂያ መከልከያ ብቻ ሁኔታ</translation>
+<translation id="4146834954839563870">ማስታወቂያ መከልከያ ብቻ ሁኔታን ይጠቀሙ</translation>
+<translation id="420732343671200734">ማስታወቂያ መከልከያ ብቻ ሁኔታ የBrave Shields ዋና የማስታወቂያ መከልከያ መመሪያዎችን ይጠብቃል። ማስጠንቀቂያ፡ መስተዋትነትን ሁሉንም ያስወግዳል። እባክዎን፣ በBrave የመስተዋትነት መከላከያ ቢሰበሩ ነው የነበሩ መስመሮችን ለእያንዳንዱ ድህረ ገፅ Shieldsን ወደ ታች ማሰናከል እንደሚቻል ያስታውሱ። ይህ የሙከራ ሁኔታ ነው። <ph name="BEGIN_LINK"/>ተጨማሪ መረጃ<ph name="END_LINK"/></translation>
 <translation id="3055675200351793825">የShields አማራጮች አሁን ተሰናክለዋል።</translation>
-<translation id="516439939408671102">ማስታወቂያ መከልከያ ብቻ ሁኔታ የBrave Shields ዋና የማስታወቂያ መከልከያ መመሪያዎችን በመጠበቅ የተለያዩ የእርስዎን መስተዋትነትን መከላከሎች ይሰናካል። የማስታወቂያ መከልከያ መከላከያም ወደ ነባሪው ማድረግ ከፈለጉ፣ ይህንን ሁኔታ አሰናክሉ።</translation>
-<translation id="177233004755519660">ማስታወቂያ መከልከያ ብቻ ዘዴን አጥፋ</translation>
+<translation id="2687830906359353344">ማስታወቂያ መከልከያ ብቻ ሁኔታ የBrave Shields ዋና የማስታወቂያ መከልከያ መመሪያዎችን ይጠብቃል እና የመስተዋትነት መከላከያዎችን ይሰናካል። ነባሪ የShields መሳሪያዎችን ለማስተናገድ ከፈለጉ፣ እባክዎን ይህንን ሁኔታ አሰናክሉ።</translation>
+<translation id="3809423899581611047">ማስታወቂያ መከልከያ ብቻ ሁኔታን አጥፋ</translation>
 <translation id="9185018653595759199">የማህበራዊ ሚዲያ እገዳ</translation>
 <translation id="863171915776379000">የ Facebook መግቢያዎች እና አካቶዎችን ፍቀድ</translation>
 <translation id="7791141927430186653">X (ከ Twitter በፊት) የተከተተ ትዊት ይፍቀዱ</translation>
@@ -544,7 +556,7 @@
 <translation id="509873765238158442">የMicrosoft Recallን አግድ</translation>
 <translation id="4763421121695677716">የMicrosoft Windows ኮምፒዩተሮች ላይ ባሉ ሆም ትሮቷችን የእይታ እቃዎች ቶሎ ያጠናቀቃል</translation>
 <translation id="1968895725257436430">ውሂብ ማከማቸት</translation>
-<translation id="4846154056248462491">ሲወጣ</translation>
+<translation id="1700052872056357670">ሲወጡ ውሂብን ያጽዱ</translation>
 <translation id="216468847346280584">የ Brave Ads ውሂብ አጽዳ...</translation>
 <translation id="2808630562319398131">የ Brave ሽልማቶች ውሂብን ዳግም ያስጀምሩ...</translation>
 <translation id="6438096877646138757">ኩኪዎችን ሲዘጉ የሚያጸዱ ጣቢያዎች</translation>
@@ -557,7 +569,6 @@
 <translation id="5747552184818312860">ጊዜው አልፎበታል</translation>
 <translation id="3858860766373142691">ስም</translation>
 <translation id="361106536627977100">የFlash ውሂብ</translation>
-<translation id="4530494379350999373">መነሻ</translation>
 <translation id="8195027750202970175">ዲስክ ላይ ያለው መጠን</translation>
 <translation id="9116465289595958864">መጨረሻ ላይ የተቀየሩ</translation>
 <translation id="4590324241397107707">የውሂብ ጎታ ማከማቻ</translation>
@@ -590,11 +601,6 @@
 <translation id="2903783737778379345">የሌጋሲ Google መግቢያን በሶስተኛ ወገን ኩኪዎች በኩል አይፍቀዱ</translation>
 <translation id="2570833232754279153">ለሌጋሲ Google መግቢያ የሶስተኛ ወገን ኩኪዎችን መጠቀም አይፈቀድም</translation>
 <translation id="6880817299303842099">ለሌጋሲ Google መግቢያ የሶስተኛ ወገን ኩኪዎችን መጠቀም ይፈቀዳል</translation>
-<translation id="2136412236435693622">Localhost መዳረሻ</translation>
-<translation id="4172219483893066798">ጣቢያዎች ለlocalhost ግብአቶች መዳረሻን ሊጠይቁ ይችላሉ</translation>
-<translation id="7181706637590665047">ለlocalhost ግብዓቶች መዳረሻን አትፍቀድ</translation>
-<translation id="1336116824874668514">የlocalhost ግብዓቶችን ለመዳረስ አልተፈቀደም</translation>
-<translation id="1485435696620658073">የlocalhost ግብዓቶችን ለመዳረስ ተፈቅዷል</translation>
 <translation id="5794692721727586076">Leo AI ውይይት</translation>
 <translation id="8115153008662981040">ጣቢያዎች Leo AI ውይይትን እንዲከፍቱ ሊጠይቁ ይችላሉ</translation>
 <translation id="1145070115730668595">ጣቢያ በመክፈት ላይ ያለውን የ Leo AI ውይይትን አትፍቀድ</translation>
@@ -665,8 +671,6 @@
 <translation id="7029809446516969842">የይለፍ ቃላት</translation>
 <translation id="6011308810877101166">ኢንተርኔት ፈልግ አቋማቸን አንሳብ</translation>
 <translation id="2332576387809612040">በአሁኗ በርት እየዳረጉ ብራቭ ከሆነ እንቅስቃሴም እያከነበበ በሉት። በማንነት መስኮት ላይ ታህተው እንኩዋም አብረውን እንሣሐቢ።</translation>
-<translation id="6285118765755298263">ማውጫ ሌላ የፍለጋ ፕሮግራሞች</translation>
-<translation id="5526883767168905185">የ OpenSearch ዝርዝርን የሚከተሉ ድር ጣቢያዎችን በራስ -ሰር ይጠቁማል።</translation>
 <translation id="5522403133543437426">በአድራሻ ግምገማ ጕዚፍ</translation>
 <translation id="280472502078788655">በግል መስኮቶች ውስጥ በአድራሻ ግምገማ ጕዚፍ</translation>
 <translation id="7232120595886556478">ተለመደ መስኮት</translation>
@@ -796,6 +800,7 @@
 <translation id="1529674267267221673">Leo አንድ የድር ጣቢያ ላይ በቀኝ ጠቅ ሲያደርጉ በአውድ ምናሌው ውስጥ ይታያል። ይህም አውድን ከአሁኑ ድረ-ገጽ ወደ Leo ይልካል።</translation>
 <translation id="5226020406479918122">የትር አመለካከት ሁኔታ</translation>
 <translation id="3705539672403311123">በትር ፍለጋ ገጽ ውስጥ የትር አደረጃጀትን ያንቁ። ሲከፈት፣ ይህ ሁሉንም የግል ያልሆኑ ትሮችን ርዕሶች እና አመጣጥ በራስ-ሰር ወደ ሊዮ ይልካል እና ለመመደብ። <ph name="BEGIN_LINK"/>ተጨማሪ ይወቁ<ph name="END_LINK"/></translation>
+<translation id="9049433973274198706">ነባሪ ሞዴል ለትሳቢ ትኩረት</translation>
 <translation id="8172263161008556851">በውይይቱ ውስጥ የተጠቆሙ ጥያቄዎችን አሳይ</translation>
 <translation id="5781842473834867765">እንግዲህ የግል ቃል ታሪክ ይኖራል</translation>
 <translation id="1082960401708055995">የቃል ታሪክን መውደቅ በቅድሚያ ያከናውኑትን ተውዋጎች ፍጥረታቸውን ማጥፋት ይኖረታል። ይህ እርምጃ ሊስታርሽት አይችልም።</translation>
@@ -819,6 +824,8 @@
 <translation id="6374563306438145841">API ቁልፍ</translation>
 <translation id="3295756655687327124">የመልክና ምንምምንት እንዲሆን የተሰበሰቡት ወቅታዊ እንግዳዎች</translation>
 <translation id="1415432774589088566">ሆነት ግል፦ ሊሳን 3.2b እና ቅልቅል ተደንቁ ግቢ</translation>
+<translation id="5718897035062884425">ጠቃሚ ድጋፍ</translation>
+<translation id="2120046556683363911">ይህ ሞዴል ተግባር ጠራ / ጠቃሚ ተግባር ለማሳካት ወይም ለአይ ቢቦ ዕቅድ ቢ ምንም ያግሩ</translation>
 <translation id="8008271349880309090">በሞዴል ምርጫ ምናሌ ውስጥ እንደሚታይ የሞዴሉ ስም</translation>
 <translation id="1355326130503900056">በአገልግሎት ማገናኛ መድረክ እንደሚታይ የሞዴሉ ስም። ለምሳሌ ፒ-3 (እንደዚህ ቅርጽ እንደሚፈለገው በትክክል ምንም እንደማይተኝ) ምንም እንደማይተኝ በታክክል እንደማይተኝ ለመቻል የአገልግሎት መድረክ የሚከፈተውን የመድረክ መቻል እንደሚሆነውን ተኳኋኝነቱ አይሰራም</translation>
 <translation id="3213787232304349732">የአገልግሎት አጋጣሚን የሚሰማው ሁነታ ያለዎትዎን ተሞክሩ</translation>
@@ -871,6 +878,8 @@
 <translation id="7311244614769792472">ምንም ውጤቶች አልተገኙም።</translation>
 <translation id="1838374766361614909">ፍለጋን አጽዳ</translation>
 <translation id="5126255551970171328">አእምሮ ለማፈላለጊያ ይፈልጉ</translation>
+<translation id="7402116145895962069">የእርስዎን የOllama አካባቢ ሞዴሎች ያመሳሰሉ</translation>
+<translation id="4835154437390745810">በOllama የሚተቆጠፉ</translation>
 <translation id="5985516785067818307">የእብሪት መራጭ</translation>
 <translation id="8347743943525229984">ብረትን እንዲያስለቅሉ ያስችለዋል</translation>
 <translation id="3204080538332044581">ብረት እቃዎችን በአዲስ ትር ማስገባት ተወሳኺነት ሰጠናል። ትኩስ መረጃዎችን እና የተረጋገጡ ሴፋቶቾችን እንዲሁም የአሳምአጃ ተግባሮችን በቅርብ እንዲፈቱ ይጠቀሙ። <ph name="BEGIN_LINK"/>Learn more<ph name="END_LINK"/></translation>

@@ -5,6 +5,7 @@
 
 #include "brave/components/brave_wallet/browser/scoped_txs_update.h"
 
+#include "base/values.h"
 #include "brave/components/brave_wallet/browser/tx_storage_delegate.h"
 
 namespace brave_wallet {
@@ -16,7 +17,7 @@ ScopedTxsUpdate::~ScopedTxsUpdate() {
   delegate_->ScheduleWrite();
 }
 
-base::Value::Dict& ScopedTxsUpdate::Get() {
+base::DictValue& ScopedTxsUpdate::Get() {
   return delegate_->GetTxs();
 }
 

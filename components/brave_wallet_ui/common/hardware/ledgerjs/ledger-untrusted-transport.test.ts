@@ -10,7 +10,6 @@ import { LedgerUntrustedMessagingTransport } from './ledger-untrusted-transport'
 // error unless we use bracket notation. As a result we must
 // silence the dot-notation tslint rule for the file.
 //
-/* eslint-disable @typescript-eslint/dot-notation */
 
 const createWindow = (): Window => {
   let iframe = document.createElement('iframe')
@@ -19,7 +18,7 @@ const createWindow = (): Window => {
     value: 'chrome-untrusted://ledger-bridge',
   })
   if (!iframe.contentWindow) {
-    fail('transport should be defined')
+    throw new Error('transport should be defined')
   }
   return iframe.contentWindow
 }
@@ -30,5 +29,5 @@ test('constructor', async () => {
     targetWindow,
     targetWindow.origin,
   )
-  expect(untrustedTransport['handlers'].size).toEqual(0)
+  expect(untrustedTransport['handlers'].size).toEqual(1)
 })

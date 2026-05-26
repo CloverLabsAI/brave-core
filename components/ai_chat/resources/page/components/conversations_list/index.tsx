@@ -8,10 +8,10 @@ import styles from './style.module.scss'
 import classnames from '$web-common/classnames'
 import Icon from '@brave/leo/react/icon'
 import ButtonMenu from '@brave/leo/react/buttonMenu'
+import Input from '@brave/leo/react/input'
 import * as Mojom from '../../../common/mojom'
 import { useAIChat } from '../../state/ai_chat_context'
 import { getLocale } from '$web-common/locale'
-import getAPI from '../../api'
 import { useConversation } from '../../state/conversation_context'
 import Alert from '@brave/leo/react/alert'
 import Button from '@brave/leo/react/button'
@@ -110,33 +110,40 @@ function ConversationItem(props: ConversationItemProps) {
             <div
               className={styles.text}
               title={title}
+              data-test-id='conversation-title'
             >
               {title}
             </div>
           </div>
-          <ButtonMenu
-            className={styles.optionsMenu}
-            onChange={handleButtonMenuChange}
-          >
-            <div
-              slot='anchor-content'
-              className={styles.optionsButton}
+          {/* Stop propagation so clicks don't bubble to the Link and close the sidebar */}
+          <div onClick={(e) => e.stopPropagation()}>
+            <ButtonMenu
+              className={styles.optionsMenu}
+              onChange={handleButtonMenuChange}
             >
-              <Icon name='more-vertical' />
-            </div>
-            <leo-menu-item onClick={handleEditTitle}>
-              <div className={styles.optionsMenuItemWithIcon}>
-                <Icon name='edit-pencil' />
-                <div>{getLocale(S.CHAT_UI_MENU_RENAME_CONVERSATION)}</div>
-              </div>
-            </leo-menu-item>
-            <leo-menu-item onClick={handleDelete}>
-              <div className={styles.optionsMenuItemWithIcon}>
-                <Icon name='trash' />
-                <div>{getLocale(S.CHAT_UI_MENU_DELETE_CONVERSATION)}</div>
-              </div>
-            </leo-menu-item>
-          </ButtonMenu>
+              <Button
+                slot='anchor-content'
+                className={styles.optionsButton}
+                kind='plain-faint'
+                fab
+                size='small'
+              >
+                <Icon name='more-vertical' />
+              </Button>
+              <leo-menu-item onClick={handleEditTitle}>
+                <div className={styles.optionsMenuItemWithIcon}>
+                  <Icon name='edit-pencil' />
+                  <div>{getLocale(S.CHAT_UI_MENU_RENAME_CONVERSATION)}</div>
+                </div>
+              </leo-menu-item>
+              <leo-menu-item onClick={handleDelete}>
+                <div className={styles.optionsMenuItemWithIcon}>
+                  <Icon name='trash' />
+                  <div>{getLocale(S.CHAT_UI_MENU_DELETE_CONVERSATION)}</div>
+                </div>
+              </leo-menu-item>
+            </ButtonMenu>
+          </div>
         </div>
         {uuid === aiChatContext.editingConversationId && (
           <div className={styles.editibleTitle}>
@@ -145,7 +152,7 @@ function ConversationItem(props: ConversationItemProps) {
               onBlur={() => aiChatContext.setEditingConversationId(null)}
               onSubmit={(value) => {
                 aiChatContext.setEditingConversationId(null)
-                getAPI().service.renameConversation(uuid, value)
+                aiChatContext.api.service.renameConversation(uuid, value)
               }}
             />
           </div>
@@ -161,14 +168,55 @@ interface ConversationsListProps {
 
 export default function ConversationsList(props: ConversationsListProps) {
   const aiChatContext = useAIChat()
+  const [filterText, setFilterText] = React.useState('')
+
   const startedNonTemporaryConversations = aiChatContext.conversations.filter(
     (c) => !c.temporary && c.hasContent,
   )
+
+  const filteredConversations = React.useMemo(() => {
+    if (!filterText) return startedNonTemporaryConversations
+    const lower = filterText.toLowerCase()
+    return startedNonTemporaryConversations.filter((c) => {
+      const title = c.title || getLocale(S.AI_CHAT_CONVERSATION_LIST_UNTITLED)
+      return title.toLowerCase().includes(lower)
+    })
+  }, [startedNonTemporaryConversations, filterText])
 
   return (
     <>
       <div className={styles.scroller}>
         <nav className={styles.nav}>
+          {startedNonTemporaryConversations.length > 0 && (
+            <Input
+              className={styles.filterInput}
+              style={
+                filterText
+                  ? ''
+                  : '--leo-control-color: var(--leo-color-page-background)'
+              }
+              placeholder={getLocale(
+                S.AI_CHAT_CONVERSATION_LIST_FILTER_PLACEHOLDER,
+              )}
+              value={filterText}
+              onInput={(e) => setFilterText(e.value)}
+            >
+              <Icon
+                name='search'
+                slot='left-icon'
+              />
+              <Button
+                fab
+                kind='plain-faint'
+                size='small'
+                slot='right-icon'
+                style={`visibility: ${filterText ? 'visible' : 'hidden'}`}
+                onClick={() => setFilterText('')}
+              >
+                <Icon name='close' />
+              </Button>
+            </Input>
+          )}
           {!aiChatContext.isStoragePrefEnabled && (
             <Alert type='notice'>
               <Icon
@@ -206,9 +254,21 @@ export default function ConversationsList(props: ConversationsListProps) {
                 {getLocale(S.CHAT_UI_NOTICE_CONVERSATION_HISTORY_EMPTY)}
               </Alert>
             )}
-          {startedNonTemporaryConversations.length > 0 && (
+          {filterText && filteredConversations.length === 0 && (
+            <div className={styles.filterNoResults}>
+              <span>
+                {getLocale(S.AI_CHAT_CONVERSATION_LIST_FILTER_NO_RESULTS)}
+              </span>
+              <span>
+                {getLocale(
+                  S.AI_CHAT_CONVERSATION_LIST_FILTER_NO_RESULTS_SUBTITLE,
+                )}
+              </span>
+            </div>
+          )}
+          {filteredConversations.length > 0 && (
             <ol>
-              {startedNonTemporaryConversations.map((conversation) => (
+              {filteredConversations.map((conversation) => (
                 <ConversationItem
                   key={conversation.uuid}
                   {...props}

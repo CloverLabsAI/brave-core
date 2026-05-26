@@ -15,6 +15,7 @@
 #include "base/functional/callback_forward.h"
 #include "base/memory/weak_ptr.h"
 #include "base/values.h"
+#include "brave/components/ai_chat/core/browser/types.h"
 #include "brave/components/ai_chat/core/common/mojom/ai_chat.mojom-forward.h"
 #include "brave/components/ai_chat/core/common/mojom/common.mojom-forward.h"
 
@@ -24,7 +25,9 @@ namespace ai_chat {
 class Tool {
  public:
   using ToolResult = std::vector<mojom::ContentBlockPtr>;
-  using UseToolCallback = base::OnceCallback<void(ToolResult output)>;
+  using ToolArtifacts = std::vector<mojom::ToolArtifactPtr>;
+  using UseToolCallback =
+      base::OnceCallback<void(ToolResult output, ToolArtifacts artifacts)>;
 
   Tool();
   virtual ~Tool();
@@ -53,7 +56,7 @@ class Tool {
   // `ObjectProperty("Coordinates in the world", {{"lattitude",
   // StringProperty()},
   //  "longitude", StringProperty()}})`
-  virtual std::optional<base::Value::Dict> InputProperties() const;
+  virtual std::optional<base::DictValue> InputProperties() const;
 
   // A list of properties contained within GetInputSchemaJson that are required
   virtual std::optional<std::vector<std::string>> RequiredProperties() const;
@@ -64,7 +67,7 @@ class Tool {
   // needed, but for remote-defined tools, the description might need to be
   // built to include some extra parameters that only the client knows about,
   // e.g. location for a search tool, or screen size for a computer use tool.
-  virtual std::optional<base::Value::Dict> ExtraParams() const;
+  virtual std::optional<base::DictValue> ExtraParams() const;
 
   // If this tool is an agent tool, it will only be available to
   // conversations using the agent mode instead of the chat mode.
@@ -72,7 +75,9 @@ class Tool {
 
   // Implementor can check features of the model to determine if the tool is
   // supported.
-  virtual bool IsSupportedByModel(const mojom::Model& model) const;
+  virtual bool IsSupportedByModel(
+      const mojom::Model& model,
+      const ConversationCapabilitySet& conversation_capabilities) const;
 
   // Check if this tool requires user interaction before handling
   // Returns:
@@ -94,7 +99,7 @@ class Tool {
   virtual bool SupportsConversation(
       bool is_temporary,
       bool has_untrusted_content,
-      mojom::ConversationCapability conversation_capability) const;
+      const ConversationCapabilitySet& conversation_capabilities) const;
 
   // Implementers should handle tool execution unless it is a built-in
   // tool handled directly by the ConversationHandler.

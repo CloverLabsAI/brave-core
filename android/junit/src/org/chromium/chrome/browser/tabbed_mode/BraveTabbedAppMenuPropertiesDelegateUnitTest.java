@@ -35,8 +35,10 @@ import org.robolectric.shadows.ShadowPackageManager;
 
 import org.chromium.base.BraveFeatureList;
 import org.chromium.base.ContextUtils;
-import org.chromium.base.supplier.ObservableSupplierImpl;
+import org.chromium.base.supplier.ObservableSuppliers;
 import org.chromium.base.supplier.OneshotSupplierImpl;
+import org.chromium.base.supplier.SettableMonotonicObservableSupplier;
+import org.chromium.base.supplier.SettableNullableObservableSupplier;
 import org.chromium.base.test.BaseRobolectricTestRule;
 import org.chromium.base.test.BaseRobolectricTestRunner;
 import org.chromium.base.test.util.Features.DisableFeatures;
@@ -54,16 +56,19 @@ import org.chromium.chrome.browser.feed.webfeed.WebFeedBridge;
 import org.chromium.chrome.browser.feed.webfeed.WebFeedBridgeJni;
 import org.chromium.chrome.browser.feed.webfeed.WebFeedSnackbarController;
 import org.chromium.chrome.browser.flags.ChromeFeatureList;
+import org.chromium.chrome.browser.hub.HubManager;
+import org.chromium.chrome.browser.hub.Pane;
+import org.chromium.chrome.browser.hub.PaneId;
+import org.chromium.chrome.browser.hub.PaneManager;
 import org.chromium.chrome.browser.incognito.IncognitoUtils;
 import org.chromium.chrome.browser.incognito.IncognitoUtilsJni;
 import org.chromium.chrome.browser.incognito.reauth.IncognitoReauthController;
 import org.chromium.chrome.browser.layouts.LayoutStateProvider;
 import org.chromium.chrome.browser.layouts.LayoutType;
 import org.chromium.chrome.browser.multiwindow.MultiWindowModeStateDispatcher;
+import org.chromium.chrome.browser.multiwindow.MultiWindowTestUtils;
 import org.chromium.chrome.browser.offlinepages.OfflinePageUtils;
 import org.chromium.chrome.browser.preferences.BravePref;
-import org.chromium.chrome.browser.preferences.ChromePreferenceKeys;
-import org.chromium.chrome.browser.preferences.ChromeSharedPreferences;
 import org.chromium.chrome.browser.profiles.Profile;
 import org.chromium.chrome.browser.profiles.ProfileManager;
 import org.chromium.chrome.browser.readaloud.ReadAloudController;
@@ -72,7 +77,6 @@ import org.chromium.chrome.browser.signin.services.SigninManager;
 import org.chromium.chrome.browser.sync.SyncServiceFactory;
 import org.chromium.chrome.browser.tab.Tab;
 import org.chromium.chrome.browser.tabmodel.TabGroupModelFilter;
-import org.chromium.chrome.browser.tabmodel.TabGroupModelFilterProvider;
 import org.chromium.chrome.browser.tabmodel.TabModel;
 import org.chromium.chrome.browser.tabmodel.TabModelSelector;
 import org.chromium.chrome.browser.toolbar.ToolbarManager;
@@ -81,6 +85,7 @@ import org.chromium.chrome.browser.translate.TranslateBridgeJni;
 import org.chromium.chrome.browser.ui.appmenu.AppMenuDelegate;
 import org.chromium.chrome.browser.ui.appmenu.AppMenuHandler;
 import org.chromium.chrome.browser.ui.appmenu.AppMenuItemProperties;
+import org.chromium.chrome.browser.ui.default_browser_promo.DefaultBrowserPromoUtils;
 import org.chromium.chrome.browser.ui.messages.snackbar.SnackbarManager;
 import org.chromium.chrome.browser.ui.native_page.NativePage;
 import org.chromium.components.browser_ui.accessibility.PageZoomManager;
@@ -119,8 +124,9 @@ import java.util.List;
     BraveFeatureList.BRAVE_PLAYLIST,
     ChromeFeatureList.ADAPTIVE_BUTTON_IN_TOP_TOOLBAR_PAGE_SUMMARY,
     ChromeFeatureList.FEED_AUDIO_OVERVIEWS,
-    ChromeFeatureList.NEW_TAB_PAGE_CUSTOMIZATION,
-    ChromeFeatureList.PROPAGATE_DEVICE_CONTENT_FILTERS_TO_SUPERVISED_USER,
+    ChromeFeatureList.GLIC,
+    ChromeFeatureList.SUBMENUS_IN_APP_MENU,
+    DomDistillerFeatures.READER_MODE_DISTILL_IN_APP,
     DomDistillerFeatures.READER_MODE_IMPROVEMENTS,
     BraveFeatureList.BRAVE_SHRED,
 })
@@ -131,7 +137,6 @@ import java.util.List;
 public class BraveTabbedAppMenuPropertiesDelegateUnitTest {
     @Rule public final MockitoRule mMockitoRule = MockitoJUnit.rule();
 
-    @Mock private ActivityTabProvider mActivityTabProvider;
     @Mock private Tab mTab;
     @Mock private WebContents mWebContents;
     @Mock private NativePage mNativePage;
@@ -153,7 +158,6 @@ public class BraveTabbedAppMenuPropertiesDelegateUnitTest {
     @Mock private SigninManager mSigninManager;
     @Mock private IdentityManager mIdentityManager;
     @Mock private IdentityServicesProvider mIdentityService;
-    @Mock private TabGroupModelFilterProvider mTabGroupModelFilterProvider;
     @Mock private TabGroupModelFilter mTabGroupModelFilter;
     @Mock private IncognitoUtils.Natives mIncognitoUtilsJniMock;
     @Mock public WebsitePreferenceBridge.Natives mWebsitePreferenceBridgeJniMock;
@@ -168,6 +172,10 @@ public class BraveTabbedAppMenuPropertiesDelegateUnitTest {
     @Mock private WebFeedBridge.Natives mWebFeedBridgeJniMock;
     @Mock private TranslateBridge.Natives mTranslateBridgeJniMock;
     @Mock private PageZoomManager mPageZoomManagerMock;
+    @Mock private DefaultBrowserPromoUtils mDefaultBrowserPromoUtilsMock;
+    @Mock private HubManager mHubManager;
+    @Mock private PaneManager mPaneManager;
+    @Mock private Pane mPane;
 
     private ShadowPackageManager mShadowPackageManager;
 
@@ -175,10 +183,12 @@ public class BraveTabbedAppMenuPropertiesDelegateUnitTest {
             new OneshotSupplierImpl<>();
     private final OneshotSupplierImpl<IncognitoReauthController>
             mIncognitoReauthControllerSupplier = new OneshotSupplierImpl<>();
-    private final ObservableSupplierImpl<BookmarkModel> mBookmarkModelSupplier =
-            new ObservableSupplierImpl<>();
-    private final ObservableSupplierImpl<ReadAloudController> mReadAloudControllerSupplier =
-            new ObservableSupplierImpl<>();
+    private final OneshotSupplierImpl<HubManager> mHubManagerSupplier = new OneshotSupplierImpl<>();
+    private final SettableNullableObservableSupplier<BookmarkModel> mBookmarkModelSupplier =
+            ObservableSuppliers.createNullable();
+    private final SettableMonotonicObservableSupplier<ReadAloudController>
+            mReadAloudControllerSupplier = ObservableSuppliers.createMonotonic();
+    private final ActivityTabProvider mActivityTabProvider = new ActivityTabProvider();
 
     private BraveTabbedAppMenuPropertiesDelegate mTabbedAppMenuPropertiesDelegate;
 
@@ -213,10 +223,7 @@ public class BraveTabbedAppMenuPropertiesDelegateUnitTest {
         when(mTabModelSelector.getModel(true)).thenReturn(mIncognitoTabModel);
         when(mTabModel.isIncognito()).thenReturn(false);
         when(mIncognitoTabModel.isIncognito()).thenReturn(true);
-        when(mTabModelSelector.getTabGroupModelFilterProvider())
-                .thenReturn(mTabGroupModelFilterProvider);
-        when(mTabGroupModelFilterProvider.getCurrentTabGroupModelFilter())
-                .thenReturn(mTabGroupModelFilter);
+        when(mTabModelSelector.getCurrentTabGroupModelFilter()).thenReturn(mTabGroupModelFilter);
         when(mTabGroupModelFilter.getTabModel()).thenReturn(mTabModel);
         when(mTabModel.getProfile()).thenReturn(mProfile);
         ManagedBrowserUtilsJni.setInstanceForTesting(mManagedBrowserUtilsJniMock);
@@ -254,6 +261,12 @@ public class BraveTabbedAppMenuPropertiesDelegateUnitTest {
         Mockito.when(mTranslateBridgeJniMock.canManuallyTranslate(any(), anyBoolean()))
                 .thenReturn(false);
 
+        mHubManagerSupplier.set(mHubManager);
+        when(mHubManager.getPaneManager()).thenReturn(mPaneManager);
+        when(mPaneManager.getFocusedPaneSupplier())
+                .thenReturn(ObservableSuppliers.createMonotonic(mPane));
+        when(mPane.getPaneId()).thenReturn(PaneId.TAB_SWITCHER);
+
         PowerBookmarkUtils.setPriceTrackingEligibleForTesting(false);
         PowerBookmarkUtils.setPowerBookmarkMetaForTesting(PowerBookmarkMeta.newBuilder().build());
         BraveTabbedAppMenuPropertiesDelegate delegate =
@@ -272,18 +285,18 @@ public class BraveTabbedAppMenuPropertiesDelegateUnitTest {
                         mSnackbarManager,
                         mIncognitoReauthControllerSupplier,
                         mReadAloudControllerSupplier,
-                        mPageZoomManagerMock);
+                        mPageZoomManagerMock,
+                        mHubManagerSupplier,
+                        /* openInAppMenuItemProvider= */ null);
         delegate.setIsJunitTesting(true);
         BaseRobolectricTestRule.runAllBackgroundAndUi();
         mTabbedAppMenuPropertiesDelegate = Mockito.spy(delegate);
 
-        ChromeSharedPreferences.getInstance()
-                .removeKeysWithPrefix(ChromePreferenceKeys.MULTI_INSTANCE_URL);
-        ChromeSharedPreferences.getInstance()
-                .removeKeysWithPrefix(ChromePreferenceKeys.MULTI_INSTANCE_TAB_COUNT);
+        MultiWindowTestUtils.resetInstanceInfo();
 
         CommerceFeatureUtilsJni.setInstanceForTesting(mCommerceFeatureUtilsJniMock);
         ShoppingServiceFactory.setShoppingServiceForTesting(mShoppingService);
+        DefaultBrowserPromoUtils.setInstanceForTesting(mDefaultBrowserPromoUtilsMock);
     }
 
     @After
@@ -340,6 +353,7 @@ public class BraveTabbedAppMenuPropertiesDelegateUnitTest {
             R.id.preferences_id,
             R.id.set_default_browser,
             R.id.brave_news_id,
+            R.id.request_brave_vpn_id,
             R.id.brave_customize_menu_id,
             R.id.exit_id,
         };
@@ -381,6 +395,7 @@ public class BraveTabbedAppMenuPropertiesDelegateUnitTest {
         expectedItems.add(R.id.set_default_browser);
         expectedItems.add(R.id.preferences_id);
         expectedItems.add(R.id.brave_news_id);
+        expectedItems.add(R.id.request_brave_vpn_id);
         expectedItems.add(R.id.brave_customize_menu_id);
         expectedItems.add(R.id.exit_id);
 
@@ -410,11 +425,19 @@ public class BraveTabbedAppMenuPropertiesDelegateUnitTest {
         // Rewards: DISABLED_BY_POLICY = true means disabled
         when(mPrefService.isManagedPreference(BravePref.DISABLED_BY_POLICY)).thenReturn(true);
         when(mPrefService.getBoolean(BravePref.DISABLED_BY_POLICY)).thenReturn(true);
+        // VPN: MANAGED_BRAVE_VPN_DISABLED = true means disabled
+        when(mPrefService.isManagedPreference(BravePref.MANAGED_BRAVE_VPN_DISABLED))
+                .thenReturn(true);
+        when(mPrefService.getBoolean(BravePref.MANAGED_BRAVE_VPN_DISABLED)).thenReturn(true);
+        // Wallet: BRAVE_WALLET_DISABLED_BY_POLICY = true means disabled
+        when(mPrefService.isManagedPreference(BravePref.BRAVE_WALLET_DISABLED_BY_POLICY))
+                .thenReturn(true);
+        when(mPrefService.getBoolean(BravePref.BRAVE_WALLET_DISABLED_BY_POLICY)).thenReturn(true);
 
         assertEquals(MenuGroup.PAGE_MENU, mTabbedAppMenuPropertiesDelegate.getMenuGroup());
         MVCListAdapter.ModelList modelList = mTabbedAppMenuPropertiesDelegate.getMenuItems();
 
-        // brave_news_id, brave_leo_id, brave_rewards_id should NOT be in the menu
+        // Policy-disabled items should NOT be in the menu
         Integer[] expectedItems = {
             R.id.new_tab_menu_id,
             R.id.new_incognito_tab_menu_id,
@@ -423,7 +446,7 @@ public class BraveTabbedAppMenuPropertiesDelegateUnitTest {
             R.id.open_history_menu_id,
             R.id.downloads_menu_id,
             R.id.all_bookmarks_menu_id,
-            R.id.brave_wallet_id,
+            // R.id.brave_wallet_id is NOT included - disabled by policy
             // R.id.brave_leo_id is NOT included - disabled by policy
             // R.id.brave_rewards_id is NOT included - disabled by policy
             R.id.recent_tabs_menu_id,
@@ -431,6 +454,7 @@ public class BraveTabbedAppMenuPropertiesDelegateUnitTest {
             R.id.preferences_id,
             R.id.set_default_browser,
             // R.id.brave_news_id is NOT included - disabled by policy
+            // R.id.request_brave_vpn_id is NOT included - disabled by policy
             R.id.brave_customize_menu_id,
             R.id.exit_id,
         };
@@ -438,7 +462,7 @@ public class BraveTabbedAppMenuPropertiesDelegateUnitTest {
     }
 
     private void setUpMocksForPageMenu() {
-        when(mActivityTabProvider.get()).thenReturn(mTab);
+        mActivityTabProvider.setForTesting(mTab);
         when(mLayoutStateProvider.isLayoutVisible(LayoutType.TAB_SWITCHER)).thenReturn(false);
         doReturn(false)
                 .when(mTabbedAppMenuPropertiesDelegate)

@@ -15,6 +15,7 @@
 #include "base/values.h"
 #include "brave/components/ai_chat/core/common/mojom/ai_chat.mojom.h"
 #include "brave/components/ai_chat/core/common/mojom/common.mojom.h"
+#include "brave/components/brave_origin/mojom/brave_origin_settings.mojom.h"
 #include "brave/components/brave_vpn/common/buildflags/buildflags.h"
 #include "content/public/renderer/render_frame.h"
 #include "content/public/renderer/render_frame_observer.h"
@@ -54,7 +55,7 @@ class SubscriptionRenderFrameObserver : public content::RenderFrameObserver {
                            IsAllowed);
   FRIEND_TEST_ALL_PREFIXES(SubscriptionRenderFrameObserverTest, ExtractParam);
   FRIEND_TEST_ALL_PREFIXES(SubscriptionRenderFrameObserverTest, IsValueAllowed);
-  enum class Product { kVPN = 0, kLeo = 1 };
+  enum class Product { kVPN = 0, kLeo = 1, kOrigin = 2 };
   enum class Page { kInitialLandingPage = 0, kResultLandingPage = 1 };
 
   bool EnsureConnected();
@@ -79,7 +80,7 @@ class SubscriptionRenderFrameObserver : public content::RenderFrameObserver {
                             v8::Local<v8::Object> javascript_object,
                             const std::string& name,
                             const base::RepeatingCallback<Sig>& callback);
-  void SetLinkStatus(base::Value::Dict status);
+  void SetLinkStatus(base::DictValue status);
 
   const int32_t world_id_;
   std::optional<Product> product_ = std::nullopt;
@@ -88,6 +89,7 @@ class SubscriptionRenderFrameObserver : public content::RenderFrameObserver {
   mojo::Remote<brave_vpn::mojom::ServiceHandler> vpn_service_;
 #endif
   mojo::Remote<ai_chat::mojom::IAPSubscription> ai_chat_subscription_;
+  mojo::Remote<brave_origin::mojom::OriginIAPSubscription> origin_subscription_;
   base::WeakPtrFactory<SubscriptionRenderFrameObserver> weak_factory_{this};
 };
 

@@ -8,10 +8,11 @@
 #include <cstdint>
 
 #include "base/time/time.h"
-#include "brave/components/brave_ads/core/internal/ads_client/ads_client_notifier_observer_mock.h"
+#include "brave/components/brave_ads/core/internal/ads_client/test/ads_client_notifier_observer_mock.h"
 #include "net/http/http_status_code.h"
 #include "testing/gmock/include/gmock/gmock.h"
 #include "testing/gtest/include/gtest/gtest.h"
+#include "ui/base/page_transition_types.h"
 
 // npm run test -- brave_unit_tests --filter=BraveAds*
 
@@ -26,7 +27,6 @@ constexpr char kPaymentId[] = "PaymentId";
 constexpr char kRecoverySeed[] = "RecoverySeed";
 constexpr char kRedirectChainUrl[] = "https://brave.com";
 constexpr char kText[] = "Text";
-constexpr char kHtml[] = "HTML";
 
 constexpr int32_t kTabId = 1;
 constexpr bool kIsNewNavigation = true;
@@ -34,8 +34,6 @@ constexpr bool kIsRestoring = false;
 constexpr bool kIsVisible = true;
 
 constexpr int kHttpResponseCode = net::HTTP_OK;
-
-constexpr int32_t kPageTransitionType = 2;
 
 constexpr base::TimeDelta kIdleTime = base::Minutes(1);
 constexpr bool kScreenWasLocked = true;
@@ -66,8 +64,6 @@ class BraveAdsAdsClientNotifierTest : public ::testing::Test {
 
     ads_client_notifier_.NotifyTabTextContentDidChange(
         kTabId, {GURL(kRedirectChainUrl)}, kText);
-    ads_client_notifier_.NotifyTabHtmlContentDidChange(
-        kTabId, {GURL(kRedirectChainUrl)}, kHtml);
     ads_client_notifier_.NotifyTabDidStartPlayingMedia(kTabId);
     ads_client_notifier_.NotifyTabDidStopPlayingMedia(kTabId);
     ads_client_notifier_.NotifyTabDidChange(kTabId, {GURL(kRedirectChainUrl)},
@@ -76,7 +72,8 @@ class BraveAdsAdsClientNotifierTest : public ::testing::Test {
     ads_client_notifier_.NotifyTabDidLoad(kTabId, kHttpResponseCode);
     ads_client_notifier_.NotifyDidCloseTab(kTabId);
 
-    ads_client_notifier_.NotifyUserGestureEventTriggered(kPageTransitionType);
+    ads_client_notifier_.NotifyUserGestureEventTriggered(
+        ui::PAGE_TRANSITION_TYPED);
     ads_client_notifier_.NotifyUserDidBecomeIdle();
     ads_client_notifier_.NotifyUserDidBecomeActive(kIdleTime, kScreenWasLocked);
 
@@ -113,11 +110,6 @@ class BraveAdsAdsClientNotifierTest : public ::testing::Test {
         OnNotifyTabTextContentDidChange(
             kTabId, ::testing::ElementsAre(GURL(kRedirectChainUrl)), kText))
         .Times(expected_call_count);
-    EXPECT_CALL(
-        ads_client_notifier_observer_mock_,
-        OnNotifyTabHtmlContentDidChange(
-            kTabId, ::testing::ElementsAre(GURL(kRedirectChainUrl)), kHtml))
-        .Times(expected_call_count);
     EXPECT_CALL(ads_client_notifier_observer_mock_,
                 OnNotifyTabDidStartPlayingMedia(kTabId))
         .Times(expected_call_count);
@@ -136,7 +128,11 @@ class BraveAdsAdsClientNotifierTest : public ::testing::Test {
         .Times(expected_call_count);
 
     EXPECT_CALL(ads_client_notifier_observer_mock_,
-                OnNotifyUserGestureEventTriggered(kPageTransitionType))
+                OnNotifyUserGestureEventTriggered(
+                    ::testing::Truly([](ui::PageTransition page_transition) {
+                      return ui::PageTransitionTypeIncludingQualifiersIs(
+                          page_transition, ui::PAGE_TRANSITION_TYPED);
+                    })))
         .Times(expected_call_count);
     EXPECT_CALL(ads_client_notifier_observer_mock_, OnNotifyUserDidBecomeIdle())
         .Times(expected_call_count);

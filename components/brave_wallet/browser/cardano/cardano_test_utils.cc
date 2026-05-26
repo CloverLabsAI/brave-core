@@ -61,7 +61,7 @@ void CardanoTestRpcServer::RequestInterceptor(
     }
 
     if (utxos_map_.contains(*address)) {
-      base::Value::List items;
+      base::ListValue items;
       for (const auto& utxo : utxos_map_[*address]) {
         items.Append(utxo.ToValue());
       }
@@ -128,7 +128,7 @@ void CardanoTestRpcServer::RequestInterceptor(
   }
 
   if (auto txid = IsGetTransactionRequest(request)) {
-    if (base::Contains(confirmed_transactions_, *txid)) {
+    if (std::ranges::contains(confirmed_transactions_, *txid)) {
       cardano_rpc::blockfrost_api::Transaction tx;
       tx.hash = *txid;
       url_loader_factory_.AddResponse(
@@ -291,7 +291,7 @@ void CardanoTestRpcServer::AddConfirmedTransaction(const std::string& txid) {
 
 scoped_refptr<network::SharedURLLoaderFactory>
 CardanoTestRpcServer::GetURLLoaderFactory() {
-  return shared_url_loader_factory_;
+  return url_loader_factory_.GetSafeWeakWrapper();
 }
 
 }  // namespace brave_wallet

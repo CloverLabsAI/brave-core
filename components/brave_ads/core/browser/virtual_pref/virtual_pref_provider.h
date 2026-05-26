@@ -11,9 +11,21 @@
 #include <string_view>
 
 #include "base/memory/raw_ptr.h"
-#include "base/values.h"
+#include "brave/components/brave_ads/buildflags/buildflags.h"
+
+static_assert(BUILDFLAG(ENABLE_BRAVE_ADS));
 
 class PrefService;
+
+namespace base {
+class DictValue;
+}  // namespace base
+
+// Provides a stable set of virtual pref paths for condition matching, exposing
+// values that have no registered pref at all, and decoupling ads from
+// registered pref paths so that targeting continues to work correctly even if
+// those paths change in a future browser version, all evaluated locally with
+// nothing leaving the device.
 
 namespace brave_ads {
 
@@ -26,6 +38,8 @@ class VirtualPrefProvider final {
     virtual std::string_view GetChannel() const = 0;
 
     virtual std::string GetDefaultSearchEngineName() const = 0;
+
+    virtual base::DictValue GetSerpMetrics() const = 0;
   };
 
   VirtualPrefProvider(PrefService* prefs,
@@ -37,7 +51,7 @@ class VirtualPrefProvider final {
 
   ~VirtualPrefProvider();
 
-  base::Value::Dict GetPrefs() const;
+  base::DictValue GetPrefs() const;
 
  private:
   const raw_ptr<PrefService> prefs_;        // Not owned.

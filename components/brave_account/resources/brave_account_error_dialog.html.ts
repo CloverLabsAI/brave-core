@@ -6,80 +6,21 @@
 import './brave_account_dialog.js'
 
 import { html } from '//resources/lit/v3_0/lit.rollup.js'
-import { loadTimeData } from '//resources/js/load_time_data.js'
 
 import { BraveAccountErrorDialogElement } from './brave_account_error_dialog.js'
-import {
-  LoginErrorCode,
-  RegisterErrorCode,
-} from './brave_account.mojom-webui.js'
 
 export function getHtml(this: BraveAccountErrorDialogElement) {
   return html`<!--_html_template_start_-->
     <brave-account-dialog
-      alert-message=${(() => {
-        const LOGIN_ERROR_STRINGS: Partial<Record<LoginErrorCode, string>> = {
-          [LoginErrorCode.kIncorrectEmail]:
-            '$i18n{braveAccountErrorDialogIncorrectEmail}',
-          [LoginErrorCode.kIncorrectPassword]:
-            '$i18n{braveAccountErrorDialogIncorrectPassword}',
-        }
-
-        const REGISTER_ERROR_STRINGS: Partial<
-          Record<RegisterErrorCode, string>
-        > = {
-          [RegisterErrorCode.kAccountExists]:
-            '$i18n{braveAccountErrorDialogAccountExists}',
-          [RegisterErrorCode.kEmailDomainNotSupported]:
-            '$i18n{braveAccountErrorDialogEmailDomainNotSupported}',
-          [RegisterErrorCode.kTooManyVerifications]:
-            '$i18n{braveAccountErrorDialogTooManyVerifications}',
-        }
-
-        const getErrorMessage = <T extends LoginErrorCode | RegisterErrorCode>(
-          errorStrings: Partial<Record<T, string>>,
-          details: { statusCode: number | null; errorCode: T | null },
-        ): string => {
-          const { statusCode, errorCode } = details
-
-          if (statusCode == null) {
-            // client-side error
-            return loadTimeData.getStringF(
-              'braveAccountClientError',
-              errorCode != null
-                ? ` ($i18n{braveAccountError}=${errorCode})`
-                : '',
-            )
-          }
-
-          // server-side error
-          return (
-            (errorCode != null ? errorStrings[errorCode] : null)
-            ?? loadTimeData.getStringF(
-              'braveAccountServerError',
-              statusCode,
-              errorCode != null
-                ? `, $i18n{braveAccountError}=${errorCode}`
-                : '',
-            )
-          )
-        }
-
-        switch (this.error.flow) {
-          case 'login':
-            return getErrorMessage(LOGIN_ERROR_STRINGS, this.error.details)
-          case 'register':
-            return getErrorMessage(REGISTER_ERROR_STRINGS, this.error.details)
-        }
-      })()}
-      dialog-description="$i18n{braveAccountErrorDialogDescription}"
-      dialog-title="$i18n{braveAccountErrorDialogTitle}"
+      alert-message=${this.alertMessage}
+      dialog-description="$i18n{BRAVE_ACCOUNT_ERROR_DIALOG_DESCRIPTION}"
+      dialog-title="$i18n{BRAVE_ACCOUNT_ERROR_DIALOG_TITLE}"
     >
       <leo-button
         slot="buttons"
         @click=${() => this.fire('back-button-clicked')}
       >
-        $i18n{braveAccountBackButtonLabel}
+        $i18n{BRAVE_ACCOUNT_BACK_BUTTON_LABEL}
       </leo-button>
     </brave-account-dialog>
     <!--_html_template_end_-->`

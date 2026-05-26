@@ -178,10 +178,6 @@
     "META": {"sizes": {"includes": [10]}},
     "includes": [53800]
   },
-  "<(SHARED_INTERMEDIATE_DIR)/brave/web-ui-ai_rewriter_ui/ai_rewriter_ui.grd": {
-    "META": {"sizes": {"includes": [10]}},
-    "includes": [53820],
-  },
   "<(SHARED_INTERMEDIATE_DIR)/brave/web-ui-rewards_page/rewards_page.grd": {
     "META": {"sizes": {"includes": [50]}},
     "includes": [53840],
@@ -202,9 +198,17 @@
     "META": {"sizes": {"includes": [10]}},
     "includes": [53920],
   },
+  "<(SHARED_INTERMEDIATE_DIR)/brave/browser/resources/brave_origin_startup/brave_origin_startup_static_resources.grd": {
+    "META": {"sizes": {"includes": [10]}},
+    "includes": [53930],
+  },
   "<(SHARED_INTERMEDIATE_DIR)/brave/web-ui-new_tab_takeover/new_tab_takeover.grd": {
     "META": {"sizes": {"includes": [10]}},
     "includes": [53940],
+  },
+  "<(SHARED_INTERMEDIATE_DIR)/brave/web-ui-brave_origin_startup/brave_origin_startup.grd": {
+    "META": {"sizes": {"includes": [10]}},
+    "includes": [53950],
   },
   "<(SHARED_INTERMEDIATE_DIR)/brave/web-ui-brave_new_tab_page_refresh/brave_new_tab_page_refresh.grd": {
     "META": {"sizes": {"includes": [30]}},
@@ -215,7 +219,7 @@
     "includes": [53980],
   },
   "<(SHARED_INTERMEDIATE_DIR)/brave/components/brave_account/resources/resources.grd": {
-    "META": {"sizes": {"includes": [35]}},
+    "META": {"sizes": {"includes": [45]}},
     "includes": [54000],
   },
   "brave/ios/web/test/test_resources.grd": {
@@ -225,6 +229,14 @@
   "<(SHARED_INTERMEDIATE_DIR)/brave/browser/resources/ai_chat_agent_new_tab_page/ai_chat_agent_new_tab_page_static_resources.grd": {
     "META": {"sizes": {"includes": [1]}},
     "includes": [54030],
+  },
+  "<(SHARED_INTERMEDIATE_DIR)/brave/web-ui-candle_embedding_module/candle_embedding_module.grd": {
+    "META": {"sizes": {"includes": [2]}},
+    "includes": [54035],
+  },
+  "<(SHARED_INTERMEDIATE_DIR)/brave/web-ui-local_ai/local_ai.grd": {
+    "META": {"sizes": {"includes": [1]}},
+    "includes": [54037],
   },
   "<(SHARED_INTERMEDIATE_DIR)/brave/web-ui-ai_chat_agent_new_tab_page/ai_chat_agent_new_tab_page.grd": {
     "META": {"sizes": {"includes": [20]}},
@@ -236,6 +248,13 @@
   "<(SHARED_INTERMEDIATE_DIR)/brave/web-ui-brave_welcome_page/brave_welcome_page.grd": {
     "META": {"sizes": {"includes": [20]}},
     "includes": [54080],
+  },
+  "brave/components/resources/brave_components_scaled_resources.grd": {
+    "structures": [54100],
+  },
+  "<(SHARED_INTERMEDIATE_DIR)/brave/web-ui-brave_shields_panel_new/brave_shields_panel_new.grd": {
+    "META": {"sizes": {"includes": [20]}},
+    "includes": [54120],
   },
   # WARNING: The IDs range is 2^16-1. Check
   # out/<BUILD_TYPE>/gen/brave/resources/brave_resource_ids for how much the

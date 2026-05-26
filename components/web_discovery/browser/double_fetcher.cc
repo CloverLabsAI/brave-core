@@ -8,7 +8,6 @@
 #include <utility>
 
 #include "base/check.h"
-#include "base/containers/contains.h"
 #include "base/strings/string_util.h"
 #include "brave/components/brave_search/browser/backup_results_allowed_urls.h"
 #include "brave/components/brave_search/browser/backup_results_service.h"
@@ -80,7 +79,7 @@ DoubleFetcher::~DoubleFetcher() = default;
 
 void DoubleFetcher::ScheduleDoubleFetch(const GURL& url,
                                         base::Value associated_data) {
-  base::Value::Dict fetch_dict;
+  base::DictValue fetch_dict;
   fetch_dict.Set(kUrlKey, url.spec());
   fetch_dict.Set(kAssociatedDataKey, std::move(associated_data));
 

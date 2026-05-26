@@ -12,7 +12,7 @@
 #include "base/test/task_environment.h"
 #include "base/test/test_future.h"
 #include "base/values.h"
-#include "brave/components/brave_shields/core/browser/adblock/rs/src/lib.rs.h"
+#include "brave/components/brave_shields/core/common/adblock/rs/src/lib.rs.h"
 #include "brave/components/brave_shields/core/common/features.h"
 #include "brave/components/brave_shields/core/common/pref_names.h"
 #include "components/prefs/pref_registry_simple.h"
@@ -25,7 +25,7 @@ namespace {
 
 base::Value CreateResource(const std::string& name,
                            const std::string& content) {
-  base::Value::Dict resource;
+  base::DictValue resource;
   resource.Set("name", name);
   resource.Set("content", base::Base64Encode(content));
   resource.SetByDottedPath("kind.mime", "application/javascript");
@@ -85,10 +85,7 @@ class TestObserver : public AdBlockResourceProvider::Observer {
 
 class AdBlockCustomResourceProviderTest : public ::testing::Test {
  public:
-  AdBlockCustomResourceProviderTest() {
-    feature_list_.InitAndEnableFeature(
-        features::kCosmeticFilteringCustomScriptlets);
-  }
+  AdBlockCustomResourceProviderTest() = default;
 
   ~AdBlockCustomResourceProviderTest() override = default;
 

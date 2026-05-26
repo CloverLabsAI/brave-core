@@ -3,9 +3,9 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 
-const path = require('path')
-const fs = require('fs-extra')
-const util = require('../lib/util')
+import path from 'node:path'
+import fs from 'fs-extra'
+import util from './util.js'
 
 const desiredReplacementSeparator = '-'
 const patchExtension = '.patch'
@@ -15,7 +15,7 @@ const patchExtension = '.patch'
  * @param {string} gitRepoPath The repository to get modified files from
  * @param {(file: string) => boolean} [filter] Filter function for file paths to include or exclude (all included by default)
  * @param {string[]} [onlyFiles] If not empty, only modified paths for these files will be considered.
- * @returns {string[]} List of modified file paths
+ * @returns {Promise<string[]>} List of modified file paths
  */
 async function getModifiedPaths(gitRepoPath, filter, onlyFiles) {
   const onlyFilesSet = new Set(onlyFiles)
@@ -161,7 +161,7 @@ async function updatePatches(
     patchDirPath,
   )
   // We only remove stale patch files if we're updating everything.
-  if (onlyFiles.length === 0) {
+  if (onlyFiles && onlyFiles.length === 0) {
     await removeStalePatchFiles(
       patchFilenames,
       patchDirPath,
@@ -170,4 +170,4 @@ async function updatePatches(
   }
 }
 
-module.exports = updatePatches
+export default updatePatches

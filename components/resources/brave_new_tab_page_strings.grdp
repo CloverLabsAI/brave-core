@@ -105,6 +105,14 @@
     Photo by <ph name="AUTHOR">$1</ph>
   </message>
 
+  <message name="IDS_NEW_TAB_QUERY_TOGGLE_CHAT_LABEL" desc="Label for the Search querybox toggle option" formatter_data="webui=BraveNewTabPage">
+    Leo AI
+  </message>
+
+  <message name="IDS_NEW_TAB_QUERY_TOGGLE_SEARCH_LABEL" desc="Label for the Search querybox toggle option" formatter_data="webui=BraveNewTabPage">
+    Search
+  </message>
+
   <message name="IDS_NEW_TAB_RANDOMIZE_BACKGROUND_LABEL" desc="Label for random toggle button" formatter_data="webui=BraveNewTabPage">
     Refresh on every new tab
   </message>
@@ -161,12 +169,16 @@
     Save changes
   </message>
 
+  <message name="IDS_NEW_TAB_SEARCH_AND_CHAT_SETTINGS_TITLE" desc="Title for search and AI chat settings" formatter_data="webui=BraveNewTabPage">
+    Search and AI
+  </message>
+
   <message name="IDS_NEW_TAB_SEARCH_BOX_PLACEHOLDER_TEXT" desc="Placeholder text for when Brave is not the selected search engine" formatter_data="webui=BraveNewTabPage">
     Search the web
   </message>
 
   <message name="IDS_NEW_TAB_SEARCH_BOX_PLACEHOLDER_TEXT_BRAVE" desc="Placeholder text for when Brave is the selected search engine" formatter_data="webui=BraveNewTabPage">
-    Ask Brave Search
+    Ask anything, find anything...
   </message>
 
   <message name="IDS_NEW_TAB_SEARCH_CUSTOMIZE_ENGINE_LIST_TEXT" desc="Label for the customize list action" formatter_data="webui=BraveNewTabPage">
@@ -201,8 +213,16 @@
     Show Background Images
   </message>
 
+  <message name="IDS_NEW_TAB_SHOW_CHAT_INPUT_LABEL" desc="Label for enabling the Leo AI chat input on the NTP" formatter_data="webui=BraveNewTabPage">
+    Show Leo AI widget in new tabs
+  </message>
+
   <message name="IDS_NEW_TAB_SHOW_CLOCK_LABEL" desc="Label for enabling the clock on the NTP" formatter_data="webui=BraveNewTabPage">
     Show clock
+  </message>
+
+  <message name="IDS_NEW_TAB_SHOW_NEWS_WIDGET_LABEL" desc="Label for showing or hiding the Brave News widget on the NTP" formatter_data="webui=BraveNewTabPage">
+    Brave News
   </message>
 
   <message name="IDS_NEW_TAB_SHOW_REWARDS_WIDGET_LABEL" desc="Label for enabling the Rewards widget on the NTP" formatter_data="webui=BraveNewTabPage">

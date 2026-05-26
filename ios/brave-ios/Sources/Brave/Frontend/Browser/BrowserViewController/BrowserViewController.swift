@@ -304,18 +304,14 @@ public class BrowserViewController: UIViewController {
       privateBrowsingManager: privateBrowsingManager
     )
 
-    // Add default favorites
-    if !Preferences.NewTabPage.preloadedFavoritiesInitialized.value {
-      FavoritesHelper.addDefaultFavorites()
-      Preferences.NewTabPage.preloadedFavoritiesInitialized.value = true
-    }
-
     // Initialize TabManager
     self.tabManager = TabManager(
       windowId: windowId,
       rewards: rewards,
       braveCore: profileController,
-      privateBrowsingManager: privateBrowsingManager
+      profile: profileController.profile,
+      privateBrowsingManager: privateBrowsingManager,
+      tabCreationFactory: TabStateFactory.create
     )
 
     // Remove outdated Recently Closed tabs
@@ -464,7 +460,6 @@ public class BrowserViewController: UIViewController {
     Preferences.Privacy.privateBrowsingOnly.observe(from: self)
     Preferences.General.tabBarVisibility.observe(from: self)
     Preferences.General.mediaAutoBackgrounding.observe(from: self)
-    Preferences.General.youtubeHighQuality.observe(from: self)
     Preferences.General.defaultPageZoomLevel.observe(from: self)
     Preferences.Shields.allShields.forEach { $0.observe(from: self) }
     Preferences.Privacy.blockAllCookies.observe(from: self)
@@ -552,6 +547,12 @@ public class BrowserViewController: UIViewController {
 
     // Revised Review Handling
     AppReviewManager.shared.handleAppReview(for: .revisedCrossPlatform, using: self)
+
+    if FeatureList.kUseProfileWebViewConfiguration.enabled {
+      BraveWebView.didResetConfiguration = { profile, configuration in
+        configuration.prepareBraveConfiguration()
+      }
+    }
   }
 
   private func setupAdsNotificationHandler() {
@@ -681,6 +682,14 @@ public class BrowserViewController: UIViewController {
         }
       }
     )
+
+    if LiquidGlassMode.isEnabled {
+      // Update top toolbar constraints and force layout/redraw during transition
+      Task.delayed(bySeconds: 0.1) { @MainActor [self] in
+        // Force a full layout pass to redraw the toolbar
+        topToolbar.setNeedsUpdateConstraints()
+      }
+    }
   }
 
   @objc func appWillTerminateNotification() {
@@ -745,6 +754,17 @@ public class BrowserViewController: UIViewController {
     guard let scene = notification.object as? UIScene, scene == currentScene else {
       return
     }
+
+    // If toolbarVisibilityViewModel.isEnabled got stuck false while the keyboard isn't actually
+    // showing, recover the toolbar visibility state that the keyboard handler left behind
+    if !toolbarVisibilityViewModel.isEnabled, keyboardState == nil {
+      toolbarVisibilityViewModel.isEnabled = true
+      header.expandedBarStackView.alpha = 1
+      header.collapsedBarContainerView.alpha =
+        toolbarVisibilityViewModel.toolbarState == .expanded ? 0 : 1
+      collapsedURLBarView.isKeyboardVisible = false
+    }
+
     if !isContentHiddenInBackground {
       return
     }
@@ -1086,20 +1106,19 @@ public class BrowserViewController: UIViewController {
   }
 
   private func setupTabs() {
-    let isPrivate =
-      privateBrowsingManager.isPrivateBrowsing || Preferences.Privacy.privateBrowsingOnly.value
     let noTabsAdded = self.tabManager.tabsForCurrentMode.isEmpty
 
     var tabToSelect: (any TabState)?
 
     if noTabsAdded {
-      // Two scenarios if there are no tabs in tabmanager:
-      // 1. We have not restored tabs yet, attempt to restore or make a new tab if there is nothing.
-      // 2. We are in private browsing mode and need to add a new private tab.
-      tabToSelect =
-        isPrivate ? self.tabManager.addTab(isPrivate: true) : self.tabManager.restoreAllTabs
+      // Attempt to restore tabs first (includes persistent private tabs when "Keep private tabs" is enabled).
+      // If nothing to restore, restoreAllTabs adds a new tab.
+      tabToSelect = self.tabManager.restoreAllTabs
     } else {
-      if let selectedTab = tabManager.selectedTab, !selectedTab.isPrivate {
+      // Use selected tab when it matches current mode (private vs regular); otherwise use last tab
+      let isPrivate =
+        privateBrowsingManager.isPrivateBrowsing || Preferences.Privacy.privateBrowsingOnly.value
+      if let selectedTab = tabManager.selectedTab, selectedTab.isPrivate == isPrivate {
         tabToSelect = selectedTab
       } else {
         tabToSelect = tabManager.tabsForCurrentMode.last
@@ -1352,20 +1371,11 @@ public class BrowserViewController: UIViewController {
           clearRecentSearchAlertDismissed = true
         }
 
-        var legacyTabTrayDismissed = false
-        if let presentedNavigationController = presentedViewController
-          as? UINavigationController,
-          presentedNavigationController.topViewController is TabTrayController
-        {
-          legacyTabTrayDismissed = true
-        }
-
         shouldEvaluateKeyboardConstraints =
           (activeKeyboardHeight > 0)
           && (presentedViewController == nil
             || searchEngineSettingsDismissed
             || clearRecentSearchAlertDismissed
-            || legacyTabTrayDismissed
             || presentedViewController is TabGridHostingController)
 
         if shouldEvaluateKeyboardConstraints {
@@ -1553,7 +1563,7 @@ public class BrowserViewController: UIViewController {
   func updateInContentHomePanel(_ url: URL?) {
     let isAboutHomeURL = { () -> Bool in
       if let url = url {
-        return InternalURL(url)?.isAboutHomeURL == true
+        return url.isNewTabURL
       }
       return false
     }()
@@ -1592,7 +1602,10 @@ public class BrowserViewController: UIViewController {
     }
 
     func shouldShowTabBar() -> Bool {
-      if (topToolbar.inOverlayMode || keyboardState != nil) && isUsingBottomBar {
+      let isKeyboardActive =
+        tabManager.selectedTab?.webViewProxy?.isKeyboardVisible == true
+        && keyboardState?.isLocal == true
+      if isUsingBottomBar, topToolbar.inOverlayMode || isKeyboardActive {
         return false
       }
       let tabCount = tabManager.tabsForCurrentMode.count
@@ -1801,8 +1814,9 @@ public class BrowserViewController: UIViewController {
 
     updateRewardsButtonState()
 
+    let playlistItem = tab.playlistItem
     DispatchQueue.main.async {
-      if let item = tab.playlistItem {
+      if let item = playlistItem {
         if PlaylistItem.itemExists(uuid: item.tagId)
           || PlaylistItem.itemExists(pageSrc: item.pageSrc)
         {
@@ -2042,8 +2056,8 @@ public class BrowserViewController: UIViewController {
   }
 
   public override var preferredStatusBarStyle: UIStatusBarStyle {
-    if isUsingBottomBar, let tab = tabManager.selectedTab,
-      tab.visibleURL.map(InternalURL.isValid) == false,
+    if isUsingBottomBar, let tab = tabManager.selectedTab, let url = tab.visibleURL,
+      !url.isNewTabURL, !InternalURL.isValid(url: url),
       let color = tab.sampledPageTopColor
     {
       return color.isLight ? .darkContent : .lightContent
@@ -2053,8 +2067,8 @@ public class BrowserViewController: UIViewController {
 
   func updateStatusBarOverlayColor() {
     defer { setNeedsStatusBarAppearanceUpdate() }
-    guard isUsingBottomBar, let tab = tabManager.selectedTab,
-      tab.visibleURL.map(InternalURL.isValid) == false,
+    guard isUsingBottomBar, let tab = tabManager.selectedTab, let url = tab.visibleURL,
+      !url.isNewTabURL, !InternalURL.isValid(url: url),
       let color = tab.sampledPageTopColor
     else {
       statusBarOverlay.backgroundColor = privateBrowsingManager.browserColors.chromeBackground
@@ -2072,15 +2086,28 @@ public class BrowserViewController: UIViewController {
       // Whether to show search icon or + icon
       toolbar?.setSearchButtonState(url: url)
 
-      if !InternalURL.isValid(url: url) || url.isInternalURL(for: .readermode), !url.isFileURL {
+      if !url.isNewTabURL, !InternalURL.isValid(url: url) || url.isInternalURL(for: .readermode),
+        !url.isFileURL
+      {
         // Fire the readability check. This is here and not in the pageShow event handler in ReaderMode.js anymore
         // because that event will not always fire due to unreliable page caching. This will either let us know that
         // the currently loaded page can be turned into reading mode or if the page already is in reading mode. We
         // ignore the result because we are being called back asynchronous when the readermode status changes.
-        tab.evaluateJavaScript(
-          functionName: "\(readerModeNamespace).checkReadability",
-          contentWorld: ReaderModeScriptHandler.scriptSandbox
-        )
+        if FeatureList.kUseProfileWebViewConfiguration.enabled {
+          if let readerMode = tab.readerMode {
+            Task {
+              await readerMode.checkReadability()
+              if tabManager.selectedTab === tab {
+                topToolbar.updateReaderModeState(readerMode.state)
+              }
+            }
+          }
+        } else {
+          tab.evaluateJavaScript(
+            functionName: "\(readerModeNamespace).checkReadability",
+            contentWorld: ReaderModeScriptHandler.scriptSandbox
+          )
+        }
 
         // Only add history of a url which is not a localhost url
         if !url.isInternalURL(for: .readermode) {
@@ -2144,17 +2171,22 @@ public class BrowserViewController: UIViewController {
 
   func toggleReaderMode() {
     guard let tab = tabManager.selectedTab else { return }
-    if let readerMode = tab.browserData?.getContentScript(name: ReaderModeScriptHandler.scriptName)
-      as? ReaderModeScriptHandler
-    {
-      switch readerMode.state {
-      case .available:
-        enableReaderMode()
-      case .active:
-        disableReaderMode()
-      case .unavailable:
-        break
-      }
+    let readerModeState: ReaderModeState?
+    if FeatureList.kUseProfileWebViewConfiguration.enabled {
+      readerModeState = tab.readerMode?.state
+    } else {
+      readerModeState =
+        (tab.browserData?.getContentScript(name: ReaderModeScriptHandler.scriptName)
+        as? ReaderModeScriptHandler)?.state
+    }
+    guard let readerModeState else { return }
+    switch readerModeState {
+    case .available:
+      enableReaderMode()
+    case .active:
+      disableReaderMode()
+    case .unavailable:
+      break
     }
   }
 
@@ -2170,8 +2202,9 @@ public class BrowserViewController: UIViewController {
       toolbarTopConstraint?.update(offset: 0)
       toolbarBottomConstraint?.update(offset: 0)
 
-      // Check if UI side is collapsed already
-      if topToolbar.locationContainer.alpha < 1 {
+      // Check if UI side is collapsed already, and that bar visibility isn't being managed
+      // externally (e.g. by the keyboard handler which sets isEnabled = false)
+      if topToolbar.locationContainer.alpha < 1, toolbarVisibilityViewModel.isEnabled {
         let animator = toolbarVisibilityViewModel.toolbarChangePropertyAnimator
         animator.addAnimations { [self] in
           view.layoutIfNeeded()
@@ -2224,10 +2257,16 @@ public class BrowserViewController: UIViewController {
       topToolbar.locationContainer.alpha = 0
       toolbarBottomConstraint?.update(offset: footerHeight)
     }
-    tabsBar.view.alpha = topToolbar.locationContainer.alpha
-    topToolbar.actionButtons.forEach { $0.alpha = topToolbar.locationContainer.alpha }
-    header.collapsedBarContainerView.alpha = 1 - topToolbar.locationContainer.alpha
-    toolbar?.actionButtons.forEach { $0.alpha = topToolbar.locationContainer.alpha }
+    // Only update bar visibility alphas when the toolbar visibility isn't being managed
+    // externally (e.g. by the keyboard handler which sets isEnabled = false). Skipping
+    // this when isEnabled = false prevents zeroing out collapsedBarContainerView while
+    // expandedBarStackView is already hidden, which would leave both bars invisible.
+    if toolbarVisibilityViewModel.isEnabled {
+      tabsBar.view.alpha = topToolbar.locationContainer.alpha
+      topToolbar.actionButtons.forEach { $0.alpha = topToolbar.locationContainer.alpha }
+      header.collapsedBarContainerView.alpha = 1 - topToolbar.locationContainer.alpha
+      toolbar?.actionButtons.forEach { $0.alpha = topToolbar.locationContainer.alpha }
+    }
     let animator = toolbarVisibilityViewModel.toolbarChangePropertyAnimator
     animator.addAnimations {
       self.view.layoutIfNeeded()
@@ -2297,13 +2336,41 @@ extension BrowserViewController: SettingsDelegate {
   }
 
   func settingsCreateFakeHistory() {
-    let urls = (0..<1000).map { URL(string: "https://search.brave.com/search?q=History\($0)")! }
+    let urls = (0..<10000).map { URL(string: "https://search.brave.com/search?q=History\($0)")! }
     for (index, url) in urls.enumerated() {
+      let factor = index / 1000
+      let dateAdded =
+        factor == 0 ? Date() : Calendar.current.date(byAdding: .day, value: -factor, to: Date())!
       profileController.historyAPI.add(
         url: url,
         title: "QA-History - BraveSearch - \(index)",
-        dateAdded: Date()
+        dateAdded: dateAdded
       )
+    }
+  }
+
+  func settingsPresentQuickView() {
+    guard let currentTab = tabManager.selectedTab else {
+      let alert = UIAlertController(
+        title: "No Tab Available",
+        message: "Please open a tab first.",
+        preferredStyle: .alert
+      )
+      alert.addAction(UIAlertAction(title: "OK", style: .default))
+      present(alert, animated: true)
+      return
+    }
+
+    // TODO: Load actual ref link https://github.com/brave/brave-browser/issues/53569
+    let testURL = URL(string: "https://search.brave.com/ask?q=brave")!
+
+    let quickViewController = QuickViewController(
+      url: testURL,
+      for: currentTab
+    )
+
+    present(quickViewController, animated: true) {
+      Logger.module.debug("QuickView presented from Settings: \(testURL)")
     }
   }
 }
@@ -2383,17 +2450,11 @@ extension BrowserViewController: TabMiscDelegate {
     )
     popover.addsConvenientDismissalMargins = false
     popover.present(from: topToolbar.rewardsButton, on: self)
-    popover.popoverDidDismiss = { _ in
-      // This gets called if popover is dismissed by user gesture
-      // This does not conflict with 'Enable Rewards' button.
-      tab.rewardsEnabledCallback?(false)
-    }
 
     vc.rewardsEnabledHandler = { [weak self] in
       guard let self = self else { return }
 
       self.rewards.isEnabled = true
-      tab.rewardsEnabledCallback?(true)
 
       let vc2 = BraveTalkOptInSuccessViewController()
       let popover2 = PopoverController(
@@ -2404,7 +2465,6 @@ extension BrowserViewController: TabMiscDelegate {
     }
 
     vc.linkTapped = { [unowned self] request in
-      tab.rewardsEnabledCallback?(false)
       self.tabManager
         .addTabAndSelect(request, isPrivate: privateBrowsingManager.isPrivateBrowsing)
     }
@@ -2420,7 +2480,6 @@ extension BrowserViewController: TabMiscDelegate {
     // only display notification when BVC is front and center
     guard presentedViewController == nil,
       Preferences.Wallet.displayWeb3Notifications.value,
-      let origin = tab.browserData?.getOrigin(),
       let tabDappStore = tab.tabDappStore
     else {
       return
@@ -2430,11 +2489,34 @@ extension BrowserViewController: TabMiscDelegate {
       origin: origin,
       isUsingBottomBar: isUsingBottomBar
     ) { [weak self] action in
+      // double check if tab lastCommittedURL's origin is the same as this notification's
+      guard let lastCommittedOrigin = tab.lastCommittedURL?.origin,
+        lastCommittedOrigin == origin
+      else {
+        return
+      }
       if action == .connectWallet {
         self?.presentWalletPanel(from: origin, with: tabDappStore)
       }
     }
     notificationsPresenter.display(notification: walletNotificaton, from: self)
+  }
+
+  /// Removes the wallet notification and clears the stored origin so it can be shown again for a different origin.
+  func removeWalletNotificationAndClearOrigin() {
+    notificationsPresenter.removeNotification(with: WalletNotification.Constant.id)
+  }
+
+  /// Dismisses the wallet notification if it was shown for a different origin than the committed one (e.g. after redirect).
+  func dismissWalletNotificationIfOriginDiffers(from committedOrigin: URLOrigin) {
+    guard
+      let visibleWalletNotification = notificationsPresenter.visibleNotification
+        as? WalletNotification,
+      visibleWalletNotification.origin != committedOrigin
+    else {
+      return
+    }
+    removeWalletNotificationAndClearOrigin()
   }
 
   func isTabVisible(_ tab: some TabState) -> Bool {
@@ -2535,10 +2617,7 @@ extension BrowserViewController: SearchViewControllerDelegate {
   }
 
   func presentQuickSearchEnginesViewController() {
-    let quickSearchEnginesViewController = SearchQuickEnginesViewController(
-      profile: profile,
-      isPrivateBrowsing: privateBrowsingManager.isPrivateBrowsing
-    )
+    let quickSearchEnginesViewController = SearchQuickEnginesViewController(profile: profile)
     quickSearchEnginesViewController.navigationItem.leftBarButtonItem =
       UIBarButtonItem(
         title: Strings.close,
@@ -2570,13 +2649,7 @@ extension BrowserViewController: SearchViewControllerDelegate {
   }
 
   func searchViewControllerAllowFindInPage() -> Bool {
-    if let url = tabManager.selectedTab?.visibleURL,
-      let internalURL = InternalURL(url),
-      internalURL.isAboutHomeURL
-    {
-      return false
-    }
-    return true
+    return tabManager.selectedTab?.visibleURL?.isNewTabURL != true
   }
 
   @objc private func dismissQuickSearchEngines() {
@@ -2602,19 +2675,6 @@ extension BrowserViewController: UIAdaptivePresentationControllerDelegate {
   public func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
     // need to update tab bar visibility after user dismiss the `ChromeWebViewController`
     updateTabsBarVisibility()
-  }
-}
-
-extension BrowserViewController: TabTrayDelegate {
-  func tabOrderChanged() {
-    tabsBar.updateData()
-  }
-
-  func didCreateTab() {
-    recordCreateTabAction(location: .tabTray)
-    if Preferences.General.openKeyboardOnNTPSelection.value {
-      focusURLBar()
-    }
   }
 }
 
@@ -2820,10 +2880,10 @@ extension BrowserViewController: NewTabPageDelegate {
     rewards.ads.recordNewTabTakeoverInfobarWasDisplayed()
 
     let newTabTakeoverInfoBar = NewTabTakeoverInfoBar(
-      tabManager: self.tabManager,
-      onLinkPressed: { [weak self] in
+      onLinkPressed: { [weak self] url in
         guard let self else { return }
         self.rewards.ads.suppressNewTabTakeoverInfobar()
+        self.tabManager.addTabAndSelect(URLRequest(url: url), isPrivate: false)
       },
       onClosePressed: { [weak self] in
         guard let self else { return }
@@ -2895,11 +2955,6 @@ extension BrowserViewController: PreferencesObserver {
         .mediaBackgroundPlay: Preferences.General.mediaAutoBackgrounding.value
       ])
       tabManager.reloadSelectedTab()
-    case Preferences.General.youtubeHighQuality.key:
-      let status = Reachability.shared.status
-      tabManager.allTabs.forEach {
-        $0.youtubeQualityTabHelper?.setHighQuality(networkStatus: status)
-      }
     case Preferences.Playlist.enablePlaylistURLBarButton.key:
       let selectedTab = tabManager.selectedTab
       updatePlaylistURLBar(
@@ -2917,7 +2972,7 @@ extension BrowserViewController: PreferencesObserver {
     case Preferences.Wallet.defaultEthWallet.key:
       tabManager.reset()
       tabManager.reloadSelectedTab()
-      notificationsPresenter.removeNotification(with: WalletNotification.Constant.id)
+      removeWalletNotificationAndClearOrigin()
       WalletProviderPermissionRequestsManager.shared.cancelAllPendingRequests(for: [.eth])
       WalletProviderAccountCreationRequestManager.shared.cancelAllPendingRequests(coins: [.eth])
       let privateMode = privateBrowsingManager.isPrivateBrowsing
@@ -2932,7 +2987,7 @@ extension BrowserViewController: PreferencesObserver {
     case Preferences.Wallet.defaultSolWallet.key:
       tabManager.reset()
       tabManager.reloadSelectedTab()
-      notificationsPresenter.removeNotification(with: WalletNotification.Constant.id)
+      removeWalletNotificationAndClearOrigin()
       WalletProviderPermissionRequestsManager.shared.cancelAllPendingRequests(for: [.sol])
       WalletProviderAccountCreationRequestManager.shared.cancelAllPendingRequests(coins: [.sol])
       let privateMode = privateBrowsingManager.isPrivateBrowsing
@@ -3173,19 +3228,7 @@ extension BrowserViewController {
       return
     }
 
-    let getServerTrustForErrorPage = { () -> SecTrust? in
-      do {
-        if let url = tab.visibleURL {
-          return try ErrorPageHelper.serverTrust(from: url)
-        }
-      } catch {
-        Logger.module.error("\(error.localizedDescription)")
-      }
-
-      return nil
-    }
-
-    guard let trust = tab.serverTrust ?? getServerTrustForErrorPage() else {
+    guard let trust = tab.serverTrust else {
       return
     }
 
@@ -3267,7 +3310,7 @@ extension BrowserViewController {
       return
     }
 
-    if FeatureList.kAIChatWebUIEnabled.enabled, FeatureList.kUseChromiumWebViews.enabled {
+    if FeatureList.kAIChatWebUIEnabled.enabled {
       if let query,
         let conversationURL = AIChatUtils.openLeoURL(
           withQuerySubmitted: query,
@@ -3282,7 +3325,11 @@ extension BrowserViewController {
           zombie: true,
           isPrivate: false
         )
-        tab.aiChatWebUIHelper?.associatedTab = tabManager.selectedTab
+        if let selectedTab = tabManager.selectedTab, let url = selectedTab.lastCommittedURL,
+          url.isWebPage(includeDataURIs: false)
+        {
+          tab.aiChatWebUIHelper?.associatedTab = selectedTab
+        }
         tabManager.selectTab(tab)
       }
       return

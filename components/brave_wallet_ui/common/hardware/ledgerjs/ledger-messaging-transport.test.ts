@@ -14,7 +14,6 @@ import {
 // That yields a typescript error unless we use bracket notation, e.g.
 // `transport['handlers']` instead of `transport.handlers`. As a result we
 // silence the dot-notation tslint rule for the file.
-/* eslint-disable @typescript-eslint/dot-notation */
 
 const createTransport = (
   targetUrl: string = 'chrome-untrusted://ledger-bridge',
@@ -22,7 +21,7 @@ const createTransport = (
   const iframe = document.createElement('iframe')
   document.body.appendChild(iframe)
   if (!iframe.contentWindow) {
-    fail('transport should be defined')
+    throw new Error('transport should be defined')
   }
   // Use Object.defineProperty in order to assign to
   // window.crypto because standard assignment results in
@@ -47,7 +46,7 @@ test('constructor', () => {
   expect(transport['handlers'].size).toEqual(0)
 })
 
-test('sendCommand configures handler for the response message ', async () => {
+test('sendCommand configures handler for the response message', async () => {
   const transport = createTransport()
   const sendEvent: UnlockCommand = {
     id: LedgerCommand.Unlock,

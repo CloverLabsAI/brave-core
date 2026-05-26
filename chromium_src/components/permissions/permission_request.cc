@@ -9,7 +9,6 @@
 #include <vector>
 
 #include "base/check.h"
-#include "base/containers/contains.h"
 #include "base/containers/fixed_flat_set.h"
 #include "base/notreached.h"
 #include "build/build_config.h"
@@ -23,6 +22,7 @@
 // `kWidevine` handled by an override in `WidevinePermissionRequest` and the
 // Brave Ethereum/Solana permission has its own permission request prompt.
 #if BUILDFLAG(IS_ANDROID)
+// CHROMIUM_SRC_INTERNAL_USE
 #define BRAVE_ENUM_ITEMS_FOR_SWITCH \
   case RequestType::kBraveEthereum: \
   case RequestType::kBraveSolana:   \
@@ -30,6 +30,7 @@
   case RequestType::kWidevine:      \
     NOTREACHED();
 #else
+// CHROMIUM_SRC_INTERNAL_USE
 #define BRAVE_ENUM_ITEMS_FOR_SWITCH \
   case RequestType::kBraveEthereum: \
   case RequestType::kBraveSolana:   \
@@ -40,22 +41,24 @@
 
 // For permission strings that we also need on Android, we need to use
 // a string that has a placeholder ($1) in it.
-#define BRAVE_ENUM_ITEMS_FOR_SWITCH_DESKTOP                \
-  BRAVE_ENUM_ITEMS_FOR_SWITCH                              \
-  case RequestType::kBraveGoogleSignInPermission:          \
-    message_id = IDS_GOOGLE_SIGN_IN_PERMISSION_FRAGMENT;   \
-    break;                                                 \
-  case RequestType::kBraveOpenAIChat:                      \
-    message_id = IDS_OPEN_AI_CHAT_PERMISSION_FRAGMENT;     \
+// CHROMIUM_SRC_INTERNAL_USE
+#define BRAVE_ENUM_ITEMS_FOR_SWITCH_DESKTOP              \
+  BRAVE_ENUM_ITEMS_FOR_SWITCH                            \
+  case RequestType::kBraveGoogleSignInPermission:        \
+    message_id = IDS_GOOGLE_SIGN_IN_PERMISSION_FRAGMENT; \
+    break;                                               \
+  case RequestType::kBraveOpenAIChat:                    \
+    message_id = IDS_OPEN_AI_CHAT_PERMISSION_FRAGMENT;   \
     break;
 
-#define BRAVE_ENUM_ITEMS_FOR_SWITCH_ANDROID          \
-  BRAVE_ENUM_ITEMS_FOR_SWITCH                        \
-  case RequestType::kBraveGoogleSignInPermission:    \
-    message_id = IDS_GOOGLE_SIGN_IN_INFOBAR_TEXT;    \
-    break;                                           \
-  case RequestType::kBraveOpenAIChat:                \
-    message_id = IDS_OPEN_AI_CHAT_INFOBAR_TEXT;      \
+// CHROMIUM_SRC_INTERNAL_USE
+#define BRAVE_ENUM_ITEMS_FOR_SWITCH_ANDROID       \
+  BRAVE_ENUM_ITEMS_FOR_SWITCH                     \
+  case RequestType::kBraveGoogleSignInPermission: \
+    message_id = IDS_GOOGLE_SIGN_IN_INFOBAR_TEXT; \
+    break;                                        \
+  case RequestType::kBraveOpenAIChat:             \
+    message_id = IDS_OPEN_AI_CHAT_INFOBAR_TEXT;   \
     break;
 
 namespace {

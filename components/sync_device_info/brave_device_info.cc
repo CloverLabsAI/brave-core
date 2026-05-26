@@ -16,7 +16,7 @@ BraveDeviceInfo::BraveDeviceInfo(
     const std::string& client_name,
     const std::string& chrome_version,
     const std::string& sync_user_agent,
-    const sync_pb::SyncEnums::DeviceType device_type,
+    const DeviceType device_type,
     const OsType os_type,
     const FormFactor form_factor,
     const std::string& signin_scoped_device_id,
@@ -26,12 +26,13 @@ BraveDeviceInfo::BraveDeviceInfo(
     base::Time last_updated_timestamp,
     base::TimeDelta pulse_interval,
     bool send_tab_to_self_receiving_enabled,
-    sync_pb::SyncEnums_SendTabReceivingType send_tab_to_self_receiving_type,
+    SendTabReceivingType send_tab_to_self_receiving_type,
     const std::optional<DeviceInfo::SharingInfo>& sharing_info,
     const std::optional<PhoneAsASecurityKeyInfo>& paask_info,
     const std::string& fcm_registration_token,
     const DataTypeSet& interested_data_types,
     std::optional<base::Time> floating_workspace_last_signin_timestamp,
+    bool desktop_to_ios_promo_receiving_enabled,
     bool is_self_delete_supported)
     : DeviceInfo(guid,
                  client_name,
@@ -52,7 +53,8 @@ BraveDeviceInfo::BraveDeviceInfo(
                  paask_info,
                  fcm_registration_token,
                  interested_data_types,
-                 floating_workspace_last_signin_timestamp),
+                 floating_workspace_last_signin_timestamp,
+                 desktop_to_ios_promo_receiving_enabled),
       is_self_delete_supported_(is_self_delete_supported) {}
 
 bool BraveDeviceInfo::is_self_delete_supported() const {
@@ -105,8 +107,8 @@ std::string BraveDeviceInfo::GetDeviceTypeString() const {
   }
 }
 
-base::Value::Dict BraveDeviceInfo::ToValue() const {
-  base::Value::Dict dict;
+base::DictValue BraveDeviceInfo::ToValue() const {
+  base::DictValue dict;
   dict.Set("name", client_name());
   dict.Set("id", public_id());
   dict.Set("os", GetOSString());

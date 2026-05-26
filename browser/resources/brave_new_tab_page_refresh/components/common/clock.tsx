@@ -5,17 +5,16 @@
 
 import * as React from 'react'
 
-import { ClockFormat } from '../../state/new_tab_state'
+import { ClockFormat } from '../../state/new_tab_store'
 import { useNewTabState } from '../../context/new_tab_context'
 
 export function Clock() {
   const showClock = useNewTabState((s) => s.showClock)
   const clockFormat = useNewTabState((s) => s.clockFormat)
+  const [time, setTime] = React.useState(Date.now())
 
-  const ref = React.useRef<HTMLDivElement>(null)
-
-  React.useEffect(() => {
-    const formatter = new Intl.DateTimeFormat(undefined, {
+  const formatter = React.useMemo(() => {
+    return new Intl.DateTimeFormat(undefined, {
       hour: 'numeric',
       minute: 'numeric',
       hourCycle:
@@ -26,25 +25,35 @@ export function Clock() {
             ? 'h23'
             : undefined,
     })
+  }, [clockFormat])
 
-    function update() {
-      if (ref.current) {
-        ref.current.innerText = formatter
-          .formatToParts(new Date())
-          .filter((item) => item.type !== 'dayPeriod')
-          .map((item) => item.value)
-          .join('')
-      }
+  React.useEffect(() => {
+    if (!showClock) {
+      return
     }
-
-    update()
-    const timer = setInterval(update, 2000)
+    const timer = setInterval(() => setTime(Date.now()), 2000)
     return () => clearInterval(timer)
-  }, [showClock, clockFormat])
+  }, [showClock])
 
   if (!showClock) {
     return null
   }
 
-  return <div ref={ref} />
+  return (
+    <>
+      {formatter.formatToParts(time).map((item) => {
+        if (item.type === 'dayPeriod') {
+          return (
+            <span
+              className='day-period'
+              key='day-period'
+            >
+              {item.value}
+            </span>
+          )
+        }
+        return item.value
+      })}
+    </>
+  )
 }

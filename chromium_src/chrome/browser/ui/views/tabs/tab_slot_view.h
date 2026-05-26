@@ -18,6 +18,8 @@
   const std::optional<tree_tab::TreeTabNodeId>& tree_tab_node() const {      \
     return tree_tab_node_id_;                                                \
   }                                                                          \
+  virtual TabNestingInfo GetTabNestingInfo() const;                          \
+  virtual bool IsInCollapsedTreeTabNode() const;                             \
                                                                              \
  private:                                                                    \
   std::optional<tree_tab::TreeTabNodeId> tree_tab_node_id_;                  \

@@ -57,14 +57,10 @@ class BraveTabMenuModel : public TabMenuModel {
   int GetRestoreTabCommandStringId() const;
 
 #if BUILDFLAG(ENABLE_CONTAINERS)
-  void BuildItemForContainers(
-      const PrefService& prefs,
-      TabStripModel* tab_strip_model,
-      const std::vector<int>& indices);
+  void BuildItemForContainers(Browser* browser,
+                              TabStripModel* tab_strip_model,
+                              const std::vector<int>& selected_tab_indices);
 #endif  // BUILDFLAG(ENABLE_CONTAINERS)
-
-  // Build menu items for tab customization, such as renaming the tab.
-  void BuildItemForCustomization(TabStripModel* tab_strip_model, int tab_index);
 
   ui::SimpleMenuModel* arrange_split_view_submenu_for_testing() const {
     return arrange_split_view_submenu_.get();
@@ -74,6 +70,8 @@ class BraveTabMenuModel : public TabMenuModel {
   bool all_muted_;
 
 #if BUILDFLAG(ENABLE_CONTAINERS)
+  std::unique_ptr<containers::ContainersMenuModel::Delegate>
+      containers_menu_delegate_;
   std::unique_ptr<containers::ContainersMenuModel> containers_submenu_;
 #endif  // BUILDFLAG(ENABLE_CONTAINERS)
 };

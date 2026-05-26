@@ -11,7 +11,6 @@
 
 #include "base/check.h"
 #include "base/check_op.h"
-#include "base/containers/contains.h"
 #include "base/memory/scoped_refptr.h"
 #include "brave/third_party/blink/renderer/core/brave_page_graph/graph_item/edge/request/edge_request_start.h"
 #include "brave/third_party/blink/renderer/core/brave_page_graph/graph_item/node/graph_node.h"
@@ -68,7 +67,6 @@ RequestTracker::RegisterRequestComplete(const InspectorId request_id,
                                         int64_t encoded_data_length,
                                         const FrameId& frame_id) {
   auto& request = tracked_requests_.at(request_id)->request;
-  request->GetResponseMetadata().SetEncodedDataLength(encoded_data_length);
   request->SetCompleted(frame_id);
   return ReturnTrackingRecord(request_id);
 }
@@ -94,7 +92,7 @@ void RequestTracker::RegisterDocumentRequestStart(
 
   // If we get to this point, there should be no previous request with this
   // request ID.
-  CHECK(!base::Contains(document_requests_, request_id));
+  CHECK(!document_requests_.Contains(request_id));
   DocumentRequest request_record{
       .request_id = request_id,
       .url = url,
@@ -116,10 +114,8 @@ void RequestTracker::RegisterDocumentRequestComplete(
   auto& request_record = request_record_it->value;
 
   // The request should not have been completed previously.
-  DCHECK_EQ(request_record.response_metadata.EncodedDataLength(), -1);
   DCHECK_EQ(request_record.complete_timestamp, base::TimeDelta());
 
-  request_record.response_metadata.SetEncodedDataLength(encoded_data_length);
   request_record.complete_timestamp = timestamp;
   request_record.frame_id = frame_id;
 }

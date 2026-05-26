@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "base/check.h"
+#include "base/functional/callback_helpers.h"
 #include "base/json/json_reader.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/scoped_refptr.h"
@@ -30,13 +31,13 @@
 #include "brave/components/brave_wallet/common/brave_wallet_constants.h"
 #include "brave/components/brave_wallet/common/encoding_utils.h"
 #include "brave/components/brave_wallet/common/solana_utils.h"
-#include "brave/components/permissions/brave_permission_manager.h"
 #include "brave/components/permissions/contexts/brave_wallet_permission_context.h"
 #include "chrome/browser/content_settings/host_content_settings_map_factory.h"
 #include "chrome/browser/permissions/permission_manager_factory.h"
 #include "chrome/test/base/testing_profile.h"
 #include "components/content_settings/core/browser/host_content_settings_map.h"
 #include "components/grit/brave_components_strings.h"
+#include "components/permissions/permission_manager.h"
 #include "components/permissions/permission_request_manager.h"
 #include "components/prefs/testing_pref_service.h"
 #include "components/user_prefs/user_prefs.h"
@@ -44,7 +45,6 @@
 #include "content/public/test/browser_test_utils.h"
 #include "content/public/test/test_web_contents_factory.h"
 #include "content/test/test_web_contents.h"
-#include "services/data_decoder/public/cpp/test_support/in_process_data_decoder.h"
 #include "services/network/public/cpp/weak_wrapper_shared_url_loader_factory.h"
 #include "services/network/test/test_url_loader_factory.h"
 #include "testing/gmock/include/gmock/gmock.h"
@@ -92,10 +92,7 @@ class MockEventsListener : public mojom::SolanaEventsListener {
 
 class SolanaProviderImplUnitTest : public testing::Test {
  public:
-  SolanaProviderImplUnitTest()
-      : shared_url_loader_factory_(
-            base::MakeRefCounted<network::WeakWrapperSharedURLLoaderFactory>(
-                &url_loader_factory_)) {}
+  SolanaProviderImplUnitTest() = default;
   ~SolanaProviderImplUnitTest() override = default;
 
   void TearDown() override {
@@ -126,26 +123,35 @@ class SolanaProviderImplUnitTest : public testing::Test {
         }));
 
     brave_wallet_service_ = std::make_unique<BraveWalletService>(
-        shared_url_loader_factory_,
+        url_loader_factory_.GetSafeWeakWrapper(),
         BraveWalletServiceDelegate::Create(browser_context()),
         profile_.GetPrefs(), &local_state_);
     json_rpc_service_ = brave_wallet_service_->json_rpc_service();
     json_rpc_service_->SetAPIRequestHelperForTesting(
-        shared_url_loader_factory_);
+        url_loader_factory_.GetSafeWeakWrapper());
     keyring_service_ = brave_wallet_service_->keyring_service();
     profile_.SetPermissionControllerDelegate(
-        base::WrapUnique(static_cast<permissions::BravePermissionManager*>(
+        base::WrapUnique(static_cast<permissions::PermissionManager*>(
             PermissionManagerFactory::GetInstance()
                 ->BuildServiceInstanceForBrowserContext(browser_context())
                 .release())));
+
+    GURL url("https://example.com");
+    Navigate(url);
+  }
+
+  void InitProvider() {
     auto* host_content_settings_map =
         HostContentSettingsMapFactory::GetForProfile(browser_context());
     ASSERT_TRUE(host_content_settings_map);
+    url::Origin origin =
+        web_contents()->GetPrimaryMainFrame()->GetLastCommittedOrigin();
     provider_ = std::make_unique<SolanaProviderImpl>(
         *host_content_settings_map, brave_wallet_service_.get(),
         std::make_unique<brave_wallet::BraveWalletProviderDelegateImpl>(
             web_contents(),
-            web_contents()->GetPrimaryMainFrame()->GetGlobalId()));
+            web_contents()->GetPrimaryMainFrame()->GetGlobalId()),
+        origin);
     observer_ = std::make_unique<MockEventsListener>();
     provider_->Init(observer_->GetReceiver());
   }
@@ -158,7 +164,11 @@ class SolanaProviderImplUnitTest : public testing::Test {
         web_contents_.get());
   }
 
-  void Navigate(const GURL& url) { web_contents()->NavigateAndCommit(url); }
+  void Navigate(const GURL& url) {
+    web_contents()->NavigateAndCommit(url);
+    InitProvider();
+  }
+
   url::Origin GetOrigin() {
     return web_contents()->GetPrimaryMainFrame()->GetLastCommittedOrigin();
   }
@@ -262,7 +272,7 @@ class SolanaProviderImplUnitTest : public testing::Test {
         account_id->address));
   }
 
-  std::string Connect(std::optional<base::Value::Dict> arg,
+  std::string Connect(std::optional<base::DictValue> arg,
                       mojom::SolanaProviderError* error_out,
                       std::string* error_message_out) {
     std::string account;
@@ -300,7 +310,7 @@ class SolanaProviderImplUnitTest : public testing::Test {
         blob_msg, display_encoding,
         base::BindLambdaForTesting([&](mojom::SolanaProviderError error,
                                        const std::string& error_message,
-                                       base::Value::Dict result) {
+                                       base::DictValue result) {
           if (error_out) {
             *error_out = error;
           }
@@ -324,11 +334,11 @@ class SolanaProviderImplUnitTest : public testing::Test {
     return signature_out;
   }
 
-  base::Value::Dict SignAndSendTransaction(
+  base::DictValue SignAndSendTransaction(
       const std::string& encoded_serialized_message,
       mojom::SolanaProviderError expected_error,
       const std::string& expected_error_message) {
-    base::Value::Dict result_out;
+    base::DictValue result_out;
     base::RunLoop run_loop;
     provider_->SignAndSendTransaction(
         mojom::SolanaSignTransactionParam::New(
@@ -337,7 +347,7 @@ class SolanaProviderImplUnitTest : public testing::Test {
         std::nullopt,
         base::BindLambdaForTesting([&](mojom::SolanaProviderError error,
                                        const std::string& error_message,
-                                       base::Value::Dict result) {
+                                       base::DictValue result) {
           EXPECT_EQ(error, expected_error);
           EXPECT_EQ(error_message, expected_error_message);
           result_out = std::move(result);
@@ -434,10 +444,10 @@ class SolanaProviderImplUnitTest : public testing::Test {
     return result_out;
   }
 
-  base::Value::Dict Request(const std::string& json,
-                            mojom::SolanaProviderError expected_error,
-                            const std::string& expected_error_message) {
-    base::Value::Dict result_out;
+  base::DictValue Request(const std::string& json,
+                          mojom::SolanaProviderError expected_error,
+                          const std::string& expected_error_message) {
+    base::DictValue result_out;
     auto value =
         base::JSONReader::ReadDict(json, base::JSON_PARSE_CHROMIUM_EXTENSIONS);
     if (!value) {
@@ -448,7 +458,7 @@ class SolanaProviderImplUnitTest : public testing::Test {
         std::move(value).value(),
         base::BindLambdaForTesting([&](mojom::SolanaProviderError error,
                                        const std::string& error_message,
-                                       base::Value::Dict result) {
+                                       base::DictValue result) {
           EXPECT_EQ(error, expected_error);
           EXPECT_EQ(error_message, expected_error_message);
           result_out = std::move(result);
@@ -479,9 +489,7 @@ class SolanaProviderImplUnitTest : public testing::Test {
   content::BrowserTaskEnvironment browser_task_environment_;
   content::TestWebContentsFactory factory_;
   TestingProfile profile_;
-  data_decoder::test::InProcessDataDecoder in_process_data_decoder_;
   network::TestURLLoaderFactory url_loader_factory_;
-  scoped_refptr<network::SharedURLLoaderFactory> shared_url_loader_factory_;
 
   std::unique_ptr<BraveWalletService> brave_wallet_service_;
   raw_ptr<JsonRpcService> json_rpc_service_ = nullptr;
@@ -495,17 +503,29 @@ TEST_F(SolanaProviderImplUnitTest, Connect) {
   auto added_account = AddAccount();
   SetSelectedAccount(added_account->account_id);
 
-  mojom::SolanaProviderError error;
-  std::string error_message;
-  // no permission, trigger
-  // permissions::BraveWalletPermissionContext::RequestPermissions failed
-  std::string account = Connect(std::nullopt, &error, &error_message);
-  EXPECT_TRUE(account.empty());
-  EXPECT_EQ(error, mojom::SolanaProviderError::kInternalError);
-  EXPECT_FALSE(IsConnected());
-
   GURL url("https://brave.com");
   Navigate(url);
+
+  // Block the site via "Block sites from accessing the Solana provider API"
+  // setting (no permission prompt is shown).
+  scoped_refptr<HostContentSettingsMap> map =
+      HostContentSettingsMapFactory::GetForProfile(browser_context());
+  ASSERT_TRUE(map);
+  map->SetContentSettingDefaultScope(
+      url, url, ContentSettingsType::BRAVE_SOLANA, CONTENT_SETTING_BLOCK);
+
+  mojom::SolanaProviderError error;
+  std::string error_message;
+  std::string account = Connect(std::nullopt, &error, &error_message);
+  EXPECT_TRUE(account.empty());
+  EXPECT_EQ(error, mojom::SolanaProviderError::kUserRejectedRequest);
+  EXPECT_EQ(error_message,
+            l10n_util::GetStringUTF8(IDS_WALLET_USER_REJECTED_REQUEST));
+  EXPECT_FALSE(IsConnected());
+
+  // Clear the block so we can add permission and connect.
+  map->SetContentSettingDefaultScope(
+      url, url, ContentSettingsType::BRAVE_SOLANA, CONTENT_SETTING_DEFAULT);
   AddSolanaPermission(added_account->account_id);
   account = Connect(std::nullopt, &error, &error_message);
   EXPECT_EQ(account, added_account->address);
@@ -549,9 +569,6 @@ TEST_F(SolanaProviderImplUnitTest, Connect) {
   EXPECT_TRUE(IsConnected());
 
   // CONTENT_SETTING_BLOCK will rule out previous granted permission.
-  scoped_refptr<HostContentSettingsMap> map =
-      HostContentSettingsMapFactory::GetForProfile(browser_context());
-  ASSERT_TRUE(map);
   map->SetContentSettingDefaultScope(
       url, url, ContentSettingsType::BRAVE_SOLANA, CONTENT_SETTING_BLOCK);
   account = Connect(std::nullopt, &error, &error_message);
@@ -578,7 +595,7 @@ TEST_F(SolanaProviderImplUnitTest, EagerlyConnect) {
   Navigate(GURL("https://brave.com"));
   mojom::SolanaProviderError error;
   std::string error_message;
-  base::Value::Dict dict;
+  base::DictValue dict;
   dict.Set("onlyIfTrusted", true);
   // no permission will be rejected automatically
   std::string account = Connect(dict.Clone(), &error, &error_message);
@@ -761,7 +778,7 @@ TEST_F(SolanaProviderImplUnitTest, NoSelectedAccount) {
   EXPECT_EQ(error_message, l10n_util::GetStringUTF8(IDS_WALLET_INTERNAL_ERROR));
   EXPECT_FALSE(IsConnected());
 
-  base::Value::Dict dict;
+  base::DictValue dict;
   dict.Set("onlyIfTrusted", true);
   // eagerly connect
   account = Connect(dict.Clone(), &error, &error_message);
@@ -934,7 +951,7 @@ TEST_F(SolanaProviderImplUnitTest, SignTransactionAPIs) {
   auto value = SignAndSendTransaction(
       kEncodedSerializedMsg, mojom::SolanaProviderError::kUnauthorized,
       l10n_util::GetStringUTF8(IDS_WALLET_NOT_AUTHED));
-  EXPECT_EQ(value, base::Value::Dict());
+  EXPECT_EQ(value, base::DictValue());
   auto signed_tx = SignTransaction(
       kEncodedSerializedMsg, mojom::SolanaProviderError::kUnauthorized,
       l10n_util::GetStringUTF8(IDS_WALLET_NOT_AUTHED));
@@ -952,7 +969,7 @@ TEST_F(SolanaProviderImplUnitTest, SignTransactionAPIs) {
   value = SignAndSendTransaction(
       "", mojom::SolanaProviderError::kInternalError,
       l10n_util::GetStringUTF8(IDS_WALLET_INTERNAL_ERROR));
-  EXPECT_EQ(value, base::Value::Dict());
+  EXPECT_EQ(value, base::DictValue());
   signed_tx =
       SignTransaction("", mojom::SolanaProviderError::kInternalError,
                       l10n_util::GetStringUTF8(IDS_WALLET_INTERNAL_ERROR));
@@ -1054,7 +1071,7 @@ TEST_F(SolanaProviderImplUnitTest, SignTransactionAPIs_Hardware) {
 
 TEST_F(SolanaProviderImplUnitTest, Request) {
   // no method
-  base::Value::Dict result =
+  base::DictValue result =
       Request(R"({params: {}})", mojom::SolanaProviderError::kParsingError,
               l10n_util::GetStringUTF8(IDS_WALLET_PARSING_ERROR));
   EXPECT_TRUE(result.empty());

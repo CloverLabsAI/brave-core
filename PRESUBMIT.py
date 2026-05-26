@@ -55,8 +55,10 @@ def CheckLeoVariables(input_api, output_api):
 def CheckPatchFormatted(input_api, output_api):
     cmd = [
         brave_chromium_utils.wspath(
-            '//brave/build/commands/scripts/format.js'), '--presubmit'
+            '//brave/build/commands/scripts/format.ts'), '--presubmit'
     ]
+    if input_api.PRESUBMIT_ALL_BRAVE:
+        cmd.append('--all-files')
     if input_api.change.UpstreamBranch():
         cmd.extend(['--base', input_api.change.UpstreamBranch()])
     if not input_api.PRESUBMIT_FIX:
@@ -74,10 +76,32 @@ def CheckPatchFormatted(input_api, output_api):
 
 # Check and fix ESLint issues (supports --fix).
 def CheckESLint(input_api, output_api):
+    if input_api.PRESUBMIT_ALL_BRAVE:
+        cmd = [
+            brave_chromium_utils.wspath(
+                '//brave/node_modules/eslint/bin/eslint.js'),
+            '--quiet',
+            '.',
+        ]
+        if input_api.PRESUBMIT_FIX:
+            cmd.append('--fix')
+        try:
+            brave_node.RunNode(cmd, include_command_in_error=False)
+            return []
+        except RuntimeError as err:
+            return [
+                output_api.PresubmitError(
+                    f'ESLint issues found. '
+                    f'Run npm run eslint -- (--fix) to reproduce.\n\n{err}')
+            ]
+
+
     files_to_check = (
         r'.+\.js$',
         r'.+\.ts$',
         r'.+\.tsx$',
+        r'.+\.mjs$',
+        r'.+\.mts$',
     )
     files_to_skip = input_api.DEFAULT_FILES_TO_SKIP
 

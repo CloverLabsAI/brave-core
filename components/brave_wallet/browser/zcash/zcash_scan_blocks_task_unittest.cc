@@ -5,6 +5,7 @@
 
 #include "brave/components/brave_wallet/browser/zcash/zcash_scan_blocks_task.h"
 
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -65,10 +66,10 @@ class ZCashScanBlocksTaskTest : public testing::Test {
 
   void SetUp() override {
     ASSERT_TRUE(temp_dir_.CreateUniqueTempDir());
-    base::FilePath db_path(
-        temp_dir_.GetPath().Append(FILE_PATH_LITERAL("orchard.db")));
-    sync_state_.emplace(base::SequencedTaskRunner::GetCurrentDefault(),
-                        db_path.AppendASCII("orchard.db"));
+    sync_state_.emplace(
+        base::SequencedTaskRunner::GetCurrentDefault(),
+        std::make_unique<OrchardSyncState>(temp_dir_.GetPath()));
+
     account_id_ = MakeIndexBasedAccountId(mojom::CoinType::ZEC,
                                           mojom::KeyringId::kZCashMainnet,
                                           mojom::AccountKind::kDerived, 0);
@@ -84,45 +85,46 @@ class ZCashScanBlocksTaskTest : public testing::Test {
     InitZCashRpc();
   }
 
+  void TearDown() override { sync_state_.SynchronouslyResetForTest(); }
+
   void InitZCashRpc() {
     ON_CALL(zcash_rpc(), GetLatestBlock(_, _))
-        .WillByDefault(
-            [](const std::string& chain_id,
-               ZCashRpc::GetLatestBlockCallback callback) {
-              EXPECT_EQ(chain_id, mojom::kZCashMainnet);
-              std::move(callback).Run(zcash::mojom::BlockID::New(
-                  kChainTipHeight, std::vector<uint8_t>({})));
-            });
+        .WillByDefault([](const std::string& chain_id,
+                          ZCashRpc::GetLatestBlockCallback callback) {
+          EXPECT_EQ(chain_id, mojom::kZCashMainnet);
+          std::move(callback).Run(zcash::mojom::BlockID::New(
+              kChainTipHeight, std::vector<uint8_t>({})));
+        });
 
     ON_CALL(zcash_rpc(), GetTreeState(_, _, _))
-        .WillByDefault(
-            [](const std::string& chain_id, zcash::mojom::BlockIDPtr block,
-               ZCashRpc::GetTreeStateCallback callback) {
-              EXPECT_EQ(chain_id, mojom::kZCashMainnet);
-              // Valid tree state
-              auto tree_state = zcash::mojom::TreeState::New(
-                  chain_id, block->height, "aabb", 0, "", "");
-              std::move(callback).Run(std::move(tree_state));
-            });
+        .WillByDefault([](const std::string& chain_id,
+                          zcash::mojom::BlockIDPtr block,
+                          ZCashRpc::GetTreeStateCallback callback) {
+          EXPECT_EQ(chain_id, mojom::kZCashMainnet);
+          // Valid tree state
+          auto tree_state = zcash::mojom::TreeState::New(
+              chain_id, block->height, "aabb", 0, "", "");
+          std::move(callback).Run(std::move(tree_state));
+        });
 
     ON_CALL(zcash_rpc(), GetCompactBlocks(_, _, _, _))
-        .WillByDefault(
-            [](const std::string& chain_id, uint32_t from, uint32_t to,
-               ZCashRpc::GetCompactBlocksCallback callback) {
-              EXPECT_EQ(chain_id, mojom::kZCashMainnet);
-              std::vector<zcash::mojom::CompactBlockPtr> blocks;
-              for (uint32_t i = from; i <= to; i++) {
-                auto chain_metadata = zcash::mojom::ChainMetadata::New();
-                chain_metadata->orchard_commitment_tree_size = 0;
-                // Create empty block for testing
-                blocks.push_back(zcash::mojom::CompactBlock::New(
-                    0u, i, std::vector<uint8_t>({0xbb, 0xaa}),
-                    std::vector<uint8_t>(), 0u, std::vector<uint8_t>(),
-                    std::vector<zcash::mojom::CompactTxPtr>(),
-                    std::move(chain_metadata)));
-              }
-              std::move(callback).Run(std::move(blocks));
-            });
+        .WillByDefault([](const std::string& chain_id, uint32_t from,
+                          uint32_t to,
+                          ZCashRpc::GetCompactBlocksCallback callback) {
+          EXPECT_EQ(chain_id, mojom::kZCashMainnet);
+          std::vector<zcash::mojom::CompactBlockPtr> blocks;
+          for (uint32_t i = from; i <= to; i++) {
+            auto chain_metadata = zcash::mojom::ChainMetadata::New();
+            chain_metadata->orchard_commitment_tree_size = 0;
+            // Create empty block for testing
+            blocks.push_back(zcash::mojom::CompactBlock::New(
+                0u, i, std::vector<uint8_t>({0xbb, 0xaa}),
+                std::vector<uint8_t>(), 0u, std::vector<uint8_t>(),
+                std::vector<zcash::mojom::CompactTxPtr>(),
+                std::move(chain_metadata)));
+          }
+          std::move(callback).Run(std::move(blocks));
+        });
   }
 
   ZCashActionContext CreateContext() {
@@ -218,7 +220,7 @@ class ZCashScanBlocksTaskTest : public testing::Test {
   base::test::TaskEnvironment task_environment_;
 
   base::ScopedTempDir temp_dir_;
-  base::SequenceBound<OrchardSyncState> sync_state_;
+  OrchardSyncState::SequenceBound sync_state_;
   mojom::AccountIdPtr account_id_;
   testing::NiceMock<MockZCashRPC> zcash_rpc_;
 };
@@ -486,28 +488,27 @@ TEST_F(ZCashScanBlocksTaskTest, ScanUnlimited) {
 
 TEST_F(ZCashScanBlocksTaskTest, PartialScanningDueError) {
   ON_CALL(zcash_rpc(), GetCompactBlocks(_, _, _, _))
-      .WillByDefault(
-          [](const std::string& chain_id, uint32_t from, uint32_t to,
-             ZCashRpc::GetCompactBlocksCallback callback) {
-            EXPECT_EQ(chain_id, mojom::kZCashMainnet);
-            std::vector<zcash::mojom::CompactBlockPtr> blocks;
-            // Blocks after the second batch are failing
-            if (from > kNu5BlockUpdate + kExpectedBatchSize + 10) {
-              std::move(callback).Run(base::unexpected("error"));
-              return;
-            }
-            for (uint32_t i = from; i <= to; i++) {
-              auto chain_metadata = zcash::mojom::ChainMetadata::New();
-              chain_metadata->orchard_commitment_tree_size = 0;
-              // Create empty block for testing
-              blocks.push_back(zcash::mojom::CompactBlock::New(
-                  0u, i, std::vector<uint8_t>({0xbb, 0xaa}),
-                  std::vector<uint8_t>(), 0u, std::vector<uint8_t>(),
-                  std::vector<zcash::mojom::CompactTxPtr>(),
-                  std::move(chain_metadata)));
-            }
-            std::move(callback).Run(std::move(blocks));
-          });
+      .WillByDefault([](const std::string& chain_id, uint32_t from, uint32_t to,
+                        ZCashRpc::GetCompactBlocksCallback callback) {
+        EXPECT_EQ(chain_id, mojom::kZCashMainnet);
+        std::vector<zcash::mojom::CompactBlockPtr> blocks;
+        // Blocks after the second batch are failing
+        if (from > kNu5BlockUpdate + kExpectedBatchSize + 10) {
+          std::move(callback).Run(base::unexpected("error"));
+          return;
+        }
+        for (uint32_t i = from; i <= to; i++) {
+          auto chain_metadata = zcash::mojom::ChainMetadata::New();
+          chain_metadata->orchard_commitment_tree_size = 0;
+          // Create empty block for testing
+          blocks.push_back(zcash::mojom::CompactBlock::New(
+              0u, i, std::vector<uint8_t>({0xbb, 0xaa}), std::vector<uint8_t>(),
+              0u, std::vector<uint8_t>(),
+              std::vector<zcash::mojom::CompactTxPtr>(),
+              std::move(chain_metadata)));
+        }
+        std::move(callback).Run(std::move(blocks));
+      });
 
   auto block_scanner = CreateMockOrchardBlockScannerProxy();
   ZCashActionContext context = CreateContext();
@@ -546,13 +547,12 @@ TEST_F(ZCashScanBlocksTaskTest, PartialScanningDueError) {
 
 TEST_F(ZCashScanBlocksTaskTest, ChainTipMismatch) {
   ON_CALL(zcash_rpc(), GetLatestBlock(_, _))
-      .WillByDefault(
-          [](const std::string& chain_id,
-             ZCashRpc::GetLatestBlockCallback callback) {
-            EXPECT_EQ(chain_id, mojom::kZCashMainnet);
-            std::move(callback).Run(zcash::mojom::BlockID::New(
-                kChainTipHeight - 200, std::vector<uint8_t>({})));
-          });
+      .WillByDefault([](const std::string& chain_id,
+                        ZCashRpc::GetLatestBlockCallback callback) {
+        EXPECT_EQ(chain_id, mojom::kZCashMainnet);
+        std::move(callback).Run(zcash::mojom::BlockID::New(
+            kChainTipHeight - 200, std::vector<uint8_t>({})));
+      });
 
   auto block_scanner = CreateMockOrchardBlockScannerProxy();
   ZCashActionContext context = CreateContext();

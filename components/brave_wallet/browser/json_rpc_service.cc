@@ -142,13 +142,19 @@ constexpr char kSnsDomainPattern[] = R"(^(?:[a-z0-9-]+\.)+sol$)";
 // Then one of fixed suffixes(should match `supportedUDExtensions` array from
 // domain-extensions.ts).
 constexpr char kUDPattern[] =
-    "(?:[a-z0-9-]+)\\.(?:altimist|anime|ask|austin|bald|basenji|bay|benji|"
-    "binanceus|bitcoin|bitget|bitscrunch|blockchain|boomer|brave|calicoin|caw|"
-    "chomp|clay|crypto|dao|dfz|doga|donut|dream|emir|ethermail|farms|grow|her|"
-    "kingdom|klever|kresus|kryptic|lfg|ltc|manga|metropolis|miku|ministry|moon|"
-    "mumu|nft|nibi|npc|onchain|pastor|podcast|pog|polygon|privacy|propykeys|"
-    "pudgy|quantum|rad|raiin|secret|smobler|south|stepn|tball|tea|tribe|u|ubu|"
-    "unstoppable|wallet|wifi|witg|wrkx|x|xec|xmr|zil)";
+    "(?:[a-z0-9-]+)\\.(?:agent|ai4|altimist|amped|anime|anyone|arculus|ask|ath|"
+    "austin|bald|basenji|bay|bch|benji|binanceus|bitcoin|bitget|bitscrunch|"
+    "blockchain|boomer|brave|bunni|calicoin|carbon|caw|cgai|chip|chomp|clay|"
+    "collect|crypto|dao|dejay|depin|derad|dfz|digibyte|doga|donut|dream|dsci|"
+    "emir|ethermail|farms|goblin|gotchi|grow|her|hub|imtoken|kingdom|klever|"
+    "kresus|kryptic|learn|lfg|ltc|lunar|manga|marketer|metropolis|miku|"
+    "ministry|"
+    "mobix|moon|mooncat|mumu|mycircle|nft|nibi|npc|ohm|onchain|pack|pastor|"
+    "pbdx|pendle|pilot|podcast|pog|pokt|polygon|presearch|privacy|propykeys|"
+    "pudgy|pundi|quantum|rad|raiin|secret|smobler|south|spend|stepn|supernova|"
+    "tball|"
+    "tea|tribe|twin|u|ubu|unstoppable|wallet|web3|wifi|witg|wrkx|x|xec|xmr|xyo|"
+    "zano|zil)";
 
 constexpr auto kUnstoppableDomainsProxyReaderContractAddresses =
     base::MakeFixedFlatMap<std::string_view, std::string_view>(
@@ -276,8 +282,8 @@ decentralized_dns::EnsOffchainResolveMethod FromMojomEnsOffchainResolveMethod(
 }
 
 // Retrieves a custom network dict from the preferences based on the chain ID.
-// This function is templated to work with both base::Value::Dict as well as
-// const base::Value::Dict types, for read/write and read-only access
+// This function is templated to work with both base::DictValue as well as
+// const base::DictValue types, for read/write and read-only access
 // respectively.
 template <typename T>
 T* GetCustomEVMNetworkFromPrefsDict(const std::string& chain_id,
@@ -1580,10 +1586,9 @@ void JsonRpcService::OnEnsGetEthAddrTaskDone(
   std::string error_message = task_error ? task_error->error_message : "";
 
   if (task_result && !task_result->resolved_result.empty()) {
-    EthAddress eth_address =
-        eth_abi::ExtractAddress(task_result->resolved_result);
-    if (eth_address.IsValid() && !eth_address.IsZeroAddress()) {
-      address = eth_address.ToHex();
+    auto eth_address = eth_abi::ExtractAddress(task_result->resolved_result);
+    if (eth_address && !eth_address->IsZeroAddress()) {
+      address = eth_address->ToHex();
     } else {
       error = mojom::ProviderError::kInvalidParams;
       error_message = l10n_util::GetStringUTF8(IDS_WALLET_INVALID_PARAMETERS);
@@ -2177,8 +2182,8 @@ void JsonRpcService::GetERC721TokenBalance(
     const std::string& account_address,
     const std::string& chain_id,
     GetERC721TokenBalanceCallback callback) {
-  const auto eth_account_address = EthAddress::FromHex(account_address);
-  if (eth_account_address.IsEmpty()) {
+  const auto eth_account_address = EthAddress::From0xHex(account_address);
+  if (!eth_account_address) {
     std::move(callback).Run(
         "", mojom::ProviderError::kInvalidParams,
         l10n_util::GetStringUTF8(IDS_WALLET_INVALID_PARAMETERS));
@@ -2187,7 +2192,7 @@ void JsonRpcService::GetERC721TokenBalance(
 
   auto internal_callback = base::BindOnce(
       &JsonRpcService::ContinueGetERC721TokenBalance,
-      weak_ptr_factory_.GetWeakPtr(), eth_account_address.ToChecksumAddress(),
+      weak_ptr_factory_.GetWeakPtr(), eth_account_address->ToChecksumAddress(),
       std::move(callback));
   GetERC721OwnerOf(contract_address, token_id, chain_id,
                    std::move(internal_callback));
@@ -2315,10 +2320,10 @@ void JsonRpcService::GetERC1155TokenBalance(
     const std::string& owner_address,
     const std::string& chain_id,
     GetERC1155TokenBalanceCallback callback) {
-  const auto eth_account_address = EthAddress::FromHex(owner_address);
+  const auto eth_account_address = EthAddress::From0xHex(owner_address);
   auto network_url = GetNetworkURL(chain_id, mojom::CoinType::ETH);
 
-  if (eth_account_address.IsEmpty() || !network_url.is_valid()) {
+  if (!eth_account_address || !network_url.is_valid()) {
     std::move(callback).Run(
         "", mojom::ProviderError::kInvalidParams,
         l10n_util::GetStringUTF8(IDS_WALLET_INVALID_PARAMETERS));
@@ -2355,7 +2360,7 @@ void JsonRpcService::GetERC1155TokenBalance(
 }
 
 void JsonRpcService::EthGetLogs(const std::string& chain_id,
-                                base::Value::Dict filter_options,
+                                base::DictValue filter_options,
                                 EthGetLogsCallback callback) {
   auto network_url = GetNetworkURL(chain_id, mojom::CoinType::ETH);
   if (!network_url.is_valid()) {

@@ -78,10 +78,10 @@ class TxStateManagerUnitTest : public testing::Test {
   }
 
   void UpdateCustomNetworks(PrefService* prefs,
-                            const std::vector<base::Value::Dict>& values,
+                            const std::vector<base::DictValue>& values,
                             brave_wallet::mojom::CoinType coin) {
     ScopedDictPrefUpdate update(prefs, kBraveWalletCustomNetworks);
-    base::Value::List* list = update->EnsureList(GetPrefKeyForCoinType(coin));
+    base::ListValue* list = update->EnsureList(GetPrefKeyForCoinType(coin));
     list->clear();
     for (auto& it : values) {
       list->Append(it.Clone());
@@ -122,7 +122,7 @@ TEST_F(TxStateManagerUnitTest, ConvertFromAddress) {
 
   auto txs = GetTxs();
   ASSERT_TRUE(txs);
-  const base::Value::Dict* value = txs->GetDict().FindDict("001");
+  const base::DictValue* value = txs->GetDict().FindDict("001");
   ASSERT_TRUE(value);
 
   // Transaction is stored with account id.
@@ -152,9 +152,10 @@ TEST_F(TxStateManagerUnitTest, ConvertFromAddress) {
 }
 
 TEST_F(TxStateManagerUnitTest, TxOperations) {
-  EthTxMeta meta(eth_account_id_, std::make_unique<EthTransaction>());
+  auto tx = std::make_unique<EthTransaction>();
+  tx->set_chain_id(*HexValueToUint256(mojom::kMainnetChainId));
+  EthTxMeta meta(eth_account_id_, std::move(tx));
   meta.set_id("001");
-  meta.set_chain_id(mojom::kMainnetChainId);
   EXPECT_FALSE(GetTxs());
   // Add
   ASSERT_TRUE(tx_state_manager_->AddOrUpdateTx(meta));
@@ -163,7 +164,7 @@ TEST_F(TxStateManagerUnitTest, TxOperations) {
     auto txs = GetTxs();
     ASSERT_TRUE(txs);
     const auto& dict = txs->GetDict();
-    const base::Value::Dict* value = dict.FindDict("001");
+    const base::DictValue* value = dict.FindDict("001");
     ASSERT_TRUE(value);
     auto meta_from_value = tx_state_manager_->ValueToTxMeta(*value);
     ASSERT_NE(meta_from_value, nullptr);
@@ -177,7 +178,7 @@ TEST_F(TxStateManagerUnitTest, TxOperations) {
     auto txs = GetTxs();
     ASSERT_TRUE(txs);
     const auto& dict = txs->GetDict();
-    const base::Value::Dict* value = dict.FindDict("001");
+    const base::DictValue* value = dict.FindDict("001");
     ASSERT_TRUE(value);
     auto meta_from_value = tx_state_manager_->ValueToTxMeta(*value);
     ASSERT_NE(meta_from_value, nullptr);
@@ -366,7 +367,7 @@ TEST_F(TxStateManagerUnitTest, GetTransactionsByStatus) {
   }
 
   // Add custom chain to prefs
-  std::vector<base::Value::Dict> values;
+  std::vector<base::DictValue> values;
   mojom::NetworkInfo custom_chain = GetTestNetworkInfo1("0xdeadbeef");
   values.push_back(NetworkInfoToValue(custom_chain));
   UpdateCustomNetworks(&prefs_, std::move(values), custom_chain.coin);

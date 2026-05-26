@@ -8,7 +8,6 @@
 #include "base/memory/raw_ptr.h"
 #include "base/strings/sys_string_conversions.h"
 #include "brave/components/ai_chat/core/common/features.h"
-#include "brave/components/brave_account/features.h"
 #include "brave/components/brave_component_updater/browser/features.h"
 #include "brave/components/brave_news/common/features.h"
 #include "brave/components/brave_origin/features.h"
@@ -27,9 +26,8 @@
 #include "brave/components/skus/common/features.h"
 #include "brave/ios/browser/api/translate/features.h"
 #include "brave/ios/browser/ui/commerce/features.h"
-#include "brave/ios/browser/ui/tab_tray/features.h"
+#include "brave/ios/browser/ui/quick_view/features.h"
 #include "brave/ios/browser/ui/web_view/features.h"
-#include "brave/ios/browser/ui/webui/ai_chat/features.h"
 #import "build/blink_buildflags.h"
 #include "build/build_config.h"
 #include "net/base/features.h"
@@ -242,6 +240,11 @@
   return [[Feature alloc]
       initWithFeature:&brave_wallet::features::kBraveWalletZCashFeature];
 }
+
++ (Feature*)kBraveWalletCardanoEnabled {
+  return [[Feature alloc]
+      initWithFeature:&brave_wallet::features::kBraveWalletCardanoFeature];
+}
 #else
 + (nullable Feature*)kBraveWalletAnkrBalancesFeature {
   return nil;
@@ -252,6 +255,10 @@
 }
 
 + (nullable Feature*)kBraveWalletZCashFeature {
+  return nil;
+}
+
++ (nullable Feature*)kBraveWalletCardanoEnabled {
   return nil;
 }
 #endif
@@ -275,11 +282,6 @@
 + (Feature*)kCosmeticFilteringSyncLoad {
   return [[Feature alloc]
       initWithFeature:&brave_shields::features::kCosmeticFilteringSyncLoad];
-}
-
-+ (Feature*)kBraveAccount {
-  return
-      [[Feature alloc] initWithFeature:&brave_account::features::kBraveAccount];
 }
 
 #if BUILDFLAG(ENABLE_GEMINI_WALLET)
@@ -346,9 +348,15 @@
       initWithFeature:&brave_user_agent::features::kUseBraveUserAgent];
 }
 
-+ (Feature*)kUseChromiumWebViews {
-  return
-      [[Feature alloc] initWithFeature:&brave::features::kUseChromiumWebViews];
++ (Feature*)kShouldCancelRequestsForUserAgentChange {
+  return [[Feature alloc]
+      initWithFeature:&brave_user_agent::features::
+                          kShouldCancelRequestsForUserAgentChange];
+}
+
++ (Feature*)kUseProfileWebViewConfiguration {
+  return [[Feature alloc]
+      initWithFeature:&brave::features::kUseProfileWebViewConfiguration];
 }
 
 + (Feature*)kBraveAllowExternalPurchaseLinks {
@@ -356,18 +364,21 @@
       initWithFeature:&brave::features::kBraveAllowExternalPurchaseLinks];
 }
 
-+ (Feature*)kModernTabTrayEnabled {
-  return
-      [[Feature alloc] initWithFeature:&brave::features::kModernTabTrayEnabled];
-}
-
 #if BUILDFLAG(ENABLE_BRAVE_WALLET)
 + (Feature*)kBraveWalletWebUIIOS {
   return [[Feature alloc]
-      initWithFeature:&brave_wallet::features::kBraveWalletWebUIIOS];
+      initWithFeature:&brave_wallet::features::kBraveWalletWebUIFeature];
+}
++ (Feature*)kBraveWalletCardanoDAppSupportIOS {
+  return
+      [[Feature alloc] initWithFeature:&brave_wallet::features::
+                                           kBraveWalletCardanoDAppSupportIOS];
 }
 #else
 + (nullable Feature*)kBraveWalletWebUIIOS {
+  return nil;
+}
++ (nullable Feature*)kBraveWalletCardanoDAppSupportIOS {
   return nil;
 }
 #endif
@@ -393,4 +404,12 @@
       [[Feature alloc] initWithFeature:&brave_origin::features::kBraveOrigin];
 }
 
++ (Feature*)kUseChromiumWebViewsAutofill {
+  return [[Feature alloc]
+      initWithFeature:&brave::features::kUseChromiumWebViewsAutofill];
+}
+
++ (Feature*)kQuickViewEnabled {
+  return [[Feature alloc] initWithFeature:&brave::features::kQuickViewEnabled];
+}
 @end

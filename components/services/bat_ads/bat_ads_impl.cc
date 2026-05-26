@@ -85,8 +85,9 @@ void BatAdsImpl::SetBuildChannel(
   GetAds()->SetBuildChannel(std::move(mojom_build_channel));
 }
 
-void BatAdsImpl::SetFlags(brave_ads::mojom::FlagsPtr mojom_flags) {
-  GetAds()->SetFlags(std::move(mojom_flags));
+void BatAdsImpl::SetCommandLineSwitches(
+    brave_ads::mojom::CommandLineSwitchesPtr mojom_command_line_switches) {
+  GetAds()->SetCommandLineSwitches(std::move(mojom_command_line_switches));
 }
 
 void BatAdsImpl::SetContentSettings(
@@ -119,7 +120,7 @@ void BatAdsImpl::MaybeGetNotificationAd(
                   return std::move(callback).Run(/*ad*/ std::nullopt);
                 }
 
-                std::optional<base::Value::Dict> dict =
+                std::optional<base::DictValue> dict =
                     brave_ads::NotificationAdToValue(*ad);
                 std::move(callback).Run(std::move(dict));
               },
@@ -140,7 +141,7 @@ void BatAdsImpl::TriggerNotificationAdEvent(
 }
 
 void BatAdsImpl::ParseAndSaveNewTabPageAds(
-    base::Value::Dict data,
+    base::DictValue data,
     ParseAndSaveNewTabPageAdsCallback callback) {
   GetAds()->ParseAndSaveNewTabPageAds(
       std::move(data), mojo::WrapCallbackWithDefaultInvokeIfNotRun(

@@ -153,19 +153,19 @@ class BraveCookieRules {
   ContentSetting first_party_setting_ = CONTENT_SETTING_DEFAULT;
 };
 
-base::Value::Dict GetShieldsMetadata(HostContentSettingsMap* map,
-                                     const GURL& url) {
+base::DictValue GetShieldsMetadata(HostContentSettingsMap* map,
+                                   const GURL& url) {
   auto shields_metadata_value = map->GetWebsiteSetting(
       url, url, ContentSettingsType::BRAVE_SHIELDS_METADATA);
   if (auto* shields_metadata_dict = shields_metadata_value.GetIfDict()) {
     return std::move(*shields_metadata_dict);
   }
-  return base::Value::Dict();
+  return base::DictValue();
 }
 
 void SetShieldsMetadata(HostContentSettingsMap* map,
                         const GURL& url,
-                        base::Value::Dict shields_metadata) {
+                        base::DictValue shields_metadata) {
   map->SetWebsiteSettingDefaultScope(
       url, url, ContentSettingsType::BRAVE_SHIELDS_METADATA,
       base::Value(std::move(shields_metadata)));
@@ -196,7 +196,7 @@ std::string ControlTypeToString(ControlType type) {
       return "default";
   }
   NOTREACHED() << "Unexpected value for ControlType: "
-               << base::to_underlying(type);
+               << std::to_underlying(type);
 }
 
 ControlType ControlTypeFromString(const std::string& string) {
@@ -693,6 +693,7 @@ void SetHttpsUpgradeControlType(HostContentSettingsMap* map,
   }
 
   RecordShieldsSettingChanged(local_state);
+  RecordHTTPSUpgradeSettingP3A(map);
 }
 
 ControlType GetHttpsUpgradeControlType(HostContentSettingsMap* map,

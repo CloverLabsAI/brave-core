@@ -10,6 +10,7 @@
 
 #include "base/check.h"
 #include "base/feature_list.h"
+#include "brave/browser/containers/containers_service_factory.h"
 #include "brave/browser/ui/browser_commands.h"
 #include "brave/browser/ui/tabs/brave_split_tab_menu_model.h"
 #include "brave/browser/ui/tabs/brave_tab_strip_model.h"
@@ -30,7 +31,7 @@
 #include "ui/menus/simple_menu_model.h"
 
 #if BUILDFLAG(ENABLE_CONTAINERS)
-#include "brave/components/containers/core/browser/prefs.h"
+#include "brave/browser/ui/tabs/containers_tab_menu_model_delegate.h"
 #include "brave/components/containers/core/common/features.h"
 #endif  // BUILDFLAG(ENABLE_CONTAINERS)
 
@@ -134,14 +135,9 @@ void BraveTabMenuModel::Build(Browser* browser,
 
 #if BUILDFLAG(ENABLE_CONTAINERS)
   if (base::FeatureList::IsEnabled(containers::features::kContainers)) {
-    BuildItemForContainers(*browser->profile()->GetPrefs(), tab_strip_model,
-                           indices);
+    BuildItemForContainers(browser, tab_strip_model, indices);
   }
 #endif  // BUILDFLAG(ENABLE_CONTAINERS)
-
-  if (base::FeatureList::IsEnabled(tabs::kBraveRenamingTabs)) {
-    BuildItemForCustomization(tab_strip_model, selected_index);
-  }
 
   // Replace SplitTabMenuModel with BraveSplitTabMenuModel.
   if (arrange_split_view_submenu_) {
@@ -164,9 +160,14 @@ void BraveTabMenuModel::Build(Browser* browser,
 
 #if BUILDFLAG(ENABLE_CONTAINERS)
 void BraveTabMenuModel::BuildItemForContainers(
-    const PrefService& prefs,
+    Browser* browser,
     TabStripModel* tab_strip_model,
-    const std::vector<int>& indices) {
+    const std::vector<int>& selected_tab_indices) {
+  auto* service = ContainersServiceFactory::GetForProfile(browser->profile());
+  if (!service) {
+    return;
+  }
+
   // There are multiple command ids that could be used to find the right
   // insertion point for the containers submenu. The command ids could be absent
   // depending on the tab state. So we check for multiple commands.
@@ -183,24 +184,20 @@ void BraveTabMenuModel::BuildItemForContainers(
   CHECK(index.has_value());
   index = *index + 1;
 
+  std::vector<tabs::TabHandle> selected_tab_handles;
+  for (auto selected_tab_index : selected_tab_indices) {
+    auto* tab = tab_strip_model->GetTabAtIndex(selected_tab_index);
+    CHECK(tab);
+    selected_tab_handles.push_back(tab->GetHandle());
+  }
+
+  containers_menu_delegate_ =
+      std::make_unique<brave::ContainersTabMenuModelDelegate>(
+          browser, selected_tab_handles);
   containers_submenu_ = std::make_unique<containers::ContainersMenuModel>(
-      *tab_menu_model_delegate_->GetContainersMenuModelDelegate(), prefs);
+      *containers_menu_delegate_, *service);
   InsertSubMenuWithStringIdAt(*index, TabStripModel::CommandOpenInContainer,
                               IDS_CXMENU_OPEN_IN_CONTAINER,
                               containers_submenu_.get());
 }
 #endif  // BUILDFLAG(ENABLE_CONTAINERS)
-
-void BraveTabMenuModel::BuildItemForCustomization(
-    TabStripModel* tab_strip_model,
-    int tab_index) {
-  if (tab_strip_model->IsTabPinned(tab_index)) {
-    // In case of pinned tabs, we don't show titles at all, so we don't need to
-    // show the rename option.
-    return;
-  }
-
-  const auto index = *GetIndexOfCommandId(TabStripModel::CommandReload) + 1;
-  InsertItemWithStringIdAt(index, TabStripModel::CommandRenameTab,
-                           IDS_TAB_CXMENU_RENAME_TAB);
-}

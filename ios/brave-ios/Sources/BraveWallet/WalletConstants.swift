@@ -50,7 +50,7 @@ public struct WalletConstants {
 
   /// The url to learn more about Unstoppable Domains resolve methods.
   public static let braveWalletUnstoppableDomainsURL = URL(
-    string: "https://github.com/brave/brave-browser/wiki/Resolve-Methods-for-Unstoppable-Domains"
+    string: "https://github.com/brave/brave-browser/wiki/Web3-Top-Level-Domains"
   )!
 
   /// The url to the privacy policy for 0x swaps
@@ -76,6 +76,7 @@ public struct WalletConstants {
     BraveWallet.FilecoinEthereumTestnetChainId,
     BraveWallet.BitcoinTestnet,
     BraveWallet.ZCashTestnet,
+    BraveWallet.CardanoTestnet,
   ]
 
   /// Primary network chain ids
@@ -85,6 +86,13 @@ public struct WalletConstants {
     BraveWallet.FilecoinMainnet,
     BraveWallet.BitcoinMainnet,
     BraveWallet.ZCashMainnet,
+    BraveWallet.CardanoMainnet,
+  ]
+
+  /// Chain ids that are required and cannot be de-selected during onboarding.
+  static let mandatoryNetworkChainIds: [String] = [
+    BraveWallet.SolanaMainnet,
+    BraveWallet.MainnetChainId,
   ]
 
   public enum SupportedCoinTypesMode {
@@ -97,6 +105,16 @@ public struct WalletConstants {
     ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
   }
   #endif
+
+  /// Returns true if all three Cardano dApp support feature flags are enabled:
+  /// - kBraveWalletWebUIIOS (wallet WebUI)
+  /// - kBraveWalletCardanoEnabled (Cardano support)
+  /// - kBraveWalletCardanoDAppSupportIOS (Cardano dApp support)
+  public static var isCardanoDAppSupportEnabled: Bool {
+    FeatureList.kBraveWalletWebUIIOS?.enabled == true
+      && FeatureList.kBraveWalletCardanoEnabled?.enabled == true
+      && FeatureList.kBraveWalletCardanoDAppSupportIOS?.enabled == true
+  }
 
   /// The currently supported coin types in wallet
   public static func supportedCoinTypes(
@@ -124,8 +142,19 @@ public struct WalletConstants {
       if FeatureList.kBraveWalletZCashFeature?.enabled == true {
         result.append(.zec)
       }
+      if FeatureList.kBraveWalletWebUIIOS?.enabled == true,
+        FeatureList.kBraveWalletCardanoEnabled?.enabled == true
+      {
+        result.append(.ada)
+      }
     case .dapps:
-      return [.eth, .sol]
+      #if DEBUG
+      // enable cardano coin type in unit tests
+      if isUnitTesting {
+        return [.eth, .sol, .ada]
+      }
+      #endif
+      return isCardanoDAppSupportEnabled ? [.eth, .sol, .ada] : [.eth, .sol]
     }
     return result
   }
@@ -136,13 +165,20 @@ public struct WalletConstants {
   static let supportedSNSExtensions = [".sol"]
   /// The supported Unstoppable Domain (UD) extensions
   public static let supportedUDExtensions = [
+    ".agent",
+    ".ai4",
     ".altimist",
+    ".amped",
     ".anime",
+    ".anyone",
+    ".arculus",
     ".ask",
+    ".ath",
     ".austin",
     ".bald",
     ".basenji",
     ".bay",
+    ".bch",
     ".benji",
     ".binanceus",
     ".bitcoin",
@@ -151,64 +187,98 @@ public struct WalletConstants {
     ".blockchain",
     ".boomer",
     ".brave",
+    ".bunni",
     ".calicoin",
+    ".carbon",
     ".caw",
+    ".cgai",
+    ".chip",
     ".chomp",
     ".clay",
+    ".collect",
     ".crypto",
     ".dao",
+    ".dejay",
+    ".depin",
+    ".derad",
     ".dfz",
+    ".digibyte",
     ".doga",
     ".donut",
     ".dream",
+    ".dsci",
     ".emir",
     ".ethermail",
     ".farms",
+    ".goblin",
+    ".gotchi",
     ".grow",
     ".her",
+    ".hub",
+    ".imtoken",
     ".kingdom",
     ".klever",
     ".kresus",
     ".kryptic",
+    ".learn",
     ".lfg",
     ".ltc",
+    ".lunar",
     ".manga",
+    ".marketer",
     ".metropolis",
     ".miku",
     ".ministry",
+    ".mobix",
     ".moon",
+    ".mooncat",
     ".mumu",
+    ".mycircle",
     ".nft",
     ".nibi",
     ".npc",
+    ".ohm",
     ".onchain",
+    ".pack",
     ".pastor",
+    ".pbdx",
+    ".pendle",
+    ".pilot",
     ".podcast",
     ".pog",
+    ".pokt",
     ".polygon",
+    ".presearch",
     ".privacy",
     ".propykeys",
     ".pudgy",
+    ".pundi",
     ".quantum",
     ".rad",
     ".raiin",
     ".secret",
     ".smobler",
     ".south",
+    ".spend",
     ".stepn",
+    ".supernova",
     ".tball",
     ".tea",
     ".tribe",
+    ".twin",
     ".u",
     ".ubu",
     ".unstoppable",
     ".wallet",
+    ".web3",
     ".wifi",
     ".witg",
     ".wrkx",
     ".x",
     ".xec",
     ".xmr",
+    ".xyo",
+    ".zano",
     ".zil",
   ]
 

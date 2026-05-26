@@ -10,7 +10,7 @@
 
 #include "base/strings/utf_string_conversions.h"
 #include "brave/app/brave_command_ids.h"
-#include "brave/components/containers/core/browser/prefs.h"
+#include "brave/browser/ui/containers/container_model.h"
 #include "brave/grit/brave_generated_resources.h"
 #include "chrome/browser/ui/chrome_pages.h"
 #include "chrome/grit/generated_resources.h"
@@ -22,27 +22,13 @@
 
 namespace containers {
 
-namespace {
-
-std::vector<ContainerModel> GetContainerModelsFromPrefs(
-    const PrefService& prefs,
-    float scale_factor) {
-  std::vector<ContainerModel> containers;
-  for (auto& container : GetContainersFromPrefs(prefs)) {
-    containers.emplace_back(std::move(container), scale_factor);
-  }
-  return containers;
-}
-
-}  // namespace
-
-ContainersMenuModel::ContainersMenuModel(ContainersMenuModelDelegate& delegate,
-                                         const PrefService& prefs)
+ContainersMenuModel::ContainersMenuModel(Delegate& delegate,
+                                         const ContainersService& service)
     : ContainersMenuModel(
           delegate,
-          GetContainerModelsFromPrefs(prefs, delegate.GetScaleFactor())) {}
+          GetContainerModels(service, delegate.GetScaleFactor())) {}
 
-ContainersMenuModel::ContainersMenuModel(ContainersMenuModelDelegate& delegate,
+ContainersMenuModel::ContainersMenuModel(Delegate& delegate,
                                          std::vector<ContainerModel> items)
     : ui::SimpleMenuModel(this), delegate_(delegate), items_(std::move(items)) {
   // Trim the items to fit within the command ID range.
@@ -80,6 +66,8 @@ ContainersMenuModel::ContainersMenuModel(ContainersMenuModelDelegate& delegate,
   // 3. Add an item to open settings page.
   AddItemWithStringId(IDC_OPEN_CONTAINERS_SETTING,
                       IDS_CXMENU_OPEN_CONTAINERS_SETTINGS);
+
+  current_container_ids_ = delegate_->GetCurrentContainerIds();
 }
 
 ContainersMenuModel::~ContainersMenuModel() = default;
@@ -106,8 +94,8 @@ void ContainersMenuModel::ContainerSelected(int command_id) {
 }
 
 bool ContainersMenuModel::IsCommandIdChecked(int command_id) const {
-  const auto& ids = delegate_->GetCurrentContainerIds();
-  return ids.contains(items_[CommandIdToItemIndex(command_id)].container()->id);
+  return current_container_ids_.contains(
+      items_[CommandIdToItemIndex(command_id)].container()->id);
 }
 
 bool ContainersMenuModel::IsCommandIdEnabled(int command_id) const {

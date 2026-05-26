@@ -98,12 +98,6 @@ class MockConversationHandlerClient : public mojom::ConversationUI {
               (override));
 
   MOCK_METHOD(void,
-              OnSuggestedQuestionsChanged,
-              (const std::vector<std::string>&,
-               mojom::SuggestionGenerationStatus),
-              (override));
-
-  MOCK_METHOD(void,
               OnAssociatedContentInfoChanged,
               (std::vector<mojom::AssociatedContentPtr>),
               (override));
@@ -183,17 +177,14 @@ class AIChatRenderViewContextMenuBrowserTest : public InProcessBrowserTest {
 
     RenderViewContextMenu::RegisterMenuShownCallbackForTesting(
         base::BindLambdaForTesting([&](RenderViewContextMenu* context_menu) {
-          auto* brave_context_menu =
-              static_cast<BraveRenderViewContextMenu*>(context_menu);
-          brave_context_menu->SetAIEngineForTesting(
+          context_menu->SetAIEngineForTesting(
               std::make_unique<MockEngineConsumer>());
           ai_engine = static_cast<MockEngineConsumer*>(
-              brave_context_menu->GetAIEngineForTesting());
+              context_menu->GetAIEngineForTesting());
           // Verify that rewrite is requested
-          EXPECT_CALL(*ai_engine, GenerateRewriteSuggestion(_, _, _, _, _))
+          EXPECT_CALL(*ai_engine, GenerateRewriteSuggestion(_, _, _, _))
               .WillOnce(
                   [&](const std::string& text, mojom::ActionType action_type,
-                      const std::string& selected_language,
                       EngineConsumer::GenerationDataCallback data_callback,
                       EngineConsumer::GenerationCompletedCallback callback) {
                     ASSERT_TRUE(callback);
@@ -235,9 +226,13 @@ class AIChatRenderViewContextMenuBrowserTest : public InProcessBrowserTest {
     testing::Mock::VerifyAndClearExpectations(ai_engine);
 
     // Verify that the text is rewritten as expected.
+    // NOTE: Replace() is an IPC to the renderer that updates the DOM
+    // asynchronously. wait_for_text() uses a MutationObserver to wait for the
+    // DOM to update to the expected value before checking.
     std::string updated_text =
         content::EvalJs(web_contents,
-                        content::JsReplace("get_text($1)", element_id))
+                        content::JsReplace("wait_for_text($1, $2)", element_id,
+                                           expected_updated_text))
             .ExtractString();
     EXPECT_EQ(expected_updated_text, updated_text);
   }

@@ -18,21 +18,24 @@ import android.view.ViewGroup;
 import android.view.ViewGroup.MarginLayoutParams;
 import android.widget.TextView;
 
-import org.chromium.base.supplier.ObservableSupplier;
-import org.chromium.base.supplier.ObservableSupplierImpl;
+import org.chromium.base.supplier.MonotonicObservableSupplier;
+import org.chromium.base.supplier.ObservableSuppliers;
+import org.chromium.base.supplier.SettableMonotonicObservableSupplier;
 import org.chromium.build.annotations.NullMarked;
 import org.chromium.build.annotations.Nullable;
+import org.chromium.components.browser_ui.settings.search.BaseSearchIndexProvider;
 import org.chromium.ui.widget.ChromeImageButton;
 
 /**
- * This class is responsible for rendering a fragment containing details about a saved federated
- * credential.
+ * FederatedCredentialFragmentView is responsible for rendering a fragment containing details about
+ * a saved federated credential.
  */
 @NullMarked
 public class FederatedCredentialFragmentView extends CredentialEntryFragmentViewBase {
     private ChromeImageButton mCopyButton;
     private TextView mUsernameTextView;
-    private final ObservableSupplierImpl<String> mPageTitle = new ObservableSupplierImpl<>();
+    private final SettableMonotonicObservableSupplier<String> mPageTitle =
+            ObservableSuppliers.createMonotonic();
 
     @Override
     public void onCreatePreferences(@Nullable Bundle bundle, @Nullable String s) {
@@ -40,7 +43,7 @@ public class FederatedCredentialFragmentView extends CredentialEntryFragmentView
     }
 
     @Override
-    public ObservableSupplier<String> getPageTitle() {
+    public MonotonicObservableSupplier<String> getPageTitle() {
         return mPageTitle;
     }
 
@@ -118,4 +121,11 @@ public class FederatedCredentialFragmentView extends CredentialEntryFragmentView
     public @AnimationType int getAnimationType() {
         return AnimationType.PROPERTY;
     }
+
+    // This fragment displays a custom view for a federated credential entry; there are no static
+    // preferences to index.
+    public static final BaseSearchIndexProvider SEARCH_INDEX_DATA_PROVIDER =
+            new BaseSearchIndexProvider(
+                    FederatedCredentialFragmentView.class.getName(),
+                    BaseSearchIndexProvider.INDEX_OPT_OUT);
 }

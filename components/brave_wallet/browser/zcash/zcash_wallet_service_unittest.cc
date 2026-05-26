@@ -11,16 +11,24 @@
 #include <string>
 #include <utility>
 
+#include "base/functional/callback_helpers.h"
 #include "base/memory/scoped_refptr.h"
 #include "base/strings/string_number_conversions.h"
 #include "base/test/bind.h"
 #include "base/test/mock_callback.h"
 #include "base/test/scoped_feature_list.h"
+#include "base/test/scoped_run_loop_timeout.h"
 #include "base/test/task_environment.h"
+#include "base/threading/sequence_bound.h"
+#include "brave/components/brave_wallet/browser/internal/orchard_bundle_manager.h"
+#include "brave/components/brave_wallet/browser/internal/orchard_sync_state.h"
+#include "brave/components/brave_wallet/browser/internal/orchard_test_utils.h"
 #include "brave/components/brave_wallet/browser/pref_names.h"
 #include "brave/components/brave_wallet/browser/test_utils.h"
+#include "brave/components/brave_wallet/browser/zcash/zcash_auto_sync_manager.h"
 #include "brave/components/brave_wallet/browser/zcash/zcash_complete_transaction_task.h"
 #include "brave/components/brave_wallet/browser/zcash/zcash_rpc.h"
+#include "brave/components/brave_wallet/browser/zcash/zcash_test_utils.h"
 #include "brave/components/brave_wallet/common/brave_wallet.mojom.h"
 #include "brave/components/brave_wallet/common/common_utils.h"
 #include "brave/components/brave_wallet/common/features.h"
@@ -33,17 +41,6 @@
 #include "testing/gmock/include/gmock/gmock.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
-#if BUILDFLAG(ENABLE_ORCHARD)
-#include "base/task/sequenced_task_runner.h"
-#include "base/task/thread_pool.h"
-#include "base/test/scoped_run_loop_timeout.h"
-#include "base/threading/sequence_bound.h"
-#include "brave/components/brave_wallet/browser/internal/orchard_bundle_manager.h"
-#include "brave/components/brave_wallet/browser/internal/orchard_sync_state.h"
-#include "brave/components/brave_wallet/browser/internal/orchard_test_utils.h"
-#include "brave/components/brave_wallet/browser/zcash/zcash_auto_sync_manager.h"
-#endif
-
 using testing::_;
 using testing::Eq;
 using testing::SaveArg;
@@ -54,12 +51,10 @@ namespace brave_wallet {
 
 namespace {
 
-#if BUILDFLAG(ENABLE_ORCHARD)
 constexpr char kGateJuniorMnemonic[] =
     "gate junior chunk maple cage select orange circle price air tortoise "
     "jelly art frequent fence middle ice moral wage toddler attitude sign "
     "lesson grain";
-#endif
 
 std::array<uint8_t, 32> GetTxId(const std::string& hex_string) {
   std::vector<uint8_t> vec;
@@ -71,7 +66,7 @@ std::array<uint8_t, 32> GetTxId(const std::string& hex_string) {
   return sized_vec;
 }
 
-#if BUILDFLAG(ENABLE_ORCHARD) && !BUILDFLAG(IS_ANDROID)
+#if !BUILDFLAG(IS_ANDROID)
 void AppendMerklePath(OrchardNoteWitness& witness, const std::string& hex) {
   OrchardMerkleHash hash;
   base::span(hash).copy_from(*PrefixedHexStringToBytes(hex));
@@ -123,11 +118,9 @@ class MockZCashRPC : public ZCashRpc {
                     GetLightdInfoCallback callback));
 };
 
-#if BUILDFLAG(ENABLE_ORCHARD)
 class MockOrchardSyncState : public OrchardSyncState {
  public:
-  explicit MockOrchardSyncState(const base::FilePath& path_to_database)
-      : OrchardSyncState(path_to_database) {}
+  using OrchardSyncState::OrchardSyncState;
   ~MockOrchardSyncState() override {}
 
   MOCK_METHOD2(
@@ -150,57 +143,39 @@ class MockOrchardSyncState : public OrchardSyncState {
                    uint32_t min_confirmations));
 };
 
-class MockOrchardSyncStateProxy : public OrchardSyncState {
- public:
-  MockOrchardSyncStateProxy(const base::FilePath& file_path,
-                            OrchardSyncState* instance)
-      : OrchardSyncState(file_path), instance_(instance) {}
-
-  ~MockOrchardSyncStateProxy() override {}
-
-  base::expected<std::optional<OrchardSyncState::SpendableNotesBundle>,
-                 OrchardStorage::Error>
-  GetSpendableNotes(const mojom::AccountIdPtr& account_id,
-                    const OrchardAddrRawPart& internal_addr) override {
-    return instance_->GetSpendableNotes(account_id, internal_addr);
-  }
-
-  base::expected<std::vector<OrchardInput>, OrchardStorage::Error>
-  CalculateWitnessForCheckpoint(const mojom::AccountIdPtr& account_id,
-                                const std::vector<OrchardInput>& notes,
-                                uint32_t checkpoint_position) override {
-    return instance_->CalculateWitnessForCheckpoint(account_id, notes,
-                                                    checkpoint_position);
-  }
-
- private:
-  raw_ptr<OrchardSyncState> instance_;
-};
-#endif
-
 }  // namespace
 
 class ZCashWalletServiceUnitTest : public testing::Test {
  public:
-  ZCashWalletServiceUnitTest() {}
-
+  ZCashWalletServiceUnitTest() = default;
   ~ZCashWalletServiceUnitTest() override = default;
 
   void SetUp() override {
+#if BUILDFLAG(IS_IOS)
+    feature_list_.InitWithFeaturesAndParameters(
+        {{features::kBraveWalletZCashFeature,
+          { {"zcash_shielded_transactions_enabled", "true"} }},
+         { features::kBraveWalletWebUIFeature,
+           {} }},
+        {}  // disabled features
+    );
+#else
     feature_list_.InitAndEnableFeature(
         brave_wallet::features::kBraveWalletZCashFeature);
+#endif
+
     ASSERT_TRUE(temp_dir_.CreateUniqueTempDir());
-    db_path_ = temp_dir_.GetPath().Append(FILE_PATH_LITERAL("orchard.db"));
     brave_wallet::RegisterProfilePrefs(prefs_.registry());
     brave_wallet::RegisterLocalStatePrefs(local_state_.registry());
     keyring_service_ =
         std::make_unique<KeyringService>(nullptr, &prefs_, &local_state_);
-#if BUILDFLAG(ENABLE_ORCHARD)
-    mocked_sync_state_ = std::make_unique<MockOrchardSyncState>(db_path_);
-#endif
-    zcash_wallet_service_ = std::make_unique<ZCashWalletService>(
-        db_path_, *keyring_service_,
-        std::make_unique<testing::NiceMock<MockZCashRPC>>());
+
+    zcash_wallet_service_ = std::make_unique<TestingZCashWalletService>(
+        *keyring_service_, std::make_unique<testing::NiceMock<MockZCashRPC>>());
+    zcash_wallet_service_->SetupSyncState(
+        OrchardSyncState::CreateSyncStateSequence(),
+        std::make_unique<MockOrchardSyncState>(temp_dir_.GetPath()));
+
     GetAccountUtils().CreateWallet(kMnemonicDivideCruise, kTestWalletPassword);
     zcash_account_ =
         GetAccountUtils().EnsureAccount(mojom::KeyringId::kZCashMainnet, 0);
@@ -228,34 +203,22 @@ class ZCashWalletServiceUnitTest : public testing::Test {
         zcash_wallet_service_->zcash_rpc());
   }
 
-  base::FilePath& db_path() { return db_path_; }
-
-#if BUILDFLAG(ENABLE_ORCHARD)
   std::map<mojom::AccountIdPtr, std::unique_ptr<ZCashAutoSyncManager>>&
   auto_sync_managers() {
     return zcash_wallet_service_->auto_sync_managers_;
   }
 
-  base::SequenceBound<OrchardSyncState>& sync_state() {
-    return zcash_wallet_service_->sync_state_;
-  }
-
   MockOrchardSyncState& mock_orchard_sync_state() {
-    return *mocked_sync_state_;
+    return static_cast<MockOrchardSyncState&>(
+        *zcash_wallet_service_->sync_state_ptr);
   }
-
-  void OverrideSyncStateForTesting(
-      base::SequenceBound<OrchardSyncState> sync_state) {
-    zcash_wallet_service_->OverrideSyncStateForTesting(std::move(sync_state));
-  }
-#endif  // BUILDFLAG(ENABLE_ORCHARD)
 
   KeyringService* keyring_service() { return keyring_service_.get(); }
 
  protected:
   base::test::ScopedFeatureList feature_list_;
+  base::test::TaskEnvironment task_environment_;
   base::ScopedTempDir temp_dir_;
-  base::FilePath db_path_;
 
   mojom::AccountInfoPtr zcash_account_;
 
@@ -263,12 +226,7 @@ class ZCashWalletServiceUnitTest : public testing::Test {
   sync_preferences::TestingPrefServiceSyncable local_state_;
 
   std::unique_ptr<KeyringService> keyring_service_;
-#if BUILDFLAG(ENABLE_ORCHARD)
-  std::unique_ptr<MockOrchardSyncState> mocked_sync_state_;
-#endif
-  std::unique_ptr<ZCashWalletService> zcash_wallet_service_;
-
-  base::test::TaskEnvironment task_environment_;
+  std::unique_ptr<TestingZCashWalletService> zcash_wallet_service_;
 };
 
 TEST_F(ZCashWalletServiceUnitTest, GetBalance) {
@@ -282,7 +240,7 @@ TEST_F(ZCashWalletServiceUnitTest, GetBalance) {
                                                             1, 0);
 
   ON_CALL(zcash_rpc(), GetLatestBlock(_, _))
-      .WillByDefault(
+      .WillByDefault(  //
           [&](const std::string& chain_id,
               ZCashRpc::GetLatestBlockCallback callback) {
             EXPECT_EQ(chain_id, mojom::kZCashMainnet);
@@ -319,7 +277,7 @@ TEST_F(ZCashWalletServiceUnitTest, GetBalance) {
       });
 
   ON_CALL(zcash_rpc(), GetUtxoList(_, _, _))
-      .WillByDefault(
+      .WillByDefault(  //
           [&](const std::string& chain_id, const std::string& address,
               ZCashRpc::GetUtxoListCallback callback) {
             std::vector<zcash::mojom::ZCashUtxoPtr> utxos;
@@ -376,7 +334,6 @@ TEST_F(ZCashWalletServiceUnitTest, GetBalance) {
   task_environment_.RunUntilIdle();
 }
 
-#if BUILDFLAG(ENABLE_ORCHARD)
 TEST_F(ZCashWalletServiceUnitTest, GetBalanceWithShielded) {
   base::test::ScopedFeatureList feature_list;
   feature_list.InitAndEnableFeatureWithParameters(
@@ -392,7 +349,7 @@ TEST_F(ZCashWalletServiceUnitTest, GetBalanceWithShielded) {
                                                             1, 0);
 
   ON_CALL(zcash_rpc(), GetLatestBlock(_, _))
-      .WillByDefault(
+      .WillByDefault(  //
           [&](const std::string& chain_id,
               ZCashRpc::GetLatestBlockCallback callback) {
             auto response = zcash::mojom::BlockID::New(
@@ -415,7 +372,7 @@ TEST_F(ZCashWalletServiceUnitTest, GetBalanceWithShielded) {
       });
 
   ON_CALL(zcash_rpc(), GetUtxoList(_, _, _))
-      .WillByDefault(
+      .WillByDefault(  //
           [&](const std::string& chain_id, const std::string& address,
               ZCashRpc::GetUtxoListCallback callback) {
             std::vector<zcash::mojom::ZCashUtxoPtr> utxos;
@@ -454,11 +411,6 @@ TEST_F(ZCashWalletServiceUnitTest, GetBalanceWithShielded) {
         return spendable_notes_bundle;
       });
 
-  base::SequenceBound<MockOrchardSyncStateProxy> overrided_sync_state(
-      base::SequencedTaskRunner::GetCurrentDefault(), db_path(),
-      &mock_orchard_sync_state());
-  OverrideSyncStateForTesting(std::move(overrided_sync_state));
-
   base::MockCallback<ZCashWalletService::GetBalanceCallback> balance_callback;
   EXPECT_CALL(balance_callback, Run(_, _))
       .WillOnce([&](mojom::ZCashBalancePtr balance,
@@ -471,14 +423,6 @@ TEST_F(ZCashWalletServiceUnitTest, GetBalanceWithShielded) {
   zcash_wallet_service_->GetBalance(account->account_id.Clone(),
                                     balance_callback.Get());
   task_environment_.RunUntilIdle();
-  {
-    // Cleanup old MockOrchardSyncStateProxy to prevent dangling pointer error
-    base::SequenceBound<MockOrchardSyncStateProxy> empty_sync_state(
-        base::ThreadPool::CreateSequencedTaskRunner({base::MayBlock()}),
-        db_path(), nullptr);
-    OverrideSyncStateForTesting(std::move(empty_sync_state));
-    task_environment_.RunUntilIdle();
-  }
 }
 
 TEST_F(ZCashWalletServiceUnitTest, GetBalanceWithShielded_FeatureDisabled) {
@@ -495,7 +439,7 @@ TEST_F(ZCashWalletServiceUnitTest, GetBalanceWithShielded_FeatureDisabled) {
                                                             1, 0);
 
   ON_CALL(zcash_rpc(), GetLatestBlock(_, _))
-      .WillByDefault(
+      .WillByDefault(  //
           [&](const std::string& chain_id,
               ZCashRpc::GetLatestBlockCallback callback) {
             auto response = zcash::mojom::BlockID::New(
@@ -518,7 +462,7 @@ TEST_F(ZCashWalletServiceUnitTest, GetBalanceWithShielded_FeatureDisabled) {
       });
 
   ON_CALL(zcash_rpc(), GetUtxoList(_, _, _))
-      .WillByDefault(
+      .WillByDefault(  //
           [&](const std::string& chain_id, const std::string& address,
               ZCashRpc::GetUtxoListCallback callback) {
             std::vector<zcash::mojom::ZCashUtxoPtr> utxos;
@@ -550,7 +494,7 @@ TEST_F(ZCashWalletServiceUnitTest, GetBalanceWithShielded_FeatureDisabled) {
   result.discovered_notes = std::vector<OrchardNote>({note});
   result.found_spends = std::vector<OrchardNoteSpend>();
 
-  sync_state()
+  zcash_wallet_service_->sync_state()
       .AsyncCall(&OrchardSyncState::ApplyScanResults)
       .WithArgs(account->account_id.Clone(), std::move(result))
       .Then(std::move(update_notes_callback));
@@ -569,7 +513,6 @@ TEST_F(ZCashWalletServiceUnitTest, GetBalanceWithShielded_FeatureDisabled) {
                                     balance_callback.Get());
   task_environment_.RunUntilIdle();
 }
-#endif  // BUILDFLAG(ENABLE_ORCHARD)
 
 // https://zcashblockexplorer.com/transactions/3bc513afc84befb9774f667eb4e63266a7229ab1fdb43476dd7c3a33d16b3101/raw
 TEST_F(ZCashWalletServiceUnitTest, SignAndPostTransaction) {
@@ -920,7 +863,6 @@ TEST_F(ZCashWalletServiceUnitTest, GetTransactionType_Mainnet) {
         "0xA4bE3C94e8c1B7D2F9e6Bf3E1D9A2cC45B6F9A12", callback.Get());
   }
 
-#if BUILDFLAG(ENABLE_ORCHARD)
   // Eth address, shielded pool.
   {
     base::MockCallback<ZCashWalletService::GetTransactionTypeCallback> callback;
@@ -931,18 +873,6 @@ TEST_F(ZCashWalletServiceUnitTest, GetTransactionType_Mainnet) {
         account_id_1.Clone(), true,
         "0xA4bE3C94e8c1B7D2F9e6Bf3E1D9A2cC45B6F9A12", callback.Get());
   }
-#else
-  // Eth address, shielded pool.
-  {
-    base::MockCallback<ZCashWalletService::GetTransactionTypeCallback> callback;
-    EXPECT_CALL(callback,
-                Run(Eq(mojom::ZCashTxType::kUnknown),
-                    Eq(mojom::ZCashAddressError::kInvalidSenderType)));
-    zcash_wallet_service_->GetTransactionType(
-        account_id_1.Clone(), true,
-        "0xA4bE3C94e8c1B7D2F9e6Bf3E1D9A2cC45B6F9A12", callback.Get());
-  }
-#endif
 
   // Unified address - mainnet.
   {
@@ -973,7 +903,6 @@ TEST_F(ZCashWalletServiceUnitTest, GetTransactionType_Mainnet) {
         callback.Get());
   }
 
-#if BUILDFLAG(ENABLE_ORCHARD)
   // Malformed unified address - mainnet, shielded pool.
   {
     base::MockCallback<ZCashWalletService::GetTransactionTypeCallback> callback;
@@ -988,23 +917,7 @@ TEST_F(ZCashWalletServiceUnitTest, GetTransactionType_Mainnet) {
         "1",
         callback.Get());
   }
-#else
-  // Malformed unified address - mainnet, shielded pool.
-  {
-    base::MockCallback<ZCashWalletService::GetTransactionTypeCallback> callback;
-    EXPECT_CALL(callback,
-                Run(Eq(mojom::ZCashTxType::kUnknown),
-                    Eq(mojom::ZCashAddressError::kInvalidSenderType)));
-    zcash_wallet_service_->GetTransactionType(
-        account_id_1.Clone(), true,
-        "u1lmy8anuylj33arxh3sx7ysq54tuw7zehsv6pdeeaqlrhkjhm3uvl9egqxqfd7hcsp3ms"
-        "zp6jxxx0gsw0ldp5wyu95r4mfzlueh8h5xhrjqgz7xtxp3hvw45dn4gfrz5j54ryg6reyf"
-        "1",
-        callback.Get());
-  }
-#endif
 
-#if BUILDFLAG(ENABLE_ORCHARD)
   // Sapling unified address - mainnet.
   {
     base::MockCallback<ZCashWalletService::GetTransactionTypeCallback> callback;
@@ -1019,23 +932,7 @@ TEST_F(ZCashWalletServiceUnitTest, GetTransactionType_Mainnet) {
         "6ezc5c7tjwlrnnl79tjtrxmqd42c5mpyz7g",
         callback.Get());
   }
-#else
-  // Sapling unified address - mainnet.
-  {
-    base::MockCallback<ZCashWalletService::GetTransactionTypeCallback> callback;
-    EXPECT_CALL(callback,
-                Run(Eq(mojom::ZCashTxType::kUnknown),
-                    Eq(mojom::ZCashAddressError::kInvalidSenderType)));
-    zcash_wallet_service_->GetTransactionType(
-        account_id_1.Clone(), true,
-        "u187vrwl4ampyxd5m6aj38n4ndkmj8v6gs97hkt23aps3sn5k89a0gk2smluexgdprcrtm"
-        "5"
-        "6ezc5c7tjwlrnnl79tjtrxmqd42c5mpyz7g",
-        callback.Get());
-  }
-#endif
 
-#if BUILDFLAG(ENABLE_ORCHARD)
   // Sapling unified address - mainnet, shielded pool.
   {
     base::MockCallback<ZCashWalletService::GetTransactionTypeCallback> callback;
@@ -1050,21 +947,6 @@ TEST_F(ZCashWalletServiceUnitTest, GetTransactionType_Mainnet) {
         "6ezc5c7tjwlrnnl79tjtrxmqd42c5mpyz7g",
         callback.Get());
   }
-#else
-  // Sapling unified address - mainnet, shielded pool.
-  {
-    base::MockCallback<ZCashWalletService::GetTransactionTypeCallback> callback;
-    EXPECT_CALL(callback,
-                Run(Eq(mojom::ZCashTxType::kUnknown),
-                    Eq(mojom::ZCashAddressError::kInvalidSenderType)));
-    zcash_wallet_service_->GetTransactionType(
-        account_id_1.Clone(), true,
-        "u187vrwl4ampyxd5m6aj38n4ndkmj8v6gs97hkt23aps3sn5k89a0gk2smluexgdprcrtm"
-        "5"
-        "6ezc5c7tjwlrnnl79tjtrxmqd42c5mpyz7g",
-        callback.Get());
-  }
-#endif
 
   // Testnet unified address with mainnet account (network mismatch).
   {
@@ -1122,7 +1004,6 @@ TEST_F(ZCashWalletServiceUnitTest, GetTransactionType_Mainnet) {
                                               callback.Get());
   }
 
-#if BUILDFLAG(ENABLE_ORCHARD)
   // Empty address, shielded pool.
   {
     base::MockCallback<ZCashWalletService::GetTransactionTypeCallback> callback;
@@ -1132,17 +1013,6 @@ TEST_F(ZCashWalletServiceUnitTest, GetTransactionType_Mainnet) {
     zcash_wallet_service_->GetTransactionType(account_id_1.Clone(), true, "",
                                               callback.Get());
   }
-#else
-  // Empty address, shielded pool.
-  {
-    base::MockCallback<ZCashWalletService::GetTransactionTypeCallback> callback;
-    EXPECT_CALL(callback,
-                Run(Eq(mojom::ZCashTxType::kUnknown),
-                    Eq(mojom::ZCashAddressError::kInvalidSenderType)));
-    zcash_wallet_service_->GetTransactionType(account_id_1.Clone(), true, "",
-                                              callback.Get());
-  }
-#endif
 }
 
 TEST_F(ZCashWalletServiceUnitTest, GetTransactionType_Testnet) {
@@ -1204,7 +1074,6 @@ TEST_F(ZCashWalletServiceUnitTest, GetTransactionType_Testnet) {
         "0xA4bE3C94e8c1B7D2F9e6Bf3E1D9A2cC45B6F9A12", callback.Get());
   }
 
-#if BUILDFLAG(ENABLE_ORCHARD)
   // Eth address, shielded pool.
   {
     base::MockCallback<ZCashWalletService::GetTransactionTypeCallback> callback;
@@ -1215,18 +1084,6 @@ TEST_F(ZCashWalletServiceUnitTest, GetTransactionType_Testnet) {
         account_id_1.Clone(), true,
         "0xA4bE3C94e8c1B7D2F9e6Bf3E1D9A2cC45B6F9A12", callback.Get());
   }
-#else
-  // Eth address, shielded pool.
-  {
-    base::MockCallback<ZCashWalletService::GetTransactionTypeCallback> callback;
-    EXPECT_CALL(callback,
-                Run(Eq(mojom::ZCashTxType::kUnknown),
-                    Eq(mojom::ZCashAddressError::kInvalidSenderType)));
-    zcash_wallet_service_->GetTransactionType(
-        account_id_1.Clone(), true,
-        "0xA4bE3C94e8c1B7D2F9e6Bf3E1D9A2cC45B6F9A12", callback.Get());
-  }
-#endif
 
   // Unified address - testnet.
   {
@@ -1256,7 +1113,6 @@ TEST_F(ZCashWalletServiceUnitTest, GetTransactionType_Testnet) {
         callback.Get());
   }
 
-#if BUILDFLAG(ENABLE_ORCHARD)
   // Malformed Unified address - testnet, shielded pool.
   {
     base::MockCallback<ZCashWalletService::GetTransactionTypeCallback> callback;
@@ -1271,21 +1127,6 @@ TEST_F(ZCashWalletServiceUnitTest, GetTransactionType_Testnet) {
         "956j0",
         callback.Get());
   }
-#else
-  // Malformed Unified address - testnet, shielded pool.
-  {
-    base::MockCallback<ZCashWalletService::GetTransactionTypeCallback> callback;
-    EXPECT_CALL(callback,
-                Run(Eq(mojom::ZCashTxType::kUnknown),
-                    Eq(mojom::ZCashAddressError::kInvalidSenderType)));
-    zcash_wallet_service_->GetTransactionType(
-        account_id_1.Clone(), true,
-        "utest1vergg5jkp4xy8sqfasw6s5zkdpnxvfxlxh35uuc3me7dp596y2r05t6dv9htwe3p"
-        "f8ksrfr8ksca2lskzjanqtl8uqp5vln3zyy246ejtx86vqftp73j7jg9099jxafyjhfm6u"
-        "956j0",
-        callback.Get());
-  }
-#endif
 
   // Mainnet unified address with testnet account (network mismatch).
   {
@@ -1323,7 +1164,6 @@ TEST_F(ZCashWalletServiceUnitTest, GetTransactionType_Testnet) {
                                               callback.Get());
   }
 
-#if BUILDFLAG(ENABLE_ORCHARD)
   // Empty address, shielded pool.
   {
     base::MockCallback<ZCashWalletService::GetTransactionTypeCallback> callback;
@@ -1333,20 +1173,7 @@ TEST_F(ZCashWalletServiceUnitTest, GetTransactionType_Testnet) {
     zcash_wallet_service_->GetTransactionType(account_id_1.Clone(), true, "",
                                               callback.Get());
   }
-#else
-  // Empty address, shielded pool.
-  {
-    base::MockCallback<ZCashWalletService::GetTransactionTypeCallback> callback;
-    EXPECT_CALL(callback,
-                Run(Eq(mojom::ZCashTxType::kUnknown),
-                    Eq(mojom::ZCashAddressError::kInvalidSenderType)));
-    zcash_wallet_service_->GetTransactionType(account_id_1.Clone(), true, "",
-                                              callback.Get());
-  }
-#endif
 }
-
-#if BUILDFLAG(ENABLE_ORCHARD)
 
 TEST_F(ZCashWalletServiceUnitTest, AutoSync) {
   base::test::ScopedFeatureList feature_list;
@@ -1371,7 +1198,7 @@ TEST_F(ZCashWalletServiceUnitTest, AutoSync) {
       });
 
   ON_CALL(zcash_rpc(), GetTreeState(_, _, _))
-      .WillByDefault(
+      .WillByDefault(  //
           [&](const std::string& chain_id, zcash::mojom::BlockIDPtr block_id,
               ZCashRpc::GetTreeStateCallback callback) {
             EXPECT_EQ(chain_id, mojom::kZCashMainnet);
@@ -1420,7 +1247,7 @@ TEST_F(ZCashWalletServiceUnitTest, ZCashAccountInfo) {
     base::MockCallback<ZCashWalletService::GetZCashAccountInfoCallback>
         get_zcash_account_info_callback;
     EXPECT_CALL(get_zcash_account_info_callback, Run(_))
-        .WillOnce(
+        .WillOnce(  //
             [&](mojom::ZCashAccountInfoPtr account_info) {
               EXPECT_EQ(account_info->unified_address.value(),
                         "u1gjrzpk0v0v2ae359cp296zapth9mw8xseyzhu44a4ftux3gn8gh9"
@@ -1479,7 +1306,6 @@ TEST_F(ZCashWalletServiceUnitTest, ValidateShielding) {
   }
 }
 
-#if BUILDFLAG(ENABLE_ORCHARD)
 TEST_F(ZCashWalletServiceUnitTest, ValidateUnshielding) {
   auto account_1 =
       GetAccountUtils().EnsureAccount(mojom::KeyringId::kZCashMainnet, 0);
@@ -1559,25 +1385,6 @@ TEST_F(ZCashWalletServiceUnitTest, ValidateUnshielding) {
         callback.Get());
   }
 }
-#else
-TEST_F(ZCashWalletServiceUnitTest, ValidateUnshielding) {
-  auto account_1 =
-      GetAccountUtils().EnsureAccount(mojom::KeyringId::kZCashMainnet, 0);
-  auto account_id_1 = account_1->account_id.Clone();
-
-  {
-    base::MockCallback<ZCashWalletService::GetTransactionTypeCallback> callback;
-    EXPECT_CALL(callback,
-                Run(Eq(mojom::ZCashTxType::kUnknown),
-                    Eq(mojom::ZCashAddressError::kInvalidSenderType)));
-    auto account_info = keyring_service_->GetZCashAccountInfo(account_id_1);
-    zcash_wallet_service_->GetTransactionType(
-        account_id_1.Clone(), true,
-        account_info->next_transparent_receive_address->address_string,
-        callback.Get());
-  }
-}
-#endif
 
 TEST_F(ZCashWalletServiceUnitTest, ValidateOrchardUnifiedAddress) {
   auto account_1 =
@@ -1670,7 +1477,7 @@ TEST_F(ZCashWalletServiceUnitTest, MakeAccountShielded) {
       });
 
   ON_CALL(zcash_rpc(), GetTreeState(_, _, _))
-      .WillByDefault(
+      .WillByDefault(  //
           [&](const std::string& chain_id, zcash::mojom::BlockIDPtr block_id,
               ZCashRpc::GetTreeStateCallback callback) {
             EXPECT_EQ(block_id->height, 100000u - kChainReorgBlockDelta);
@@ -1696,7 +1503,7 @@ TEST_F(ZCashWalletServiceUnitTest, MakeAccountShielded) {
     base::MockCallback<ZCashWalletService::GetZCashAccountInfoCallback>
         get_zcash_account_info_callback;
     EXPECT_CALL(get_zcash_account_info_callback, Run(_))
-        .WillOnce(
+        .WillOnce(  //
             [&](mojom::ZCashAccountInfoPtr account_info) {
               EXPECT_EQ(mojom::ZCashAccountShieldBirthday::New(
                             100000u - kChainReorgBlockDelta, "hexhexhex2"),
@@ -1731,9 +1538,15 @@ TEST_F(ZCashWalletServiceUnitTest, ShieldFunds_FailsOnNetworkError) {
   base::test::ScopedRunLoopTimeout specific_timeout(FROM_HERE,
                                                     base::Minutes(1));
   base::test::ScopedFeatureList feature_list;
-  feature_list.InitAndEnableFeatureWithParameters(
-      features::kBraveWalletZCashFeature,
-      {{"zcash_shielded_transactions_enabled", "true"}});
+  feature_list.InitWithFeaturesAndParameters(
+      {{features::kBraveWalletZCashFeature,
+        {{"zcash_shielded_transactions_enabled", "true"}}},
+#if BUILDFLAG(IS_IOS)
+       {features::kBraveWalletWebUIFeature, {}}
+#endif
+      },
+      {}  // disabled features
+  );
 
   keyring_service()->Reset();
   keyring_service()->RestoreWallet(kGateJuniorMnemonic, kTestWalletPassword,
@@ -1744,7 +1557,7 @@ TEST_F(ZCashWalletServiceUnitTest, ShieldFunds_FailsOnNetworkError) {
   auto account_id = account->account_id.Clone();
   keyring_service()->UpdateNextUnusedAddressForZCashAccount(account_id, 1, 0);
   ON_CALL(zcash_rpc(), GetUtxoList(_, _, _))
-      .WillByDefault(
+      .WillByDefault(  //
           [&](const std::string& chain_id, const std::string& address,
               ZCashRpc::GetUtxoListCallback callback) {
             std::vector<zcash::mojom::ZCashUtxoPtr> utxos;
@@ -1794,7 +1607,7 @@ TEST_F(ZCashWalletServiceUnitTest, ShieldFunds_FailsOnNetworkError) {
 
 // Shield*Funds tests are disabled on Windows x86 due to timeout.
 // See https://github.com/brave/brave-browser/issues/39698.
-#if BUILDFLAG(IS_WIN) && defined(ARCH_CPU_X86)
+#if (BUILDFLAG(IS_WIN) && defined(ARCH_CPU_X86)) || BUILDFLAG(IS_IOS)
 #define MAYBE_ShieldAllFunds DISABLED_ShieldAllFunds
 #define MAYBE_ShieldFunds DISABLED_ShieldFunds
 #define MAYBE_SendShieldedFunds DISABLED_SendShieldedFunds
@@ -1812,9 +1625,15 @@ TEST_F(ZCashWalletServiceUnitTest, MAYBE_ShieldFunds) {
   base::test::ScopedRunLoopTimeout specific_timeout(FROM_HERE,
                                                     base::Minutes(1));
   base::test::ScopedFeatureList feature_list;
-  feature_list.InitAndEnableFeatureWithParameters(
-      features::kBraveWalletZCashFeature,
-      {{"zcash_shielded_transactions_enabled", "true"}});
+  feature_list.InitWithFeaturesAndParameters(
+      {{features::kBraveWalletZCashFeature,
+        {{"zcash_shielded_transactions_enabled", "true"}}},
+#if BUILDFLAG(IS_IOS)
+       {features::kBraveWalletWebUIFeature, {}}
+#endif
+      },
+      {}  // disabled features
+  );
 
   keyring_service()->Reset();
   keyring_service()->RestoreWallet(kGateJuniorMnemonic, kTestWalletPassword,
@@ -1833,7 +1652,7 @@ TEST_F(ZCashWalletServiceUnitTest, MAYBE_ShieldFunds) {
       });
 
   ON_CALL(zcash_rpc(), GetLatestBlock(_, _))
-      .WillByDefault(
+      .WillByDefault(  //
           [&](const std::string& chain_id,
               ZCashRpc::GetLatestBlockCallback callback) {
             auto response = zcash::mojom::BlockID::New(
@@ -1883,9 +1702,7 @@ TEST_F(ZCashWalletServiceUnitTest, MAYBE_ShieldFunds) {
         std::move(callback).Run(std::move(tree_state));
       });
 
-  std::unique_ptr<MockOrchardSyncState> mocked_sync_state =
-      std::make_unique<MockOrchardSyncState>(db_path());
-  ON_CALL(*mocked_sync_state, GetSpendableNotes(_, _))
+  ON_CALL(mock_orchard_sync_state(), GetSpendableNotes(_, _))
       .WillByDefault([&](const mojom::AccountIdPtr& account_id,
                          const OrchardAddrRawPart& internal_addr) {
         OrchardSyncState::SpendableNotesBundle spendable_notes_bundle;
@@ -1893,7 +1710,7 @@ TEST_F(ZCashWalletServiceUnitTest, MAYBE_ShieldFunds) {
       });
 
   ON_CALL(zcash_rpc(), GetUtxoList(_, _, _))
-      .WillByDefault(
+      .WillByDefault(  //
           [&](const std::string& chain_id, const std::string& address,
               ZCashRpc::GetUtxoListCallback callback) {
             std::vector<zcash::mojom::ZCashUtxoPtr> utxos;
@@ -2224,9 +2041,15 @@ TEST_F(ZCashWalletServiceUnitTest, MAYBE_ShieldAllFunds) {
   base::test::ScopedRunLoopTimeout specific_timeout(FROM_HERE,
                                                     base::Minutes(1));
   base::test::ScopedFeatureList feature_list;
-  feature_list.InitAndEnableFeatureWithParameters(
-      features::kBraveWalletZCashFeature,
-      {{"zcash_shielded_transactions_enabled", "true"}});
+  feature_list.InitWithFeaturesAndParameters(
+      {{features::kBraveWalletZCashFeature,
+        {{"zcash_shielded_transactions_enabled", "true"}}},
+#if BUILDFLAG(IS_IOS)
+       {features::kBraveWalletWebUIFeature, {}}
+#endif
+      },
+      {}  // disabled features
+  );
 
   keyring_service()->Reset();
   keyring_service()->RestoreWallet(kGateJuniorMnemonic, kTestWalletPassword,
@@ -2238,7 +2061,7 @@ TEST_F(ZCashWalletServiceUnitTest, MAYBE_ShieldAllFunds) {
   keyring_service()->UpdateNextUnusedAddressForZCashAccount(account_id, 1, 0);
 
   ON_CALL(zcash_rpc(), GetLatestBlock(_, _))
-      .WillByDefault(
+      .WillByDefault(  //
           [&](const std::string& chain_id,
               ZCashRpc::GetLatestBlockCallback callback) {
             auto response = zcash::mojom::BlockID::New(
@@ -2249,7 +2072,7 @@ TEST_F(ZCashWalletServiceUnitTest, MAYBE_ShieldAllFunds) {
           });
 
   ON_CALL(zcash_rpc(), GetTreeState(_, _, _))
-      .WillByDefault(
+      .WillByDefault(  //
           [&](const std::string& chain_id, zcash::mojom::BlockIDPtr block_id,
               ZCashRpc::GetTreeStateCallback callback) {
             auto tree_state = zcash::mojom::TreeState::New(
@@ -2295,7 +2118,7 @@ TEST_F(ZCashWalletServiceUnitTest, MAYBE_ShieldAllFunds) {
           });
 
   ON_CALL(zcash_rpc(), GetUtxoList(_, _, _))
-      .WillByDefault(
+      .WillByDefault(  //
           [&](const std::string& chain_id, const std::string& address,
               ZCashRpc::GetUtxoListCallback callback) {
             std::vector<zcash::mojom::ZCashUtxoPtr> utxos;
@@ -2605,9 +2428,15 @@ TEST_F(ZCashWalletServiceUnitTest, MAYBE_SendShieldedFunds) {
   base::test::ScopedRunLoopTimeout specific_timeout(FROM_HERE,
                                                     base::Minutes(1));
   base::test::ScopedFeatureList feature_list;
-  feature_list.InitAndEnableFeatureWithParameters(
-      features::kBraveWalletZCashFeature,
-      {{"zcash_shielded_transactions_enabled", "true"}});
+  feature_list.InitWithFeaturesAndParameters(
+      {{features::kBraveWalletZCashFeature,
+        {{"zcash_shielded_transactions_enabled", "true"}}},
+#if BUILDFLAG(IS_IOS)
+       {features::kBraveWalletWebUIFeature, {}}
+#endif
+      },
+      {}  // disabled features
+  );
 
   ON_CALL(zcash_rpc(), GetLightdInfo(_, _))
       .WillByDefault([&](const std::string& chain_id,
@@ -2617,7 +2446,7 @@ TEST_F(ZCashWalletServiceUnitTest, MAYBE_SendShieldedFunds) {
       });
 
   ON_CALL(mock_orchard_sync_state(), GetSpendableNotes(_, _))
-      .WillByDefault(
+      .WillByDefault(  //
           [&](const mojom::AccountIdPtr& account_id,
               const OrchardAddrRawPart& internal_addr) {
             OrchardSyncState::SpendableNotesBundle spendable_notes_bundle;
@@ -2643,7 +2472,7 @@ TEST_F(ZCashWalletServiceUnitTest, MAYBE_SendShieldedFunds) {
             return spendable_notes_bundle;
           });
   ON_CALL(mock_orchard_sync_state(), CalculateWitnessForCheckpoint(_, _, _))
-      .WillByDefault(
+      .WillByDefault(  //
           [&](const mojom::AccountIdPtr& account_id,
               const std::vector<OrchardInput>& notes,
               uint32_t checkpoint_position) {
@@ -2750,12 +2579,6 @@ TEST_F(ZCashWalletServiceUnitTest, MAYBE_SendShieldedFunds) {
             return base::ok(notes_with_witness);
           });
 
-  base::SequenceBound<MockOrchardSyncStateProxy> overrided_sync_state(
-      base::ThreadPool::CreateSequencedTaskRunner({base::MayBlock()}),
-      db_path(), &mock_orchard_sync_state());
-
-  OverrideSyncStateForTesting(std::move(overrided_sync_state));
-
   keyring_service()->Reset();
   keyring_service()->RestoreWallet(kMnemonicGalleryEqual, kTestWalletPassword,
                                    false, base::DoNothing());
@@ -2764,7 +2587,7 @@ TEST_F(ZCashWalletServiceUnitTest, MAYBE_SendShieldedFunds) {
       GetAccountUtils().EnsureAccount(mojom::KeyringId::kZCashMainnet, 6);
   auto account_id = account->account_id.Clone();
   ON_CALL(zcash_rpc(), GetLatestBlock(_, _))
-      .WillByDefault(
+      .WillByDefault(  //
           [&](const std::string& chain_id,
               ZCashRpc::GetLatestBlockCallback callback) {
             auto response = zcash::mojom::BlockID::New(
@@ -2775,7 +2598,7 @@ TEST_F(ZCashWalletServiceUnitTest, MAYBE_SendShieldedFunds) {
           });
 
   ON_CALL(zcash_rpc(), GetTreeState(_, _, _))
-      .WillByDefault(
+      .WillByDefault(  //
           [&](const std::string& chain_id, zcash::mojom::BlockIDPtr block_id,
               ZCashRpc::GetTreeStateCallback callback) {
             auto tree_state = zcash::mojom::TreeState::New(
@@ -3117,15 +2940,6 @@ TEST_F(ZCashWalletServiceUnitTest, MAYBE_SendShieldedFunds) {
       "8ef65c9a8230702e613b7b26665b93ea1315b040ce60d10de6aa334b6dcbdeefe1df571d"
       "a2d5b927a11e607ce2d6d4f36193977cbdf4ee939512",
       ToHex(captured_data));
-
-  {
-    // Cleanup old MockOrchardSyncStateProxy to prevent dangling pointer error
-    base::SequenceBound<MockOrchardSyncStateProxy> empty_sync_state(
-        base::ThreadPool::CreateSequencedTaskRunner({base::MayBlock()}),
-        db_path(), nullptr);
-    OverrideSyncStateForTesting(std::move(empty_sync_state));
-    task_environment_.RunUntilIdle();
-  }
 }
 
 // https://3xpl.com/zcash/transaction/99b223198efaa5fb2ea4b10c53f9f9d118753789ce7f9ed3f891c9e2c8da91f0
@@ -3134,9 +2948,15 @@ TEST_F(ZCashWalletServiceUnitTest, MAYBE_UnshieldFunds) {
   base::test::ScopedRunLoopTimeout specific_timeout(FROM_HERE,
                                                     base::Minutes(1));
   base::test::ScopedFeatureList feature_list;
-  feature_list.InitAndEnableFeatureWithParameters(
-      features::kBraveWalletZCashFeature,
-      {{"zcash_shielded_transactions_enabled", "true"}});
+  feature_list.InitWithFeaturesAndParameters(
+      {{features::kBraveWalletZCashFeature,
+        {{"zcash_shielded_transactions_enabled", "true"}}},
+#if BUILDFLAG(IS_IOS)
+       {features::kBraveWalletWebUIFeature, {}}
+#endif
+      },
+      {}  // disabled features
+  );
 
   ON_CALL(zcash_rpc(), GetLightdInfo(_, _))
       .WillByDefault([&](const std::string& chain_id,
@@ -3409,12 +3229,6 @@ TEST_F(ZCashWalletServiceUnitTest, MAYBE_UnshieldFunds) {
 
         return base::ok(notes_with_witness);
       });
-
-  base::SequenceBound<MockOrchardSyncStateProxy> overrided_sync_state(
-      base::ThreadPool::CreateSequencedTaskRunner({base::MayBlock()}),
-      db_path(), &mock_orchard_sync_state());
-
-  OverrideSyncStateForTesting(std::move(overrided_sync_state));
 
   keyring_service()->Reset();
   keyring_service()->RestoreWallet(kMnemonicGalleryEqual, kTestWalletPassword,
@@ -3770,15 +3584,6 @@ TEST_F(ZCashWalletServiceUnitTest, MAYBE_UnshieldFunds) {
       "623bacefbf1f26c9e66ffdad45273e8dd7149d5dc81dc4a0f3c8a853ff7899f8ba5cc7c5"
       "d2461ae272eb2da0f170af1d8aa82d43660f541d",
       ToHex(captured_data));
-
-  {
-    // Cleanup old MockOrchardSyncStateProxy to prevent dangling pointer error
-    base::SequenceBound<MockOrchardSyncStateProxy> empty_sync_state(
-        base::ThreadPool::CreateSequencedTaskRunner({base::MayBlock()}),
-        db_path(), nullptr);
-    OverrideSyncStateForTesting(std::move(empty_sync_state));
-    task_environment_.RunUntilIdle();
-  }
 }
 
 TEST_F(ZCashWalletServiceUnitTest, ShieldSync) {
@@ -3867,7 +3672,6 @@ TEST_F(ZCashWalletServiceUnitTest, ShieldSync_FeatureDisabled) {
 }
 
 #endif
-#endif  // BUILDFLAG(ENABLE_ORCHARD)
 
 TEST_F(ZCashWalletServiceUnitTest,
        OnCompleteTransactionTaskDone_InvalidTransaction) {

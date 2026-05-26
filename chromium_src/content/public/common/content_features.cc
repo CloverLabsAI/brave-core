@@ -13,18 +13,16 @@ namespace features {
 // This is intended as a kill switch for the Idle Detection feature. To enable
 // this feature, the experimental web platform features flag should be set,
 // or the site should obtain an Origin Trial token.
-BASE_FEATURE(kIdleDetection,
-             base::FEATURE_DISABLED_BY_DEFAULT);
+BASE_FEATURE(kIdleDetection, base::FEATURE_DISABLED_BY_DEFAULT);
 
 OVERRIDE_FEATURE_DEFAULT_STATES({{
-    {kCookieDeprecationFacilitatedTesting, base::FEATURE_DISABLED_BY_DEFAULT},
-    {kDevToolsPrivacyUI, base::FEATURE_DISABLED_BY_DEFAULT},
     {kDigitalGoodsApi, base::FEATURE_DISABLED_BY_DEFAULT},
     {kFedCm, base::FEATURE_DISABLED_BY_DEFAULT},
     {kPrefetchProxy, base::FEATURE_DISABLED_BY_DEFAULT},
     {kPrivacySandboxAdsAPIsOverride, base::FEATURE_DISABLED_BY_DEFAULT},
     {kServiceWorkerAutoPreload, base::FEATURE_DISABLED_BY_DEFAULT},
     {kWebIdentityDigitalCredentials, base::FEATURE_DISABLED_BY_DEFAULT},
+    {kWebIdentityDigitalCredentialsCreation, base::FEATURE_DISABLED_BY_DEFAULT},
 #if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
     {kPwaNavigationCapturing, base::FEATURE_DISABLED_BY_DEFAULT},
 #endif

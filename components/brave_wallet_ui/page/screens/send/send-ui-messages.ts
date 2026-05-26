@@ -24,15 +24,15 @@ export const HasNoDomainAddressMessage: AddressMessageInfo = {
 }
 
 export const FailedChecksumMessage: AddressMessageInfo = {
-  title: 'braveWalletFailedChecksumTitle',
-  description: 'braveWalletFailedChecksumDescription',
+  title: 'braveWalletInvalidChecksumTitle',
+  description: 'braveWalletInvalidChecksumDescription',
   type: 'error',
   id: AddressMessageInfoIds.invalidChecksumError,
 }
 
 export const MissingChecksumMessage: AddressMessageInfo = {
-  title: 'braveWalletFailedChecksumTitle',
-  description: 'braveWalletFailedChecksumDescription',
+  title: 'braveWalletMissingChecksumTitle',
+  description: 'braveWalletMissingChecksumDescription',
   type: 'warning',
   id: AddressMessageInfoIds.missingChecksumWarning,
 }
@@ -88,7 +88,6 @@ export const ZCashInvalidUnifiedAddressErrorMessage: AddressMessageInfo = {
   id: AddressMessageInfoIds.zcashInvalidUnifiedAddressError,
 }
 
-// eslint-disable-next-line max-len
 export const ZCashInvalidUnifiedAddressMissingOrchardPartErrorMessage: AddressMessageInfo =
   {
     title: '',
@@ -97,17 +96,15 @@ export const ZCashInvalidUnifiedAddressMissingOrchardPartErrorMessage: AddressMe
     id: AddressMessageInfoIds.zcashInvalidUnifiedAddressMissingOrchardPartError,
   }
 
-// eslint-disable-next-line max-len
 export const ZCashInvalidUnifiedAddressMissingTransparentPartErrorMessage: AddressMessageInfo =
   {
     title: '',
     description: 'braveWalletZCashInvalidUnifiedAddressMissingTransparentPart',
     type: 'error',
-    // eslint-disable-next-line max-len
+
     id: AddressMessageInfoIds.zcashInvalidUnifiedAddressMissingTransparentPartError,
   }
 
-// eslint-disable-next-line max-len
 export const ZCashInvalidAddressNetworkMismatchErrorMessage: AddressMessageInfo =
   {
     title: '',

@@ -9,8 +9,8 @@
 #include "base/strings/string_number_conversions.h"
 #include "brave/components/ai_chat/core/common/buildflags/buildflags.h"
 #include "chrome/browser/ui/browser_finder.h"
-#include "chrome/browser/ui/browser_list.h"
 #include "chrome/browser/ui/browser_navigator_params.h"
+#include "chrome/browser/ui/browser_window/public/global_browser_collection.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
 #include "components/grit/brave_components_strings.h"
 #include "components/sessions/core/session_id.h"
@@ -47,11 +47,13 @@ TabSearchPageHandler::TabSearchPageHandler(
                                         webui_controller,
                                         metrics_reporter) {
 #if BUILDFLAG(ENABLE_AI_CHAT)
-  pref_change_registrar_.Add(
+  Profile* profile = Profile::FromWebUI(web_ui_);
+  brave_pref_change_registrar_.Init(profile->GetPrefs());
+  brave_pref_change_registrar_.Add(
       ai_chat::prefs::kBraveAIChatTabOrganizationEnabled,
       base::BindRepeating(
           &TabSearchPageHandler::OnTabOrganizationFeaturePrefChanged,
-          base::Unretained(this), Profile::FromWebUI(web_ui_)));
+          base::Unretained(this), profile));
 #endif  // BUILDFLAG(ENABLE_AI_CHAT)
 }
 
@@ -60,12 +62,12 @@ TabSearchPageHandler::~TabSearchPageHandler() = default;
 #if BUILDFLAG(ENABLE_AI_CHAT)
 void TabSearchPageHandler::OnTabOrganizationFeaturePrefChanged(
     Profile* profile) {
-  page_->TabOrganizationEnabledChanged(
+  page_->TabFocusEnabledChanged(
       ai_chat::AIChatServiceFactory::GetForBrowserContext(profile) &&
       ai_chat::features::IsTabOrganizationEnabled() &&
       profile->GetPrefs()->GetBoolean(
           ai_chat::prefs::kBraveAIChatTabOrganizationEnabled));
-  page_->ShowFREChanged(!profile->GetPrefs()->HasPrefPath(
+  page_->TabFocusShowFREChanged(!profile->GetPrefs()->HasPrefPath(
       ai_chat::prefs::kBraveAIChatTabOrganizationEnabled));
 }
 
@@ -167,28 +169,31 @@ void TabSearchPageHandler::OnGetFocusTabs(
   }
 
   // Move all tabs from normal browser window to a new window.
-  std::vector<TabDetails> tab_details_before_move;
+  std::vector<tabs::TabInterface*> tabs_before_move;
   for (const auto& tab_id_str : *result) {
     int tab_id = 0;
     if (!base::StringToInt(tab_id_str, &tab_id)) {
       continue;
     }
 
-    std::optional<TabDetails> details = GetTabDetails(tab_id);
-    if (!details) {
+    tabs::TabInterface* tab = GetTabInterface(tab_id);
+    if (!tab) {
       continue;
     }
 
-    // Store all details before move to preserve the index.
-    tab_details_before_move.push_back(*details);
+    // Store all tab before move to preserve the index.
+    tabs_before_move.push_back(tab);
     // Store old window ID (session ID), tab ID, and tab strip index for
     // undo.
-    original_tabs_info_by_window_[details->tab->GetBrowserWindowInterface()
+    int tab_index =
+        tab->GetBrowserWindowInterface()->GetTabStripModel()->GetIndexOfTab(
+            tab);
+    original_tabs_info_by_window_[tab->GetBrowserWindowInterface()
                                       ->GetSessionID()]
-        .push_back({tab_id, details->GetIndex()});
+        .push_back({tab_id, tab_index});
   }
 
-  if (tab_details_before_move.empty()) {
+  if (tabs_before_move.empty()) {
     std::move(callback).Run(false, nullptr);
     return;
   }
@@ -196,12 +201,16 @@ void TabSearchPageHandler::OnGetFocusTabs(
   auto create_params = Browser::CreateParams(Profile::FromWebUI(web_ui_), true);
   create_params.user_title = topic;
   Browser* new_browser = Browser::Create(create_params);
-  for (const auto& details : tab_details_before_move) {
-    std::unique_ptr<tabs::TabModel> tab =
-        details.tab->GetBrowserWindowInterface()
+  for (auto* tab : tabs_before_move) {
+    int tab_index =
+        tab->GetBrowserWindowInterface()->GetTabStripModel()->GetIndexOfTab(
+            tab);
+
+    std::unique_ptr<tabs::TabModel> detached_tab_model =
+        tab->GetBrowserWindowInterface()
             ->GetTabStripModel()
-            ->DetachTabAtForInsertion(details.GetIndex());
-    new_browser->tab_strip_model()->AppendTab(std::move(tab),
+            ->DetachTabAtForInsertion(tab_index);
+    new_browser->tab_strip_model()->AppendTab(std::move(detached_tab_model),
                                               false /* foreground */);
   }
   new_browser->window()->Show();
@@ -213,16 +222,18 @@ void TabSearchPageHandler::UndoFocusTabs(UndoFocusTabsCallback callback) {
   for (auto& iter : original_tabs_info_by_window_) {
     // Find the browser with the session ID (key).
     Browser* target = nullptr;
-    for (Browser* browser : *BrowserList::GetInstance()) {
-      if (!ShouldTrackBrowser(browser)) {
-        continue;
-      }
+    GlobalBrowserCollection::GetInstance()->ForEach(
+        [&target, &iter, this](BrowserWindowInterface* bwi) {
+          Browser* browser = bwi->GetBrowserForMigrationOnly();
+          if (!ShouldTrackBrowser(profile_, browser)) {
+            return true;
+          }
 
-      if (browser->session_id() == iter.first) {
-        target = browser;
-        break;
-      }
-    }
+          if (browser->session_id() == iter.first) {
+            target = browser;
+          }
+          return target == nullptr;
+        });
 
     if (!target) {
       continue;
@@ -236,17 +247,21 @@ void TabSearchPageHandler::UndoFocusTabs(UndoFocusTabsCallback callback) {
 
     for (const auto& tab_info : iter.second) {
       // Find the moved tab.
-      std::optional<TabDetails> details = GetTabDetails(tab_info.tab_id);
-      if (!details) {
+      tabs::TabInterface* tab = GetTabInterface(tab_info.tab_id);
+      if (!tab) {
         continue;
       }
 
-      std::unique_ptr<tabs::TabModel> tab =
-          details->tab->GetBrowserWindowInterface()
+      int tab_index =
+          tab->GetBrowserWindowInterface()->GetTabStripModel()->GetIndexOfTab(
+              tab);
+
+      std::unique_ptr<tabs::TabModel> detached_tab_model =
+          tab->GetBrowserWindowInterface()
               ->GetTabStripModel()
-              ->DetachTabAtForInsertion(details->GetIndex());
+              ->DetachTabAtForInsertion(tab_index);
       target->tab_strip_model()->InsertDetachedTabAt(
-          tab_info.index, std::move(tab), AddTabTypes::ADD_NONE);
+          tab_info.index, std::move(detached_tab_model), AddTabTypes::ADD_NONE);
     }
   }
 
@@ -255,8 +270,15 @@ void TabSearchPageHandler::UndoFocusTabs(UndoFocusTabsCallback callback) {
 }
 
 void TabSearchPageHandler::OpenLeoGoPremiumPage() {
-  NavigateParams params(Profile::FromWebUI(web_ui_),
-                        GURL(ai_chat::kLeoGoPremiumUrl),
+  OpenURLInNewTab(GURL(ai_chat::kLeoGoPremiumUrl));
+}
+
+void TabSearchPageHandler::OpenLearnMorePage() {
+  OpenURLInNewTab(GURL(ai_chat::kTabOrganizationLearnMoreUrl));
+}
+
+void TabSearchPageHandler::OpenURLInNewTab(const GURL& url) {
+  NavigateParams params(Profile::FromWebUI(web_ui_), url,
                         ui::PageTransition::PAGE_TRANSITION_LINK);
   params.disposition = WindowOpenDisposition::NEW_FOREGROUND_TAB;
   Navigate(&params);
@@ -289,6 +311,8 @@ void TabSearchPageHandler::UndoFocusTabs(UndoFocusTabsCallback callback) {
 }
 
 void TabSearchPageHandler::OpenLeoGoPremiumPage() {}
+
+void TabSearchPageHandler::OpenLearnMorePage() {}
 
 void TabSearchPageHandler::SetTabFocusEnabled() {}
 

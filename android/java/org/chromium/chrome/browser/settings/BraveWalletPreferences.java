@@ -10,15 +10,16 @@ import static org.chromium.build.NullUtil.assumeNonNull;
 
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.text.SpannableString;
+import android.text.style.ForegroundColorSpan;
 
 import androidx.preference.Preference;
 import androidx.recyclerview.widget.RecyclerView;
 
 import org.chromium.base.ContextUtils;
 import org.chromium.base.Log;
-import org.chromium.base.supplier.ObservableSupplier;
-import org.chromium.base.supplier.ObservableSupplierImpl;
+import org.chromium.base.supplier.MonotonicObservableSupplier;
+import org.chromium.base.supplier.ObservableSuppliers;
+import org.chromium.base.supplier.SettableMonotonicObservableSupplier;
 import org.chromium.brave_wallet.mojom.DefaultWallet;
 import org.chromium.brave_wallet.mojom.KeyringService;
 import org.chromium.build.annotations.NullMarked;
@@ -29,12 +30,12 @@ import org.chromium.chrome.browser.app.domain.WalletModel;
 import org.chromium.chrome.browser.crypto_wallet.BraveWalletServiceFactory;
 import org.chromium.chrome.browser.crypto_wallet.util.WalletConstants;
 import org.chromium.chrome.browser.util.TabUtils;
+import org.chromium.components.browser_ui.settings.ChromeBasePreference;
 import org.chromium.components.browser_ui.settings.ChromeSwitchPreference;
 import org.chromium.components.browser_ui.settings.SettingsUtils;
-import org.chromium.components.browser_ui.settings.TextMessagePreference;
+import org.chromium.components.browser_ui.settings.search.BaseSearchIndexProvider;
 import org.chromium.mojo.bindings.ConnectionErrorHandler;
 import org.chromium.mojo.system.MojoException;
-import org.chromium.ui.text.ChromeClickableSpan;
 import org.chromium.ui.text.SpanApplier;
 
 @NullMarked
@@ -66,7 +67,8 @@ public class BraveWalletPreferences extends BravePreferenceFragment
     private @Nullable KeyringService mKeyringService;
     private @Nullable WalletModel mWalletModel;
 
-    private final ObservableSupplierImpl<String> mPageTitle = new ObservableSupplierImpl<>();
+    private final SettableMonotonicObservableSupplier<String> mPageTitle =
+            ObservableSuppliers.createMonotonic();
 
     public static boolean getPrefWeb3NotificationsEnabled() {
         SharedPreferences sharedPreferences = ContextUtils.getAppSharedPreferences();
@@ -132,7 +134,7 @@ public class BraveWalletPreferences extends BravePreferenceFragment
     }
 
     @Override
-    public ObservableSupplier<String> getPageTitle() {
+    public MonotonicObservableSupplier<String> getPageTitle() {
         return mPageTitle;
     }
 
@@ -184,24 +186,23 @@ public class BraveWalletPreferences extends BravePreferenceFragment
                                         .setChecked(isNftDiscoveryEnabled));
         mWeb3NftDiscoverySwitch.setOnPreferenceChangeListener(this);
 
-        TextMessagePreference learnMorePreference =
+        ChromeBasePreference learnMorePreference =
                 findPreference(BRAVE_WALLET_WEB3_NFT_DISCOVERY_LEARN_MORE);
         if (learnMorePreference != null) {
-            SpannableString learnMoreDesc =
+            learnMorePreference.setTitle(
                     SpanApplier.applySpans(
                             getString(R.string.settings_enable_nft_discovery_desc),
                             new SpanApplier.SpanInfo(
                                     "<LINK_1>",
                                     "</LINK_1>",
-                                    new ChromeClickableSpan(
-                                            requireContext().getColor(R.color.brave_link),
-                                            result -> {
-                                                TabUtils.openUrlInCustomTab(
-                                                        requireContext(),
-                                                        WalletConstants
-                                                                .NFT_DISCOVERY_LEARN_MORE_LINK);
-                                            })));
-            learnMorePreference.setSummary(learnMoreDesc);
+                                    new ForegroundColorSpan(
+                                            requireContext().getColor(R.color.brave_link)))));
+            learnMorePreference.setOnPreferenceClickListener(
+                    preference -> {
+                        TabUtils.openUrlInCustomTab(
+                                requireContext(), WalletConstants.NFT_DISCOVERY_LEARN_MORE_LINK);
+                        return true;
+                    });
         }
     }
 
@@ -289,4 +290,8 @@ public class BraveWalletPreferences extends BravePreferenceFragment
             return DefaultWallet.NONE;
         }
     }
+
+    public static final BaseSearchIndexProvider SEARCH_INDEX_DATA_PROVIDER =
+            new BaseSearchIndexProvider(
+                    BraveWalletPreferences.class.getName(), R.xml.brave_wallet_preferences);
 }

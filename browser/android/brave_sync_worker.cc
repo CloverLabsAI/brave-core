@@ -82,17 +82,14 @@ base::android::ScopedJavaLocalRef<jstring> BraveSyncWorker::GetSyncCodeWords(
 
 void BraveSyncWorker::SaveCodeWords(
     JNIEnv* env,
-    const base::android::JavaParamRef<jstring>& passphrase) {
+    const base::android::JavaRef<jstring>& passphrase) {
   std::string str_passphrase =
       base::android::ConvertJavaStringToUTF8(passphrase);
 
   auto* sync_service = GetSyncService();
   if (!sync_service || !sync_service->SetSyncCode(str_passphrase)) {
-    const std::string error_msg =
-      sync_service
-      ? "invalid sync code:" + str_passphrase
-      : "sync service is not available";
-    LOG(ERROR) << error_msg;
+    LOG(ERROR) << (sync_service ? "invalid sync code"
+                                : "sync service is not available");
     return;
   }
 
@@ -141,8 +138,7 @@ void BraveSyncWorker::MarkFirstSetupComplete() {
 
   // We're done configuring, so notify SyncService that it is OK to start
   // syncing.
-  service->GetUserSettings()->SetInitialSyncFeatureSetupComplete(
-      syncer::SyncFirstSetupCompleteSource::ADVANCED_FLOW_CONFIRM);
+  service->GetUserSettings()->SetInitialSyncFeatureSetupComplete();
 }
 
 void BraveSyncWorker::FinalizeSyncSetup(JNIEnv* env) {
@@ -257,7 +253,7 @@ void NativePermanentlyDeleteAccountCallback(
 
 void BraveSyncWorker::PermanentlyDeleteAccount(
     JNIEnv* env,
-    const base::android::JavaParamRef<jobject>& callback) {
+    const base::android::JavaRef<jobject>& callback) {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
   auto* sync_service = GetSyncService();
   CHECK_NE(sync_service, nullptr);
@@ -293,7 +289,7 @@ void NativeJoinSyncChainCallback(
 
 void BraveSyncWorker::SetJoinSyncChainCallback(
     JNIEnv* env,
-    const base::android::JavaParamRef<jobject>& callback) {
+    const base::android::JavaRef<jobject>& callback) {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
   auto* sync_service = GetSyncService();
   CHECK_NE(sync_service, nullptr);
@@ -321,14 +317,14 @@ bool BraveSyncWorker::IsAccountDeletedNoticePending(JNIEnv* env) {
 
 static void JNI_BraveSyncWorker_Init(
     JNIEnv* env,
-    const base::android::JavaParamRef<jobject>& jcaller) {
+    const base::android::JavaRef<jobject>& jcaller) {
   new BraveSyncWorker(env, jcaller);
 }
 
 static base::android::ScopedJavaLocalRef<jstring>
 JNI_BraveSyncWorker_GetSeedHexFromWords(
     JNIEnv* env,
-    const base::android::JavaParamRef<jstring>& seed_words) {
+    const base::android::JavaRef<jstring>& seed_words) {
   std::string str_seed_words =
       base::android::ConvertJavaStringToUTF8(seed_words);
   DCHECK(!str_seed_words.empty());
@@ -337,9 +333,9 @@ JNI_BraveSyncWorker_GetSeedHexFromWords(
   std::vector<uint8_t> bytes;
   if (brave_sync::crypto::PassphraseToBytes32(str_seed_words, &bytes)) {
     DCHECK_EQ(bytes.size(), SEED_BYTES_COUNT);
-    sync_code_hex = base::HexEncode(&bytes.at(0), bytes.size());
+    sync_code_hex = base::HexEncode(bytes);
   } else {
-    VLOG(1) << __func__ << " PassphraseToBytes32 failed for " << str_seed_words;
+    VLOG(1) << __func__ << " PassphraseToBytes32 failed";
   }
 
   return ConvertUTF8ToJavaString(env, sync_code_hex);
@@ -355,15 +351,14 @@ std::string GetWordsFromSeedHex(const std::string& str_seed_hex) {
     if (bytes.size() == SEED_BYTES_COUNT) {
       sync_code_words = brave_sync::crypto::PassphraseFromBytes32(bytes);
       if (sync_code_words.empty()) {
-        VLOG(1) << __func__ << " PassphraseFromBytes32 failed for "
-                << str_seed_hex;
+        VLOG(1) << __func__ << " PassphraseFromBytes32 failed";
       }
     } else {
       LOG(ERROR) << "wrong seed bytes " << bytes.size();
     }
     DCHECK_NE(sync_code_words, "");
   } else {
-    VLOG(1) << __func__ << " HexStringToBytes failed for " << str_seed_hex;
+    VLOG(1) << __func__ << " HexStringToBytes failed for seed hex";
   }
 
   return sync_code_words;
@@ -372,7 +367,7 @@ std::string GetWordsFromSeedHex(const std::string& str_seed_hex) {
 static base::android::ScopedJavaLocalRef<jstring>
 JNI_BraveSyncWorker_GetWordsFromSeedHex(
     JNIEnv* env,
-    const base::android::JavaParamRef<jstring>& seed_hex) {
+    const base::android::JavaRef<jstring>& seed_hex) {
   std::string str_seed_hex = base::android::ConvertJavaStringToUTF8(seed_hex);
   std::string sync_code_words = GetWordsFromSeedHex(str_seed_hex);
   return ConvertUTF8ToJavaString(env, sync_code_words);
@@ -381,7 +376,7 @@ JNI_BraveSyncWorker_GetWordsFromSeedHex(
 static base::android::ScopedJavaLocalRef<jstring>
 JNI_BraveSyncWorker_GetQrDataJson(
     JNIEnv* env,
-    const base::android::JavaParamRef<jstring>& seed_hex) {
+    const base::android::JavaRef<jstring>& seed_hex) {
   std::string str_seed_hex = base::android::ConvertJavaStringToUTF8(seed_hex);
   DCHECK(!str_seed_hex.empty());
 
@@ -393,7 +388,7 @@ JNI_BraveSyncWorker_GetQrDataJson(
 
 int JNI_BraveSyncWorker_GetQrCodeValidationResult(
     JNIEnv* env,
-    const base::android::JavaParamRef<jstring>& json_qr) {
+    const base::android::JavaRef<jstring>& json_qr) {
   std::string str_json_qr = base::android::ConvertJavaStringToUTF8(json_qr);
   DCHECK(!str_json_qr.empty());
   return static_cast<int>(
@@ -402,7 +397,7 @@ int JNI_BraveSyncWorker_GetQrCodeValidationResult(
 
 int JNI_BraveSyncWorker_GetWordsValidationResult(
     JNIEnv* env,
-    const base::android::JavaParamRef<jstring>& time_limited_words) {
+    const base::android::JavaRef<jstring>& time_limited_words) {
   std::string str_time_limited_words =
       base::android::ConvertJavaStringToUTF8(time_limited_words);
   DCHECK(!str_time_limited_words.empty());
@@ -419,7 +414,7 @@ int JNI_BraveSyncWorker_GetWordsValidationResult(
 static base::android::ScopedJavaLocalRef<jstring>
 JNI_BraveSyncWorker_GetPureWordsFromTimeLimited(
     JNIEnv* env,
-    const base::android::JavaParamRef<jstring>& time_limited_words) {
+    const base::android::JavaRef<jstring>& time_limited_words) {
   std::string str_time_limited_words =
       base::android::ConvertJavaStringToUTF8(time_limited_words);
   DCHECK(!str_time_limited_words.empty());
@@ -433,7 +428,7 @@ JNI_BraveSyncWorker_GetPureWordsFromTimeLimited(
 
 static int64_t JNI_BraveSyncWorker_GetNotAfterFromFromTimeLimitedWords(
     JNIEnv* env,
-    const base::android::JavaParamRef<jstring>& time_limited_words) {
+    const base::android::JavaRef<jstring>& time_limited_words) {
   std::string str_time_limited_words =
       base::android::ConvertJavaStringToUTF8(time_limited_words);
   DCHECK(!str_time_limited_words.empty());
@@ -493,7 +488,7 @@ JNI_BraveSyncWorker_GetFormattedTimeDelta(JNIEnv* env, jlong seconds) {
 static base::android::ScopedJavaLocalRef<jstring>
 JNI_BraveSyncWorker_GetTimeLimitedWordsFromPure(
     JNIEnv* env,
-    const base::android::JavaParamRef<jstring>& pure_words) {
+    const base::android::JavaRef<jstring>& pure_words) {
   std::string str_pure_words =
       base::android::ConvertJavaStringToUTF8(pure_words);
   DCHECK(!str_pure_words.empty());
@@ -508,7 +503,7 @@ JNI_BraveSyncWorker_GetTimeLimitedWordsFromPure(
 static base::android::ScopedJavaLocalRef<jstring>
 JNI_BraveSyncWorker_GetSeedHexFromQrJson(
     JNIEnv* env,
-    const base::android::JavaParamRef<jstring>& json_qr) {
+    const base::android::JavaRef<jstring>& json_qr) {
   std::string str_json_qr = base::android::ConvertJavaStringToUTF8(json_qr);
   DCHECK(!str_json_qr.empty());
 
@@ -528,10 +523,12 @@ JNI_BraveSyncWorker_GetSeedHexFromQrJson(
 
 static int JNI_BraveSyncWorker_GetWordsCount(
     JNIEnv* env,
-    const base::android::JavaParamRef<jstring>& words) {
+    const base::android::JavaRef<jstring>& words) {
   return TimeLimitedWords::GetWordsCount(
       base::android::ConvertJavaStringToUTF8(words));
 }
 
 }  // namespace android
 }  // namespace chrome
+
+DEFINE_JNI(BraveSyncWorker)

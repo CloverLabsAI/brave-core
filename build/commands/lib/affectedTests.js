@@ -3,19 +3,21 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 
-const { promisify } = require('util')
-const { readFile, writeFile } = require('fs/promises')
-const exec = promisify(require('child_process').execFile)
-const path = require('path')
-const config = require('./config')
-const { unlink } = require('fs-extra')
-const { randomUUID } = require('crypto')
-const {
+import { promisify } from 'node:util'
+import { readFile, writeFile } from 'node:fs/promises'
+import child_process from 'node:child_process'
+import path from 'node:path'
+import config from './config.js'
+import fs from 'fs-extra'
+import { randomUUID } from 'node:crypto'
+import { tmpdir } from 'node:os'
+import {
   getApplicableFilters,
   getTestsToRun,
   gnTargetToExecutableName,
-} = require('./testUtils')
-const { tmpdir } = require('os')
+} from './testUtils.js'
+
+const exec = promisify(child_process.execFile)
 
 const getTestTargets = (outDir, filters = ['//*']) => {
   const { env, shell } = config.defaultOptions
@@ -35,6 +37,7 @@ const asGnTarget = (file) => {
 async function getModifiedFiles(target = 'HEAD~', base = null) {
   const args = ['diff', '--name-only', target, base].filter((x) => x)
   const maxBuffer = 1024 * 1024 * 5
+  // @ts-ignore
   return exec('git', args, { maxBuffer }).then((x) =>
     x.stdout
       .trim()
@@ -60,7 +63,7 @@ async function getReferenceCommit() {
 
 async function analyzeAffectedTests(
   outDir,
-  { filters = ['//*'], files = [], base, quiet } = {},
+  { filters = ['//*'], files = [], base = undefined, quiet = undefined } = {},
 ) {
   const targetCommit =
     !base || base === true ? await getReferenceCommit() : base
@@ -113,7 +116,7 @@ async function analyzeAffectedTests(
 
   const output = await readFile(analyzeOutJson, 'utf-8').then(JSON.parse)
 
-  await Promise.all([unlink(analyzeJson), unlink(analyzeOutJson)])
+  await Promise.all([fs.unlink(analyzeJson), fs.unlink(analyzeOutJson)])
 
   return {
     outDir,
@@ -167,7 +170,4 @@ async function getAffectedTests(args = {}) {
   return [...new Set([...affectedTests, ...testAffectedDueModifiedFilterFiles])]
 }
 
-module.exports = {
-  analyzeAffectedTests,
-  getAffectedTests,
-}
+export { analyzeAffectedTests, getAffectedTests }

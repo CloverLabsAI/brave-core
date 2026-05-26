@@ -9,8 +9,11 @@
 #include "base/functional/callback.h"
 #include "base/gtest_prod_util.h"
 #include "base/memory/raw_ptr.h"
-#include "base/values.h"
 #include "chrome/browser/importer/importer_progress_observer.h"
+
+namespace base {
+class DictValue;
+}  // namespace base
 
 class ExternalProcessImporterHost;
 
@@ -18,7 +21,7 @@ class BraveImporterObserver : public importer::ImporterProgressObserver {
  public:
   using ReportProgressCallback = base::RepeatingCallback<void(
       const user_data_importer::SourceProfile& source_profile,
-      const base::Value::Dict&)>;
+      const base::DictValue&)>;
 
   BraveImporterObserver(ExternalProcessImporterHost* host,
                         const user_data_importer::SourceProfile& source_profile,

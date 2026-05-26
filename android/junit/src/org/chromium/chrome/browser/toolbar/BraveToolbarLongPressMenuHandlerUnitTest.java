@@ -26,12 +26,11 @@ import org.robolectric.Robolectric;
 import org.robolectric.Shadows;
 import org.robolectric.shadows.ShadowPackageManager;
 
-import org.chromium.base.supplier.ObservableSupplierImpl;
+import org.chromium.base.supplier.MonotonicObservableSupplier;
+import org.chromium.base.supplier.ObservableSuppliers;
 import org.chromium.base.test.BaseRobolectricTestRunner;
-import org.chromium.base.test.util.Features.EnableFeatures;
 import org.chromium.base.test.util.Restriction;
 import org.chromium.chrome.R;
-import org.chromium.chrome.browser.flags.ChromeFeatureList;
 import org.chromium.chrome.browser.lifecycle.ActivityLifecycleDispatcher;
 import org.chromium.chrome.browser.profiles.Profile;
 import org.chromium.ui.base.DeviceFormFactor;
@@ -47,7 +46,6 @@ import java.util.function.BooleanSupplier;
 
 /** Unit tests for {@link BraveToolbarLongPressMenuHandler}. */
 @RunWith(BaseRobolectricTestRunner.class)
-@EnableFeatures(ChromeFeatureList.ANDROID_BOTTOM_TOOLBAR)
 public final class BraveToolbarLongPressMenuHandlerUnitTest {
     @Rule public MockitoRule mockitoRule = MockitoJUnit.rule();
 
@@ -62,7 +60,7 @@ public final class BraveToolbarLongPressMenuHandlerUnitTest {
     @Mock private DisplayAndroid mDisplayAndroid;
 
     private ToolbarLongPressMenuHandler mToolbarLongPressMenuHandler;
-    private ObservableSupplierImpl mProfileSupplier;
+    private MonotonicObservableSupplier<Profile> mProfileSupplier;
 
     private Activity mActivity;
     private boolean mShouldSuppress;
@@ -75,8 +73,7 @@ public final class BraveToolbarLongPressMenuHandlerUnitTest {
         ShadowPackageManager shadowPackageManager = Shadows.shadowOf(mActivity.getPackageManager());
         shadowPackageManager.setSystemFeature(PackageManager.FEATURE_SENSOR_HINGE_ANGLE, false);
 
-        mProfileSupplier = new ObservableSupplierImpl<>();
-        mProfileSupplier.set(mProfile);
+        mProfileSupplier = ObservableSuppliers.createMonotonic(mProfile);
 
         doReturn(mDisplayAndroid).when(mWindowAndroid).getDisplay();
         doReturn(1.0f).when(mDisplayAndroid).getDipScale();

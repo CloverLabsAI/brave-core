@@ -8,10 +8,12 @@
 
 #import <Foundation/Foundation.h>
 
+@class URLOriginIOS;
 @protocol BraveWalletBlockchainRegistry;
 @protocol BraveWalletEthereumProvider;
 @protocol BraveWalletProviderDelegate;
 @protocol BraveWalletSolanaProvider;
+@protocol BraveWalletCardanoProvider;
 @protocol BraveWalletBraveWalletP3A;
 
 typedef NS_ENUM(NSInteger, BraveWalletCoinType);
@@ -43,11 +45,18 @@ OBJC_EXPORT
 
 - (nullable id<BraveWalletEthereumProvider>)
     ethereumProviderWithDelegate:(id<BraveWalletProviderDelegate>)delegate
+                          origin:(nullable URLOriginIOS*)origin
                isPrivateBrowsing:(bool)isPrivateBrowsing NS_SWIFT_UI_ACTOR;
 
 - (nullable id<BraveWalletSolanaProvider>)
     solanaProviderWithDelegate:(id<BraveWalletProviderDelegate>)delegate
+                        origin:(nullable URLOriginIOS*)origin
              isPrivateBrowsing:(bool)isPrivateBrowsing NS_SWIFT_UI_ACTOR;
+
+- (nullable id<BraveWalletCardanoProvider>)
+    cardanoProviderWithDelegate:(id<BraveWalletProviderDelegate>)delegate
+                         origin:(nullable URLOriginIOS*)origin
+              isPrivateBrowsing:(bool)isPrivateBrowsing NS_SWIFT_UI_ACTOR;
 
 - (NSDictionary<BraveWalletProviderScriptKey, NSString*>*)
     providerScriptsForCoinType:(BraveWalletCoinType)coinType;

@@ -8,15 +8,19 @@ import '../settings_vars.css.js'
 
 import {PrefsMixin, PrefsMixinInterface} from '/shared/settings/prefs/prefs_mixin.js';
 import {I18nMixin, I18nMixinInterface} from 'chrome://resources/cr_elements/i18n_mixin.js'
+import {WebUiListenerMixin, WebUiListenerMixinInterface} from 'chrome://resources/cr_elements/web_ui_listener_mixin.js'
 import {PolymerElement} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js'
 import {OpenWindowProxyImpl} from 'chrome://resources/js/open_window_proxy.js';
+import {sendWithPromise} from 'chrome://resources/js/cr.js'
 
 import {loadTimeData} from '../i18n_setup.js'
 
 import {getTemplate} from './tabs.html.js'
 
-const SettingsBraveAppearanceTabsElementBase = PrefsMixin(I18nMixin(PolymerElement)) as {
-  new (): PolymerElement & I18nMixinInterface & PrefsMixinInterface
+const SettingsBraveAppearanceTabsElementBase =
+    WebUiListenerMixin(PrefsMixin(I18nMixin(PolymerElement))) as {
+  new (): PolymerElement & I18nMixinInterface & PrefsMixinInterface &
+      WebUiListenerMixinInterface
 }
 
 export class SettingsBraveAppearanceTabsElement extends SettingsBraveAppearanceTabsElementBase {
@@ -30,6 +34,41 @@ export class SettingsBraveAppearanceTabsElement extends SettingsBraveAppearanceT
 
   static get properties() {
     return {
+      tabMinWidthSelectionAliases_: {
+        readOnly: true,
+        type: Object,
+        value() {
+          return {'0': '1'}
+        },
+      },
+      tabMinWidthModes_: {
+        readOnly: true,
+        type: Array,
+        value() {
+          return [
+            {
+              value: 0,
+              hidden: true,
+            },
+            {
+              value: 1,
+              name: loadTimeData.getString('appearanceSettingsTabMinWidthMinimum'),
+            },
+            {
+              value: 2,
+              name: loadTimeData.getString('appearanceSettingsTabMinWidthMedium'),
+            },
+            {
+              value: 3,
+              name: loadTimeData.getString('appearanceSettingsTabMinWidthLarge'),
+            },
+            {
+              value: 4,
+              name: loadTimeData.getString('appearanceSettingsTabMinWidthFull'),
+            },
+          ]
+        },
+      },
       tabTooltipModes_: {
         readyOnly: true,
         type: Array,
@@ -50,12 +89,32 @@ export class SettingsBraveAppearanceTabsElement extends SettingsBraveAppearanceT
             }
           ]
         }
+      },
+      verticalTabsToggleEnabled_: {
+        type: Boolean,
+        value: true,
       }
     }
   }
 
+  declare private tabMinWidthSelectionAliases_: Record<string, string>
+  declare private tabMinWidthModes_: Array<{
+    value: number,
+    name: string,
+    hidden?: boolean,
+  }>
   declare private tabTooltipModes_:
       Array<{value: number, name: string}>
+  declare private verticalTabsToggleEnabled_: boolean
+
+  override connectedCallback() {
+    super.connectedCallback()
+    sendWithPromise<boolean>('getIsVerticalTabsToggleEnabled').then(
+        (enabled: boolean) => { this.verticalTabsToggleEnabled_ = enabled })
+    this.addWebUiListener(
+        'vertical-tabs-toggle-enabled-changed',
+        (enabled: boolean) => { this.verticalTabsToggleEnabled_ = enabled })
+  }
 
   private isSharedPinnedTabsEnabled_() {
     return loadTimeData.getBoolean('isSharedPinnedTabsEnabled')
@@ -72,6 +131,10 @@ export class SettingsBraveAppearanceTabsElement extends SettingsBraveAppearanceT
 
   private isHideVerticalTabCompletelyFlagEnabled() {
     return loadTimeData.getBoolean('isHideVerticalTabCompletelyFlagEnabled');
+  }
+
+  private isScrollableHorizontalTabStripFlagEnabled() {
+    return loadTimeData.getBoolean('isScrollableHorizontalTabStripEnabled');
   }
 }
 

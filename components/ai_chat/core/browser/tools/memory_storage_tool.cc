@@ -45,7 +45,7 @@ std::string_view MemoryStorageTool::Description() const {
          "on failure. Call this tool at most once per turn.";
 }
 
-std::optional<base::Value::Dict> MemoryStorageTool::InputProperties() const {
+std::optional<base::DictValue> MemoryStorageTool::InputProperties() const {
   std::string description = base::StrCat(
       {"Store ONLY the new information the user just asked to be "
        "remembered. "
@@ -75,7 +75,7 @@ std::optional<std::vector<std::string>> MemoryStorageTool::RequiredProperties()
 bool MemoryStorageTool::SupportsConversation(
     bool is_temporary,
     bool has_untrusted_content,
-    mojom::ConversationCapability conversation_capability) const {
+    const ConversationCapabilitySet& conversation_capabilities) const {
 #if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_IOS)
   return false;
 #else
@@ -89,8 +89,10 @@ void MemoryStorageTool::UseTool(const std::string& input_json,
   auto input_dict = base::JSONReader::ReadDict(
       input_json, base::JSON_PARSE_CHROMIUM_EXTENSIONS);
   if (!input_dict.has_value()) {
-    std::move(callback).Run(CreateContentBlocksForText(
-        "Error: Invalid JSON input, input must be a JSON object"));
+    std::move(callback).Run(
+        CreateContentBlocksForText(
+            "Error: Invalid JSON input, input must be a JSON object"),
+        {});
     return;
   }
 
@@ -98,16 +100,19 @@ void MemoryStorageTool::UseTool(const std::string& input_json,
 
   if (!memory_content || memory_content->empty()) {
     std::move(callback).Run(
-        CreateContentBlocksForText("Error: Missing or empty 'memory' field"));
+        CreateContentBlocksForText("Error: Missing or empty 'memory' field"),
+        {});
     return;
   }
 
   // Validate memory length
   if (memory_content->length() > mojom::kMaxMemoryRecordLength) {
-    std::move(callback).Run(CreateContentBlocksForText(
-        base::StrCat({"Error: Memory content exceeds ",
-                      base::NumberToString(mojom::kMaxMemoryRecordLength),
-                      " character limit"})));
+    std::move(callback).Run(
+        CreateContentBlocksForText(
+            base::StrCat({"Error: Memory content exceeds ",
+                          base::NumberToString(mojom::kMaxMemoryRecordLength),
+                          " character limit"})),
+        {});
     return;
   }
 
@@ -115,7 +120,7 @@ void MemoryStorageTool::UseTool(const std::string& input_json,
   prefs::AddMemoryToPrefs(*memory_content, *pref_service_);
 
   // Return empty result to signal the completion of this tool to AI agents.
-  std::move(callback).Run(CreateContentBlocksForText(""));
+  std::move(callback).Run(CreateContentBlocksForText(""), {});
 }
 
 }  // namespace ai_chat

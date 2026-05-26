@@ -13,11 +13,12 @@
 #include "base/files/file_path.h"
 #include "base/files/scoped_temp_dir.h"
 #include "base/memory/weak_ptr.h"
+#include "base/test/scoped_command_line.h"
 #include "base/test/task_environment.h"
-#include "brave/components/brave_ads/core/internal/ads_client/ads_client_mock.h"
 #include "brave/components/brave_ads/core/internal/ads_client/ads_client_notifier_for_testing.h"
+#include "brave/components/brave_ads/core/internal/ads_client/test/ads_client_mock.h"
 #include "brave/components/brave_ads/core/internal/application_state/browser_util.h"
-#include "brave/components/brave_ads/core/internal/common/platform/platform_helper_mock.h"
+#include "brave/components/brave_ads/core/internal/common/platform/test/platform_helper_mock.h"
 #include "brave/components/brave_ads/core/public/common/locale/scoped_locale_for_testing.h"
 #include "testing/gmock/include/gmock/gmock.h"
 #include "testing/gtest/include/gtest/gtest.h"
@@ -148,6 +149,11 @@ class TestBase : public AdsClientNotifierForTesting, public ::testing::Test {
   void SetUpIntegrationTestCallback(bool success);
 
   void SetUpUnitTest();
+
+  // Captures the original command line and restores it on destruction to
+  // prevent `AppendCommandLineSwitches` in `SetUpMocks` from leaking between
+  // tests.
+  base::test::ScopedCommandLine scoped_command_line_;
 
   base::ScopedTempDir profile_dir_;
 

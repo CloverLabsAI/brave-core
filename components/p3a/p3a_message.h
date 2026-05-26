@@ -43,6 +43,9 @@ class MessageMetainfo {
   std::optional<base::Time> GetActivationDate(
       std::string_view histogram_name) const;
 
+  std::optional<std::string> GetCustomAttribute(
+      std::string_view attribute_name) const;
+
   const std::string& platform() const { return platform_; }
   const std::string& general_platform() const { return general_platform_; }
   const std::string& channel() const { return channel_; }
@@ -57,6 +60,9 @@ class MessageMetainfo {
   base::Time date_of_install() const { return date_of_install_; }
   base::Time date_of_survey() const { return date_of_survey_; }
   int woi() const { return woi_; }
+
+  void SetIsBrowserDefault(bool is_default);
+  std::optional<bool> is_browser_default() const { return is_browser_default_; }
 
  private:
   // Used to report major/minor version numbers to reduce amount of
@@ -85,15 +91,16 @@ class MessageMetainfo {
   RegionIdentifiers region_identifiers_;
   // May contain 'none', a 'BRV'-prefixed refcode, or 'other'.
   std::string ref_;
+  std::optional<bool> is_browser_default_;
 
   raw_ptr<PrefService, DanglingUntriaged> local_state_ = nullptr;
 };
 
-base::Value::Dict GenerateP3AMessageDict(std::string_view metric_name,
-                                         uint64_t metric_value,
-                                         MetricLogType log_type,
-                                         const MessageMetainfo& meta,
-                                         const std::string& upload_type);
+base::DictValue GenerateP3AMessageDict(std::string_view metric_name,
+                                       uint64_t metric_value,
+                                       MetricLogType log_type,
+                                       const MessageMetainfo& meta,
+                                       const std::string& upload_type);
 
 std::string GenerateP3AConstellationMessage(std::string_view metric_name,
                                             uint64_t metric_value,

@@ -21,7 +21,7 @@ namespace misc_metrics {
 
 inline constexpr char kDefaultBrowserHistogramName[] = "Brave.Core.IsDefault";
 inline constexpr char kDefaultBrowserDailyHistogramName[] =
-    "Brave.Core.IsDefaultDaily";
+    "Brave.Core.IsDefaultDaily.2";
 
 // Periodically checks if the browser is the default browser and reports the
 // relevant metrics via P3A.
@@ -30,7 +30,7 @@ class DefaultBrowserMonitor {
   class Observer : public base::CheckedObserver {
    public:
     // Called when the default browser status changes.
-    virtual void OnDefaultBrowserStatusChanged() = 0;
+    virtual void OnDefaultBrowserStatusChanged(bool is_default) = 0;
   };
 
 #if !BUILDFLAG(IS_ANDROID)

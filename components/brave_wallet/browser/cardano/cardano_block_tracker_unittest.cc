@@ -23,7 +23,6 @@
 #include "brave/components/brave_wallet/browser/pref_names.h"
 #include "brave/components/brave_wallet/common/brave_wallet.mojom.h"
 #include "components/sync_preferences/testing_pref_service_syncable.h"
-#include "services/data_decoder/public/cpp/test_support/in_process_data_decoder.h"
 #include "services/network/public/cpp/weak_wrapper_shared_url_loader_factory.h"
 #include "services/network/test/test_url_loader_factory.h"
 #include "testing/gmock/include/gmock/gmock.h"
@@ -53,10 +52,7 @@ class MockTrackerObserver : public CardanoBlockTracker::Observer {
 class CardanoBlockTrackerUnitTest : public testing::Test {
  public:
   CardanoBlockTrackerUnitTest()
-      : task_environment_(base::test::TaskEnvironment::TimeSource::MOCK_TIME),
-        shared_url_loader_factory_(
-            base::MakeRefCounted<network::WeakWrapperSharedURLLoaderFactory>(
-                &url_loader_factory_)) {}
+      : task_environment_(base::test::TaskEnvironment::TimeSource::MOCK_TIME) {}
 
   ~CardanoBlockTrackerUnitTest() override = default;
 
@@ -67,7 +63,8 @@ class CardanoBlockTrackerUnitTest : public testing::Test {
     keyring_service_ =
         std::make_unique<KeyringService>(nullptr, &prefs_, &local_state_);
     cardano_wallet_service_ = std::make_unique<CardanoWalletService>(
-        *keyring_service_, *network_manager_, shared_url_loader_factory_);
+        *keyring_service_, *network_manager_,
+        url_loader_factory_.GetSafeWeakWrapper());
     tracker_ = std::make_unique<CardanoBlockTracker>(*cardano_wallet_service_);
   }
 
@@ -86,12 +83,10 @@ class CardanoBlockTrackerUnitTest : public testing::Test {
   sync_preferences::TestingPrefServiceSyncable local_state_;
   sync_preferences::TestingPrefServiceSyncable prefs_;
   network::TestURLLoaderFactory url_loader_factory_;
-  scoped_refptr<network::SharedURLLoaderFactory> shared_url_loader_factory_;
   std::unique_ptr<NetworkManager> network_manager_;
   std::unique_ptr<KeyringService> keyring_service_;
   std::unique_ptr<CardanoWalletService> cardano_wallet_service_;
   std::unique_ptr<CardanoBlockTracker> tracker_;
-  data_decoder::test::InProcessDataDecoder in_process_data_decoder_;
 };
 
 TEST_F(CardanoBlockTrackerUnitTest, GetLatestHeight) {

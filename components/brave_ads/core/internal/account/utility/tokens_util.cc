@@ -8,6 +8,7 @@
 #include <string>
 #include <string_view>
 
+#include "base/values.h"
 #include "brave/components/brave_ads/core/internal/common/challenge_bypass_ristretto/batch_dleq_proof.h"
 #include "brave/components/brave_ads/core/internal/common/challenge_bypass_ristretto/blinded_token.h"
 #include "brave/components/brave_ads/core/internal/common/challenge_bypass_ristretto/public_key.h"
@@ -23,7 +24,7 @@ constexpr std::string_view kPublicKeyKey = "publicKey";
 
 }  // namespace
 
-std::optional<cbr::PublicKey> ParsePublicKey(const base::Value::Dict& dict) {
+std::optional<cbr::PublicKey> ParsePublicKey(const base::DictValue& dict) {
   const std::string* const public_key_base64 = dict.FindString(kPublicKeyKey);
   if (!public_key_base64) {
     return std::nullopt;
@@ -38,8 +39,8 @@ std::optional<cbr::PublicKey> ParsePublicKey(const base::Value::Dict& dict) {
 }
 
 std::optional<cbr::SignedTokenList> ParseSignedTokens(
-    const base::Value::Dict& dict) {
-  const base::Value::List* const list = dict.FindList(kSignedTokensKey);
+    const base::DictValue& dict) {
+  const base::ListValue* const list = dict.FindList(kSignedTokensKey);
   if (!list) {
     return std::nullopt;
   }
@@ -65,7 +66,7 @@ std::optional<cbr::SignedTokenList> ParseSignedTokens(
 }
 
 std::optional<cbr::UnblindedTokenList> ParseVerifyAndUnblindTokens(
-    const base::Value::Dict& dict,
+    const base::DictValue& dict,
     const cbr::TokenList& tokens,
     const cbr::BlindedTokenList& blinded_tokens,
     const cbr::PublicKey& public_key) {

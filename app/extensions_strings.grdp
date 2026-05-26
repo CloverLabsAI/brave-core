@@ -26,15 +26,6 @@
   <message name="IDS_EXTENSIONS_ENABLE_ERROR_COLLECTION" desc="The checkbox for enabling error collection for an extension.">
     Collect errors
   </message>
-  <message name="IDS_EXTENSIONS_ENABLE_TOGGLE_TOOLTIP_DISABLED" desc="The tooltip for the enable extension toggle when the extension is disabled.">
-    This extension cannot read and change site information or run in the background
-  </message>
-  <message name="IDS_EXTENSIONS_ENABLE_TOGGLE_TOOLTIP_ENABLED" desc="The tooltip for the enable extension toggle when the extension is enabled but does not have host permissions.">
-    This extension may run in the background
-  </message>
-  <message name="IDS_EXTENSIONS_ENABLE_TOGGLE_TOOLTIP_ENABLED_WITH_SITE_ACCESS" desc="The tooltip for the enable extension toggle when the extension is enabled and has host permissions.">
-    This extension may read and change site information or run in the background
-  </message>
   <message name="IDS_EXTENSIONS_ERROR_NO_ERRORS_CODE_MESSAGE" desc="The text displayed in the 'code' section when an extension has no errors.">
     Nothing to see here, move along.
   </message>
@@ -546,7 +537,7 @@
     Discover more extensions and themes on the <ph name="BEGIN_LINK">&lt;a target="_blank" href="$1"&gt;</ph>Web Store<ph name="END_LINK">&lt;/a&gt; <ex>&lt;/a&gt;</ex> </ph>
   </message>
   <message name="IDS_EXTENSIONS_WHATS_NEW_SIDEBAR_PROMO" desc="The text displayed in the sidebar of the chrome://extensions page to promote the extension documenation, for when the user is in developer mode.">
-    Developing extensions? Stay up to date on <ph name="BEGIN_LINK">&lt;a target="_blank" href="$1"&gt;</ph>What's New<ph name="END_LINK">&lt;/a&gt;</ph> with Brave Extension developer documentation.
+    Developing extensions? Stay up to date on <ph name="BEGIN_LINK">&lt;a target="_blank" href="$1"&gt;</ph>What's New<ph name="END_LINK">&lt;/a&gt;</ph> with Google Extension developer documentation.
   </message>
   <message name="IDS_EXTENSIONS_SIDEBAR_KEYBOARD_SHORTCUTS" desc="The text for the link to manage keyboard shortcuts for extensions.">
     Keyboard shortcuts

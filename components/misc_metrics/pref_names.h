@@ -38,6 +38,10 @@ inline constexpr char kMiscMetricsSearchSwitchedAwayFromBrave[] =
     "brave.misc_metrics.search_switched_from_brave";
 inline constexpr char kMiscMetricsSearchBraveQueryCount[] =
     "brave.misc_metrics.search_brave_query_count";
+inline constexpr char kMiscMetricsBraveSearchReportFrameStartTime[] =
+    "brave.misc_metrics.brave_search_report_frame_start_time";
+inline constexpr char kMiscMetricsBraveSearchQueryCounts[] =
+    "brave.misc_metrics.brave_search_query_counts";
 
 inline constexpr char kMiscMetricsTotalDnsRequestStorage[] =
     "brave.misc_metrics.total_dns_requests";
@@ -74,6 +78,22 @@ inline constexpr char kMiscMetricsNTPWidgetUsageStorage[] =
 
 inline constexpr char kMiscMetricsSplitViewUsageStorage[] =
     "brave.misc_metrics.split_view_usage";
+
+inline constexpr char kMiscMetricsMediaSessionPlayingTime[] =
+    "brave.misc_metrics.media_session_playing_time";
+inline constexpr char kMiscMetricsMediaSessionActiveProcessTime[] =
+    "brave.misc_metrics.media_session_active_process_time";
+inline constexpr char kMiscMetricsMediaSessionFrameStartTime[] =
+    "brave.misc_metrics.media_session_frame_start_time";
+inline constexpr char kMiscMetricsNavSourceReportFrameStartTime[] =
+    "brave.misc_metrics.nav_source_report_frame_start_time";
+inline constexpr char kMiscMetricsNavSourceCounts[] =
+    "brave.misc_metrics.nav_source_counts";
+
+inline constexpr char kMiscMetricsQuickSearchActionStorage[] =
+    "brave.misc_metrics.quick_search_actions";
+inline constexpr char kMiscMetricsQuickSearchLastClickTime[] =
+    "brave.misc_metrics.quick_search_last_click_time";
 
 }  // namespace misc_metrics
 

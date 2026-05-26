@@ -10,7 +10,7 @@
 
 #include "base/barrier_callback.h"
 #include "base/check.h"
-#include "base/containers/contains.h"
+#include "base/functional/callback_helpers.h"
 #include "brave/browser/ntp_background/custom_background_file_manager.h"
 #include "brave/browser/ntp_background/ntp_background_prefs.h"
 #include "brave/components/ntp_background_images/browser/ntp_background_images_data.h"
@@ -26,7 +26,7 @@ namespace {
 // Converts the sponsored image data returned as a Dict by `ViewCounterService`
 // into a mojo struct for use by the NTP.
 mojom::SponsoredImageBackgroundPtr ReadSponsoredImageData(
-    const base::Value::Dict& data) {
+    const base::DictValue& data) {
   using ntp_background_images::kAltKey;
   using ntp_background_images::kCampaignIdKey;
   using ntp_background_images::kCreativeInstanceIDKey;
@@ -168,7 +168,7 @@ mojom::SelectedBackgroundPtr BackgroundFacade::GetSelectedBackground() {
       // has selected based on the selected value.
       if (!bg_prefs.ShouldUseRandomValue()) {
         background->value = bg_prefs.GetSelectedValue();
-        background->type = base::Contains(background->value, "gradient")
+        background->type = background->value.contains("gradient")
                                ? mojom::SelectedBackgroundType::kGradient
                                : mojom::SelectedBackgroundType::kSolid;
       } else if (bg_prefs.GetSelectedValue() == "gradient") {
@@ -182,15 +182,23 @@ mojom::SelectedBackgroundPtr BackgroundFacade::GetSelectedBackground() {
   return background;
 }
 
-mojom::SponsoredImageBackgroundPtr
-BackgroundFacade::GetSponsoredImageBackground() {
+void BackgroundFacade::GetSponsoredImageBackground(
+    base::OnceCallback<void(mojom::SponsoredImageBackgroundPtr)> callback) {
   if (!view_counter_service_) {
-    return nullptr;
+    std::move(callback).Run(nullptr);
+    return;
   }
 
-  auto data = view_counter_service_->GetCurrentWallpaperForDisplay();
+  view_counter_service_->GetCurrentWallpaperForDisplay(
+      base::BindOnce(&BackgroundFacade::OnGetSponsoredImageBackground,
+                     weak_factory_.GetWeakPtr(), std::move(callback)));
+}
+
+void BackgroundFacade::OnGetSponsoredImageBackground(
+    base::OnceCallback<void(mojom::SponsoredImageBackgroundPtr)> callback,
+    std::optional<base::DictValue> data) {
   if (!data) {
-    return nullptr;
+    return std::move(callback).Run(nullptr);
   }
 
   view_counter_service_->RegisterPageView();
@@ -202,7 +210,7 @@ BackgroundFacade::GetSponsoredImageBackground() {
         sponsored_image->metric_type);
   }
 
-  return sponsored_image;
+  std::move(callback).Run(std::move(sponsored_image));
 }
 
 void BackgroundFacade::SelectBackground(

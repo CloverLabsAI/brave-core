@@ -24,6 +24,7 @@
 #include "services/network/public/cpp/network_switches.h"
 #include "ui/base/clipboard/clipboard.h"
 #include "ui/base/clipboard/scoped_clipboard_writer.h"
+#include "ui/base/clipboard/test/clipboard_test_util.h"
 
 namespace {
 
@@ -127,8 +128,9 @@ class URLSanitizerTestBase : public InProcessBrowserTest {
   void WaitClipboardEmpty() {
     std::string text_from_clipboard;
     while (text_from_clipboard != "empty") {
-      ui::Clipboard::GetForCurrentThread()->ReadAsciiText(
-          ui::ClipboardBuffer::kCopyPaste, nullptr, &text_from_clipboard);
+      text_from_clipboard = ui::clipboard_test_util::ReadAsciiText(
+          ui::Clipboard::GetForCurrentThread(), ui::ClipboardBuffer::kCopyPaste,
+          nullptr);
       NonBlockingDelay(base::Microseconds(10));
     }
   }
@@ -136,8 +138,9 @@ class URLSanitizerTestBase : public InProcessBrowserTest {
   std::string WaitClipboard() {
     std::string text_from_clipboard = "empty";
     while (text_from_clipboard == "empty") {
-      ui::Clipboard::GetForCurrentThread()->ReadAsciiText(
-          ui::ClipboardBuffer::kCopyPaste, nullptr, &text_from_clipboard);
+      text_from_clipboard = ui::clipboard_test_util::ReadAsciiText(
+          ui::Clipboard::GetForCurrentThread(), ui::ClipboardBuffer::kCopyPaste,
+          nullptr);
       NonBlockingDelay(base::Microseconds(10));
     }
     return text_from_clipboard;
@@ -219,6 +222,7 @@ class URLSanitizerTestBase : public InProcessBrowserTest {
   base::test::ScopedFeatureList feature_list_;
   content::ContentMockCertVerifier mock_cert_verifier_;
   net::EmbeddedTestServer https_server_{net::EmbeddedTestServer::TYPE_HTTPS};
+  content::BrowserTestClipboardScope clipboard_scope_;
 };
 
 class EnabledURLSanitizerTest : public URLSanitizerTestBase {
@@ -232,10 +236,16 @@ class DisabledURLSanitizerTest : public URLSanitizerTestBase {
   DisabledURLSanitizerTest() : URLSanitizerTestBase(false) {}
 };
 
-IN_PROC_BROWSER_TEST_F(EnabledURLSanitizerTest, JSApi) {
+// These tests require document focus, and waiting for focus is flaky on mac.
+#if BUILDFLAG(IS_MAC)
+#define MAYBE_JSApi DISABLED_JSApi
+#else
+#define MAYBE_JSApi JSApi
+#endif
+IN_PROC_BROWSER_TEST_F(EnabledURLSanitizerTest, MAYBE_JSApi) {
   Check();
 }
 
-IN_PROC_BROWSER_TEST_F(DisabledURLSanitizerTest, JSApi) {
+IN_PROC_BROWSER_TEST_F(DisabledURLSanitizerTest, MAYBE_JSApi) {
   Check();
 }

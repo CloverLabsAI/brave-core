@@ -46,7 +46,7 @@ std::string_view ScrollTool::Description() const {
          "viewport.";
 }
 
-std::optional<base::Value::Dict> ScrollTool::InputProperties() const {
+std::optional<base::DictValue> ScrollTool::InputProperties() const {
   return CreateInputProperties(
       {{kPropertyNameTarget,
         target_util::TargetProperty("Document or Element to scroll")},
@@ -73,7 +73,7 @@ void ScrollTool::UseTool(const std::string& input_json,
 
   if (!input.has_value()) {
     std::move(callback).Run(
-        CreateContentBlocksForText("Error: failed to parse input JSON"));
+        CreateContentBlocksForText("Error: failed to parse input JSON"), {});
     return;
   }
 
@@ -84,30 +84,35 @@ void ScrollTool::UseTool(const std::string& input_json,
   if (!direction ||
       (*direction != kDirectionLeft && *direction != kDirectionRight &&
        *direction != kDirectionUp && *direction != kDirectionDown)) {
-    std::move(callback).Run(CreateContentBlocksForText(
-        "Error: invalid or missing direction. Must be one of: "
-        "'left', 'right', 'up', or 'down'."));
+    std::move(callback).Run(
+        CreateContentBlocksForText(
+            "Error: invalid or missing direction. Must be one of: "
+            "'left', 'right', 'up', or 'down'."),
+        {});
     return;
   }
 
   if (!distance.has_value() || distance.value() <= 0) {
-    std::move(callback).Run(CreateContentBlocksForText(
-        "Error: invalid or missing distance. Must be a positive number."));
+    std::move(callback).Run(
+        CreateContentBlocksForText(
+            "Error: invalid or missing distance. Must be a positive number."),
+        {});
     return;
   }
 
   // Extract and parse target object
-  const base::Value::Dict* target_dict = input->FindDict(kPropertyNameTarget);
+  const base::DictValue* target_dict = input->FindDict(kPropertyNameTarget);
   if (!target_dict) {
     std::move(callback).Run(
-        CreateContentBlocksForText("Error: missing 'target' property"));
+        CreateContentBlocksForText("Error: missing 'target' property"), {});
     return;
   }
 
   auto target = target_util::ParseTargetInput(*target_dict);
   if (!target.has_value()) {
-    std::move(callback).Run(CreateContentBlocksForText(
-        base::StrCat({"Invalid 'target': ", target.error()})));
+    std::move(callback).Run(CreateContentBlocksForText(base::StrCat(
+                                {"Invalid 'target': ", target.error()})),
+                            {});
     return;
   }
 

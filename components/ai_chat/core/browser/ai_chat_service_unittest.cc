@@ -37,7 +37,6 @@
 #include "base/time/time.h"
 #include "brave/components/ai_chat/core/browser/ai_chat_credential_manager.h"
 #include "brave/components/ai_chat/core/browser/associated_content_manager.h"
-#include "brave/components/ai_chat/core/browser/constants.h"
 #include "brave/components/ai_chat/core/browser/conversation_handler.h"
 #include "brave/components/ai_chat/core/browser/engine/engine_consumer.h"
 #include "brave/components/ai_chat/core/browser/engine/mock_engine_consumer.h"
@@ -48,6 +47,7 @@
 #include "brave/components/ai_chat/core/browser/test_utils.h"
 #include "brave/components/ai_chat/core/browser/tools/memory_storage_tool.h"
 #include "brave/components/ai_chat/core/browser/tools/tool.h"
+#include "brave/components/ai_chat/core/browser/types.h"
 #include "brave/components/ai_chat/core/browser/utils.h"
 #include "brave/components/ai_chat/core/common/features.h"
 #include "brave/components/ai_chat/core/common/mojom/ai_chat.mojom.h"
@@ -58,7 +58,6 @@
 #include "components/os_crypt/async/browser/test_utils.h"
 #include "components/sync_preferences/testing_pref_service_syncable.h"
 #include "mojo/public/cpp/bindings/receiver.h"
-#include "services/data_decoder/public/cpp/test_support/in_process_data_decoder.h"
 #include "services/network/public/cpp/shared_url_loader_factory.h"
 #include "services/network/public/cpp/weak_wrapper_shared_url_loader_factory.h"
 #include "services/network/test/test_url_loader_factory.h"
@@ -68,6 +67,7 @@
 #include "third_party/abseil-cpp/absl/strings/str_format.h"
 #include "ui/base/l10n/l10n_util.h"
 #include "url/gurl.h"
+#include "url/origin.h"
 
 using ::testing::_;
 using ::testing::Eq;
@@ -155,11 +155,13 @@ class MockConversationHandlerClient : public mojom::ConversationUI {
                std::vector<mojom::ModelPtr> all_models),
               (override));
 
+#if BUILDFLAG(IS_IOS)
   MOCK_METHOD(void,
               OnSuggestedQuestionsChanged,
               (const std::vector<std::string>&,
                mojom::SuggestionGenerationStatus),
               (override));
+#endif
 
   MOCK_METHOD(void,
               OnAssociatedContentInfoChanged,
@@ -252,6 +254,12 @@ class AIChatServiceUnitTest : public testing::Test,
     prefs::RegisterProfilePrefs(prefs_.registry());
     prefs::RegisterLocalStatePrefs(local_state_.registry());
     ModelService::RegisterProfilePrefs(prefs_.registry());
+
+#if BUILDFLAG(IS_IOS)
+    // On iOS the default for this pref is based on WebUI being enabled, for the
+    // purpose of this test suite, enable it by default regardless
+    prefs_.SetBoolean(prefs::kBraveChatStorageEnabled, true);
+#endif
 
     os_crypt_ = os_crypt_async::GetTestOSCryptAsyncForTesting(
         /*is_sync_for_unittests=*/true);
@@ -362,34 +370,19 @@ class AIChatServiceUnitTest : public testing::Test,
 
   void EmulateUserOptedOut() { ::ai_chat::SetUserOptedIn(&prefs_, false); }
 
-  void TestGetEngineForTabOrganization(const std::string& expected_model_name,
-                                       mojom::PremiumStatus premium_status) {
-    auto* cred_manager = static_cast<MockAIChatCredentialManager*>(
-        ai_chat_service_->GetCredentialManagerForTesting());
-    EXPECT_CALL(*cred_manager, GetPremiumStatus(_))
-        .WillOnce([&](mojom::Service::GetPremiumStatusCallback callback) {
-          mojom::PremiumInfoPtr premium_info = mojom::PremiumInfo::New();
-          std::move(callback).Run(premium_status, std::move(premium_info));
-        });
-    ai_chat_service_->GetEngineForTabOrganization(base::DoNothing());
-    EXPECT_EQ(
-        ai_chat_service_->GetTabOrganizationEngineForTesting()->GetModelName(),
-        expected_model_name);
-    testing::Mock::VerifyAndClearExpectations(cred_manager);
-  }
-
   void TestGetSuggestedTopics(
       base::expected<std::vector<std::string>, mojom::APIError> expected_result,
+      const std::vector<Tab>& tabs = {{"id", "title", url::Origin()}},
       const base::Location& location = FROM_HERE) {
     SCOPED_TRACE(location.ToString());
     base::RunLoop run_loop;
     ai_chat_service_->GetSuggestedTopics(
-        {}, base::BindLambdaForTesting(
-                [&](base::expected<std::vector<std::string>, mojom::APIError>
-                        result) {
-                  EXPECT_EQ(result, expected_result);
-                  run_loop.Quit();
-                }));
+        tabs, base::BindLambdaForTesting(
+                  [&](base::expected<std::vector<std::string>, mojom::APIError>
+                          result) {
+                    EXPECT_EQ(result, expected_result);
+                    run_loop.Quit();
+                  }));
     run_loop.Run();
   }
 
@@ -404,7 +397,6 @@ class AIChatServiceUnitTest : public testing::Test,
   std::unique_ptr<os_crypt_async::OSCryptAsync> os_crypt_;
   network::TestURLLoaderFactory url_loader_factory_;
   scoped_refptr<network::SharedURLLoaderFactory> shared_url_loader_factory_;
-  data_decoder::test::InProcessDataDecoder in_process_data_decoder_;
   bool is_opted_in_ = true;
 
  private:
@@ -482,11 +474,10 @@ TEST_P(AIChatServiceUnitTest,
       .WillOnce(
           [&resolve](PageContentsMap page_contents,
                      const std::vector<mojom::ConversationTurnPtr>& history,
-                     const std::string& selected_language,
                      bool is_temporary_chat,
                      const std::vector<base::WeakPtr<Tool>>& tools,
                      std::optional<std::string_view> preferred_tool_name,
-                     mojom::ConversationCapability conversation_capability,
+                     const ConversationCapabilitySet& conversation_capabilities,
                      base::RepeatingCallback<void(
                          EngineConsumer::GenerationResultData)> callback,
                      base::OnceCallback<void(
@@ -1343,24 +1334,11 @@ TEST_P(AIChatServiceUnitTest, DeleteAssociatedWebContent) {
   }
 }
 
-TEST_P(AIChatServiceUnitTest, GetEngineForTabOrganization) {
-  TestGetEngineForTabOrganization(kClaudeHaikuModelName,
-                                  mojom::PremiumStatus::Inactive);
-  TestGetEngineForTabOrganization(kClaudeSonnetModelName,
-                                  mojom::PremiumStatus::Active);
-  TestGetEngineForTabOrganization(kClaudeHaikuModelName,
-                                  mojom::PremiumStatus::Inactive);
-}
-
 TEST_P(AIChatServiceUnitTest, GetSuggestedTopics_CacheTopics) {
   ai_chat_service_->SetTabOrganizationEngineForTesting(
       std::make_unique<testing::NiceMock<ai_chat::MockEngineConsumer>>());
   auto* engine = static_cast<MockEngineConsumer*>(
       ai_chat_service_->GetTabOrganizationEngineForTesting());
-
-  std::string model_name = kClaudeSonnetModelName;
-  ON_CALL(*engine, GetModelName())
-      .WillByDefault(testing::ReturnRef(model_name));
 
   std::vector<std::string> topics1{"topic1"};
   std::vector<std::string> topics2{"topic2"};
@@ -1372,6 +1350,46 @@ TEST_P(AIChatServiceUnitTest, GetSuggestedTopics_CacheTopics) {
   TestGetSuggestedTopics(topics1);
   ai_chat_service_->TabDataChanged({});
   TestGetSuggestedTopics(topics2);
+}
+
+TEST_P(AIChatServiceUnitTest, GetSuggestedTopics_EmptyTabs) {
+  base::RunLoop run_loop;
+  ai_chat_service_->GetSuggestedTopics(
+      {},
+      base::BindLambdaForTesting([&](base::expected<std::vector<std::string>,
+                                                    mojom::APIError> result) {
+        EXPECT_EQ(result, base::unexpected(mojom::APIError::InternalError));
+        run_loop.Quit();
+      }));
+  run_loop.Run();
+}
+
+TEST_P(AIChatServiceUnitTest, GetFocusTabs_EmptyTabs) {
+  base::RunLoop run_loop;
+  ai_chat_service_->GetFocusTabs(
+      {}, "topic",
+      base::BindLambdaForTesting([&](base::expected<std::vector<std::string>,
+                                                    mojom::APIError> result) {
+        EXPECT_EQ(result, base::unexpected(mojom::APIError::InternalError));
+        run_loop.Quit();
+      }));
+  run_loop.Run();
+}
+
+TEST_P(AIChatServiceUnitTest,
+       CreateTabOrganizationEngineIfNeeded_InvalidModelKey) {
+  // Set the pref to a key that doesn't resolve to any valid model.
+  prefs_.SetString(prefs::kBraveAIChatTabOrganizationModelKey,
+                   "nonexistent-model");
+
+  // Call CreateTabOrganizationEngineIfNeeded directly to verify the fallback
+  // logic without triggering the full request flow.
+  ai_chat_service_->CreateTabOrganizationEngineIfNeeded();
+
+  auto* engine = ai_chat_service_->GetTabOrganizationEngineForTesting();
+  ASSERT_NE(engine, nullptr);
+
+  EXPECT_EQ(engine->GetModelName(), "automatic");
 }
 
 TEST_P(AIChatServiceUnitTest, TemporaryConversation_NoDatabaseInteraction) {

@@ -111,8 +111,19 @@ class TabCWVNavigationHandler: NSObject, BraveWebViewNavigationDelegate {
 
   public func webViewDidCommitNavigation(_ webView: CWVWebView) {
     guard let tab else { return }
+
+    if let wkWebView = webView.internalWebView {
+      let isBlank = webView.lastCommittedURL?.scheme == "about"
+      wkWebView.isOpaque = !isBlank
+      wkWebView.backgroundColor = isBlank ? UIColor.systemBackground : nil
+    }
+
     tab.isRestoring = false
     tab.didCommitNavigation()
+  }
+
+  func webViewDidCommitSameDocumentNavigation(_ webView: CWVWebView) {
+    tab?.didCommitSameDocumentNavigation()
   }
 
   public func webViewDidRedirectNavigation(_ webView: CWVWebView) {

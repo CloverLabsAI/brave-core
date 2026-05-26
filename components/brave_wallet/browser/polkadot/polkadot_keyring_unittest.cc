@@ -8,9 +8,12 @@
 #include <string_view>
 
 #include "base/json/json_reader.h"
+#include "base/json/json_writer.h"
 #include "base/strings/string_number_conversions.h"
 #include "base/strings/string_util.h"
+#include "base/test/bind.h"
 #include "brave/components/brave_wallet/browser/bip39.h"
+#include "brave/components/brave_wallet/browser/blockchain_registry.h"
 #include "brave/components/brave_wallet/common/encoding_utils.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
@@ -47,6 +50,10 @@ std::array<uint8_t, kSr25519SignatureSize> ToSignature(std::string_view hex) {
   return signature_bytes;
 }
 
+bool IsAddressAllowed(const std::string&) {
+  return true;
+}
+
 }  // namespace
 
 TEST(PolkadotKeyring, GenerateRoot) {
@@ -77,11 +84,13 @@ TEST(PolkadotKeyring, Constructor) {
   auto seed = bip39::MnemonicToEntropyToSeed(kDevPhrase).value();
 
   PolkadotKeyring keyring(base::span(seed).first<kPolkadotSeedSize>(),
-                          mojom::KeyringId::kPolkadotMainnet);
+                          mojom::KeyringId::kPolkadotMainnet,
+                          base::BindRepeating(IsAddressAllowed));
   EXPECT_FALSE(keyring.IsTestnet());
 
   PolkadotKeyring keyring2(base::span(seed).first<kPolkadotSeedSize>(),
-                           mojom::KeyringId::kPolkadotTestnet);
+                           mojom::KeyringId::kPolkadotTestnet,
+                           base::BindRepeating(IsAddressAllowed));
   EXPECT_TRUE(keyring2.IsTestnet());
 }
 
@@ -109,7 +118,8 @@ TEST(PolkadotKeyring, GetAddress) {
   {
     auto seed = bip39::MnemonicToEntropyToSeed(kDevPhrase).value();
     PolkadotKeyring keyring(base::span(seed).first<kPolkadotSeedSize>(),
-                            mojom::KeyringId::kPolkadotMainnet);
+                            mojom::KeyringId::kPolkadotMainnet,
+                            base::BindRepeating(IsAddressAllowed));
 
     EXPECT_EQ(keyring.GetAddress(0, 0u),
               "14YLzDFZTwnkcJkFij4Km7g5LdkLqKHy47xYGPN6HsLJpfnb");
@@ -128,7 +138,8 @@ TEST(PolkadotKeyring, GetAddress) {
   {
     auto seed = bip39::MnemonicToEntropyToSeed(kDevPhrase).value();
     PolkadotKeyring keyring(base::span(seed).first<kPolkadotSeedSize>(),
-                            mojom::KeyringId::kPolkadotTestnet);
+                            mojom::KeyringId::kPolkadotTestnet,
+                            base::BindRepeating(IsAddressAllowed));
 
     EXPECT_EQ(keyring.GetAddress(0, 42u),
               "5HGiBcFgEBMgT6GEuo9SA98sBnGgwHtPKDXiUukT6aqCrKEx");
@@ -165,7 +176,8 @@ TEST(PolkadotKeyring, AddHDAccount) {
   {
     auto seed = bip39::MnemonicToEntropyToSeed(kDevPhrase).value();
     PolkadotKeyring keyring(base::span(seed).first<kPolkadotSeedSize>(),
-                            mojom::KeyringId::kPolkadotMainnet);
+                            mojom::KeyringId::kPolkadotMainnet,
+                            base::BindRepeating(IsAddressAllowed));
 
     EXPECT_EQ(keyring.AddNewHDAccount(0u).value(),
               "14YLzDFZTwnkcJkFij4Km7g5LdkLqKHy47xYGPN6HsLJpfnb");
@@ -180,7 +192,8 @@ TEST(PolkadotKeyring, AddHDAccount) {
   {
     auto seed = bip39::MnemonicToEntropyToSeed(kDevPhrase).value();
     PolkadotKeyring keyring(base::span(seed).first<kPolkadotSeedSize>(),
-                            mojom::KeyringId::kPolkadotTestnet);
+                            mojom::KeyringId::kPolkadotTestnet,
+                            base::BindRepeating(IsAddressAllowed));
 
     EXPECT_EQ(keyring.AddNewHDAccount(0u).value(),
               "5HGiBcFgEBMgT6GEuo9SA98sBnGgwHtPKDXiUukT6aqCrKEx");
@@ -210,7 +223,8 @@ TEST(PolkadotKeyring, GetPublicKey) {
   {
     auto seed = bip39::MnemonicToEntropyToSeed(kDevPhrase).value();
     PolkadotKeyring keyring(base::span(seed).first<kPolkadotSeedSize>(),
-                            mojom::KeyringId::kPolkadotMainnet);
+                            mojom::KeyringId::kPolkadotMainnet,
+                            base::BindRepeating(IsAddressAllowed));
 
     auto pubkey = keyring.GetPublicKey(0);
 
@@ -226,7 +240,8 @@ TEST(PolkadotKeyring, GetPublicKey) {
   {
     auto seed = bip39::MnemonicToEntropyToSeed(kDevPhrase).value();
     PolkadotKeyring keyring(base::span(seed).first<kPolkadotSeedSize>(),
-                            mojom::KeyringId::kPolkadotTestnet);
+                            mojom::KeyringId::kPolkadotTestnet,
+                            base::BindRepeating(IsAddressAllowed));
 
     auto pubkey = keyring.GetPublicKey(0);
 
@@ -243,7 +258,8 @@ TEST(PolkadotKeyring, SignAndVerifyMessage) {
   {
     auto seed = bip39::MnemonicToEntropyToSeed(kDevPhrase).value();
     PolkadotKeyring keyring(base::span(seed).first<kPolkadotSeedSize>(),
-                            mojom::KeyringId::kPolkadotMainnet);
+                            mojom::KeyringId::kPolkadotMainnet,
+                            base::BindRepeating(IsAddressAllowed));
 
     auto signature = keyring.SignMessage(message, 0);
     auto verified = keyring.VerifyMessage(signature, message, 0);
@@ -257,7 +273,8 @@ TEST(PolkadotKeyring, SignAndVerifyMessage) {
   {
     auto seed = bip39::MnemonicToEntropyToSeed(kDevPhrase).value();
     PolkadotKeyring keyring(base::span(seed).first<kPolkadotSeedSize>(),
-                            mojom::KeyringId::kPolkadotTestnet);
+                            mojom::KeyringId::kPolkadotTestnet,
+                            base::BindRepeating(IsAddressAllowed));
 
     auto signature = keyring.SignMessage(message, 0);
     auto verified = keyring.VerifyMessage(signature, message, 0);
@@ -278,7 +295,8 @@ TEST(PolkadotKeyring, VerifyMessage) {
   {
     auto seed = bip39::MnemonicToEntropyToSeed(kDevPhrase).value();
     PolkadotKeyring keyring(base::span(seed).first<kPolkadotSeedSize>(),
-                            mojom::KeyringId::kPolkadotTestnet);
+                            mojom::KeyringId::kPolkadotTestnet,
+                            base::BindRepeating(IsAddressAllowed));
 
     std::string signature_hex =
         "4C62835B705663D221F45A70E493C2B48FEEE5B541D3071727139A44A71F1E46E5F536"
@@ -319,7 +337,8 @@ TEST(PolkadotKeyring, VerifyMessage) {
   {
     auto seed = bip39::MnemonicToEntropyToSeed(kDevPhrase).value();
     PolkadotKeyring keyring(base::span(seed).first<kPolkadotSeedSize>(),
-                            mojom::KeyringId::kPolkadotMainnet);
+                            mojom::KeyringId::kPolkadotMainnet,
+                            base::BindRepeating(IsAddressAllowed));
 
     // Test with first mainnet signature vector
     std::string signature_hex =
@@ -357,109 +376,46 @@ TEST(PolkadotKeyring, VerifyMessage) {
   }
 }
 
-// Test cases could be verified via importing to Talisman wallet.
-TEST(PolkadotKeyring, EncodePrivateKeyForExport) {
+TEST(PolkadotKeyring, AddNewHDAccount_OfacSanctionedAddress) {
+  auto* registry = BlockchainRegistry::GetInstance();
+  CHECK(registry);
+
   auto seed = bip39::MnemonicToEntropyToSeed(kDevPhrase).value();
-  const std::string kPassword = "test_password_123";
-
   PolkadotKeyring keyring(base::span(seed).first<kPolkadotSeedSize>(),
-                          mojom::KeyringId::kPolkadotMainnet);
-  {
-    std::array<uint8_t, 32> seed_bytes;
-    seed_bytes.fill(1);
-    std::array<uint8_t, 24> nonce_bytes;
-    nonce_bytes.fill(2);
-    keyring.SetRandBytesForTesting(seed_bytes, nonce_bytes);
-  }
+                          mojom::KeyringId::kPolkadotMainnet,
+                          base::BindRepeating(IsAddressAllowed));
 
-  // Test account 0
-  {
-    auto private_key_0 = keyring.EncodePrivateKeyForExport(0, kPassword);
-    std::optional<base::Value> json_value =
-        base::JSONReader::Read(*private_key_0, 5);
-    constexpr const char kExpectedJson[] =
-        R"({
-            "address":"5Fc3qszVcAXHAmjjm61KcxqvV1kh91jpydE476NjjnJneNdP",
-            "encoded":"AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEAgAAAAQAAAAgAAAACAgICAgICAgICAgICAgICAgICAgICAgJwZYie6q9xdZXp0Tp0awNekjcrjm4Ge+Vh5Lwh9XlJ3sEQ6F4cJUGsR6Kx5IcNP7LBci3ArjzqlJ7/qOSQzS/rJ45+1kPakLVG2YZXQWW3LAzdc6CkDXzrzYnrUF3DyhY6sm59VLHwd6azVzFxqAMd+NJYVWxAxUlESkQlJafdg/4z3wmY",
-            "encoding":{"content":["pkcs8","sr25519"],"type":["scrypt","xsalsa20-poly1305"],"version":"3"}})";
-    std::optional<base::Value> expected_json_value =
-        base::JSONReader::Read(kExpectedJson, 5);
-    EXPECT_EQ(*json_value, *expected_json_value);
-  }
+  // Add an account to get its address.
+  auto address = keyring.AddNewHDAccount(0);
+  ASSERT_TRUE(address);
+  const std::string address_to_sanction = *address;
 
-  // Test account 1
-  {
-    auto private_key_1 = keyring.EncodePrivateKeyForExport(1, kPassword);
-    std::optional<base::Value> json_value_1 =
-        base::JSONReader::Read(*private_key_1, 5);
-    constexpr const char kExpectedJsonAccount1[] =
-        R"({
-            "address":"5FUag6Xjkr2TMgejpdsvQo3c1FSrZqEeZoHh173StGbME4XF",
-            "encoded":"AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEAgAAAAQAAAAgAAAACAgICAgICAgICAgICAgICAgICAgICAgI35vhV4Hb3Cr04X+unU7qckjcrjm4Ge+Vh5Lwh9XlJ3tSn4/Z3n+oAn5X+MByi6HOHjolX4w2S+vHn7qX2ExTqqMqygndQ5qbu68HgGm326rq2dZ8nZ9n6VnS1dX88/MQ6sm59VLuGiKa4uQ4KX1JrUFoTxhgvl83I4WrM1y+1/nbb1yyn",
-            "encoding":{"content":["pkcs8","sr25519"],"type":["scrypt","xsalsa20-poly1305"],"version":"3"}})";
+  // Add address to OFAC list.
+  registry->UpdateOfacAddressesList({base::ToLowerASCII(address_to_sanction)});
 
-    std::optional<base::Value> expected_json_value_1 =
-        base::JSONReader::Read(kExpectedJsonAccount1, 5);
-    EXPECT_EQ(*json_value_1, *expected_json_value_1);
-  }
+  // Try to add account again - should fail because it generates the same
+  // address Note: PolkadotKeyring doesn't have RemoveHDAccount, so we test by
+  // trying to add at index 1, which should succeed, then try index 0 again.
+  auto result1 = keyring.AddNewHDAccount(1);
+  EXPECT_TRUE(result1) << "Non-OFAC address should succeed";
 
-  // Test with empty password (should fail)
-  {
-    auto empty_password_result = keyring.EncodePrivateKeyForExport(0, "");
-    EXPECT_FALSE(empty_password_result.has_value());
-  }
-}
+  // Now try to add at index 0 again - this should fail because the address
+  // at index 0 is already in the OFAC list
+  // Actually, we can't test this directly because AddNewHDAccount doesn't
+  // allow adding at an index that's already been used. Instead, let's test
+  // by creating a new keyring and trying to add at index 0.
+  PolkadotKeyring keyring2(
+      base::span(seed).first<kPolkadotSeedSize>(),
+      mojom::KeyringId::kPolkadotMainnet,
+      base::BindLambdaForTesting([=](const std::string& address) {
+        return !registry->IsOfacAddress(address);
+      }));
+  auto result2 = keyring2.AddNewHDAccount(0);
+  EXPECT_FALSE(result2)
+      << "OFAC sanctioned Polkadot address should be rejected";
 
-TEST(PolkadotKeyring, EncodePrivateKeyForExport_Testnet) {
-  auto seed = bip39::MnemonicToEntropyToSeed(kDevPhrase).value();
-  const std::string kPassword = "test_password_123";
-
-  PolkadotKeyring keyring(base::span(seed).first<kPolkadotSeedSize>(),
-                          mojom::KeyringId::kPolkadotTestnet);
-
-  {
-    std::array<uint8_t, 32> seed_bytes;
-    seed_bytes.fill(1);
-    std::array<uint8_t, 24> nonce_bytes;
-    nonce_bytes.fill(2);
-    keyring.SetRandBytesForTesting(seed_bytes, nonce_bytes);
-  }
-
-  // Test account 0
-  {
-    auto private_key_0 = keyring.EncodePrivateKeyForExport(0, kPassword);
-    std::optional<base::Value> json_value =
-        base::JSONReader::Read(*private_key_0, 5);
-    constexpr const char kExpectedJson[] =
-        R"({
-            "address":"5HGiBcFgEBMgT6GEuo9SA98sBnGgwHtPKDXiUukT6aqCrKEx",
-            "encoded":"AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEAgAAAAQAAAAgAAAACAgICAgICAgICAgICAgICAgICAgICAgK8fiV6lGVSFewy6uxsU1C4kjcrjm4Ge+Vh5Lwh9XlJ3vAbQs+/0vSBKGe71ik2n/owjXKi9/fBCOIbIDIttGbopozlHDAyPEOrftWc4aiMZfTHRTh/Hb0kJ4C79LBJ84Y6sm59VMs51zUalbzBwa9c75OqlTCtqRouH8891IU51jczQkHY",
-            "encoding":{"content":["pkcs8","sr25519"],"type":["scrypt","xsalsa20-poly1305"],"version":"3"}})";
-    std::optional<base::Value> expected_json_value =
-        base::JSONReader::Read(kExpectedJson, 5);
-    EXPECT_EQ(*json_value, *expected_json_value);
-  }
-
-  // Test account 1
-  {
-    auto private_key_1 = keyring.EncodePrivateKeyForExport(1, kPassword);
-    std::optional<base::Value> json_value_1 =
-        base::JSONReader::Read(*private_key_1, 5);
-    constexpr const char kExpectedJsonAccount1[] =
-        R"({
-            "address":"5CofVLAGjwvdGXvBiP6ddtZYMVbhT5Xke8ZrshUpj2ZXAnND",
-            "encoded":"AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEAgAAAAQAAAAgAAAACAgICAgICAgICAgICAgICAgICAgICAgLCddKZgcxBjl0hYwjTBbfXkjcrjm4Ge+Vh5Lwh9XlJ3lxHMOsL8JTT373MVhPUPjpg0fdTnx8C0Rn6NlqE25XqYVmzHtu08FNDkPHRB7gGS7QEMooZrcX7+67a+1Uv3HE6sm59VA2vdfwY70yn/WROki1+SZ1OLWclpgVjEDift12grx7X",
-            "encoding":{"content":["pkcs8","sr25519"],"type":["scrypt","xsalsa20-poly1305"],"version":"3"}})";
-    std::optional<base::Value> expected_json_value_1 =
-        base::JSONReader::Read(kExpectedJsonAccount1, 5);
-    EXPECT_EQ(*json_value_1, *expected_json_value_1);
-  }
-
-  // Test with empty password (should fail)
-  {
-    auto empty_password_result = keyring.EncodePrivateKeyForExport(0, "");
-    EXPECT_FALSE(empty_password_result.has_value());
-  }
+  // Clear OFAC list
+  registry->UpdateOfacAddressesList({});
 }
 
 }  // namespace brave_wallet

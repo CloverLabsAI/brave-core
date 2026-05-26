@@ -78,8 +78,16 @@ class TestTxServiceObserver : public brave_wallet::mojom::TxServiceObserver {
 
   void OnNewUnapprovedTx(mojom::TransactionInfoPtr tx) override {
     ASSERT_TRUE(tx->tx_data_union->is_eth_tx_data_1559());
-    EXPECT_EQ(tx->tx_data_union->get_eth_tx_data_1559()->chain_id.empty(),
-              !expect_eip1559_tx_);
+
+    auto& tx_data_1559 = tx->tx_data_union->get_eth_tx_data_1559();
+    if (expect_eip1559_tx_) {
+      EXPECT_NE(tx_data_1559->max_fee_per_gas, "");
+      EXPECT_NE(tx_data_1559->max_priority_fee_per_gas, "");
+    } else {
+      EXPECT_EQ(tx_data_1559->max_fee_per_gas, "");
+      EXPECT_EQ(tx_data_1559->max_priority_fee_per_gas, "");
+    }
+
     run_loop_new_unapproved_->Quit();
   }
 
@@ -142,13 +150,7 @@ class TestJsonRpcServiceObserver : public mojom::JsonRpcServiceObserver {
 
 class SendOrSignTransactionBrowserTest : public InProcessBrowserTest {
  public:
-  SendOrSignTransactionBrowserTest()
-      : https_server_for_files_(net::EmbeddedTestServer::TYPE_HTTPS),
-        https_server_for_rpc_(net::EmbeddedTestServer::TYPE_HTTPS) {
-    scoped_feature_list_.InitAndEnableFeature(
-        brave_wallet::features::kNativeBraveWalletFeature);
-  }
-
+  SendOrSignTransactionBrowserTest() = default;
   ~SendOrSignTransactionBrowserTest() override = default;
 
   void SetUpCommandLine(base::CommandLine* command_line) override {
@@ -399,7 +401,7 @@ class SendOrSignTransactionBrowserTest : public InProcessBrowserTest {
         absl::StrFormat(
             "sendOrSignTransaction(%s, %s, '%s', "
             "'0x084DCb94038af1715963F149079cE011C4B22961', "
-            "'0x084DCb94038af1715963F149079cE011C4B22962', '0x11', '%s');",
+            "'0x084dcB94038af1715963f149079CE011c4b22962', '0x11', '%s');",
             sign_only ? "true" : "false",
             observer()->expect_eip1559_tx() ? "true" : "false", test_method,
             data)));
@@ -459,20 +461,23 @@ class SendOrSignTransactionBrowserTest : public InProcessBrowserTest {
 
     CallEthereumEnable();
     UserGrantPermission(true);
+
     ASSERT_TRUE(
         ExecJs(web_contents(),
                absl::StrFormat(
                    "sendOrSignTransaction(%s, false, '%s', "
                    "'0x084DCb94038af1715963F149079cE011C4B22961', "
-                   "'0x084DCb94038af1715963F149079cE011C4B22962', '0x11');",
+                   "'0x084dcB94038af1715963f149079CE011c4b22962', '0x11');",
                    sign_only ? "true" : "false", test_method)));
     observer()->WaitForNewUnapprovedTx();
+
     base::RunLoop().RunUntilIdle();
     EXPECT_TRUE(
         brave_wallet::BraveWalletTabHelper::FromWebContents(web_contents())
             ->IsShowingBubble());
 
     auto infos = GetAllTransactionInfo(chain_id);
+
     EXPECT_EQ(1UL, infos.size());
     EXPECT_EQ(default_account()->account_id, infos[0]->from_account_id);
     EXPECT_EQ(mojom::TransactionStatus::Unapproved, infos[0]->tx_status);
@@ -530,8 +535,8 @@ class SendOrSignTransactionBrowserTest : public InProcessBrowserTest {
     ASSERT_TRUE(ExecJs(
         web_contents(),
         absl::StrFormat("sendOrSignTransaction(%s, false, '%s', "
-                        "'0x084DCb94038af1715963F149079cE011C4B22961', "
-                        "'0x084DCb94038af1715963F149079cE011C4B22962', '0x11', "
+                        "'0x084dcB94038af1715963f149079CE011c4b22962', "
+                        "'0x084dcB94038af1715963f149079CE011c4b22962', '0x11', "
                         "'invalid');",
                         sign_only ? "true" : "false", test_method)));
 
@@ -586,9 +591,10 @@ class SendOrSignTransactionBrowserTest : public InProcessBrowserTest {
  private:
   content::ContentMockCertVerifier mock_cert_verifier_;
   TestTxServiceObserver observer_;
-  base::test::ScopedFeatureList scoped_feature_list_;
-  net::test_server::EmbeddedTestServer https_server_for_files_;
-  net::test_server::EmbeddedTestServer https_server_for_rpc_;
+  net::test_server::EmbeddedTestServer https_server_for_files_{
+      net::EmbeddedTestServer::TYPE_HTTPS};
+  net::test_server::EmbeddedTestServer https_server_for_rpc_{
+      net::EmbeddedTestServer::TYPE_HTTPS};
 };
 
 IN_PROC_BROWSER_TEST_F(SendOrSignTransactionBrowserTest,
@@ -769,7 +775,7 @@ IN_PROC_BROWSER_TEST_F(SendOrSignTransactionBrowserTest, InvalidAddress) {
                content::JsReplace(
                    "sendOrSignTransaction($1, false, 'request', "
                    "'0x6b1Bd828cF8CE051B6282dCFEf6863746E2E1909', "
-                   "'0x084DCb94038af1715963F149079cE011C4B22962', '0x11');",
+                   "'0x084dcB94038af1715963f149079CE011c4b22962', '0x11');",
                    sign_only)));
 
     WaitForSendOrSignTransactionResultReady();
@@ -797,7 +803,7 @@ IN_PROC_BROWSER_TEST_F(SendOrSignTransactionBrowserTest, NoEthPermission) {
                content::JsReplace(
                    "sendOrSignTransaction($1, false, 'request', "
                    "'0x084DCb94038af1715963F149079cE011C4B22961', "
-                   "'0x084DCb94038af1715963F149079cE011C4B22962', '0x11');",
+                   "'0x084dcB94038af1715963f149079CE011c4b22962', '0x11');",
                    sign_only)));
 
     WaitForSendOrSignTransactionResultReady();

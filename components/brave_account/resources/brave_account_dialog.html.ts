@@ -30,7 +30,10 @@ export function getHtml(this: BraveAccountDialogElement) {
           </leo-button>
         </if>
       </div>
-      <div class="logo"></div>
+      <div
+        class="logo"
+        @dblclick=${() => this.fire('logo-double-clicked')}
+      ></div>
     </div>
     <div class="body">
       <div class="title-and-description">
@@ -49,7 +52,7 @@ export function getHtml(this: BraveAccountDialogElement) {
                 kind="plain-faint"
                 @click=${() => this.fire('back-button-clicked')}
               >
-                $i18n{braveAccountBackButtonLabel}
+                $i18n{BRAVE_ACCOUNT_BACK_BUTTON_LABEL}
               </leo-button>`
             : nothing}
         </if>

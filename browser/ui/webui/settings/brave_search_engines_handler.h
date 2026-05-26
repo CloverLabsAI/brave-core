@@ -25,15 +25,17 @@ class BraveSearchEnginesHandler : public SearchEnginesHandler {
       delete;
 
  private:
+  friend class BraveSearchEnginesHandlerTest;
+
   // SearchEnginesHandler overrides:
   void RegisterMessages() override;
-  void OnModelChanged() override;
-  base::Value::Dict GetSearchEnginesList() override;
+  void OnTemplateURLServiceChanged() override;
+  base::DictValue GetSearchEnginesList() override;
 
-  base::Value::List GetPrivateSearchEnginesList();
-  void HandleGetPrivateSearchEnginesList(const base::Value::List& args);
+  base::ListValue GetPrivateSearchEnginesList();
+  void HandleGetPrivateSearchEnginesList(const base::ListValue& args);
 
-  void HandleSetDefaultPrivateSearchEngine(const base::Value::List& args);
+  void HandleSetDefaultPrivateSearchEngine(const base::ListValue& args);
 
   raw_ptr<regional_capabilities::RegionalCapabilitiesService>
       regional_capabilities_ = nullptr;

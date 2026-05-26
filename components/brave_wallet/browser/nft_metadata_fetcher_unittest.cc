@@ -21,7 +21,6 @@
 #include "brave/components/brave_wallet/browser/pref_names.h"
 #include "brave/components/brave_wallet/common/hash_utils.h"
 #include "components/sync_preferences/testing_pref_service_syncable.h"
-#include "services/data_decoder/public/cpp/test_support/in_process_data_decoder.h"
 #include "services/network/public/cpp/weak_wrapper_shared_url_loader_factory.h"
 #include "services/network/test/test_url_loader_factory.h"
 #include "testing/gtest/include/gtest/gtest.h"
@@ -91,17 +90,16 @@ constexpr char https_metadata_response[] = R"({
 
 class NftMetadataFetcherUnitTest : public testing::Test {
  public:
-  NftMetadataFetcherUnitTest()
-      : shared_url_loader_factory_(
-            base::MakeRefCounted<network::WeakWrapperSharedURLLoaderFactory>(
-                &url_loader_factory_)) {}
+  NftMetadataFetcherUnitTest() = default;
   void SetUp() override {
     brave_wallet::RegisterProfilePrefs(prefs_.registry());
     network_manager_ = std::make_unique<NetworkManager>(&prefs_);
     json_rpc_service_ = std::make_unique<brave_wallet::JsonRpcService>(
-        shared_url_loader_factory_, network_manager_.get(), &prefs_, nullptr);
+        url_loader_factory_.GetSafeWeakWrapper(), network_manager_.get(),
+        &prefs_, nullptr);
     nft_metadata_fetcher_ = std::make_unique<NftMetadataFetcher>(
-        shared_url_loader_factory_, json_rpc_service_.get(), GetPrefs());
+        url_loader_factory_.GetSafeWeakWrapper(), json_rpc_service_.get(),
+        GetPrefs());
   }
 
   PrefService* GetPrefs() { return &prefs_; }
@@ -282,8 +280,6 @@ class NftMetadataFetcherUnitTest : public testing::Test {
   base::test::TaskEnvironment task_environment_;
   sync_preferences::TestingPrefServiceSyncable prefs_;
   network::TestURLLoaderFactory url_loader_factory_;
-  data_decoder::test::InProcessDataDecoder in_process_data_decoder_;
-  scoped_refptr<network::SharedURLLoaderFactory> shared_url_loader_factory_;
   std::unique_ptr<NetworkManager> network_manager_;
   std::unique_ptr<JsonRpcService> json_rpc_service_;
   std::unique_ptr<NftMetadataFetcher> nft_metadata_fetcher_;

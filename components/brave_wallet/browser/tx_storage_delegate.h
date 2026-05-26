@@ -7,7 +7,10 @@
 #define BRAVE_COMPONENTS_BRAVE_WALLET_BROWSER_TX_STORAGE_DELEGATE_H_
 
 #include "base/observer_list_types.h"
-#include "base/values.h"
+
+namespace base {
+class DictValue;
+}  // namespace base
 
 namespace brave_wallet {
 
@@ -16,8 +19,8 @@ class TxStorageDelegate {
   virtual ~TxStorageDelegate() = default;
 
   virtual bool IsInitialized() const = 0;
-  virtual const base::Value::Dict& GetTxs() const = 0;
-  virtual base::Value::Dict& GetTxs() = 0;
+  virtual const base::DictValue& GetTxs() const = 0;
+  virtual base::DictValue& GetTxs() = 0;
   virtual void ScheduleWrite() = 0;
 
   class Observer : public base::CheckedObserver {

@@ -5,6 +5,7 @@
 
 #include <optional>
 
+#include "base/functional/callback_helpers.h"
 #include "base/memory/weak_ptr.h"
 #include "base/path_service.h"
 #include "brave/browser/brave_content_browser_client.h"
@@ -101,8 +102,7 @@ class TestCardanoProvider : public brave_wallet::mojom::CardanoProvider {
   TestCardanoProvider() = default;
   ~TestCardanoProvider() override = default;
 
-  MOCK_METHOD2(Enable,
-               void(mojo::PendingReceiver<mojom::CardanoApi>, EnableCallback));
+  MOCK_METHOD1(Enable, void(EnableCallback));
   MOCK_METHOD1(IsEnabled, void(IsEnabledCallback));
 
   void BindReceiver(
@@ -281,7 +281,7 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderDisabledRendererTest,
 
   auto result = EvalJs(web_contents(browser()), kCheckCardanoProviderScript);
   EXPECT_EQ(base::Value(false), result);
-  EXPECT_EQ(browser()->tab_strip_model()->GetTabCount(), 1);
+  EXPECT_EQ(browser()->tab_strip_model()->count(), 1);
 }
 
 IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, Incognito) {
@@ -341,7 +341,7 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, Properties) {
   {
     auto result = EvalJs(web_contents(browser()),
                          "window.cardano.brave.supportedExtensions");
-    EXPECT_EQ(base::Value::List(), result);
+    EXPECT_EQ(base::ListValue(), result);
   }
 
   {
@@ -358,7 +358,7 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest,
 
   auto result = EvalJs(web_contents(browser()), kCheckCardanoProviderScript);
   EXPECT_EQ(base::Value(true), result);
-  EXPECT_EQ(browser()->tab_strip_model()->GetTabCount(), 1);
+  EXPECT_EQ(browser()->tab_strip_model()->count(), 1);
 }
 
 IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, AttachIfWalletCreated) {
@@ -368,7 +368,7 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, AttachIfWalletCreated) {
 
   auto result = EvalJs(web_contents(browser()), kCheckCardanoProviderScript);
   EXPECT_EQ(base::Value(true), result);
-  EXPECT_EQ(browser()->tab_strip_model()->GetTabCount(), 1);
+  EXPECT_EQ(browser()->tab_strip_model()->count(), 1);
 }
 
 IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, NonWritableCardanoBrave) {
@@ -398,10 +398,11 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest,
                        NonWritableCardanoWalletApi) {
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
-        std::move(callback).Run(nullptr);
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+        mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+        std::ignore = pending_remote.InitWithNewPipeAndPassReceiver();
+        std::move(callback).Run(std::move(pending_remote), nullptr);
       });
   for (const std::string& method :
        {"getNetworkId", "getUsedAddresses", "getUnusedAddresses",
@@ -417,10 +418,11 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest,
 IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, EnableSuccess) {
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
-        std::move(callback).Run(nullptr);
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+        mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+        std::ignore = pending_remote.InitWithNewPipeAndPassReceiver();
+        std::move(callback).Run(std::move(pending_remote), nullptr);
       });
 
   auto result = EvalJs(web_contents(browser()), EnableScript());
@@ -430,10 +432,10 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, EnableSuccess) {
 IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, EnableFail) {
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
         std::move(callback).Run(
+            mojo::NullRemote(),
             mojom::CardanoProviderErrorBundle::New(-3, "Refused", nullptr));
       });
 
@@ -447,7 +449,7 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, EnableFail) {
         }
         connect();)");
 
-  base::Value::Dict error_value;
+  base::DictValue error_value;
   error_value.Set("code", base::Value(-3));
   error_value.Set("info", "Refused");
 
@@ -486,11 +488,12 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetNetworkId) {
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
   auto cardano_api = std::make_unique<TestCardanoApi>();
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
-        cardano_api->BindReceiver(std::move(receiver));
-        std::move(callback).Run(nullptr);
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+        mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+        cardano_api->BindReceiver(
+            pending_remote.InitWithNewPipeAndPassReceiver());
+        std::move(callback).Run(std::move(pending_remote), nullptr);
       });
   ON_CALL(*cardano_api, GetNetworkId(_))
       .WillByDefault([&](TestCardanoApi::GetNetworkIdCallback callback) {
@@ -506,11 +509,12 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetNetworkId_Error) {
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
   auto cardano_api = std::make_unique<TestCardanoApi>();
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
-        cardano_api->BindReceiver(std::move(receiver));
-        std::move(callback).Run(nullptr);
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+        mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+        cardano_api->BindReceiver(
+            pending_remote.InitWithNewPipeAndPassReceiver());
+        std::move(callback).Run(std::move(pending_remote), nullptr);
       });
   ON_CALL(*cardano_api, GetNetworkId(_))
       .WillByDefault([&](TestCardanoApi::GetNetworkIdCallback callback) {
@@ -521,7 +525,7 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetNetworkId_Error) {
                        "(async () => { try { return await (await "
                        "window.cardano.brave.enable()).getNetworkId() } "
                        "catch(err){return err;}})();");
-  base::Value::Dict error_value;
+  base::DictValue error_value;
   error_value.Set("code", base::Value(-1));
   error_value.Set("info", "Invalid");
 
@@ -532,11 +536,12 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetUsedAddresses) {
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
   auto cardano_api = std::make_unique<TestCardanoApi>();
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
-        cardano_api->BindReceiver(std::move(receiver));
-        std::move(callback).Run(nullptr);
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+        mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+        cardano_api->BindReceiver(
+            pending_remote.InitWithNewPipeAndPassReceiver());
+        std::move(callback).Run(std::move(pending_remote), nullptr);
       });
   ON_CALL(*cardano_api, GetUsedAddresses(_))
       .WillByDefault([&](TestCardanoApi::GetUsedAddressesCallback callback) {
@@ -547,7 +552,7 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetUsedAddresses) {
       EvalJs(web_contents(browser()),
              "(async () => { return await (await "
              "window.cardano.brave.enable()).getUsedAddresses() })();");
-  base::Value::List list_value;
+  base::ListValue list_value;
   list_value.Append(base::Value("1"));
   list_value.Append(base::Value("2"));
 
@@ -558,11 +563,12 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetUsedAddresses_Error) {
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
   auto cardano_api = std::make_unique<TestCardanoApi>();
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
-        cardano_api->BindReceiver(std::move(receiver));
-        std::move(callback).Run(nullptr);
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+        mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+        cardano_api->BindReceiver(
+            pending_remote.InitWithNewPipeAndPassReceiver());
+        std::move(callback).Run(std::move(pending_remote), nullptr);
       });
   ON_CALL(*cardano_api, GetUsedAddresses(_))
       .WillByDefault(
@@ -574,7 +580,7 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetUsedAddresses_Error) {
                        "(async () => { try { return await (await "
                        "window.cardano.brave.enable()).getUsedAddresses() } "
                        "catch(err) {return err;}})();");
-  base::Value::Dict error_value;
+  base::DictValue error_value;
   error_value.Set("code", base::Value(-4));
   error_value.Set("info", "Account change");
 
@@ -585,11 +591,12 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetUnusedAddresses) {
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
   auto cardano_api = std::make_unique<TestCardanoApi>();
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
-        cardano_api->BindReceiver(std::move(receiver));
-        std::move(callback).Run(nullptr);
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+        mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+        cardano_api->BindReceiver(
+            pending_remote.InitWithNewPipeAndPassReceiver());
+        std::move(callback).Run(std::move(pending_remote), nullptr);
       });
   ON_CALL(*cardano_api, GetUnusedAddresses(_))
       .WillByDefault([&](TestCardanoApi::GetUnusedAddressesCallback callback) {
@@ -600,7 +607,7 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetUnusedAddresses) {
       EvalJs(web_contents(browser()),
              "(async () => { return await (await "
              "window.cardano.brave.enable()).getUnusedAddresses() })();");
-  base::Value::List list_value;
+  base::ListValue list_value;
   list_value.Append(base::Value("1"));
   list_value.Append(base::Value("2"));
 
@@ -611,11 +618,12 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetUnusedAddresses_Error) {
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
   auto cardano_api = std::make_unique<TestCardanoApi>();
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
-        cardano_api->BindReceiver(std::move(receiver));
-        std::move(callback).Run(nullptr);
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+        mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+        cardano_api->BindReceiver(
+            pending_remote.InitWithNewPipeAndPassReceiver());
+        std::move(callback).Run(std::move(pending_remote), nullptr);
       });
   ON_CALL(*cardano_api, GetUnusedAddresses(_))
       .WillByDefault(
@@ -628,7 +636,7 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetUnusedAddresses_Error) {
                        "window.cardano.brave.enable()).getUnusedAddresses() } "
                        "catch(err) {return err}})();");
 
-  base::Value::Dict error_value;
+  base::DictValue error_value;
   error_value.Set("code", base::Value(-2));
   error_value.Set("info", "Internal");
 
@@ -639,11 +647,12 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetBalance) {
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
   auto cardano_api = std::make_unique<TestCardanoApi>();
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
-        cardano_api->BindReceiver(std::move(receiver));
-        std::move(callback).Run(nullptr);
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+        mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+        cardano_api->BindReceiver(
+            pending_remote.InitWithNewPipeAndPassReceiver());
+        std::move(callback).Run(std::move(pending_remote), nullptr);
       });
   ON_CALL(*cardano_api, GetBalance(_))
       .WillByDefault([&](TestCardanoApi::GetBalanceCallback callback) {
@@ -660,11 +669,12 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetBalance_Error) {
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
   auto cardano_api = std::make_unique<TestCardanoApi>();
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
-        cardano_api->BindReceiver(std::move(receiver));
-        std::move(callback).Run(nullptr);
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+        mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+        cardano_api->BindReceiver(
+            pending_remote.InitWithNewPipeAndPassReceiver());
+        std::move(callback).Run(std::move(pending_remote), nullptr);
       });
   ON_CALL(*cardano_api, GetBalance(_))
       .WillByDefault(
@@ -678,7 +688,7 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetBalance_Error) {
                        "window.cardano.brave.enable()).getBalance() } "
                        "catch(err) {return err}})();");
 
-  base::Value::Dict error_value;
+  base::DictValue error_value;
   error_value.Set("code", base::Value(-2));
   error_value.Set("info", "Internal");
 
@@ -689,11 +699,12 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetChangeAddress) {
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
   auto cardano_api = std::make_unique<TestCardanoApi>();
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
-        cardano_api->BindReceiver(std::move(receiver));
-        std::move(callback).Run(nullptr);
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+        mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+        cardano_api->BindReceiver(
+            pending_remote.InitWithNewPipeAndPassReceiver());
+        std::move(callback).Run(std::move(pending_remote), nullptr);
       });
   ON_CALL(*cardano_api, GetChangeAddress(_))
       .WillByDefault([&](TestCardanoApi::GetChangeAddressCallback callback) {
@@ -711,11 +722,12 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetChangeAddress_Error) {
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
   auto cardano_api = std::make_unique<TestCardanoApi>();
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
-        cardano_api->BindReceiver(std::move(receiver));
-        std::move(callback).Run(nullptr);
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+        mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+        cardano_api->BindReceiver(
+            pending_remote.InitWithNewPipeAndPassReceiver());
+        std::move(callback).Run(std::move(pending_remote), nullptr);
       });
   ON_CALL(*cardano_api, GetChangeAddress(_))
       .WillByDefault(
@@ -729,7 +741,7 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetChangeAddress_Error) {
                        "window.cardano.brave.enable()).getChangeAddress() } "
                        "catch(err) {return err}})();");
 
-  base::Value::Dict error_value;
+  base::DictValue error_value;
   error_value.Set("code", base::Value(-2));
   error_value.Set("info", "Internal");
 
@@ -740,11 +752,12 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetRewardAddresses) {
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
   auto cardano_api = std::make_unique<TestCardanoApi>();
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
-        cardano_api->BindReceiver(std::move(receiver));
-        std::move(callback).Run(nullptr);
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+        mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+        cardano_api->BindReceiver(
+            pending_remote.InitWithNewPipeAndPassReceiver());
+        std::move(callback).Run(std::move(pending_remote), nullptr);
       });
   ON_CALL(*cardano_api, GetRewardAddresses(_))
       .WillByDefault([&](TestCardanoApi::GetRewardAddressesCallback callback) {
@@ -757,7 +770,7 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetRewardAddresses) {
              "(async () => { return await (await "
              "window.cardano.brave.enable()).getRewardAddresses() })();");
 
-  base::Value::List list_value;
+  base::ListValue list_value;
   list_value.Append(base::Value("1"));
   list_value.Append(base::Value("2"));
 
@@ -768,11 +781,12 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetRewardAddresses_Error) {
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
   auto cardano_api = std::make_unique<TestCardanoApi>();
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
-        cardano_api->BindReceiver(std::move(receiver));
-        std::move(callback).Run(nullptr);
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+        mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+        cardano_api->BindReceiver(
+            pending_remote.InitWithNewPipeAndPassReceiver());
+        std::move(callback).Run(std::move(pending_remote), nullptr);
       });
   ON_CALL(*cardano_api, GetRewardAddresses(_))
       .WillByDefault(
@@ -786,7 +800,7 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetRewardAddresses_Error) {
                        "window.cardano.brave.enable()).getRewardAddresses() } "
                        "catch(err){return err}})();");
 
-  base::Value::Dict error_value;
+  base::DictValue error_value;
   error_value.Set("code", base::Value(-2));
   error_value.Set("info", "Internal");
 
@@ -799,11 +813,12 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetUtxos) {
     TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
         web_contents(browser())->GetPrimaryMainFrame());
     auto cardano_api = std::make_unique<TestCardanoApi>();
-    ON_CALL(*provider, Enable(_, _))
-        .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                           TestCardanoProvider::EnableCallback callback) {
-          cardano_api->BindReceiver(std::move(receiver));
-          std::move(callback).Run(nullptr);
+    ON_CALL(*provider, Enable(_))
+        .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+          mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+          cardano_api->BindReceiver(
+              pending_remote.InitWithNewPipeAndPassReceiver());
+          std::move(callback).Run(std::move(pending_remote), nullptr);
         });
     ON_CALL(*cardano_api, GetUtxos(_, _, _))
         .WillByDefault([&](const std::optional<std::string>& amount,
@@ -822,7 +837,7 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetUtxos) {
                "window.cardano.brave.enable()).getUtxos(\"1\", {page: "
                "2, limit:3}) })();");
 
-    base::Value::List list_value;
+    base::ListValue list_value;
     list_value.Append(base::Value("1"));
     list_value.Append(base::Value("2"));
     EXPECT_EQ(list_value, result);
@@ -833,11 +848,12 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetUtxos) {
     TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
         web_contents(browser())->GetPrimaryMainFrame());
     auto cardano_api = std::make_unique<TestCardanoApi>();
-    ON_CALL(*provider, Enable(_, _))
-        .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                           TestCardanoProvider::EnableCallback callback) {
-          cardano_api->BindReceiver(std::move(receiver));
-          std::move(callback).Run(nullptr);
+    ON_CALL(*provider, Enable(_))
+        .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+          mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+          cardano_api->BindReceiver(
+              pending_remote.InitWithNewPipeAndPassReceiver());
+          std::move(callback).Run(std::move(pending_remote), nullptr);
         });
     ON_CALL(*cardano_api, GetUtxos(_, _, _))
         .WillByDefault([&](const std::optional<std::string>& amount,
@@ -854,7 +870,7 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetUtxos) {
                "(async () => { return await (await "
                "window.cardano.brave.enable()).getUtxos(undefined) })();");
 
-    base::Value::List list_value;
+    base::ListValue list_value;
     list_value.Append(base::Value("1"));
     list_value.Append(base::Value("2"));
     EXPECT_EQ(list_value, result);
@@ -865,11 +881,12 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetUtxos) {
     TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
         web_contents(browser())->GetPrimaryMainFrame());
     auto cardano_api = std::make_unique<TestCardanoApi>();
-    ON_CALL(*provider, Enable(_, _))
-        .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                           TestCardanoProvider::EnableCallback callback) {
-          cardano_api->BindReceiver(std::move(receiver));
-          std::move(callback).Run(nullptr);
+    ON_CALL(*provider, Enable(_))
+        .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+          mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+          cardano_api->BindReceiver(
+              pending_remote.InitWithNewPipeAndPassReceiver());
+          std::move(callback).Run(std::move(pending_remote), nullptr);
         });
     ON_CALL(*cardano_api, GetUtxos(_, _, _))
         .WillByDefault([&](const std::optional<std::string>& amount,
@@ -888,7 +905,7 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetUtxos) {
                "window.cardano.brave.enable()).getUtxos(undefined, {page: "
                "2, limit:3}) })();");
 
-    base::Value::List list_value;
+    base::ListValue list_value;
     list_value.Append(base::Value("1"));
     list_value.Append(base::Value("2"));
     EXPECT_EQ(list_value, result);
@@ -899,11 +916,12 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetUtxos) {
     TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
         web_contents(browser())->GetPrimaryMainFrame());
     auto cardano_api = std::make_unique<TestCardanoApi>();
-    ON_CALL(*provider, Enable(_, _))
-        .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                           TestCardanoProvider::EnableCallback callback) {
-          cardano_api->BindReceiver(std::move(receiver));
-          std::move(callback).Run(nullptr);
+    ON_CALL(*provider, Enable(_))
+        .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+          mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+          cardano_api->BindReceiver(
+              pending_remote.InitWithNewPipeAndPassReceiver());
+          std::move(callback).Run(std::move(pending_remote), nullptr);
         });
     ON_CALL(*cardano_api, GetUtxos(_, _, _))
         .WillByDefault([&](const std::optional<std::string>& amount,
@@ -920,7 +938,7 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetUtxos) {
         "(async () => { return await (await "
         "window.cardano.brave.enable()).getUtxos(undefined, undefined) })();");
 
-    base::Value::List list_value;
+    base::ListValue list_value;
     list_value.Append(base::Value("1"));
     list_value.Append(base::Value("2"));
     EXPECT_EQ(list_value, result);
@@ -931,11 +949,12 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetUtxos) {
     TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
         web_contents(browser())->GetPrimaryMainFrame());
     auto cardano_api = std::make_unique<TestCardanoApi>();
-    ON_CALL(*provider, Enable(_, _))
-        .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                           TestCardanoProvider::EnableCallback callback) {
-          cardano_api->BindReceiver(std::move(receiver));
-          std::move(callback).Run(nullptr);
+    ON_CALL(*provider, Enable(_))
+        .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+          mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+          cardano_api->BindReceiver(
+              pending_remote.InitWithNewPipeAndPassReceiver());
+          std::move(callback).Run(std::move(pending_remote), nullptr);
         });
     ON_CALL(*cardano_api, GetUtxos(_, _, _))
         .WillByDefault([&](const std::optional<std::string>& amount,
@@ -952,7 +971,7 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetUtxos) {
                "(async () => { return await (await "
                "window.cardano.brave.enable()).getUtxos(\"1\") })();");
 
-    base::Value::List list_value;
+    base::ListValue list_value;
     list_value.Append(base::Value("1"));
     list_value.Append(base::Value("2"));
 
@@ -964,11 +983,12 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetUtxos) {
     TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
         web_contents(browser())->GetPrimaryMainFrame());
     auto cardano_api = std::make_unique<TestCardanoApi>();
-    ON_CALL(*provider, Enable(_, _))
-        .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                           TestCardanoProvider::EnableCallback callback) {
-          cardano_api->BindReceiver(std::move(receiver));
-          std::move(callback).Run(nullptr);
+    ON_CALL(*provider, Enable(_))
+        .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+          mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+          cardano_api->BindReceiver(
+              pending_remote.InitWithNewPipeAndPassReceiver());
+          std::move(callback).Run(std::move(pending_remote), nullptr);
         });
     ON_CALL(*cardano_api, GetUtxos(_, _, _))
         .WillByDefault([&](const std::optional<std::string>& amount,
@@ -985,7 +1005,7 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetUtxos) {
         "(async () => { return await (await "
         "window.cardano.brave.enable()).getUtxos(\"1\", undefined) })();");
 
-    base::Value::List list_value;
+    base::ListValue list_value;
     list_value.Append(base::Value("1"));
     list_value.Append(base::Value("2"));
 
@@ -997,11 +1017,12 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetUtxos_NoArgs) {
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
   auto cardano_api = std::make_unique<TestCardanoApi>();
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
-        cardano_api->BindReceiver(std::move(receiver));
-        std::move(callback).Run(nullptr);
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+        mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+        cardano_api->BindReceiver(
+            pending_remote.InitWithNewPipeAndPassReceiver());
+        std::move(callback).Run(std::move(pending_remote), nullptr);
       });
   ON_CALL(*cardano_api, GetUtxos(_, _, _))
       .WillByDefault([&](const std::optional<std::string>& amount,
@@ -1016,7 +1037,7 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetUtxos_NoArgs) {
                        "(async () => { return await (await "
                        "window.cardano.brave.enable()).getUtxos() })();");
 
-  base::Value::List list_value;
+  base::ListValue list_value;
   list_value.Append(base::Value("1"));
   list_value.Append(base::Value("2"));
 
@@ -1029,11 +1050,12 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetUtxos_WrongArguments) {
     TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
         web_contents(browser())->GetPrimaryMainFrame());
     auto cardano_api = std::make_unique<TestCardanoApi>();
-    ON_CALL(*provider, Enable(_, _))
-        .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                           TestCardanoProvider::EnableCallback callback) {
-          cardano_api->BindReceiver(std::move(receiver));
-          std::move(callback).Run(nullptr);
+    ON_CALL(*provider, Enable(_))
+        .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+          mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+          cardano_api->BindReceiver(
+              pending_remote.InitWithNewPipeAndPassReceiver());
+          std::move(callback).Run(std::move(pending_remote), nullptr);
         });
     ON_CALL(*cardano_api, GetUtxos(_, _, _))
         .WillByDefault([&](const std::optional<std::string>& amount,
@@ -1057,11 +1079,12 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetUtxos_WrongArguments) {
     TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
         web_contents(browser())->GetPrimaryMainFrame());
     auto cardano_api = std::make_unique<TestCardanoApi>();
-    ON_CALL(*provider, Enable(_, _))
-        .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                           TestCardanoProvider::EnableCallback callback) {
-          cardano_api->BindReceiver(std::move(receiver));
-          std::move(callback).Run(nullptr);
+    ON_CALL(*provider, Enable(_))
+        .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+          mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+          cardano_api->BindReceiver(
+              pending_remote.InitWithNewPipeAndPassReceiver());
+          std::move(callback).Run(std::move(pending_remote), nullptr);
         });
     ON_CALL(*cardano_api, GetUtxos(_, _, _))
         .WillByDefault([&](const std::optional<std::string>& amount,
@@ -1085,11 +1108,12 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetUtxos_WrongPagination) {
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
   auto cardano_api = std::make_unique<TestCardanoApi>();
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
-        cardano_api->BindReceiver(std::move(receiver));
-        std::move(callback).Run(nullptr);
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+        mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+        cardano_api->BindReceiver(
+            pending_remote.InitWithNewPipeAndPassReceiver());
+        std::move(callback).Run(std::move(pending_remote), nullptr);
       });
   ON_CALL(*cardano_api, GetUtxos(_, _, _))
       .WillByDefault(
@@ -1108,7 +1132,7 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetUtxos_WrongPagination) {
                          "(async () => { try { return await (await "
                          "window.cardano.brave.enable()).getUtxos() } "
                          "catch(error) {return error} })();");
-    base::Value::Dict dict_value;
+    base::DictValue dict_value;
     dict_value.Set("maxSize", base::Value(2));
 
     EXPECT_EQ(dict_value, result);
@@ -1119,11 +1143,12 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetUtxos_NullResult) {
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
   auto cardano_api = std::make_unique<TestCardanoApi>();
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
-        cardano_api->BindReceiver(std::move(receiver));
-        std::move(callback).Run(nullptr);
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+        mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+        cardano_api->BindReceiver(
+            pending_remote.InitWithNewPipeAndPassReceiver());
+        std::move(callback).Run(std::move(pending_remote), nullptr);
       });
   ON_CALL(*cardano_api, GetUtxos(_, _, _))
       .WillByDefault([&](const std::optional<std::string>& amount,
@@ -1145,11 +1170,12 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, SignTx) {
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
   auto cardano_api = std::make_unique<TestCardanoApi>();
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
-        cardano_api->BindReceiver(std::move(receiver));
-        std::move(callback).Run(nullptr);
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+        mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+        cardano_api->BindReceiver(
+            pending_remote.InitWithNewPipeAndPassReceiver());
+        std::move(callback).Run(std::move(pending_remote), nullptr);
       });
   ON_CALL(*cardano_api, SignTx(_, _, _))
       .WillByDefault([&](const std::string& tx, bool partial_sign,
@@ -1171,11 +1197,12 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, SignTx_Error) {
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
   auto cardano_api = std::make_unique<TestCardanoApi>();
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
-        cardano_api->BindReceiver(std::move(receiver));
-        std::move(callback).Run(nullptr);
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+        mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+        cardano_api->BindReceiver(
+            pending_remote.InitWithNewPipeAndPassReceiver());
+        std::move(callback).Run(std::move(pending_remote), nullptr);
       });
   ON_CALL(*cardano_api, SignTx(_, _, _))
       .WillByDefault(
@@ -1193,7 +1220,7 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, SignTx_Error) {
                        "window.cardano.brave.enable()).signTx(\"tx\", true) } "
                        "catch(err) {return err}})();");
 
-  base::Value::Dict error_value;
+  base::DictValue error_value;
   error_value.Set("code", base::Value(1));
   error_value.Set("info", "Proof error");
 
@@ -1204,11 +1231,12 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, SignTx_PartialUndefined) {
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
   auto cardano_api = std::make_unique<TestCardanoApi>();
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
-        cardano_api->BindReceiver(std::move(receiver));
-        std::move(callback).Run(nullptr);
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+        mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+        cardano_api->BindReceiver(
+            pending_remote.InitWithNewPipeAndPassReceiver());
+        std::move(callback).Run(std::move(pending_remote), nullptr);
       });
   ON_CALL(*cardano_api, SignTx(_, _, _))
       .WillByDefault([&](const std::string& tx, bool partial_sign,
@@ -1229,11 +1257,12 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, SignTx_WrongArguments) {
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
   auto cardano_api = std::make_unique<TestCardanoApi>();
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
-        cardano_api->BindReceiver(std::move(receiver));
-        std::move(callback).Run(nullptr);
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+        mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+        cardano_api->BindReceiver(
+            pending_remote.InitWithNewPipeAndPassReceiver());
+        std::move(callback).Run(std::move(pending_remote), nullptr);
       });
   ON_CALL(*cardano_api, SignTx(_, _, _))
       .WillByDefault([&](const std::string& tx, bool partial_sign,
@@ -1286,18 +1315,19 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, SignData) {
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
   auto cardano_api = std::make_unique<TestCardanoApi>();
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
-        cardano_api->BindReceiver(std::move(receiver));
-        std::move(callback).Run(nullptr);
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+        mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+        cardano_api->BindReceiver(
+            pending_remote.InitWithNewPipeAndPassReceiver());
+        std::move(callback).Run(std::move(pending_remote), nullptr);
       });
   ON_CALL(*cardano_api, SignData(_, _, _))
       .WillByDefault([&](const std::string& address, const std::string& data,
                          TestCardanoApi::SignDataCallback callback) {
         EXPECT_EQ("addr", address);
         EXPECT_EQ("data", data);
-        base::Value::Dict signature_dict;
+        base::DictValue signature_dict;
         signature_dict.Set("key", "key_value");
         signature_dict.Set("signature", "signature_value");
         std::move(callback).Run(std::move(signature_dict), nullptr);
@@ -1308,7 +1338,7 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, SignData) {
       "(async () => { return await (await "
       "window.cardano.brave.enable()).signData(\"addr\", \"data\") })();");
 
-  base::Value::Dict dict_value;
+  base::DictValue dict_value;
   dict_value.Set("key", base::Value("key_value"));
   dict_value.Set("signature", base::Value("signature_value"));
 
@@ -1319,18 +1349,19 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, SignData_WrongArguments) {
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
   auto cardano_api = std::make_unique<TestCardanoApi>();
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
-        cardano_api->BindReceiver(std::move(receiver));
-        std::move(callback).Run(nullptr);
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+        mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+        cardano_api->BindReceiver(
+            pending_remote.InitWithNewPipeAndPassReceiver());
+        std::move(callback).Run(std::move(pending_remote), nullptr);
       });
   ON_CALL(*cardano_api, SignData(_, _, _))
       .WillByDefault([&](const std::string& address, const std::string& data,
                          TestCardanoApi::SignDataCallback callback) {
         EXPECT_EQ("addr", address);
         EXPECT_EQ("data", data);
-        base::Value::Dict signature_dict;
+        base::DictValue signature_dict;
         signature_dict.Set("key", "key_value");
         signature_dict.Set("signature", "signature_value");
         std::move(callback).Run(std::move(signature_dict), nullptr);
@@ -1372,11 +1403,12 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, SignData_Error) {
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
   auto cardano_api = std::make_unique<TestCardanoApi>();
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
-        cardano_api->BindReceiver(std::move(receiver));
-        std::move(callback).Run(nullptr);
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+        mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+        cardano_api->BindReceiver(
+            pending_remote.InitWithNewPipeAndPassReceiver());
+        std::move(callback).Run(std::move(pending_remote), nullptr);
       });
   ON_CALL(*cardano_api, SignData(_, _, _))
       .WillByDefault(
@@ -1394,7 +1426,7 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, SignData_Error) {
                        "window.cardano.brave.enable()).signData(\"addr\", "
                        "\"data\") } catch(err) {return err}})();");
 
-  base::Value::Dict error_value;
+  base::DictValue error_value;
   error_value.Set("code", base::Value(2));
   error_value.Set("info", "Data sign error");
 
@@ -1405,11 +1437,12 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, SubmitTx_Error) {
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
   auto cardano_api = std::make_unique<TestCardanoApi>();
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
-        cardano_api->BindReceiver(std::move(receiver));
-        std::move(callback).Run(nullptr);
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+        mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+        cardano_api->BindReceiver(
+            pending_remote.InitWithNewPipeAndPassReceiver());
+        std::move(callback).Run(std::move(pending_remote), nullptr);
       });
   ON_CALL(*cardano_api, SubmitTx(_, _))
       .WillByDefault(
@@ -1425,7 +1458,7 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, SubmitTx_Error) {
                        "window.cardano.brave.enable()).submitTx(\"1\") } "
                        "catch(err) {return err}})();");
 
-  base::Value::Dict error_value;
+  base::DictValue error_value;
   error_value.Set("code", base::Value(1));
   error_value.Set("info", "Refused");
 
@@ -1436,11 +1469,12 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, SubmitTx) {
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
   auto cardano_api = std::make_unique<TestCardanoApi>();
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
-        cardano_api->BindReceiver(std::move(receiver));
-        std::move(callback).Run(nullptr);
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+        mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+        cardano_api->BindReceiver(
+            pending_remote.InitWithNewPipeAndPassReceiver());
+        std::move(callback).Run(std::move(pending_remote), nullptr);
       });
   ON_CALL(*cardano_api, SubmitTx(_, _))
       .WillByDefault([&](const std::string& tx,
@@ -1459,10 +1493,11 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, SubmitTx_WrongArguments) {
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
   auto cardano_api = std::make_unique<TestCardanoApi>();
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
-        std::move(callback).Run(nullptr);
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+        mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+        std::ignore = pending_remote.InitWithNewPipeAndPassReceiver();
+        std::move(callback).Run(std::move(pending_remote), nullptr);
       });
   ON_CALL(*cardano_api, SubmitTx(_, _))
       .WillByDefault([&](const std::string& tx,
@@ -1499,27 +1534,29 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, SubmitTx_WrongArguments) {
 IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetExtensions) {
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
-        std::move(callback).Run(nullptr);
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+        mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+        std::ignore = pending_remote.InitWithNewPipeAndPassReceiver();
+        std::move(callback).Run(std::move(pending_remote), nullptr);
       });
 
   auto result = EvalJs(web_contents(browser()),
                        "(async () => { return await (await "
                        "window.cardano.brave.enable()).getExtensions()})();");
-  EXPECT_EQ(base::Value::List(), result);
+  EXPECT_EQ(base::ListValue(), result);
 }
 
 IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetCollateral) {
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
   auto cardano_api = std::make_unique<TestCardanoApi>();
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
-        cardano_api->BindReceiver(std::move(receiver));
-        std::move(callback).Run(nullptr);
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+        mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+        cardano_api->BindReceiver(
+            pending_remote.InitWithNewPipeAndPassReceiver());
+        std::move(callback).Run(std::move(pending_remote), nullptr);
       });
   ON_CALL(*cardano_api, GetCollateral(_, _))
       .WillByDefault([&](const std::string& amount,
@@ -1533,7 +1570,7 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest, GetCollateral) {
                        "window.cardano.brave.enable()).getCollateral({amount: "
                        "\"amount\"}) })();");
 
-  base::Value::List list_value;
+  base::ListValue list_value;
   list_value.Append(base::Value("1"));
   list_value.Append(base::Value("2"));
   EXPECT_EQ(list_value, result);
@@ -1544,11 +1581,12 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest,
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
   auto cardano_api = std::make_unique<TestCardanoApi>();
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
-        cardano_api->BindReceiver(std::move(receiver));
-        std::move(callback).Run(nullptr);
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+        mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+        cardano_api->BindReceiver(
+            pending_remote.InitWithNewPipeAndPassReceiver());
+        std::move(callback).Run(std::move(pending_remote), nullptr);
       });
   ON_CALL(*cardano_api, GetCollateral(_, _))
       .WillByDefault([&](const std::string& amount,
@@ -1754,10 +1792,11 @@ IN_PROC_BROWSER_TEST_F(CardanoProviderRendererTest,
   ASSERT_TRUE(ExecJs(web_contents(browser()), "Object.freeze = ()=>{}"));
   TestCardanoProvider* provider = test_content_browser_client_.GetProvider(
       web_contents(browser())->GetPrimaryMainFrame());
-  ON_CALL(*provider, Enable(_, _))
-      .WillByDefault([&](mojo::PendingReceiver<mojom::CardanoApi> receiver,
-                         TestCardanoProvider::EnableCallback callback) {
-        std::move(callback).Run(nullptr);
+  ON_CALL(*provider, Enable(_))
+      .WillByDefault([&](TestCardanoProvider::EnableCallback callback) {
+        mojo::PendingRemote<mojom::CardanoApi> pending_remote;
+        std::ignore = pending_remote.InitWithNewPipeAndPassReceiver();
+        std::move(callback).Run(std::move(pending_remote), nullptr);
       });
   auto result = EvalJs(web_contents(browser()), EnableScript());
   EXPECT_EQ(base::Value(true), result);

@@ -423,10 +423,6 @@ void AddBraveLightThemeColorMixer(ui::ColorProvider* provider,
     mixer[kColorSidebarButtonPressed] = {kColorToolbarButtonActivated};
   }
 
-  mixer[kColorSidebarAddButtonDisabled] = {PickColorContrastingToToolbar(
-      key, mixer, SkColorSetARGB(0x66, 0x49, 0x50, 0x57),
-      SkColorSetARGB(0x66, 0xC2, 0xC4, 0xCF))};
-
   mixer[kColorSidebarArrowDisabled] = {PickColorContrastingToToolbar(
       key, mixer, SkColorSetARGB(0x8A, 0x49, 0x50, 0x57),
       SkColorSetARGB(0x8A, 0xAE, 0xB1, 0xC2))};
@@ -459,7 +455,7 @@ void AddBraveLightThemeColorMixer(ui::ColorProvider* provider,
   mixer[kColorTabGroupBackgroundAlpha] = {
       SkColorSetA(SK_ColorBLACK, 0.15 * 255)};
 
-  mixer[kColorBraveAppMenuAccentColor] = {SkColorSetRGB(0xDF, 0xE1, 0xFF)};
+  mixer[ui::kColorMenuButtonBackground] = {SK_ColorTRANSPARENT};
 }
 
 void AddBraveDarkThemeColorMixer(ui::ColorProvider* provider,
@@ -499,9 +495,6 @@ void AddBraveDarkThemeColorMixer(ui::ColorProvider* provider,
   if (!HasCustomToolbarColor(key)) {
     mixer[kColorSidebarButtonPressed] = {kColorToolbarButtonActivated};
   }
-  mixer[kColorSidebarAddButtonDisabled] = {PickColorContrastingToToolbar(
-      key, mixer, SkColorSetARGB(0x66, 0x49, 0x50, 0x57),
-      SkColorSetARGB(0x66, 0xC2, 0xC4, 0xCF))};
   mixer[kColorSidebarArrowDisabled] = {PickColorContrastingToToolbar(
       key, mixer, SkColorSetARGB(0x8A, 0x49, 0x50, 0x57),
       SkColorSetARGB(0x8A, 0xAE, 0xB1, 0xC2))};
@@ -534,7 +527,7 @@ void AddBraveDarkThemeColorMixer(ui::ColorProvider* provider,
   mixer[kColorTabGroupBackgroundAlpha] = {
       SkColorSetA(SK_ColorBLACK, 0.25 * 255)};
 
-  mixer[kColorBraveAppMenuAccentColor] = {SkColorSetRGB(0x37, 0x2C, 0xBF)};
+  mixer[ui::kColorMenuButtonBackground] = {SK_ColorTRANSPARENT};
 
 #if defined(TOOLKIT_VIEWS)
   if (!base::FeatureList::IsEnabled(
@@ -588,9 +581,7 @@ void AddBraveThemeColorMixer(ui::ColorProvider* provider,
   mixer[kColorIconBase] = {nala::kColorIconDefault};
   mixer[kColorBookmarkBarInstructionsLink] = {nala::kColorTextInteractive};
   mixer[kColorSearchConversionBannerTypeBackground] = {nala::kColorBlue10};
-  mixer[kColorSidebarPanelHeaderSeparator] = {nala::kColorDividerSubtle};
   mixer[kColorSearchConversionCloseButton] = {nala::kColorIconDefault};
-  mixer[kColorSidebarPanelHeaderBackground] = {nala::kColorContainerBackground};
   mixer[kColorSidebarPanelHeaderTitle] = {nala::kColorTextPrimary};
   mixer[kColorSidebarPanelHeaderButton] = {nala::kColorIconDefault};
   mixer[kColorSidebarPanelHeaderButtonHovered] = {nala::kColorNeutral60};
@@ -627,8 +618,6 @@ void AddBravePrivateThemeColorMixer(ui::ColorProvider* provider,
   mixer[kColorToolbarButtonActivated] = {nala::kColorPrimitivePrivateWindow80};
   mixer[kColorSidebarButtonPressed] = {kColorToolbarButtonActivated};
 
-  mixer[kColorSidebarPanelHeaderSeparator] = {nala::kColorPrimitiveNeutral20};
-  mixer[kColorSidebarPanelHeaderBackground] = {nala::kColorPrimitiveNeutral5};
   mixer[kColorSidebarPanelHeaderTitle] = {nala::kColorPrimitiveNeutral90};
   mixer[kColorSidebarPanelHeaderButton] = {nala::kColorPrimitiveNeutral90};
   mixer[kColorSidebarPanelHeaderButtonHovered] = {
@@ -776,16 +765,16 @@ void AddBraveOmniboxColorMixer(ui::ColorProvider* provider,
 
   // Toolbar
   postprocessing_mixer[kColorToolbarButtonIcon] = {
-      nala::kColorPrimitiveNeutral40};
-  postprocessing_mixer[kColorToolbarButtonIconPressed] = {
       nala::kColorPrimitiveNeutral50};
+  postprocessing_mixer[kColorToolbarButtonIconPressed] = {
+      nala::kColorPrimitiveNeutral60};
   postprocessing_mixer[kColorToolbarButtonIconInactive] = {
       SkColorSetA(postprocessing_mixer.GetResultColor(kColorToolbarButtonIcon),
                   0xff * 0.6)};
   postprocessing_mixer[kColorToolbarButtonIconHovered] =
-      darker_theme::ApplyDarknessFromColor(nala::kColorPrimitiveNeutral50);
+      darker_theme::ApplyDarknessFromColor(nala::kColorPrimitiveNeutral60);
   postprocessing_mixer[kColorToolbarButtonActivated] = {
-      nala::kColorPrimitivePrimary50};
+      nala::kColorPrimitivePrimary60};
   postprocessing_mixer[kColorToolbarInkDrop] = {nala::kColorPrimitiveNeutral10};
   postprocessing_mixer[kColorToolbarInkDropHover] = {
       nala::kColorPrimitiveNeutral10};

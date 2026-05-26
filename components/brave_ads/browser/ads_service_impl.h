@@ -24,12 +24,13 @@
 #include "brave/components/brave_adaptive_captcha/brave_adaptive_captcha_service.h"
 #include "brave/components/brave_ads/browser/application_state/background_helper.h"
 #include "brave/components/brave_ads/browser/component_updater/resource_component_observer.h"
-#include "brave/components/brave_ads/core/browser/network/network_client.h"
+#include "brave/components/brave_ads/core/browser/network/http_client.h"
 #include "brave/components/brave_ads/core/browser/service/ads_service.h"
 #include "brave/components/brave_ads/core/browser/service/ads_service_callback.h"
 #include "brave/components/brave_ads/core/browser/virtual_pref/virtual_pref_provider.h"
 #include "brave/components/brave_ads/core/mojom/brave_ads.mojom.h"
 #include "brave/components/brave_ads/core/public/ads_callback.h"
+#include "brave/components/brave_rewards/core/buildflags/buildflags.h"
 #include "brave/components/brave_rewards/core/mojom/rewards.mojom-forward.h"
 #include "brave/components/services/bat_ads/public/interfaces/bat_ads.mojom.h"
 #include "components/content_settings/core/browser/content_settings_observer.h"
@@ -44,6 +45,10 @@
 #include "mojo/public/cpp/bindings/remote.h"
 #include "ui/base/idle/idle.h"
 
+#if BUILDFLAG(ENABLE_BRAVE_REWARDS)
+#include "brave/components/brave_rewards/content/rewards_service.h"
+#endif
+
 class GURL;
 class HostContentSettingsMap;
 class PrefService;
@@ -53,16 +58,11 @@ class OneShotTimer;
 class SequencedTaskRunner;
 }  // namespace base
 
-namespace brave_rewards {
-class RewardsService;
-}  // namespace brave_rewards
-
 namespace brave_ads {
 
 class AdsTooltipsDelegate;
 class BatAdsServiceFactory;
 class DeviceId;
-class NewTabPageAdPrefetcher;
 class ResourceComponent;
 
 class AdsServiceImpl final : public AdsService,
@@ -70,15 +70,17 @@ class AdsServiceImpl final : public AdsService,
                              public bat_ads::mojom::BatAdsObserver,
                              BackgroundHelper::Observer,
                              public ResourceComponentObserver,
+#if BUILDFLAG(ENABLE_BRAVE_REWARDS)
                              public brave_rewards::RewardsServiceObserver,
+#endif
                              public content_settings::Observer {
  public:
-  // `network_client` can be `nullptr` in tests.
+  // `http_client` can be `nullptr` in tests.
   explicit AdsServiceImpl(
       std::unique_ptr<Delegate> delegate,
       PrefService* prefs,
       PrefService* local_state,
-      std::unique_ptr<NetworkClient> network_client,
+      std::unique_ptr<HttpClient> http_client,
       std::unique_ptr<VirtualPrefProvider::Delegate>
           virtual_pref_provider_delegate,
       std::string_view channel_name,
@@ -88,7 +90,9 @@ class AdsServiceImpl final : public AdsService,
       std::unique_ptr<BatAdsServiceFactory> bat_ads_service_factory,
       ResourceComponent* resource_component,
       history::HistoryService* history_service,
+#if BUILDFLAG(ENABLE_BRAVE_REWARDS)
       brave_rewards::RewardsService* rewards_service,
+#endif
       HostContentSettingsMap* host_content_settings);
 
   AdsServiceImpl(const AdsServiceImpl&) = delete;
@@ -133,9 +137,9 @@ class AdsServiceImpl final : public AdsService,
       brave_rewards::mojom::RewardsWalletPtr mojom_rewards_wallet);
   void InitializeBatAdsCallback(bool success);
 
-  void NotifyDidInitializeAdsService() const;
-  void NotifyDidShutdownAdsService() const;
-  void NotifyDidClearAdsServiceData() const;
+  void NotifyDidInitializeAdsService();
+  void NotifyDidShutdownAdsService();
+  void NotifyDidClearAdsServiceData();
 
   void ClearDataPrefsAndAdsServiceDataAndMaybeRestart(
       ClearDataCallback callback,
@@ -150,7 +154,7 @@ class AdsServiceImpl final : public AdsService,
 
   void SetSysInfo();
   void SetBuildChannel();
-  void SetFlags();
+  void SetCommandLineSwitches();
   void SetContentSettings();
 
   bool ShouldShowOnboardingNotification();
@@ -171,17 +175,11 @@ class AdsServiceImpl final : public AdsService,
   void OnVariationsCountryPrefChanged();
   void NotifyPrefChanged(const std::string& path) const;
 
+#if BUILDFLAG(ENABLE_BRAVE_REWARDS)
   void GetRewardsWallet();
   void NotifyRewardsWalletDidUpdate(
       brave_rewards::mojom::RewardsWalletPtr mojom_rewards_wallet);
-
-  void RefetchNewTabPageAd();
-  void RefetchNewTabPageAdCallback(bool success);
-  void ResetNewTabPageAd();
-
-  void OnParseAndSaveNewTabPageAdsCallback(
-      ParseAndSaveNewTabPageAdsCallback callback,
-      bool success);
+#endif
 
   // TODO(https://github.com/brave/brave-browser/issues/14666) Decouple idle
   // state business logic.
@@ -202,7 +200,7 @@ class AdsServiceImpl final : public AdsService,
   // new tab with ad business logic.
   void MaybeOpenNewTabWithAd();
   void OpenNewTabWithAd(const std::string& placement_id);
-  void OpenNewTabWithAdCallback(std::optional<base::Value::Dict> dict);
+  void OpenNewTabWithAdCallback(std::optional<base::DictValue> dict);
   void RetryOpeningNewTabWithAd(const std::string& placement_id);
   void OpenNewTabWithUrl(const GURL& url);
 
@@ -224,6 +222,8 @@ class AdsServiceImpl final : public AdsService,
   void AddBatAdsObserver(mojo::PendingRemote<bat_ads::mojom::BatAdsObserver>
                              bat_ads_observer_pending_remote) override;
 
+  bool IsInitialized() const override;
+
   bool IsBrowserUpgradeRequiredToServeAds() const override;
 
   int64_t GetMaximumNotificationAdsPerHour() const override;
@@ -241,13 +241,8 @@ class AdsServiceImpl final : public AdsService,
 
   void GetStatementOfAccounts(GetStatementOfAccountsCallback callback) override;
 
-  mojom::NewTabPageAdInfoPtr MaybeGetPrefetchedNewTabPageAd() override;
-  void PrefetchNewTabPageAd() override;
-  void OnFailedToPrefetchNewTabPageAd(
-      const std::string& placement_id,
-      const std::string& creative_instance_id) override;
   void ParseAndSaveNewTabPageAds(
-      base::Value::Dict dict,
+      base::DictValue dict,
       ParseAndSaveNewTabPageAdsCallback callback) override;
   void MaybeServeNewTabPageAd(
       MaybeServeMojomNewTabPageAdCallback callback) override;
@@ -289,9 +284,6 @@ class AdsServiceImpl final : public AdsService,
   void NotifyTabTextContentDidChange(int32_t tab_id,
                                      const std::vector<GURL>& redirect_chain,
                                      const std::string& text) override;
-  void NotifyTabHtmlContentDidChange(int32_t tab_id,
-                                     const std::vector<GURL>& redirect_chain,
-                                     const std::string& html) override;
   void NotifyTabDidStartPlayingMedia(int32_t tab_id) override;
   void NotifyTabDidStopPlayingMedia(int32_t tab_id) override;
   void NotifyTabDidChange(int32_t tab_id,
@@ -302,7 +294,7 @@ class AdsServiceImpl final : public AdsService,
   void NotifyTabDidLoad(int32_t tab_id, int http_status_code) override;
   void NotifyDidCloseTab(int32_t tab_id) override;
 
-  void NotifyUserGestureEventTriggered(int32_t page_transition_type) override;
+  void NotifyUserGestureEventTriggered(int32_t page_transition) override;
 
   void NotifyBrowserDidBecomeActive() override;
   void NotifyBrowserDidResignActive() override;
@@ -321,7 +313,7 @@ class AdsServiceImpl final : public AdsService,
   void CanShowNotificationAdsWhileBrowserIsBackgrounded(
       CanShowNotificationAdsWhileBrowserIsBackgroundedCallback callback)
       override;
-  void ShowNotificationAd(base::Value::Dict dict) override;
+  void ShowNotificationAd(base::DictValue dict) override;
   void CloseNotificationAd(const std::string& placement_id) override;
 
   void GetSiteHistory(int max_count,
@@ -389,10 +381,12 @@ class AdsServiceImpl final : public AdsService,
                                     const std::string& id) override;
   void OnDidUnregisterResourceComponent(const std::string& id) override;
 
+#if BUILDFLAG(ENABLE_BRAVE_REWARDS)
   // RewardsServiceObserver:
   void OnRewardsWalletCreated() override;
   void OnExternalWalletConnected() override;
   void OnCompleteReset(bool success) override;
+#endif  // BUILDFLAG(ENABLE_BRAVE_REWARDS)
 
   // content_settings::Observer:
   void OnContentSettingChanged(
@@ -435,7 +429,7 @@ class AdsServiceImpl final : public AdsService,
 
   const std::unique_ptr<VirtualPrefProvider> virtual_pref_provider_;
 
-  const std::unique_ptr<NetworkClient> network_client_;
+  const std::unique_ptr<HttpClient> http_client_;
 
   const std::string channel_name_;
 
@@ -453,17 +447,17 @@ class AdsServiceImpl final : public AdsService,
 
   const std::unique_ptr<DeviceId> device_id_;
 
-  std::unique_ptr<NewTabPageAdPrefetcher> new_tab_page_ad_prefetcher_;
-
   const std::unique_ptr<BatAdsServiceFactory> bat_ads_service_factory_;
 
   const scoped_refptr<base::SequencedTaskRunner> file_task_runner_;
 
   const base::FilePath ads_service_path_;
 
+#if BUILDFLAG(ENABLE_BRAVE_REWARDS)
   base::ScopedObservation<brave_rewards::RewardsService,
                           brave_rewards::RewardsServiceObserver>
       rewards_service_observation_{this};
+#endif  // BUILDFLAG(ENABLE_BRAVE_REWARDS)
 
   mojo::Receiver<bat_ads::mojom::BatAdsObserver> bat_ads_observer_receiver_{
       this};

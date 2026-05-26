@@ -395,12 +395,17 @@ extension BrowserViewController: TabDelegate {
       title: Strings.forcePaste,
       attributes: !canPaste ? .hidden : []
     ) { [weak tab] _ in
+      guard let tab else { return }
       if let string = UIPasteboard.general.string {
-        tab?.evaluateJavaScript(
-          functionName: "window.__firefox__.forcePaste",
-          args: [string, UserScriptManager.securityToken],
-          contentWorld: .defaultClient
-        ) { _, _ in }
+        if FeatureList.kUseProfileWebViewConfiguration.enabled {
+          tab.forcePaste?.forcePasteIntoActiveElement(contents: string)
+        } else {
+          tab.evaluateJavaScript(
+            functionName: "window.__firefox__.forcePaste",
+            args: [string, UserScriptManager.securityToken],
+            contentWorld: .defaultClient
+          ) { _, _ in }
+        }
       }
     }
     let searchWithBrave = UIAction(title: Strings.searchWithBrave) { [weak tab, weak self] _ in
@@ -671,27 +676,11 @@ extension BrowserViewController {
     userAgentForType type: UserAgentType,
     request: URLRequest
   ) -> String? {
-    if !Preferences.Debug.userAgentOverride.value.isEmpty {
-      return Preferences.Debug.userAgentOverride.value
-    }
-    let isBraveAllowedInUA =
-      request.mainDocumentURL.flatMap {
-        tab.braveUserAgentExceptions?.canShowBrave($0)
-      } ?? true
-    let mobile = isBraveAllowedInUA ? UserAgent.mobile : UserAgent.mobileMasked
-    let desktop = isBraveAllowedInUA ? UserAgent.desktop : UserAgent.desktopMasked
-    switch type {
-    case .none, .automatic:
-      let screenWidth = UIScreen.main.bounds.width
-      if traitCollection.horizontalSizeClass == .compact && view.bounds.width < screenWidth / 2 {
-        return mobile
-      }
-      return traitCollection.userInterfaceIdiom == .pad
-        && profileController.defaultHostContentSettings.defaultPageMode == .desktop
-        ? desktop : mobile
-    case .desktop: return desktop
-    case .mobile: return mobile
-    }
+    userAgent(
+      for: request,
+      userAgentForType: type,
+      braveUserAgentExceptions: tab.braveUserAgentExceptions
+    )
   }
 
   public func tab(_ tab: some TabState, defaultUserAgentTypeForURL url: URL) -> UserAgentType {

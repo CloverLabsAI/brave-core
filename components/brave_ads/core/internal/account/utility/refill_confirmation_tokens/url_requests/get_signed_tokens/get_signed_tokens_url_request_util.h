@@ -9,8 +9,11 @@
 #include <optional>
 #include <string>
 
-#include "base/values.h"
 #include "brave/components/brave_ads/core/internal/common/challenge_bypass_ristretto/unblinded_token.h"
+
+namespace base {
+class DictValue;
+}  // namespace base
 
 namespace brave_ads {
 
@@ -20,7 +23,7 @@ class PublicKey;
 
 struct WalletInfo;
 
-std::optional<std::string> ParseCaptchaId(const base::Value::Dict& dict);
+std::optional<std::string> ParseCaptchaId(const base::DictValue& dict);
 
 void BuildAndAddConfirmationTokens(
     const cbr::UnblindedTokenList& unblinded_tokens,

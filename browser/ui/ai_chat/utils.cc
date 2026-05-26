@@ -8,8 +8,8 @@
 #include "base/check.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
+#include "chrome/browser/ui/side_panel/side_panel_entry_id.h"
 #include "chrome/browser/ui/views/side_panel/side_panel_coordinator.h"
-#include "chrome/browser/ui/views/side_panel/side_panel_entry_id.h"
 #include "components/tabs/public/tab_interface.h"
 
 namespace ai_chat {
@@ -21,7 +21,7 @@ void OpenAIChatForTab(content::WebContents* web_contents) {
 
   auto* tab = tabs::TabInterface::GetFromContents(web_contents);
   auto* coordinator =
-      tab->GetBrowserWindowInterface()->GetFeatures().side_panel_coordinator();
+      SidePanelCoordinator::From(tab->GetBrowserWindowInterface());
   CHECK(coordinator);
   coordinator->Show(SidePanelEntryId::kChatUI);
 }

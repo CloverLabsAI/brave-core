@@ -64,15 +64,6 @@ class BatAdsClientNotifierImpl final
                                      const std::vector<GURL>& redirect_chain,
                                      const std::string& text) override;
 
-  // Invoked when the page for `tab_id` has loaded and the content is available
-  // for analysis. `redirect_chain` containing a list of redirect URLs that
-  // occurred on the way to the current page. The current page is the last one
-  // in the list (so even when there's no redirect, there should be one entry in
-  // the list). `html` containing the page content as HTML.
-  void NotifyTabHtmlContentDidChange(int32_t tab_id,
-                                     const std::vector<GURL>& redirect_chain,
-                                     const std::string& html) override;
-
   // Invoked when media starts playing on a browser tab for the specified
   // `tab_id`.
   void NotifyTabDidStartPlayingMedia(int32_t tab_id) override;
@@ -102,9 +93,9 @@ class BatAdsClientNotifierImpl final
   void NotifyDidCloseTab(int32_t tab_id) override;
 
   // Called when a page navigation was initiated by a user gesture.
-  // `page_transition_type` containing the page transition type, see enums for
-  // `PageTransitionType`.
-  void NotifyUserGestureEventTriggered(int32_t page_transition_type) override;
+  // `page_transition` containing the page transition type, see enums for
+  // `ui::PageTransition`.
+  void NotifyUserGestureEventTriggered(int32_t page_transition) override;
 
   // Invoked when a user has been idle for the threshold set in
   // `prefs::kIdleTimeThreshold`. NOTE: This should not be called on mobile

@@ -181,9 +181,9 @@ class DebounceBrowserTest : public BaseLocalDataFilesBrowserTest {
     source_provider->RegisterAsSourceProvider(
         g_brave_browser_process->ad_block_service());
     source_providers_.push_back(std::move(source_provider));
-    auto* engine =
-        g_brave_browser_process->ad_block_service()->default_engine_.get();
-    EngineTestObserver engine_observer(engine);
+    auto& engine = g_brave_browser_process->ad_block_service()
+                       ->GetDefaultEngineForTesting();
+    EngineTestObserver engine_observer(&engine);
     engine_observer.Wait();
   }
 
