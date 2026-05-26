@@ -238,7 +238,7 @@ blink::String BraveSessionCache::ExtractETLDPlusOne(const GURL& url) {
     return blink::String("file");
   }
   if (url.SchemeIs("chrome-extension")) {
-    return blink::String::FromUTF8(url.host());
+    return blink::String::FromUtf8(url.host());
   }
   if (url.SchemeIs("data")) {
     return blink::String("data");
@@ -259,10 +259,10 @@ blink::String BraveSessionCache::ExtractETLDPlusOne(const GURL& url) {
 
   if (etld_plus_one.empty()) {
     // Fallback for IP addresses, localhost, etc.
-    return blink::String::FromUTF8(url.host());
+    return blink::String::FromUtf8(url.host());
   }
 
-  return blink::String::FromUTF8(etld_plus_one);
+  return blink::String::FromUtf8(etld_plus_one);
 }
 
 base::Token BraveSessionCache::DeriveTokenFromSeed(uint64_t master_seed,
@@ -304,12 +304,12 @@ void BraveSessionCache::SetMasterFingerprintingSeed(uint64_t seed) {
   // blob:https://example.com/uuid for blob workers, or the script URL for
   // dedicated workers), but their security origin matches the main window.
   GURL url;
-  if (const auto* origin = execution_context_->GetSecurityOrigin()
+  if (const auto* origin = GetSupplementable()->GetSecurityOrigin()
                                 ->GetOriginOrPrecursorOriginIfOpaque();
       origin && !origin->IsOpaque()) {
     url = GURL(origin->ToString().Utf8());
   } else {
-    url = GURL(execution_context_->Url());
+    url = GURL(GetSupplementable()->Url());
   }
   custom_farbling_token_ = DeriveTokenFromSeed(master_seed_, url);
 

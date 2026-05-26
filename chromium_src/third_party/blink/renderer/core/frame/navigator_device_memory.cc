@@ -25,9 +25,10 @@ float FarbleDeviceMemory(blink::ExecutionContext* context) {
     return true_value;
   }
 
-  // See kMinMemory and kMaxMemory values in
-  // ApproximatedDeviceMemory::CalculateAndSetApproximatedDeviceMemory
-  std::vector<float> valid_values = {2.0, 4.0, 8.0, 16.0, 32.0};
+  // navigator.deviceMemory is spec-capped at 8 GiB (the JS-visible value is
+  // quantized to this set), so farble only within spec-valid values. Returning
+  // 16/32 would be a fingerprinting tell since real browsers never report it.
+  std::vector<float> valid_values = {0.25, 0.5, 1.0, 2.0, 4.0, 8.0};
 
   size_t min_farbled_index;
   size_t max_farbled_index;
@@ -38,8 +39,10 @@ float FarbleDeviceMemory(blink::ExecutionContext* context) {
     max_farbled_index = valid_values.size() - 1;
   } else {
     // If anti-fingerprinting is at default level, select a pseudo-random valid
-    // value between 4.0 and the true value (unless the true value is 2.0 in
-    // which case just return that).
+    // value between 0.5 and the true value (unless the true value is 0.25 in
+    // which case just return that). If the true value exceeds the spec cap
+    // (e.g. 16 from the high-entropy approximation) it won't be found below and
+    // we fail closed to the max spec value (8.0).
     auto true_it = std::ranges::find(valid_values, true_value);
     size_t true_index;
     // Get index into |valid_values| of the true value. If it's not found,

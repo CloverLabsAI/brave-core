@@ -1,5 +1,5 @@
 diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_stats_report.cc b/third_party/blink/renderer/modules/peerconnection/rtc_stats_report.cc
-index 510cfb8681c70b46e5382784cdaaea800863ff38..91c9f3bd77a26fa335eec3989e636553f187a849 100644
+index 510cfb8681c70b46e5382784cdaaea800863ff38..096748d382c92c8b5d16fbf2f8a3162f8b975011 100644
 --- a/third_party/blink/renderer/modules/peerconnection/rtc_stats_report.cc
 +++ b/third_party/blink/renderer/modules/peerconnection/rtc_stats_report.cc
 @@ -99,6 +99,24 @@ bool ExposeHardwareCapabilityStats(ScriptState* script_state) {
@@ -9,15 +9,15 @@ index 510cfb8681c70b46e5382784cdaaea800863ff38..91c9f3bd77a26fa335eec3989e636553
 +// Helper function to mask IP addresses in getStats() API
 +// Prevents WebRTC IP leaks through stats reporting
 +String MaskStatsIpAddress(const std::string& address) {
-+  String addr = String::FromUTF8(address);
++  String addr = String::FromUtf8(address);
 +
 +  // Preserve mDNS addresses (*.local)
-+  if (addr.EndsWith(".local")) {
++  if (addr.ends_with(".local")) {
 +    return addr;
 +  }
 +
 +  // Mask all other IP addresses
-+  if (addr.Contains(':')) {
++  if (addr.contains(':')) {
 +    return "::";  // IPv6
 +  } else {
 +    return "0.0.0.0";  // IPv4
