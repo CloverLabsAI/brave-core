@@ -1,5 +1,5 @@
 diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.cc b/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.cc
-index 2c4713a9717a5..a578d4512c3f2 100644
+index 2c4713a9717a57a7599598e1c6fe6db1c2d3e90b..a578d4512c3f277fad24a09b499b9d02bf195c68 100644
 --- a/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.cc
 +++ b/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.cc
 @@ -32,6 +32,7 @@

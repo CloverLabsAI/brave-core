@@ -1,8 +1,8 @@
 diff --git a/third_party/blink/renderer/core/BUILD.gn b/third_party/blink/renderer/core/BUILD.gn
-index e90757c2962fccbdfeff5842b0805e51ed8eb152..3b4374b2e0a88f52c8d8769e09a1cfc1063fcf53 100644
+index e90757c2962fccbdfeff5842b0805e51ed8eb152..a777cb1cc7698982ed795fba25a87642057cdc23 100644
 --- a/third_party/blink/renderer/core/BUILD.gn
 +++ b/third_party/blink/renderer/core/BUILD.gn
-@@ -407,6 +407,7 @@ component("core") {
+@@ -406,6 +406,7 @@ component("core") {
      ":make_deprecation_info",
      ":xml_ffi",
      "//base",
@@ -16,5 +16,5 @@ index e90757c2962fccbdfeff5842b0805e51ed8eb152..3b4374b2e0a88f52c8d8769e09a1cfc1
    }
 +  visibility += brave_blink_renderer_core_visibility public_deps += brave_blink_renderer_core_public_deps sources += brave_blink_renderer_core_sources deps += brave_blink_renderer_core_deps
  }
-
+ 
  # Certain sources should be compiled with heavy optimization enabled.
