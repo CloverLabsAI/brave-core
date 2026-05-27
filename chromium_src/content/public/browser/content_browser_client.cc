@@ -28,12 +28,6 @@ ContentBrowserClient::GetEphemeralStorageToken(
   return std::nullopt;
 }
 
-bool ContentBrowserClient::CanThirdPartyStoragePartitioningBeDisabled(
-    BrowserContext* browser_context,
-    const url::Origin& origin) {
-  return false;
-}
-
 brave_shields::mojom::ShieldsSettingsPtr
 ContentBrowserClient::WorkerGetBraveShieldSettings(
     const GURL& url,
@@ -50,6 +44,11 @@ std::optional<GURL> ContentBrowserClient::SanitizeURL(content::RenderFrameHost*,
 }
 
 bool ContentBrowserClient::IsWindowsRecallDisabled() {
+  return false;
+}
+
+bool ContentBrowserClient::ShouldInheritStoragePartition(
+    const content::StoragePartitionConfig& partition_config) const {
   return false;
 }
 

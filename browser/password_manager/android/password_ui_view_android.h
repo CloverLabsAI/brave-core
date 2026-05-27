@@ -22,8 +22,8 @@
 #include "base/memory/scoped_refptr.h"
 #include "brave/browser/password_entry_edit/android/credential_edit_bridge.h"
 #include "chrome/browser/affiliations/affiliation_service_factory.h"
-#include "chrome/browser/password_manager/account_password_store_factory.h"
-#include "chrome/browser/password_manager/profile_password_store_factory.h"
+#include "chrome/browser/password_manager/factories/account_password_store_factory.h"
+#include "chrome/browser/password_manager/factories/profile_password_store_factory.h"
 #include "chrome/browser/signin/identity_manager_factory.h"
 #include "components/password_manager/core/browser/password_store/password_store_consumer.h"
 #include "components/password_manager/core/browser/ui/saved_passwords_presenter.h"
@@ -81,11 +81,11 @@ class PasswordUiViewAndroid
       const base::android::JavaRef<jobject>& error_callback);
   void HandleShowPasswordEntryEditingView(
       JNIEnv* env,
-      const base::android::JavaParamRef<jobject>& context,
+      const base::android::JavaRef<jobject>& context,
       int index);
   void HandleShowBlockedCredentialView(
       JNIEnv* env,
-      const base::android::JavaParamRef<jobject>& context,
+      const base::android::JavaRef<jobject>& context,
       int index);
   void HandleImportPasswordsFromCsv(
       JNIEnv* env,

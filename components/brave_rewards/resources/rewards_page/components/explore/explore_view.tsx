@@ -6,25 +6,24 @@
 import * as React from 'react'
 import ProgressRing from '@brave/leo/react/progressRing'
 
-import { useLocaleContext } from '../../lib/locale_strings'
-import { useAppState, AppModelContext } from '../../lib/app_model_context'
+import { useAppState, useAppActions } from '../../lib/app_context'
 import { useBreakpoint } from '../../lib/breakpoint'
-import { UICard } from '../../lib/app_state'
+import { UICard } from '../../lib/app_store'
 import { CardView, sortCards, splitCardsIntoColumns } from './card_view'
 import { useOnVisibleCallback } from '../../../../../common/useVisible'
 
 import { style } from './explore_view.style'
 
 export function ExploreView() {
-  const { getString } = useLocaleContext()
+  const { getString } = useAppActions()
   const viewType = useBreakpoint()
-  const model = React.useContext(AppModelContext)
+  const actions = useAppActions()
   const ref = React.useRef<HTMLDivElement>(null)
   let cards = useAppState((state) => state.cards)
 
   // Record offer view when the explore section becomes visible.
   const { setElementRef } = useOnVisibleCallback(() => {
-    model.recordOfferView()
+    actions.recordOfferView()
   }, {})
 
   React.useEffect(() => {
@@ -41,6 +40,7 @@ export function ExploreView() {
     const elem = ref.current?.querySelector(`[data-deep-link-id=${id}]`)
     if (elem instanceof HTMLElement) {
       elem.offsetParent?.scrollTo({ top: elem.offsetTop - 16 })
+      elem.classList.add('deep-link-highlight')
     }
   }, [cards])
 

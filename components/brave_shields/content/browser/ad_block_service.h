@@ -14,25 +14,25 @@
 #include <vector>
 
 #include "base/files/file_path.h"
+#include "base/functional/bind.h"
+#include "base/location.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
 #include "base/sequence_checker.h"
 #include "base/task/sequenced_task_runner.h"
 #include "base/values.h"
+#include "brave/components/brave_shields/content/browser/ad_block_engine_wrapper.h"
 #include "brave/components/brave_shields/content/browser/ad_block_subscription_download_manager.h"
 #include "brave/components/brave_shields/core/browser/ad_block_filters_provider.h"
 #include "brave/components/brave_shields/core/browser/ad_block_filters_provider_manager.h"
 #include "brave/components/brave_shields/core/browser/ad_block_list_p3a.h"
 #include "brave/components/brave_shields/core/browser/ad_block_resource_provider.h"
-#include "brave/components/brave_shields/core/browser/adblock/rs/src/lib.rs.h"
+#include "brave/components/brave_shields/core/common/adblock/rs/src/lib.rs.h"
 #include "components/prefs/pref_registry_simple.h"
 #include "third_party/blink/public/mojom/loader/resource_load_info.mojom-shared.h"
 #include "third_party/rust/cxx/v1/cxx.h"
 #include "url/gurl.h"
 
-class AdBlockServiceTest;
-class EphemeralStorage1pDomainBlockBrowserTest;
-class DebounceBrowserTest;
 class PrefService;
 
 namespace component_updater {
@@ -40,7 +40,6 @@ class ComponentUpdateService;
 }  // namespace component_updater
 
 namespace adblock {
-struct BlockerResult;
 struct RegexManagerDiscardPolicy;
 }  // namespace adblock
 namespace brave_shields {
@@ -54,9 +53,6 @@ class AdBlockCustomResourceProvider;
 class AdBlockLocalhostFiltersProvider;
 class AdBlockFilterListCatalogProvider;
 class AdBlockSubscriptionServiceManager;
-class CosmeticResourceMergeTest;
-class StripProceduralFiltersTest;
-class TestFiltersProvider;
 
 // The brave shields service in charge of ad-block checking and init.
 class AdBlockService {
@@ -64,7 +60,19 @@ class AdBlockService {
   class SourceProviderObserver : public AdBlockResourceProvider::Observer,
                                  public AdBlockFiltersProvider::Observer {
    public:
-    SourceProviderObserver(AdBlockService* owner, bool engine_is_default);
+    // Callback to handle loading resources into the engine.
+    // If filter_set is non-null, calls Load; otherwise calls UseResources.
+    using OnResourcesLoadedCallback = base::RepeatingCallback<void(
+        bool,
+        std::unique_ptr<rust::Box<adblock::FilterSet>>,
+        AdblockResourceStorageBox)>;
+
+    SourceProviderObserver(
+        OnResourcesLoadedCallback on_resources_loaded,
+        AdBlockResourceProvider* resource_provider,
+        AdBlockFiltersProviderManager* filters_provider_manager,
+        scoped_refptr<base::SequencedTaskRunner> task_runner,
+        bool engine_is_default);
 
     SourceProviderObserver(const SourceProviderObserver&) = delete;
     SourceProviderObserver& operator=(const SourceProviderObserver&) = delete;
@@ -81,8 +89,9 @@ class AdBlockService {
     // AdBlockResourceProvider::Observer
     void OnResourcesLoaded(AdblockResourceStorageBox) override;
 
+    OnResourcesLoadedCallback on_resources_loaded_;
     std::unique_ptr<rust::Box<adblock::FilterSet>> filter_set_;
-    raw_ptr<AdBlockEngine> adblock_engine_ = nullptr;               // not owned
+    const bool engine_is_default_;
     raw_ptr<AdBlockResourceProvider> resource_provider_ = nullptr;  // not owned
     raw_ptr<AdBlockResourceProvider> custom_resource_provider_ =
         nullptr;  // not owned
@@ -105,29 +114,32 @@ class AdBlockService {
   AdBlockService& operator=(const AdBlockService&) = delete;
   ~AdBlockService();
 
-  adblock::BlockerResult ShouldStartRequest(
-      const GURL& url,
-      blink::mojom::ResourceType resource_type,
-      const std::string& tab_host,
-      bool aggressive_blocking,
-      bool previously_matched_rule,
-      bool previously_matched_exception,
-      bool previously_matched_important);
-  std::optional<std::string> GetCspDirectives(
-      const GURL& url,
-      blink::mojom::ResourceType resource_type,
-      const std::string& tab_host);
-  base::Value::Dict UrlCosmeticResources(const std::string& url,
-                                         bool aggressive_blocking);
-  base::Value::Dict HiddenClassIdSelectors(
-      const std::vector<std::string>& classes,
-      const std::vector<std::string>& ids,
-      const std::vector<std::string>& exceptions);
-
   AdBlockComponentServiceManager* component_service_manager();
   AdBlockSubscriptionServiceManager* subscription_service_manager();
   AdBlockCustomFiltersProvider* custom_filters_provider();
   AdBlockCustomResourceProvider* custom_resource_provider();
+
+  // Call a callback on the task runner with the engine wrapper
+  void AsyncCall(base::OnceCallback<void(AdBlockEngineWrapper* wrapper)> task) {
+    DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+    task_runner_->PostTask(
+        FROM_HERE, base::BindOnce(std::move(task),
+                                  base::Unretained(engine_wrapper_.get())));
+  }
+
+  // Call a callback on the task runner with the engine wrapper and post the
+  // result to the original sequence.
+  template <typename T>
+  void AsyncCallAndReplyWithResult(
+      base::OnceCallback<T(AdBlockEngineWrapper* wrapper)> task,
+      base::OnceCallback<void(T)> reply) {
+    DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+    task_runner_->PostTaskAndReplyWithResult(
+        FROM_HERE,
+        base::BindOnce(std::move(task),
+                       base::Unretained(engine_wrapper_.get())),
+        std::move(reply));
+  }
 
   void EnableTag(const std::string& tag, bool enabled);
   void AddUserCosmeticFilter(const std::string& filter);
@@ -136,22 +148,20 @@ class AdBlockService {
 
   // Methods for brave://adblock-internals.
   using GetDebugInfoCallback =
-      base::OnceCallback<void(base::Value::Dict, base::Value::Dict)>;
+      base::OnceCallback<void(std::pair<base::DictValue, base::DictValue>)>;
   void GetDebugInfoAsync(GetDebugInfoCallback callback);
   void DiscardRegex(uint64_t regex_id);
 
   void SetupDiscardPolicy(const adblock::RegexManagerDiscardPolicy& policy);
 
-  base::SequencedTaskRunner* GetTaskRunner();
+  // Test accessors
+  AdBlockEngine& GetDefaultEngineForTesting();
+  AdBlockEngine& GetAdditionalFiltersEngineForTesting();
+  AdBlockFiltersProviderManager* GetFiltersProviderManagerForTesting();
+  AdBlockDefaultResourceProvider* GetDefaultResourceProviderForTesting();
+  base::SequencedTaskRunner* GetTaskRunnerForTesting();
 
  private:
-  friend class ::AdBlockServiceTest;
-  friend class ::EphemeralStorage1pDomainBlockBrowserTest;
-  friend class ::DebounceBrowserTest;
-  friend class brave_shields::CosmeticResourceMergeTest;
-  friend class brave_shields::StripProceduralFiltersTest;
-  friend class brave_shields::TestFiltersProvider;
-
   static std::string g_ad_block_dat_file_version_;
 
   AdBlockDefaultResourceProvider* default_resource_provider();
@@ -165,19 +175,6 @@ class AdBlockService {
     return filters_provider_manager_.get();
   }
 
-  void OnGetDebugInfoFromDefaultEngine(
-      GetDebugInfoCallback callback,
-      base::Value::Dict default_engine_debug_info);
-
-  void TagExistsForTest(const std::string& tag,
-                        base::OnceCallback<void(bool)> cb);
-
-  static void MergeResourcesInto(base::Value::Dict from,
-                                 base::Value::Dict& into,
-                                 bool force_hide);
-
-  static void StripProceduralFilters(base::Value::Dict& resources);
-
   raw_ptr<PrefService> local_state_;
   std::string locale_;
   base::FilePath profile_dir_;
@@ -190,6 +187,15 @@ class AdBlockService {
   scoped_refptr<base::SequencedTaskRunner> task_runner_;
 
   AdBlockListP3A list_p3a_;
+
+  // The AdBlockEngineWrapper should be deleted last to ensure that any code
+  // that posts to the task runner will run before the deletion.
+  //
+  // base::Unretained() usage is safe because the wrapper is deleted
+  // on the same sequence. See docs/threading_and_tasks_testing.md for
+  // explanations.
+  const std::unique_ptr<AdBlockEngineWrapper, base::OnTaskRunnerDeleter>
+      engine_wrapper_ GUARDED_BY_CONTEXT(sequence_checker_);
 
   std::unique_ptr<AdBlockFiltersProviderManager> filters_provider_manager_
       GUARDED_BY_CONTEXT(sequence_checker_);
@@ -213,10 +219,6 @@ class AdBlockService {
       subscription_service_manager_ GUARDED_BY_CONTEXT(sequence_checker_);
   std::unique_ptr<AdBlockComponentServiceManager> component_service_manager_
       GUARDED_BY_CONTEXT(sequence_checker_);
-
-  std::unique_ptr<AdBlockEngine, base::OnTaskRunnerDeleter> default_engine_;
-  std::unique_ptr<AdBlockEngine, base::OnTaskRunnerDeleter>
-      additional_filters_engine_;
 
   std::unique_ptr<SourceProviderObserver> default_service_observer_
       GUARDED_BY_CONTEXT(sequence_checker_);

@@ -6,7 +6,6 @@
 #ifndef BRAVE_COMPONENTS_AI_CHAT_CORE_BROWSER_ENGINE_ENGINE_CONSUMER_OAI_H_
 #define BRAVE_COMPONENTS_AI_CHAT_CORE_BROWSER_ENGINE_ENGINE_CONSUMER_OAI_H_
 
-#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
@@ -51,28 +50,24 @@ class EngineConsumerOAIRemote : public EngineConsumer {
   // EngineConsumer
   void GenerateQuestionSuggestions(
       PageContents page_contents,
-      const std::string& selected_language,
       SuggestedQuestionsCallback callback) override;
   void GenerateAssistantResponse(
       PageContentsMap&& page_contents,
       const ConversationHistory& conversation_history,
-      const std::string& selected_language,
       bool is_temporary_chat,
       const std::vector<base::WeakPtr<Tool>>& tools,
       std::optional<std::string_view> preferred_tool_name,
-      mojom::ConversationCapability conversation_capability,
+      const ConversationCapabilitySet& conversation_capabilities,
       GenerationDataCallback data_received_callback,
       GenerationCompletedCallback completed_callback) override;
   void GenerateRewriteSuggestion(
       const std::string& text,
       mojom::ActionType action_type,
-      const std::string& selected_language,
       GenerationDataCallback received_callback,
       GenerationCompletedCallback completed_callback) override;
   void GenerateConversationTitle(
       const PageContentsMap& page_contents,
       const ConversationHistory& conversation_history,
-      const std::string& selected_language,
       GenerationCompletedCallback completed_callback) override;
   void SanitizeInput(std::string& input) override;
   void ClearAllQueries() override;
@@ -91,53 +86,15 @@ class EngineConsumerOAIRemote : public EngineConsumer {
   void UpdateModelOptions(const mojom::ModelOptions& options) override;
 
  private:
-  FRIEND_TEST_ALL_PREFIXES(EngineConsumerOAIUnitTest, BuildPageContentMessages);
-  FRIEND_TEST_ALL_PREFIXES(EngineConsumerOAIUnitTest,
-                           BuildPageContentMessages_Truncates);
-  FRIEND_TEST_ALL_PREFIXES(EngineConsumerOAIUnitTest,
-                           BuildPageContentMessages_MaxPerContentLength);
-  FRIEND_TEST_ALL_PREFIXES(
-      EngineConsumerOAIUnitTest,
-      BuildPageContentMessages_MaxPerContentLength_UsesRemaining);
-  FRIEND_TEST_ALL_PREFIXES(
-      EngineConsumerOAIUnitTest,
-      BuildPageContentMessages_MaxPerContentLength_NoTruncationNeeded);
-  FRIEND_TEST_ALL_PREFIXES(EngineConsumerOAIUnitTest,
-                           BuildMessages_PageContentsOrderedBeforeTurns);
-  FRIEND_TEST_ALL_PREFIXES(EngineConsumerOAIUnitTest,
-                           BuildMessages_PageContentsExcludedForMissingTurns);
-  FRIEND_TEST_ALL_PREFIXES(EngineConsumerOAIUnitTest,
-                           BuildMessages_MultiplePageContentsForSameTurn);
-  FRIEND_TEST_ALL_PREFIXES(EngineConsumerOAIUnitTest,
-                           BuildMessages_MultiplePageContents_MultipleTurns);
-  FRIEND_TEST_ALL_PREFIXES(EngineConsumerOAIUnitTest,
-                           BuildMessages_EmptyPageContentsMap);
-  FRIEND_TEST_ALL_PREFIXES(EngineConsumerOAIUnitTest,
-                           BuildMessages_NonExistentTurnId);
-  FRIEND_TEST_ALL_PREFIXES(
-      EngineConsumerOAIUnitTest,
-      BuildMessages_MultiplePageContents_MultipleTurns_TooLong);
-
-  base::Value::List BuildPageContentMessages(
-      const PageContents& page_contents,
-      uint32_t& max_associated_content_length,
-      int video_message_id,
-      int page_message_id,
-      std::optional<uint32_t> max_per_content_length = std::nullopt);
-
-  base::Value::List BuildMessages(
-      const mojom::CustomModelOptions& model_options,
-      PageContentsMap& page_contents,
-      std::optional<base::Value::Dict> user_memory_message,
-      const std::optional<std::string>& selected_text,
-      const EngineConsumer::ConversationHistory& conversation_history);
-
-  std::optional<base::Value::Dict> BuildUserMemoryMessage(
-      bool is_temporary_chat);
-
+  OAIMessage BuildSystemMessage(
+      const std::vector<OAIMessage>& conversation_messages);
   void OnGenerateQuestionSuggestionsResponse(
       SuggestedQuestionsCallback callback,
       GenerationResult result);
+
+  void DedupeTopics(
+      base::expected<std::vector<std::string>, mojom::APIError> topics_result,
+      GetSuggestedTopicsCallback callback) override;
 
   std::unique_ptr<OAIAPIClient> api_ = nullptr;
   mojom::CustomModelOptions model_options_;

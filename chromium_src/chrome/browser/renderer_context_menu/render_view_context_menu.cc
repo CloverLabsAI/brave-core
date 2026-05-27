@@ -28,21 +28,21 @@
 #include "brave/browser/ui/browser_dialogs.h"
 #include "brave/browser/ui/email_aliases/email_aliases_controller.h"
 #include "brave/components/ai_chat/core/common/buildflags/buildflags.h"
-#include "brave/components/ai_rewriter/common/buildflags/buildflags.h"
 #include "brave/components/brave_shields/core/common/features.h"
 #include "brave/components/email_aliases/features.h"
 #include "brave/components/tor/buildflags/buildflags.h"
 #include "brave/grit/brave_theme_resources.h"
 #include "chrome/browser/autocomplete/chrome_autocomplete_provider_client.h"
 #include "chrome/browser/profiles/profile.h"
-#include "chrome/browser/ui/browser_list.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
+#include "chrome/browser/ui/browser_window/public/global_browser_collection.h"
 #include "chrome/common/channel_info.h"
 #include "components/grit/brave_components_strings.h"
 #include "components/infobars/content/content_infobar_manager.h"
 #include "components/omnibox/browser/autocomplete_classifier.h"
 #include "components/omnibox/browser/autocomplete_controller.h"
 #include "components/omnibox/browser/autocomplete_match_type.h"
+#include "content/public/browser/security_principal.h"
 #include "content/public/browser/web_contents.h"
 #include "net/base/filename_util.h"
 #include "ui/base/models/menu_separator_types.h"
@@ -72,19 +72,11 @@
 #include "brave/components/ai_chat/core/common/pref_names.h"
 #endif
 
-#if BUILDFLAG(ENABLE_AI_REWRITER)
-#include "brave/browser/ui/ai_rewriter/ai_rewriter_dialog_delegate.h"
-#include "brave/components/ai_rewriter/common/features.h"
-#endif
-
 #if BUILDFLAG(ENABLE_CONTAINERS)
+#include "brave/browser/containers/containers_service_factory.h"
+#include "brave/components/containers/content/browser/storage_partition_utils.h"
 #include "brave/components/containers/core/common/features.h"
 #endif  // BUILDFLAG(ENABLE_CONTAINERS)
-
-// Our .h file creates a masquerade for RenderViewContextMenu.  Switch
-// back to the Chromium one for the Chromium implementation.
-#undef RenderViewContextMenu
-#define RenderViewContextMenu RenderViewContextMenu_Chromium
 
 namespace {
 
@@ -117,18 +109,16 @@ std::optional<GURL> GetSelectedURL(Profile* profile,
   return match.destination_url;
 }
 
-base::OnceCallback<void(BraveRenderViewContextMenu*)>*
-BraveGetMenuShownCallback() {
-  static base::NoDestructor<
-      base::OnceCallback<void(BraveRenderViewContextMenu*)>>
+base::OnceCallback<void(RenderViewContextMenu*)>* BraveGetMenuShownCallback() {
+  static base::NoDestructor<base::OnceCallback<void(RenderViewContextMenu*)>>
       callback;
   return callback.get();
 }
 
 }  // namespace
 
-void RenderViewContextMenu::RegisterMenuShownCallbackForTesting(
-    base::OnceCallback<void(BraveRenderViewContextMenu*)> cb) {
+void RenderViewContextMenu_Chromium::RegisterMenuShownCallbackForTesting(
+    base::OnceCallback<void(RenderViewContextMenu*)> cb) {
   *BraveGetMenuShownCallback() = std::move(cb);
 }
 
@@ -144,6 +134,7 @@ void RenderViewContextMenu::RegisterMenuShownCallbackForTesting(
 #define SpellingOptionsSubMenuObserver BraveSpellingOptionsSubMenuObserver
 #define RegisterMenuShownCallbackForTesting \
   RegisterMenuShownCallbackForTesting_unused
+#define RenderViewContextMenu RenderViewContextMenu_Chromium
 
 #include <chrome/browser/renderer_context_menu/render_view_context_menu.cc>
 
@@ -155,48 +146,6 @@ void RenderViewContextMenu::RegisterMenuShownCallbackForTesting(
 #undef BRAVE_APPEND_SEARCH_PROVIDER
 
 namespace {
-
-#if BUILDFLAG(ENABLE_TOR)
-bool HasAlreadyOpenedTorWindow(Profile* profile) {
-  for (Browser* browser : *BrowserList::GetInstance()) {
-    if (browser->profile()->IsTor() &&
-        browser->profile()->GetOriginalProfile() == profile) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-// Modified OnProfileCreated() in render_view_context_menu.cc
-// to handle additional |use_new_tab| param.
-void OnTorProfileCreated(const GURL& link_url,
-                         bool use_new_tab,
-                         Browser* browser) {
-  CHECK(browser);
-  /* |ui::PAGE_TRANSITION_TYPED| is used rather than
-     |ui::PAGE_TRANSITION_LINK| since this ultimately opens the link in
-     another browser. This parameter is used within the tab strip model of
-     the browser it opens in implying a link from the active tab in the
-     destination browser which is not correct. */
-  NavigateParams nav_params(browser, link_url, ui::PAGE_TRANSITION_TYPED);
-  if (use_new_tab) {
-    nav_params.disposition = WindowOpenDisposition::NEW_FOREGROUND_TAB;
-  } else {
-    // Stop current loading to show tab throbber wait spinning till tor is
-    // initialized.
-    if (auto* contents = browser->tab_strip_model()->GetActiveWebContents()) {
-      contents->Stop();
-      nav_params.disposition = WindowOpenDisposition::CURRENT_TAB;
-    }
-  }
-  nav_params.referrer =
-      content::Referrer(GURL(), network::mojom::ReferrerPolicy::kStrictOrigin);
-  nav_params.window_action = NavigateParams::WindowAction::kShowWindow;
-  Navigate(&nav_params);
-}
-
-#endif
 
 #if BUILDFLAG(ENABLE_TEXT_RECOGNITION)
 void OnGetImageForTextCopy(base::WeakPtr<content::WebContents> web_contents,
@@ -364,10 +313,15 @@ email_aliases::EmailAliasesController* GetEmailAliasesController(
 
 }  // namespace
 
-BraveRenderViewContextMenu::BraveRenderViewContextMenu(
+RenderViewContextMenu::RenderViewContextMenu(
     content::RenderFrameHost& render_frame_host,
-    const content::ContextMenuParams& params)
-    : RenderViewContextMenu_Chromium(render_frame_host, params)
+    const content::ContextMenuParams& params,
+    bool is_paste_enabled,
+    bool is_paste_and_match_style_enabled)
+    : RenderViewContextMenu_Chromium(render_frame_host,
+                                     params,
+                                     is_paste_enabled,
+                                     is_paste_and_match_style_enabled)
 #if BUILDFLAG(ENABLE_AI_CHAT)
       ,
       ai_chat_submenu_model_(this),
@@ -378,9 +332,9 @@ BraveRenderViewContextMenu::BraveRenderViewContextMenu(
 {
 }
 
-BraveRenderViewContextMenu::~BraveRenderViewContextMenu() = default;
+RenderViewContextMenu::~RenderViewContextMenu() = default;
 
-bool BraveRenderViewContextMenu::IsCommandIdEnabled(int id) const {
+bool RenderViewContextMenu::IsCommandIdEnabled(int id) const {
   switch (id) {
 #if BUILDFLAG(ENABLE_TEXT_RECOGNITION)
     case IDC_CONTENT_CONTEXT_COPY_TEXT_FROM_IMAGE:
@@ -427,10 +381,6 @@ bool BraveRenderViewContextMenu::IsCommandIdEnabled(int id) const {
     case IDC_AI_CHAT_CONTEXT_CREATE_SOCIAL_MEDIA_POST:
       return IsAIChatEnabled();
 #endif  // BUILDFLAG(ENABLE_AI_CHAT)
-#if BUILDFLAG(ENABLE_AI_REWRITER)
-    case IDC_AI_CHAT_CONTEXT_REWRITE:
-      return ai_rewriter::features::IsAIRewriterEnabled();
-#endif
     case IDC_ADBLOCK_CONTEXT_BLOCK_ELEMENTS:
       return true;
     case IDC_OPEN_IN_CONTAINER:
@@ -442,7 +392,7 @@ bool BraveRenderViewContextMenu::IsCommandIdEnabled(int id) const {
   }
 }
 
-void BraveRenderViewContextMenu::ExecuteCommand(int id, int event_flags) {
+void RenderViewContextMenu::ExecuteCommand(int id, int event_flags) {
   switch (id) {
     case IDC_COPY_CLEAN_LINK: {
       GURL link_url = params_.link_url;
@@ -458,22 +408,13 @@ void BraveRenderViewContextMenu::ExecuteCommand(int id, int event_flags) {
       brave::CopyLinkWithStrictCleaning(GetBrowser(), link_url);
     }; break;
     case IDC_CONTENT_CONTEXT_FORCE_PASTE: {
-      std::u16string result;
-      ui::Clipboard::GetForCurrentThread()->ReadText(
-          ui::ClipboardBuffer::kCopyPaste,
-          CreateDataEndpoint(/*notify_if_restricted=*/true).get(), &result);
-      // Replace works just like Paste, but it doesn't trigger onpaste handlers
-      source_web_contents_->Replace(result);
+      brave::ForcePasteInWebContents(source_web_contents_);
     }; break;
 #if BUILDFLAG(ENABLE_TOR)
-    case IDC_CONTENT_CONTEXT_OPENLINKTOR: {
-      const bool has_tor_window = HasAlreadyOpenedTorWindow(GetProfile());
-      Browser* tor_browser =
-          TorProfileManager::SwitchToTorProfile(GetProfile());
-      if (tor_browser) {
-        OnTorProfileCreated(params_.link_url, has_tor_window, tor_browser);
-      }
-    } break;
+    case IDC_CONTENT_CONTEXT_OPENLINKTOR:
+      TorProfileManager::SwitchToTorProfile(GetProfile(), params_.link_url,
+                                            params_.frame_origin);
+      break;
 #endif
 #if BUILDFLAG(ENABLE_TEXT_RECOGNITION)
     case IDC_CONTENT_CONTEXT_COPY_TEXT_FROM_IMAGE:
@@ -498,12 +439,6 @@ void BraveRenderViewContextMenu::ExecuteCommand(int id, int event_flags) {
       ExecuteAIChatCommand(id);
       break;
 #endif  // BUILDFLAG(ENABLE_AI_CHAT)
-#if BUILDFLAG(ENABLE_AI_REWRITER)
-    case IDC_AI_CHAT_CONTEXT_REWRITE:
-      ai_rewriter::AIRewriterDialogDelegate::Show(
-          source_web_contents_, base::UTF16ToUTF8(params_.selection_text));
-      break;
-#endif
     case IDC_ADBLOCK_CONTEXT_BLOCK_ELEMENTS:
       cosmetic_filters::CosmeticFiltersTabHelper::LaunchContentPicker(
           source_web_contents_);
@@ -520,7 +455,7 @@ void BraveRenderViewContextMenu::ExecuteCommand(int id, int event_flags) {
 }
 
 #if BUILDFLAG(ENABLE_TEXT_RECOGNITION)
-void BraveRenderViewContextMenu::CopyTextFromImage() {
+void RenderViewContextMenu::CopyTextFromImage() {
   RenderFrameHost* frame_host = GetRenderFrameHost();
   if (frame_host) {
     frame_host->GetImageAt(params_.x, params_.y,
@@ -531,7 +466,7 @@ void BraveRenderViewContextMenu::CopyTextFromImage() {
 #endif
 
 #if BUILDFLAG(ENABLE_AI_CHAT)
-bool BraveRenderViewContextMenu::IsAIChatEnabled() const {
+bool RenderViewContextMenu::IsAIChatEnabled() const {
   return !params_.selection_text.empty() &&
          ai_chat::IsAIChatEnabled(GetProfile()->GetPrefs()) &&
          GetProfile()->IsRegularProfile() &&
@@ -540,7 +475,7 @@ bool BraveRenderViewContextMenu::IsAIChatEnabled() const {
          !IsInProgressiveWebApp();
 }
 
-void BraveRenderViewContextMenu::ExecuteAIChatCommand(int command) {
+void RenderViewContextMenu::ExecuteAIChatCommand(int command) {
   // To do rewrite in-place, the following conditions must be met:
   // 1) Selected content is editable.
   // 2) User has opted in to Leo.
@@ -585,7 +520,6 @@ void BraveRenderViewContextMenu::ExecuteAIChatCommand(int command) {
     }
     ai_engine_->GenerateRewriteSuggestion(
         selected_text, action_type,
-        /*selected_language*/ "",
         ai_chat::BindParseRewriteReceivedData(
             base::BindRepeating(&OnRewriteSuggestionDataReceived,
                                 source_web_contents_->GetWeakPtr())),
@@ -621,7 +555,7 @@ void BraveRenderViewContextMenu::ExecuteAIChatCommand(int command) {
   }
 }
 
-void BraveRenderViewContextMenu::BuildAIChatMenu() {
+void RenderViewContextMenu::BuildAIChatMenu() {
   if (!IsAIChatEnabled()) {
     return;
   }
@@ -633,13 +567,6 @@ void BraveRenderViewContextMenu::BuildAIChatMenu() {
 
   ai_chat_submenu_model_.AddTitleWithStringId(
       IDS_AI_CHAT_CONTEXT_QUICK_ACTIONS);
-
-#if BUILDFLAG(ENABLE_AI_REWRITER)
-  if (ai_rewriter::features::IsAIRewriterEnabled()) {
-    ai_chat_submenu_model_.AddItemWithStringId(IDC_AI_CHAT_CONTEXT_REWRITE,
-                                               IDS_AI_CHAT_CONTEXT_REWRITE);
-  }
-#endif
 
   ai_chat_submenu_model_.AddItemWithStringId(
       IDC_AI_CHAT_CONTEXT_SUMMARIZE_TEXT, IDS_AI_CHAT_CONTEXT_SUMMARIZE_TEXT);
@@ -700,25 +627,30 @@ void BraveRenderViewContextMenu::BuildAIChatMenu() {
 #endif  // BUILDFLAG(ENABLE_AI_CHAT)
 
 #if BUILDFLAG(ENABLE_CONTAINERS)
-void BraveRenderViewContextMenu::BuildContainersMenu() {
+void RenderViewContextMenu::BuildContainersMenu() {
   if (!base::FeatureList::IsEnabled(containers::features::kContainers) ||
       !params_.link_url.is_valid()) {
     return;
   }
 
-  containers_submenu_model_ = std::make_unique<containers::ContainersMenuModel>(
-      *this, *GetProfile()->GetPrefs());
+  auto* service = ContainersServiceFactory::GetForProfile(GetProfile());
+  if (!service) {
+    return;
+  }
+
+  containers_submenu_model_ =
+      std::make_unique<containers::ContainersMenuModel>(*this, *service);
 
   menu_model_.AddSubMenuWithStringId(IDC_OPEN_IN_CONTAINER,
                                      IDS_CXMENU_OPEN_IN_CONTAINER,
                                      containers_submenu_model_.get());
 }
 
-Browser* BraveRenderViewContextMenu::GetBrowserToOpenSettings() {
+Browser* RenderViewContextMenu::GetBrowserToOpenSettings() {
   return GetBrowser();
 }
 
-float BraveRenderViewContextMenu::GetScaleFactor() {
+float RenderViewContextMenu::GetScaleFactor() {
   auto* render_frame_host = GetRenderFrameHost();
   CHECK(render_frame_host);
   auto* render_view = render_frame_host->GetView();
@@ -727,7 +659,7 @@ float BraveRenderViewContextMenu::GetScaleFactor() {
 }
 #endif  // BUILDFLAG(ENABLE_CONTAINERS)
 
-void BraveRenderViewContextMenu::AddSpellCheckServiceItem(bool is_checked) {
+void RenderViewContextMenu::AddSpellCheckServiceItem(bool is_checked) {
   // Call our implementation, not the one in the base class.
   // Assumption:
   // Use of spelling service is disabled in Brave profile preferences.
@@ -737,18 +669,16 @@ void BraveRenderViewContextMenu::AddSpellCheckServiceItem(bool is_checked) {
 }
 
 // static
-void BraveRenderViewContextMenu::AddSpellCheckServiceItem(
-    ui::SimpleMenuModel* menu,
-    bool is_checked) {
+void RenderViewContextMenu::AddSpellCheckServiceItem(ui::SimpleMenuModel* menu,
+                                                     bool is_checked) {
   // Suppress adding "Spellcheck->Ask Brave for suggestions" item.
 }
 
-void BraveRenderViewContextMenu::AddAccessibilityLabelsServiceItem(
-    bool is_checked) {
+void RenderViewContextMenu::AddAccessibilityLabelsServiceItem(bool is_checked) {
   // Suppress adding "Get image descriptions from Brave"
 }
 
-void BraveRenderViewContextMenu::AppendDeveloperItems() {
+void RenderViewContextMenu::AppendDeveloperItems() {
   RenderViewContextMenu_Chromium::AppendDeveloperItems();
 
   auto* shields_tab_helper =
@@ -794,38 +724,67 @@ void BraveRenderViewContextMenu::AppendDeveloperItems() {
 }
 
 #if BUILDFLAG(ENABLE_CONTAINERS)
-void BraveRenderViewContextMenu::OnContainerSelected(
+void RenderViewContextMenu::OnContainerSelected(
     const containers::mojom::ContainerPtr& container) {
-  // TODO(https://github.com/brave/brave-browser/issues/47118)
-  // Open |params_.link_url| in the selected container.
-  NOTIMPLEMENTED();
+  if (!params_.link_url.is_valid()) {
+    return;
+  }
+
+  brave::OpenUrlInContainer(GetBrowser(), params_.link_url, container);
 }
 
-base::flat_set<std::string>
-BraveRenderViewContextMenu::GetCurrentContainerIds() {
-  // TODO(https://github.com/brave/brave-browser/issues/47118) If the tab is in
-  // a container, return the container ID.
-  NOTIMPLEMENTED();
-  return {};
+base::flat_set<std::string> RenderViewContextMenu::GetCurrentContainerIds() {
+  CHECK(base::FeatureList::IsEnabled(containers::features::kContainers));
+
+  const auto& storage_partition_config = source_web_contents_->GetSiteInstance()
+                                             ->GetSecurityPrincipal()
+                                             .GetStoragePartitionConfig();
+  if (!containers::IsContainersStoragePartition(storage_partition_config)) {
+    return {};
+  }
+
+  return {storage_partition_config.partition_name()};
 }
 #endif  // BUILDFLAG(ENABLE_CONTAINERS)
 
 #if BUILDFLAG(ENABLE_AI_CHAT)
-void BraveRenderViewContextMenu::SetAIEngineForTesting(
+void RenderViewContextMenu::SetAIEngineForTesting(
     std::unique_ptr<ai_chat::EngineConsumer> ai_engine) {
   ai_engine_ = std::move(ai_engine);
 }
 #endif
 
-void BraveRenderViewContextMenu::InitMenu() {
+void RenderViewContextMenu::InitMenu() {
   RenderViewContextMenu_Chromium::InitMenu();
+
+  // Move "Open link in split view" to the last item of the first section (right
+  // before the first separator) when present.
+  std::optional<size_t> split_index =
+      menu_model_.GetIndexOfCommandId(IDC_CONTENT_CONTEXT_OPENLINKSPLITVIEW);
+  if (split_index.has_value()) {
+    std::optional<size_t> separator_index;
+    for (size_t i = 0; i < menu_model_.GetItemCount(); ++i) {
+      if (menu_model_.GetTypeAt(i) == ui::MenuModel::TYPE_SEPARATOR) {
+        separator_index = i;
+        break;
+      }
+    }
+    if (separator_index.has_value() &&
+        split_index.value() < separator_index.value()) {
+      menu_model_.InsertItemAt(separator_index.value(),
+                               IDC_CONTENT_CONTEXT_OPENLINKSPLITVIEW,
+                               menu_model_.GetLabelAt(split_index.value()));
+      menu_model_.SetIcon(separator_index.value(),
+                          menu_model_.GetIconAt(split_index.value()));
+      menu_model_.RemoveItemAt(split_index.value());
+    }
+  }
 
   std::optional<size_t> index = menu_model_.GetIndexOfCommandId(
       IDC_CONTENT_CONTEXT_PASTE_AND_MATCH_STYLE);
   if (index.has_value()) {
-    menu_model_.InsertItemWithStringIdAt(index.value() + 1,
-                                         IDC_CONTENT_CONTEXT_FORCE_PASTE,
-                                         IDS_CONTENT_CONTEXT_FORCE_PASTE);
+    menu_model_.InsertItemWithStringIdAt(
+        index.value() + 1, IDC_CONTENT_CONTEXT_FORCE_PASTE, IDS_FORCE_PASTE);
   }
 #if BUILDFLAG(ENABLE_TEXT_RECOGNITION)
   const bool media_image = content_type_->SupportsGroup(
@@ -885,7 +844,7 @@ void BraveRenderViewContextMenu::InitMenu() {
 #endif  // BUILDFLAG(ENABLE_CONTAINERS)
 }
 
-void BraveRenderViewContextMenu::NotifyMenuShown() {
+void RenderViewContextMenu::NotifyMenuShown() {
   auto* cb = BraveGetMenuShownCallback();
   if (!cb->is_null()) {
     std::move(*cb).Run(this);

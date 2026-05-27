@@ -3,11 +3,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#include <chrome/browser/ui/views/tabs/fake_tab_slot_controller.cc>
+#include "brave/components/tabs/public/tree_tab_node.h"
 
-const Browser* FakeTabSlotController::GetBrowser() const {
-  return nullptr;
-}
+#include <chrome/browser/ui/views/tabs/fake_tab_slot_controller.cc>
 
 bool FakeTabSlotController::ShouldAlwaysHideCloseButton() const {
   return should_always_hide_close_button_;
@@ -19,4 +17,48 @@ bool FakeTabSlotController::CanCloseTabViaMiddleButtonClick() const {
 
 bool FakeTabSlotController::IsVerticalTabsFloating() const {
   return false;
+}
+
+bool FakeTabSlotController::IsVerticalTabsAnimatingButNotFinalState() const {
+  return false;
+}
+
+bool FakeTabSlotController::ShouldPaintTabAccent(const Tab* tab) const {
+  return false;
+}
+
+std::optional<TabAccentColors> FakeTabSlotController::GetTabAccentColors(
+    const Tab* tab) const {
+  return std::nullopt;
+}
+
+ui::ImageModel FakeTabSlotController::GetTabAccentIcon(const Tab* tab) const {
+  return ui::ImageModel();
+}
+
+int FakeTabSlotController::GetTreeHeight(
+    const tree_tab::TreeTabNodeId& id) const {
+  return 0;
+}
+
+const tabs::TreeTabNode* FakeTabSlotController::GetTreeTabNode(
+    const tree_tab::TreeTabNodeId& id) const {
+  return nullptr;
+}
+
+void FakeTabSlotController::SetTreeTabNodeCollapsed(
+    const tree_tab::TreeTabNodeId& id,
+    bool collapsed) {}
+
+bool FakeTabSlotController::IsInCollapsedTreeTabNode(
+    const tree_tab::TreeTabNodeId& id) const {
+  return false;
+}
+
+brave_tabs::TabMinWidthMode FakeTabSlotController::GetTabMinWidthMode() const {
+  return tab_min_width_mode_;
+}
+
+bool FakeTabSlotController::IsHorizontalScrollingEnabled() const {
+  return horizontal_scrolling_enabled_;
 }

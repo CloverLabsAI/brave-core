@@ -10,11 +10,12 @@
 #include "brave/components/ai_chat/core/common/buildflags/buildflags.h"
 #include "brave/components/ai_chat/core/common/pref_names.h"
 #include "brave/components/brave_news/common/buildflags/buildflags.h"
-#include "brave/components/brave_rewards/core/pref_names.h"
+#include "brave/components/brave_rewards/core/buildflags/buildflags.h"
 #include "brave/components/brave_vpn/common/buildflags/buildflags.h"
 #include "brave/components/brave_wallet/common/buildflags/buildflags.h"
 #include "brave/components/constants/pref_names.h"
 #include "brave/components/vector_icons/vector_icons.h"
+#include "chrome/app/vector_icons/vector_icons.h"
 #include "chrome/browser/ui/webui/side_panel/customize_chrome/customize_toolbar/customize_toolbar.mojom.h"
 #include "chrome/common/pref_names.h"
 #include "components/grit/brave_components_strings.h"
@@ -28,6 +29,10 @@
 #if BUILDFLAG(ENABLE_BRAVE_VPN)
 #include "brave/components/brave_vpn/common/pref_names.h"
 #endif  // BUILDFLAG(ENABLE_BRAVE_VPN)
+
+#if BUILDFLAG(ENABLE_BRAVE_REWARDS)
+#include "brave/components/brave_rewards/core/pref_names.h"
+#endif  // BUILDFLAG(ENABLE_BRAVE_REWARDS)
 
 #if BUILDFLAG(ENABLE_BRAVE_WALLET)
 #include "brave/components/brave_wallet/browser/pref_names.h"
@@ -95,6 +100,7 @@ inline constexpr BraveAction kShowVPNAction = {
     .icon = kLeoProductVpnIcon};
 #endif  // BUILDFLAG(ENABLE_BRAVE_VPN)
 
+#if BUILDFLAG(ENABLE_BRAVE_REWARDS)
 inline constexpr BraveAction kShowReward = {
     .id = side_panel::customize_chrome::mojom::ActionId::kShowReward,
     .display_name_resource_id = IDS_CUSTOMIZE_TOOLBAR_TOGGLE_REWARD,
@@ -103,6 +109,7 @@ inline constexpr BraveAction kShowReward = {
     .category = side_panel::customize_chrome::mojom::CategoryId::kAddressBar,
     .pref_name = brave_rewards::prefs::kShowLocationBarButton,
     .icon = kLeoProductBatOutlineIcon};
+#endif  // BUILDFLAG(ENABLE_BRAVE_REWARDS)
 
 #if BUILDFLAG(ENABLE_BRAVE_NEWS)
 inline constexpr BraveAction kShowBraveNews = {
@@ -124,6 +131,16 @@ inline constexpr BraveAction kShowShareMenuAction = {
     .pref_name = prefs::kPinShareMenuButton,
     .icon = omnibox::kShareChromeRefreshIcon};
 
+inline constexpr BraveAction kShowPwaInstallAction = {
+    .id = side_panel::customize_chrome::mojom::ActionId::kShowPwaInstall,
+    .display_name_resource_id = IDS_CUSTOMIZE_TOOLBAR_TOGGLE_PWA_INSTALL,
+    .anchor = side_panel::customize_chrome::mojom::ActionId::
+        kShowPwaInstall,  // assign id of itself to append to the end of the
+                          // list
+    .category = side_panel::customize_chrome::mojom::CategoryId::kAddressBar,
+    .pref_name = prefs::kPinPwaInstallButton,
+    .icon = kInstallDesktopChromeRefreshIcon};
+
 inline constexpr auto kBraveActions =
     base::MakeFixedFlatMap<side_panel::customize_chrome::mojom::ActionId,
                            const BraveAction*>({
@@ -138,11 +155,14 @@ inline constexpr auto kBraveActions =
 #if BUILDFLAG(ENABLE_BRAVE_VPN)
         {kShowVPNAction.id, &kShowVPNAction},
 #endif  // BUILDFLAG(ENABLE_BRAVE_VPN)
+#if BUILDFLAG(ENABLE_BRAVE_REWARDS)
         {kShowReward.id, &kShowReward},
+#endif  // BUILDFLAG(ENABLE_BRAVE_REWARDS)
 #if BUILDFLAG(ENABLE_BRAVE_NEWS)
         {kShowBraveNews.id, &kShowBraveNews},
 #endif  // BUILDFLAG(ENABLE_BRAVE_NEWS)
         {kShowShareMenuAction.id, &kShowShareMenuAction},
+        {kShowPwaInstallAction.id, &kShowPwaInstallAction},
     });
 
 }  // namespace customize_chrome

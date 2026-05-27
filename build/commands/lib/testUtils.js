@@ -3,8 +3,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 
-const fs = require('fs-extra')
-const path = require('path')
+import fs from 'fs-extra'
+import path from 'node:path'
 
 // HACK: determines the executable path from the gn target name
 // Alternative: gn desc <buildDir> <target> outputs --format=json
@@ -67,6 +67,7 @@ const getTestsToRun = (config, suite) => {
 const getApplicableFilters = (config, suite) => {
   let filterFilePaths = []
 
+  /** @type {string} */
   let targetPlatform = process.platform
   if (targetPlatform === 'win32') {
     targetPlatform = 'windows'
@@ -84,6 +85,14 @@ const getApplicableFilters = (config, suite) => {
     possibleFilters.push([suite, targetPlatform, 'ubsan'].join('-'))
   }
 
+  if (config.is_asan) {
+    possibleFilters.push([suite, targetPlatform, 'asan'].join('-'))
+  }
+
+  if (config.is_msan) {
+    possibleFilters.push([suite, targetPlatform, 'msan'].join('-'))
+  }
+
   possibleFilters.forEach((filterName) => {
     let filterFilePath = path.join(
       config.braveCoreDir,
@@ -99,7 +108,7 @@ const getApplicableFilters = (config, suite) => {
   return filterFilePaths
 }
 
-module.exports = {
+export {
   gnTargetToExecutableName,
   getTestBinary,
   getTestsToRun,

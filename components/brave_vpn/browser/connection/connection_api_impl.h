@@ -12,9 +12,12 @@
 #include "base/gtest_prod_util.h"
 #include "base/memory/raw_ref.h"
 #include "base/memory/scoped_refptr.h"
-#include "base/values.h"
 #include "brave/components/brave_vpn/common/mojom/brave_vpn.mojom.h"
 #include "net/base/network_change_notifier.h"
+
+namespace base {
+class ListValue;
+}  // namespace base
 
 namespace network {
 class SharedURLLoaderFactory;
@@ -73,7 +76,7 @@ class ConnectionAPIImpl
                         const std::string& hostnames,
                         bool success);
   void ParseAndCacheHostnames(const std::string& region,
-                              const base::Value::List& hostnames_value);
+                              const base::ListValue& hostnames_value);
   void ResetHostname();
 
   const raw_ref<BraveVPNConnectionManager> manager_;  // owner

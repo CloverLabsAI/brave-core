@@ -12,6 +12,8 @@
 #include <vector>
 
 #include "base/memory/scoped_refptr.h"
+#include "brave/browser/net/resource_context_data.h"
+#include "build/build_config.h"
 #include "chrome/browser/chrome_content_browser_client.h"
 #include "content/public/browser/browser_thread.h"
 #include "content/public/browser/content_browser_client.h"
@@ -19,7 +21,9 @@
 #include "services/metrics/public/cpp/ukm_source_id.h"
 #include "third_party/blink/public/mojom/loader/referrer.mojom.h"
 
+class BraveBluetoothDelegate;
 class PrefChangeRegistrar;
+class BraveHidDelegate;
 
 namespace content {
 class BrowserContext;
@@ -33,6 +37,9 @@ class AssociatedInterfaceRegistry;
 namespace web_pref {
 struct WebPreferences;
 }  // namespace web_pref
+
+template <template <typename> class T>
+class BraveProxyingWebSocket;
 
 class BraveContentBrowserClient : public ChromeContentBrowserClient {
  public:
@@ -53,7 +60,9 @@ class BraveContentBrowserClient : public ChromeContentBrowserClient {
       content::RenderFrameHost& render_frame_host,
       blink::AssociatedInterfaceRegistry& associated_registry) override;
 
-  void RegisterWebUIInterfaceBrokers(
+  void RegisterTrustedWebUIInterfaceBrokers(
+      content::WebUIBrowserInterfaceBrokerRegistry& registry) override;
+  void RegisterUntrustedWebUIInterfaceBrokers(
       content::WebUIBrowserInterfaceBrokerRegistry& registry) override;
 
   bool HandleExternalProtocol(
@@ -76,10 +85,6 @@ class BraveContentBrowserClient : public ChromeContentBrowserClient {
       content::RenderFrameHost* render_frame_host,
       const url::Origin& origin) override;
 
-  bool CanThirdPartyStoragePartitioningBeDisabled(
-      content::BrowserContext* browser_context,
-      const url::Origin& origin) override;
-
   bool AllowWorkerFingerprinting(
       const GURL& url,
       content::BrowserContext* browser_context) override;
@@ -87,11 +92,6 @@ class BraveContentBrowserClient : public ChromeContentBrowserClient {
   brave_shields::mojom::ShieldsSettingsPtr WorkerGetBraveShieldSettings(
       const GURL& url,
       content::BrowserContext* browser_context) override;
-
-  content::ContentBrowserClient::AllowWebBluetoothResult AllowWebBluetooth(
-      content::BrowserContext* browser_context,
-      const url::Origin& requesting_origin,
-      const url::Origin& embedding_origin) override;
 
   void RegisterBrowserInterfaceBindersForFrame(
       content::RenderFrameHost* render_frame_host,
@@ -188,13 +188,36 @@ class BraveContentBrowserClient : public ChromeContentBrowserClient {
 
   bool IsWindowsRecallDisabled() override;
 
+  bool ShouldInheritStoragePartition(
+      const content::StoragePartitionConfig& partition_config) const override;
+
   bool AllowSignedExchange(content::BrowserContext* context) override;
+
+  content::BluetoothDelegate* GetBluetoothDelegate() override;
+#if !BUILDFLAG(IS_ANDROID)
+  content::HidDelegate* GetHidDelegate() override;
+#endif
 
  private:
   void OnAllowGoogleAuthChanged();
 
+  template <template <typename> class T>
+  void CreateChromeWebSocket(
+      content::RenderFrameHost* frame,
+      const GURL& url,
+      const net::SiteForCookies& site_for_cookies,
+      const std::optional<std::string>& user_agent,
+      mojo::PendingRemote<network::mojom::WebSocketHandshakeClient>
+          handshake_client,
+      BraveProxyingWebSocket<T>* proxy);
+
   std::unique_ptr<PrefChangeRegistrar, content::BrowserThread::DeleteOnUIThread>
       pref_change_registrar_;
+  std::unique_ptr<BraveBluetoothDelegate> bluetooth_delegate_;
+
+#if !BUILDFLAG(IS_ANDROID)
+  std::unique_ptr<BraveHidDelegate> brave_hid_delegate_;
+#endif
 };
 
 #endif  // BRAVE_BROWSER_BRAVE_CONTENT_BROWSER_CLIENT_H_

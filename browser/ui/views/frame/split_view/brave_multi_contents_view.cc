@@ -8,11 +8,11 @@
 #include <utility>
 
 #include "base/check.h"
-#include "brave/browser/ui/views/frame/brave_browser_view.h"
 #include "brave/browser/ui/views/frame/brave_contents_view_util.h"
 #include "brave/browser/ui/views/frame/split_view/brave_contents_container_view.h"
 #include "chrome/browser/devtools/devtools_ui_controller.h"
 #include "chrome/browser/profiles/profile.h"
+#include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
 #include "chrome/browser/ui/views/frame/contents_web_view.h"
 #include "chrome/browser/ui/views/frame/multi_contents_background_view.h"
@@ -41,19 +41,13 @@ BraveMultiContentsView::BraveMultiContentsView(
 
 BraveMultiContentsView::~BraveMultiContentsView() = default;
 
-void BraveMultiContentsView::Layout(PassKey) {
-  LayoutSuperclass<MultiContentsView>(this);
-
-  BraveBrowserView::From(browser_view_)->NotifyDialogPositionRequiresUpdate();
-}
-
 void BraveMultiContentsView::UseContentsContainerViewForWebPanel() {
   if (!contents_container_view_for_web_panel_) {
     contents_container_view_for_web_panel_ =
         AddChildView(std::make_unique<BraveContentsContainerView>(
             browser_view_, /*for_web_panel*/ true));
     contents_container_view_for_web_panel_->SetVisible(false);
-    web_contents_focused_subscriptions_.push_back(
+    contents_focused_subscriptions_.push_back(
         contents_container_view_for_web_panel_->contents_view()
             ->AddWebContentsFocusedCallback(base::BindRepeating(
                 &BraveMultiContentsView::OnWebContentsFocused,

@@ -5,6 +5,8 @@
 
 import("//build/config/features.gni")
 
+assert(!is_android)
+
 source_set("page_info") {
   sources = [
     "brave_page_info_bubble_view.cc",
@@ -19,6 +21,7 @@ source_set("page_info") {
   ]
 
   deps = [
+    "//brave/browser/brave_shields",
     "//brave/browser/ui/page_info",
     "//brave/components/constants",
     "//brave/components/resources:strings",

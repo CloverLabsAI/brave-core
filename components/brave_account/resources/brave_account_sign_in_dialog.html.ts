@@ -6,53 +6,50 @@
 import { html } from '//resources/lit/v3_0/lit.rollup.js'
 
 import './brave_account_dialog.js'
-import { onEyeIconClicked } from './brave_account_common.js'
+import './brave_account_email_input.js'
+import './brave_account_password_input.js'
 import { BraveAccountSignInDialogElement } from './brave_account_sign_in_dialog.js'
+import type { EmailInputEventDetail } from './brave_account_email_input.js'
+import type { PasswordInputEventDetail } from './brave_account_password_input.js'
 
 export function getHtml(this: BraveAccountSignInDialogElement) {
   return html`<!--_html_template_start_-->
     <brave-account-dialog
-      dialog-description="$i18n{braveAccountSignInDialogDescription}"
-      dialog-title="$i18n{braveAccountSignInDialogTitle}"
+      dialog-description="$i18n{BRAVE_ACCOUNT_DESCRIPTION}"
+      dialog-title="$i18n{BRAVE_ACCOUNT_SIGN_IN_DIALOG_TITLE}"
       show-back-button
     >
       <div slot="inputs">
-        <leo-input
-          placeholder="$i18n{braveAccountEmailInputPlaceholder}"
-          @input=${this.onEmailInput}
+        <brave-account-email-input
+          @email-input=${(e: CustomEvent<EmailInputEventDetail>) => {
+            this.email = e.detail.email
+            this.isEmailValid = e.detail.isValid
+          }}
         >
-          <div class="label ${this.shouldShowEmailError ? 'error' : ''}">
-            $i18n{braveAccountEmailInputLabel}
-          </div>
-        </leo-input>
-        <leo-input
-          placeholder="$i18n{braveAccountPasswordInputPlaceholder}"
-          type="password"
-          @input=${this.onPasswordInput}
+        </brave-account-email-input>
+        <brave-account-password-input
+          .isCapsLockOn=${this.isCapsLockOn}
+          label="$i18n{BRAVE_ACCOUNT_PASSWORD_INPUT_LABEL}"
+          placeholder="$i18n{BRAVE_ACCOUNT_PASSWORD_INPUT_PLACEHOLDER}"
+          @password-input=${(e: CustomEvent<PasswordInputEventDetail>) => {
+            this.password = e.detail.password
+          }}
         >
-          <div class="password">
-            <div class="label">$i18n{braveAccountPasswordInputLabel}</div>
-            <div
-              class="forgot-password"
-              @click=${() => this.fire('forgot-password-button-clicked')}
-            >
-              $i18n{braveAccountForgotPasswordButtonLabel}
-            </div>
-          </div>
-          <leo-icon
-            name="eye-off"
-            slot="right-icon"
-            @click=${onEyeIconClicked}
+          <div
+            slot="label-extra"
+            class="forgot-password"
+            @click=${() => this.fire('forgot-password-button-clicked')}
           >
-          </leo-icon>
-        </leo-input>
+            $i18n{BRAVE_ACCOUNT_FORGOT_PASSWORD_BUTTON_LABEL}
+          </div>
+        </brave-account-password-input>
       </div>
       <leo-button
         slot="buttons"
         ?isDisabled=${!this.isEmailValid || !this.isPasswordValid}
         @click=${this.onSignInButtonClicked}
       >
-        $i18n{braveAccountSignInButtonLabel}
+        $i18n{BRAVE_ACCOUNT_SIGN_IN_BUTTON_LABEL}
       </leo-button>
     </brave-account-dialog>
     <!--_html_template_end_-->`

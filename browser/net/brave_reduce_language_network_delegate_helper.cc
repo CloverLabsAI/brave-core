@@ -78,18 +78,19 @@ std::string FarbleAcceptLanguageHeader(
   return accept_language_string;
 }
 
+template <template <typename> class T>
 int OnBeforeStartTransaction_ReduceLanguageWork(
     net::HttpRequestHeaders* headers,
     const ResponseCallback& next_callback,
-    std::shared_ptr<BraveRequestInfo> ctx) {
-  Profile* profile = Profile::FromBrowserContext(ctx->browser_context);
+    T<BraveRequestInfo> ctx) {
+  Profile* profile = Profile::FromBrowserContext(ctx->browser_context());
   DCHECK(profile);
   HostContentSettingsMap* content_settings =
       HostContentSettingsMapFactory::GetForProfile(profile);
   DCHECK(content_settings);
-  GURL origin_url(ctx->tab_origin);
+  GURL origin_url(ctx->tab_origin());
   if (origin_url.is_empty()) {
-    origin_url = ctx->initiator_url;
+    origin_url = ctx->initiator_url();
   }
   if (origin_url.is_empty()) {
     return net::OK;
@@ -139,9 +140,20 @@ int OnBeforeStartTransaction_ReduceLanguageWork(
 
   headers->SetHeader(net::HttpRequestHeaders::kAcceptLanguage,
                      accept_language_string);
-  ctx->set_headers.insert(net::HttpRequestHeaders::kAcceptLanguage);
+  ctx->mutable_modified_headers().insert(
+      net::HttpRequestHeaders::kAcceptLanguage);
 
   return net::OK;
 }
+
+template int OnBeforeStartTransaction_ReduceLanguageWork<std::shared_ptr>(
+    net::HttpRequestHeaders* headers,
+    const ResponseCallback& next_callback,
+    std::shared_ptr<BraveRequestInfo> ctx);
+
+template int OnBeforeStartTransaction_ReduceLanguageWork<base::WeakPtr>(
+    net::HttpRequestHeaders* headers,
+    const ResponseCallback& next_callback,
+    base::WeakPtr<BraveRequestInfo> ctx);
 
 }  // namespace brave

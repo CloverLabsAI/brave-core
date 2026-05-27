@@ -11,10 +11,29 @@
 #import "cwv_export.h"                  // NOLINT
 #import "cwv_web_view_configuration.h"  // NOLINT
 
+@class WKWebsiteDataStore;
+@protocol ProfileBridge;
+
 NS_ASSUME_NONNULL_BEGIN
 
 CWV_EXPORT
 @interface BraveWebViewConfiguration : CWVWebViewConfiguration
+
+/// The profile associated with this web view configuration
+@property(readonly) id<ProfileBridge> profile;
+
+/// Exposes the website data store associated with the WKWebViewConfiguration
+///
+/// Note: Usage of this should be limited to when the
+/// `UseProfileWebViewConfiguration` feature flag is enabled as the data store
+/// returned by this method won't be the one that is passed in when creating
+/// the `BraveWebView`
+@property(readonly) WKWebsiteDataStore* websiteDataStore;
+
+/// Obtain a BraveWebViewConfiguration for a given profile
++ (BraveWebViewConfiguration*)configurationForProfile:
+    (id<ProfileBridge>)profileBridge NS_SWIFT_NAME(init(profile:));
+
 @end
 
 NS_ASSUME_NONNULL_END

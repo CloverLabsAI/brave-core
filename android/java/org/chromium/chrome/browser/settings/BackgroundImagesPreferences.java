@@ -7,17 +7,17 @@ package org.chromium.chrome.browser.settings;
 
 import android.os.Bundle;
 import android.text.SpannableString;
-import android.view.View;
+import android.text.style.ForegroundColorSpan;
 
 import androidx.preference.Preference;
 import androidx.preference.Preference.OnPreferenceChangeListener;
 import androidx.preference.PreferenceCategory;
 
 import org.chromium.base.BravePreferenceKeys;
-import org.chromium.base.Callback;
 import org.chromium.base.Log;
-import org.chromium.base.supplier.ObservableSupplier;
-import org.chromium.base.supplier.ObservableSupplierImpl;
+import org.chromium.base.supplier.MonotonicObservableSupplier;
+import org.chromium.base.supplier.ObservableSuppliers;
+import org.chromium.base.supplier.SettableMonotonicObservableSupplier;
 import org.chromium.build.annotations.NullMarked;
 import org.chromium.build.annotations.Nullable;
 import org.chromium.chrome.R;
@@ -29,11 +29,10 @@ import org.chromium.chrome.browser.preferences.BravePref;
 import org.chromium.chrome.browser.preferences.ChromeSharedPreferences;
 import org.chromium.chrome.browser.profiles.ProfileManager;
 import org.chromium.chrome.browser.util.TabUtils;
+import org.chromium.components.browser_ui.settings.ChromeBasePreference;
 import org.chromium.components.browser_ui.settings.ChromeSwitchPreference;
-import org.chromium.components.browser_ui.settings.ClickableSpansTextMessagePreference;
 import org.chromium.components.browser_ui.settings.SettingsUtils;
 import org.chromium.components.user_prefs.UserPrefs;
-import org.chromium.ui.text.ChromeClickableSpan;
 
 /** Fragment to keep track of all the display related preferences. */
 @NullMarked
@@ -58,10 +57,11 @@ public class BackgroundImagesPreferences extends BravePreferenceFragment
     private ChromeSwitchPreference mShowSponsoredImagesPref;
     private ChromeSwitchPreference mShowBraveStatsPref;
     private ChromeSwitchPreference mShowTopSitesPref;
-    private ClickableSpansTextMessagePreference mLearnMorePreference;
+    private ChromeBasePreference mLearnMorePreference;
     private BraveRadioButtonGroupOpeningScreenPreference mOpeningScreenPref;
 
-    private final ObservableSupplierImpl<String> mPageTitle = new ObservableSupplierImpl<>();
+    private final SettableMonotonicObservableSupplier<String> mPageTitle =
+            ObservableSuppliers.createMonotonic();
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -95,18 +95,28 @@ public class BackgroundImagesPreferences extends BravePreferenceFragment
             mShowSponsoredImagesPref.setOnPreferenceChangeListener(this);
         }
         mLearnMorePreference =
-                (ClickableSpansTextMessagePreference)
-                        findPreference(PREF_SPONSORED_IMAGES_LEARN_MORE);
+                (ChromeBasePreference) findPreference(PREF_SPONSORED_IMAGES_LEARN_MORE);
         if (mLearnMorePreference != null) {
-            ChromeClickableSpan chromeClickableSpan =
-                    new ChromeClickableSpan(
-                            getContext().getColor(R.color.brave_link),
-                            sponsoredImagesLearnMoreClickedCallback());
             SpannableString spannableString =
                     new SpannableString(
                             getContext().getString(R.string.sponsored_images_learn_more));
-            spannableString.setSpan(chromeClickableSpan, 0, spannableString.length(), 0);
-            mLearnMorePreference.setSummary(spannableString);
+            spannableString.setSpan(
+                    new ForegroundColorSpan(getContext().getColor(R.color.brave_link)),
+                    0,
+                    spannableString.length(),
+                    0);
+            mLearnMorePreference.setTitle(spannableString);
+            mLearnMorePreference.setOnPreferenceClickListener(
+                    preference -> {
+                        try {
+                            TabUtils.openUrlInNewTab(false, NEW_TAB_TAKEOVER_LEARN_MORE_LINK_URL);
+                            TabUtils.bringChromeTabbedActivityToTheTop(
+                                    BraveActivity.getBraveActivity());
+                        } catch (BraveActivity.BraveActivityNotFoundException e) {
+                            Log.e(TAG, "sponsored_images_learn_more" + e);
+                        }
+                        return true;
+                    });
         }
 
         mShowTopSitesPref = (ChromeSwitchPreference) findPreference(PREF_SHOW_TOP_SITES);
@@ -150,7 +160,7 @@ public class BackgroundImagesPreferences extends BravePreferenceFragment
     }
 
     @Override
-    public ObservableSupplier<String> getPageTitle() {
+    public MonotonicObservableSupplier<String> getPageTitle() {
         return mPageTitle;
     }
 
@@ -180,16 +190,5 @@ public class BackgroundImagesPreferences extends BravePreferenceFragment
                     .writeInt(BravePreferenceKeys.BRAVE_NEW_TAB_PAGE_OPENING_SCREEN, option);
         }
         return true;
-    }
-
-    private Callback<View> sponsoredImagesLearnMoreClickedCallback() {
-        return (view) -> {
-            try {
-                TabUtils.openUrlInNewTab(false, NEW_TAB_TAKEOVER_LEARN_MORE_LINK_URL);
-                TabUtils.bringChromeTabbedActivityToTheTop(BraveActivity.getBraveActivity());
-            } catch (BraveActivity.BraveActivityNotFoundException e) {
-                Log.e(TAG, "sponsoredImagesLearnMoreClickedCallback" + e);
-            }
-        };
     }
 }

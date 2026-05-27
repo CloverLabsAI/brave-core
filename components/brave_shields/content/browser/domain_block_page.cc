@@ -10,6 +10,7 @@
 #include "base/check.h"
 #include "base/notreached.h"
 #include "base/strings/string_number_conversions.h"
+#include "base/values.h"
 #include "brave/components/brave_shields/content/browser/domain_block_controller_client.h"
 #include "components/grit/brave_components_resources.h"
 #include "components/grit/brave_components_strings.h"
@@ -69,7 +70,7 @@ void DomainBlockPage::CommandReceived(const std::string& command) {
 }
 
 void DomainBlockPage::PopulateInterstitialStrings(
-    base::Value::Dict& load_time_data) {
+    base::DictValue& load_time_data) {
   load_time_data.Set("tabTitle",
                      l10n_util::GetStringUTF16(IDS_DOMAIN_BLOCK_TITLE));
   load_time_data.Set("heading",

@@ -13,8 +13,11 @@
 #include <vector>
 
 #include "base/containers/span.h"
-#include "base/values.h"
 #include "brave/components/brave_wallet/common/brave_wallet.mojom-forward.h"
+
+namespace base {
+class DictValue;
+}  // namespace base
 
 namespace brave_wallet {
 
@@ -33,7 +36,7 @@ bool Uint8ArrayDecode(std::string_view str,
                       std::vector<uint8_t>* ret,
                       size_t len);
 
-std::optional<uint8_t> GetUint8FromStringDict(const base::Value::Dict& dict,
+std::optional<uint8_t> GetUint8FromStringDict(const base::DictValue& dict,
                                               std::string_view key);
 
 // A compact-array is serialized as the array length, followed by each array

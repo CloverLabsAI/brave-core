@@ -73,7 +73,7 @@ var package = Package(
     .package(url: "https://github.com/siteline/SwiftUI-Introspect", from: "0.1.3"),
     .package(url: "https://github.com/apple/swift-algorithms", from: "1.0.0"),
     .package(url: "https://github.com/devxoul/Then", from: "2.7.0"),
-    .package(url: "https://github.com/mkrd/Swift-BigInt", from: "2.3.0"),
+    .package(name: "Swift-BigInt", path: "../third_party/swift-bigint"),
     .package(url: "https://github.com/GuardianFirewall/GuardianConnect", exact: "2.1.1"),
     .package(url: "https://github.com/pointfreeco/swift-custom-dump", from: "0.6.0"),
     .package(
@@ -131,7 +131,6 @@ var package = Package(
         "Frontend/UserContent/UserScripts/Sandboxed",
       ],
       resources: [
-        .copy("Assets/About/Licenses.html"),
         .copy("Assets/About/AboutHome.html"),
         .copy("Assets/__firefox__.js"),
         .copy("Assets/AllFramesAtDocumentEnd.js"),
@@ -155,32 +154,20 @@ var package = Package(
         .copy("Assets/Fonts/NewYorkMedium-BoldItalic.otf"),
         .copy("Assets/Fonts/NewYorkMedium-Regular.otf"),
         .copy("Assets/Fonts/NewYorkMedium-RegularItalic.otf"),
-        .copy("Assets/Interstitial Pages/Pages/BlockedDomain.html"),
-        .copy("Assets/Interstitial Pages/Pages/HTTPBlocked.html"),
-        .copy("Assets/Interstitial Pages/Pages/CertificateError.html"),
-        .copy("Assets/Interstitial Pages/Pages/GenericError.html"),
-        .copy("Assets/Interstitial Pages/Pages/NetworkError.html"),
-        .copy("Assets/Interstitial Pages/Pages/Web3Domain.html"),
-        .copy("Assets/Interstitial Pages/Images/Carret.png"),
-        .copy("Assets/Interstitial Pages/Images/Clock.svg"),
-        .copy("Assets/Interstitial Pages/Images/Cloud.svg"),
-        .copy("Assets/Interstitial Pages/Images/DarkWarning.svg"),
-        .copy("Assets/Interstitial Pages/Images/Generic.svg"),
-        .copy("Assets/Interstitial Pages/Images/Globe.svg"),
-        .copy("Assets/Interstitial Pages/Images/Info.svg"),
-        .copy("Assets/Interstitial Pages/Images/Warning.svg"),
-        .copy("Assets/Interstitial Pages/Images/warning-triangle-outline.svg"),
-        .copy("Assets/Interstitial Pages/Styles/BlockedDomain.css"),
-        .copy("Assets/Interstitial Pages/Styles/CertificateError.css"),
-        .copy("Assets/Interstitial Pages/Styles/InterstitialStyles.css"),
-        .copy("Assets/Interstitial Pages/Styles/NetworkError.css"),
-        .copy("Assets/Interstitial Pages/Styles/Web3Domain.css"),
+        .copy("Assets/InterstitialPages/Pages/BlockedDomain.html"),
+        .copy("Assets/InterstitialPages/Pages/HTTPBlocked.html"),
+        .copy("Assets/InterstitialPages/Pages/Web3Domain.html"),
+        .copy("Assets/InterstitialPages/Images/Info.svg"),
+        .copy("Assets/InterstitialPages/Images/warning-triangle-outline.svg"),
+        .copy("Assets/InterstitialPages/Styles/BlockedDomain.css"),
+        .copy("Assets/InterstitialPages/Styles/InterstitialStyles.css"),
+        .copy("Assets/InterstitialPages/Styles/Web3Domain.css"),
         .copy("Assets/Lottie/shred.json"),
         .copy("Assets/SearchPlugins"),
         .copy("Frontend/Reader/Reader.css"),
         .copy("Frontend/Reader/Reader.html"),
         .copy("Frontend/Reader/ReaderViewLoading.html"),
-        .copy("Frontend/Browser/New Tab Page/Backgrounds/Assets/NTP_Images/corwin-prescott-3.jpg"),
+        .copy("Frontend/Browser/NewTabPage/Backgrounds/Assets/NTP_Images/corwin-prescott-3.jpg"),
         .copy("Frontend/Browser/Favorites/Data/top_sites_by_region.json"),
         .copy(
           "Frontend/UserContent/UserScripts/Scripts_Dynamic/Scripts/DomainSpecific/Paged/BraveSearchResultAdScript.js"
@@ -211,7 +198,6 @@ var package = Package(
         .copy(
           "Frontend/UserContent/UserScripts/Scripts_Dynamic/Scripts/Paged/PlaylistSwizzlerScript.js"
         ),
-        .copy("Frontend/UserContent/UserScripts/Scripts_Dynamic/Scripts/Paged/ReadyStateScript.js"),
         .copy(
           "Frontend/UserContent/UserScripts/Scripts_Dynamic/Scripts/Paged/RequestBlockingScript.js"
         ),
@@ -223,6 +209,9 @@ var package = Package(
         ),
         .copy(
           "Frontend/UserContent/UserScripts/Scripts_Dynamic/Scripts/Paged/WalletSolanaProviderScript.js"
+        ),
+        .copy(
+          "Frontend/UserContent/UserScripts/Scripts_Dynamic/Scripts/Paged/WalletCardanoProviderScript.js"
         ),
         .copy(
           "Frontend/UserContent/UserScripts/Scripts_Dynamic/Scripts/Paged/YoutubeQualityScript.js"
@@ -448,7 +437,7 @@ var package = Package(
         .product(name: "Lottie", package: "lottie-spm"),
       ],
       resources: [
-        .copy("Lottie Assets/brave-today-welcome-graphic.json")
+        .copy("LottieAssets/brave-today-welcome-graphic.json")
       ],
       plugins: ["LoggerPlugin"]
     ),
@@ -472,20 +461,15 @@ var package = Package(
         .product(name: "Lottie", package: "lottie-spm"),
       ],
       resources: [
-        .copy("Components/Markdown/Code Highlight/Themes/atom-one-dark.min.css"),
-        .copy("Components/Markdown/Code Highlight/Themes/atom-one-light.min.css"),
-        .copy("Components/Markdown/Code Highlight/Scripts/highlight.min.js"),
+        .copy("Components/Markdown/CodeHighlight/Themes/atom-one-dark.min.css"),
+        .copy("Components/Markdown/CodeHighlight/Themes/atom-one-light.min.css"),
+        .copy("Components/Markdown/CodeHighlight/Scripts/highlight.min.js"),
       ],
       plugins: ["LoggerPlugin"]
     ),
     .testTarget(
       name: "AIChatTests",
-      dependencies: ["AIChat"],
-      resources: [
-        .copy("Components/Markdown/Code Highlight/Themes/atom-one-dark.min.css"),
-        .copy("Components/Markdown/Code Highlight/Themes/atom-one-light.min.css"),
-        .copy("Components/Markdown/Code Highlight/Scripts/highlight.min.js"),
-      ]
+      dependencies: ["AIChat"]
     ),
     .target(
       name: "BraveStore",
@@ -522,12 +506,10 @@ var package = Package(
         .copy("LottieAssets/playlist-confetti.json"),
         .copy("WelcomeFocus/Resources/LottieAssets"),
         .copy("WelcomeFocus/Resources/Videos"),
-        .copy("WelcomeFocus/Resources/Fonts/Poppins-SemiBold.ttf"),
-        .copy("WelcomeFocus/Resources/Fonts/Poppins-Medium.ttf"),
-        .copy("WelcomeFocus/Resources/Fonts/Poppins-Regular.ttf"),
       ],
       plugins: ["LoggerPlugin"]
     ),
+    .testTarget(name: "OnboardingTests", dependencies: ["Onboarding"]),
     .testTarget(
       name: "BraveNewsTests",
       dependencies: ["BraveNews"],
@@ -656,7 +638,7 @@ var package = Package(
     .target(
       name: "BraveTalk",
       dependencies: [
-        "Shared", "Preferences", "JitsiMeet", "BraveCore",
+        "Shared", "Preferences", "JitsiMeet", "BraveCore", "Web",
         .product(name: "Collections", package: "swift-collections"),
       ],
       plugins: ["LoggerPlugin"]

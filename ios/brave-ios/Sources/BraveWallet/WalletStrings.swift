@@ -3131,6 +3131,13 @@ extension Strings {
       value: "Default Solana Wallet",
       comment: "The title for the entry displaying the current preferred default Solana wallet is."
     )
+    public static let web3PreferencesDefaultCardanoWallet = NSLocalizedString(
+      "wallet.web3PreferencesDefaultCardanoWallet",
+      tableName: "BraveWallet",
+      bundle: .module,
+      value: "Default Cardano Wallet",
+      comment: "The title for the entry displaying the current preferred default Cardano wallet is."
+    )
     public static let web3PreferencesAllowEthProviderAccess = NSLocalizedString(
       "wallet.web3PreferencesAllowEthProviderAccess",
       tableName: "BraveWallet",
@@ -3146,6 +3153,14 @@ extension Strings {
       value: "Sites Can Request Access to Your Solana Wallet",
       comment:
         "The title for the entry displaying the preferred option to allow web3 sites to access the Solana provider API."
+    )
+    public static let web3PreferencesAllowCardanoProviderAccess = NSLocalizedString(
+      "wallet.web3PreferencesAllowCardanoProviderAccess",
+      tableName: "BraveWallet",
+      bundle: .module,
+      value: "Sites Can Request Access to Your Cardano Wallet",
+      comment:
+        "The title for the entry displaying the preferred option to allow web3 sites to access the Cardano provider API."
     )
     public static let web3PreferencesDisplayWeb3Notifications = NSLocalizedString(
       "wallet.web3PreferencesDisplayWeb3Notifications",
@@ -3482,6 +3497,13 @@ extension Strings {
       bundle: .module,
       value: "ZCash",
       comment: "One of the coin types for users to create an account to store ZEC assets"
+    )
+    public static let coinTypeAda = NSLocalizedString(
+      "wallet.coinTypeAda",
+      tableName: "BraveWallet",
+      bundle: .module,
+      value: "Cardano",
+      comment: "One of the coin types for users to create an account to store ADA assets"
     )
     public static let coinTypeEthereumDescription = NSLocalizedString(
       "wallet.coinTypeEthereumDescription",
@@ -5920,6 +5942,87 @@ extension Strings {
       value:  "Try searching for a different asset.",
       comment:
         "The description that will show when there is no available provider with givin input."
+    )
+    public static let shieldZEC = NSLocalizedString(
+      "wallet.shieldZEC",
+      tableName: "BraveWallet",
+      bundle: .module,
+      value: "Shield ZEC",
+      comment:
+        "A button title to confirm a shield ZEC transaction. It is shown below details about a given transaction."
+    )
+    public static let unshieldZEC = NSLocalizedString(
+      "wallet.unshieldZEC",
+      tableName: "BraveWallet",
+      bundle: .module,
+      value: "Unshield ZEC",
+      comment:
+        "A button title to confirm an unshield ZEC transaction. It is shown below details about a given transaction."
+    )
+    public static let signCardanoTxRequestDetailsTokenLabel = NSLocalizedString(
+      "wallet.signCardanoTxRequestDetailsTokenLabel",
+      tableName: "BraveWallet",
+      bundle: .module,
+      value: "Token",
+      comment:
+        "The label displayed in details for Sign Cardano Transaction Request details panel beside/above the Token index."
+    )
+    public static let signCardanoTxRequestDetailsAddressLabel = NSLocalizedString(
+      "wallet.signCardanoTxRequestDetailsAddressLabel",
+      tableName: "BraveWallet",
+      bundle: .module,
+      value: "Address",
+      comment:
+        "The label displayed in details for Sign Cardano Transaction Request details panel beside/above the Address index."
+    )
+    public static let onboardingNetworkSelectionTitle = NSLocalizedString(
+      "wallet.onboardingNetworkSelectionTitle",
+      tableName: "BraveWallet",
+      bundle: .module,
+      value: "Supported Networks",
+      comment: "The title of the view during wallet onboarding that allows user to select which networks they want to see."
+    )
+    public static let onboardingNetworkSelectionDescription = NSLocalizedString(
+      "wallet.onboardingNetworkSelectionDescription",
+      tableName: "BraveWallet",
+      bundle: .module,
+      value: "Choose which blockchains to use in your wallet.",
+      comment: "The description of the view during wallet onboarding that allows user to select which networks they want to see."
+    )
+    public static let showTestnets = NSLocalizedString(
+      "wallet.showTestnets",
+      tableName: "BraveWallet",
+      bundle: .module,
+      value: "Show Testnets",
+      comment: "The title beside the toggle in onboarding network selection screen that shows test networks."
+    )
+    public static let featured = NSLocalizedString(
+      "wallet.featured",
+      tableName: "BraveWallet",
+      bundle: .module,
+      value: "Featured",
+      comment: "The title above the featured networks in onboarding network selection screen."
+    )
+    public static let popular = NSLocalizedString(
+      "wallet.popular",
+      tableName: "BraveWallet",
+      bundle: .module,
+      value: "Popular",
+      comment: "The title above the popular networks in onboarding network selection screen."
+    )
+    public static let testnets = NSLocalizedString(
+      "wallet.testnets",
+      tableName: "BraveWallet",
+      bundle: .module,
+      value: "Testnets",
+      comment: "The title above the testnets in onboarding network selection screen."
+    )
+    public static let onboardingNetworkSelectionContinue = NSLocalizedString(
+      "wallet.onboardingNetworkSelectionContinue",
+      tableName: "BraveWallet",
+      bundle: .module,
+      value: "Continue with %lld Networks",
+      comment: "The title of the continue button in onboarding network selection screen. '%lld' refers to a number (for example \"Continue with 8 Networks\")"
     )
   }
 }

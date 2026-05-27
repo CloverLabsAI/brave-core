@@ -8,18 +8,21 @@
 
 #include "base/containers/circular_deque.h"
 #include "base/values.h"
+#include "brave/components/brave_ads/buildflags/buildflags.h"
+
+static_assert(BUILDFLAG(ENABLE_BRAVE_ADS));
 
 namespace brave_ads {
 
 struct NotificationAdInfo;
 
-base::Value::Dict NotificationAdToValue(const NotificationAdInfo& ad);
-base::Value::List NotificationAdsToValue(
+base::DictValue NotificationAdToValue(const NotificationAdInfo& ad);
+base::ListValue NotificationAdsToValue(
     const base::circular_deque<NotificationAdInfo>& ads);
 
-NotificationAdInfo NotificationAdFromValue(const base::Value::Dict& dict);
+NotificationAdInfo NotificationAdFromValue(const base::DictValue& dict);
 base::circular_deque<NotificationAdInfo> NotificationAdsFromValue(
-    const base::Value::List& list);
+    const base::ListValue& list);
 
 }  // namespace brave_ads
 

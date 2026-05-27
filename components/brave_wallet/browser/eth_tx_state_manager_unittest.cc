@@ -69,7 +69,7 @@ TEST_F(EthTxStateManagerUnitTest, TxMetaAndValue) {
   // type 0
   std::unique_ptr<EthTransaction> tx = std::make_unique<EthTransaction>(
       *EthTransaction::FromTxData(mojom::TxData::New(
-          "0x09", "0x4a817c800", "0x5208",
+          "0x1", "0x09", "0x4a817c800", "0x5208",
           "0x3535353535353535353535353535353535353535", "0x0de0b6b3a7640000",
           std::vector<uint8_t>(), false, std::nullopt)));
   EthTxMeta meta(eth_account_id, std::move(tx));
@@ -97,7 +97,7 @@ TEST_F(EthTxStateManagerUnitTest, TxMetaAndValue) {
   meta.set_origin(url::Origin::Create(GURL("https://test.brave.com")));
   meta.set_chain_id(mojom::kMainnetChainId);
 
-  base::Value::Dict meta_value = meta.ToValue();
+  base::DictValue meta_value = meta.ToValue();
   EXPECT_FALSE(meta_value.FindString("from"));
   const std::string* from_account_id = meta_value.FindString("from_account_id");
   ASSERT_TRUE(from_account_id);
@@ -114,7 +114,7 @@ TEST_F(EthTxStateManagerUnitTest, TxMetaAndValue) {
   EXPECT_EQ(meta_from_value->tx_hash(), meta.tx_hash());
   EXPECT_EQ(meta_from_value->origin(), meta.origin());
   EXPECT_EQ(meta_from_value->chain_id(), meta.chain_id());
-  ASSERT_EQ(meta_from_value->tx()->type(), 0);
+  ASSERT_EQ(meta_from_value->tx()->type(), EthTransactionType::kLegacy);
   EXPECT_EQ(*meta_from_value->tx(), *meta.tx());
   // optional sign_only will be false by default
   EXPECT_FALSE(meta_from_value->sign_only());
@@ -124,11 +124,10 @@ TEST_F(EthTxStateManagerUnitTest, TxMetaAndValue) {
   // type 1
   std::unique_ptr<Eip2930Transaction> tx1 =
       std::make_unique<Eip2930Transaction>(*Eip2930Transaction::FromTxData(
-          mojom::TxData::New("0x09", "0x4a817c800", "0x5208",
+          mojom::TxData::New("0x3", "0x09", "0x4a817c800", "0x5208",
                              "0x3535353535353535353535353535353535353535",
                              "0x0de0b6b3a7640000", std::vector<uint8_t>(),
-                             false, std::nullopt),
-          0x3));
+                             false, std::nullopt)));
   auto* access_list = tx1->access_list();
   Eip2930Transaction::AccessListItem item_a;
   item_a.address.fill(0x0a);
@@ -138,10 +137,10 @@ TEST_F(EthTxStateManagerUnitTest, TxMetaAndValue) {
   access_list->push_back(item_a);
 
   EthTxMeta meta1(eth_account_id, std::move(tx1));
-  base::Value::Dict value1 = meta1.ToValue();
+  base::DictValue value1 = meta1.ToValue();
   auto meta_from_value1 = eth_tx_state_manager_->ValueToEthTxMeta(value1);
   ASSERT_NE(meta_from_value1, nullptr);
-  EXPECT_EQ(meta_from_value1->tx()->type(), 1);
+  EXPECT_EQ(meta_from_value1->tx()->type(), EthTransactionType::kEip2930);
   Eip2930Transaction* tx_from_value1 =
       static_cast<Eip2930Transaction*>(meta_from_value1->tx());
   EXPECT_EQ(*tx_from_value1, *static_cast<Eip2930Transaction*>(meta1.tx()));
@@ -150,24 +149,16 @@ TEST_F(EthTxStateManagerUnitTest, TxMetaAndValue) {
   std::unique_ptr<Eip1559Transaction> tx2 =
       std::make_unique<Eip1559Transaction>(
           *Eip1559Transaction::FromTxData(mojom::TxData1559::New(
-              mojom::TxData::New("0x09", "0x4a817c800", "0x5208",
+              mojom::TxData::New("0x3", "0x09", "0x4a817c800", "0x5208",
                                  "0x3535353535353535353535353535353535353535",
                                  "0x0de0b6b3a7640000", std::vector<uint8_t>(),
                                  false, std::nullopt),
-              "0x3", "0x1E", "0x32",
-              mojom::GasEstimation1559::New(
-                  "0x3b9aca00" /* Hex of 1 * 1e9 */,
-                  "0xaf16b1600" /* Hex of 47 * 1e9 */,
-                  "0x77359400" /* Hex of 2 * 1e9 */,
-                  "0xb2d05e000" /* Hex of 48 * 1e9 */,
-                  "0xb2d05e00" /* Hex of 3 * 1e9 */,
-                  "0xb68a0aa00" /* Hex of 49 * 1e9 */,
-                  "0xad8075b7a" /* Hex of 46574033786 */))));
+              "0x1E", "0x32")));
   EthTxMeta meta2(eth_account_id, std::move(tx2));
-  base::Value::Dict value2 = meta2.ToValue();
+  base::DictValue value2 = meta2.ToValue();
   auto meta_from_value2 = eth_tx_state_manager_->ValueToEthTxMeta(value2);
   ASSERT_NE(meta_from_value2, nullptr);
-  EXPECT_EQ(meta_from_value2->tx()->type(), 2);
+  EXPECT_EQ(meta_from_value2->tx()->type(), EthTransactionType::kEip1559);
   Eip1559Transaction* tx_from_value2 =
       static_cast<Eip1559Transaction*>(meta_from_value2->tx());
   EXPECT_EQ(*tx_from_value2, *static_cast<Eip1559Transaction*>(meta2.tx()));
@@ -175,12 +166,12 @@ TEST_F(EthTxStateManagerUnitTest, TxMetaAndValue) {
   // test sign_only
   std::unique_ptr<EthTransaction> tx3 = std::make_unique<EthTransaction>(
       *EthTransaction::FromTxData(mojom::TxData::New(
-          "0x09", "0x4a817c800", "0x5208",
+          "0x3", "0x09", "0x4a817c800", "0x5208",
           "0x3535353535353535353535353535353535353535", "0x0de0b6b3a7640000",
           std::vector<uint8_t>(), false, std::nullopt)));
   EthTxMeta meta3(eth_account_id, std::move(tx3));
   meta3.set_sign_only(true);
-  base::Value::Dict meta_value3 = meta3.ToValue();
+  base::DictValue meta_value3 = meta3.ToValue();
   auto meta_from_value3 = eth_tx_state_manager_->ValueToEthTxMeta(meta_value3);
   ASSERT_NE(meta_from_value3, nullptr);
   EXPECT_TRUE(meta_from_value3->sign_only());
@@ -189,6 +180,30 @@ TEST_F(EthTxStateManagerUnitTest, TxMetaAndValue) {
   meta_from_value3 = eth_tx_state_manager_->ValueToEthTxMeta(meta_value3);
   ASSERT_NE(meta_from_value3, nullptr);
   EXPECT_FALSE(meta_from_value3->sign_only());
+}
+
+TEST_F(EthTxStateManagerUnitTest, MetaChainIdUsedWhenTxChainIdMissing) {
+  auto eth_account_id = account_resolver_delegate_->RegisterAccount(
+      MakeAccountId(mojom::CoinType::ETH, mojom::KeyringId::kDefault,
+                    mojom::AccountKind::kDerived,
+                    "0x2f015c60e0be116b1f0cd534704db9c92118fb6a"));
+
+  std::unique_ptr<EthTransaction> tx = std::make_unique<EthTransaction>(
+      *EthTransaction::FromTxData(mojom::TxData::New(
+          "0x1", "0x09", "0x4a817c800", "0x5208",
+          "0x3535353535353535353535353535353535353535", "0x0de0b6b3a7640000",
+          std::vector<uint8_t>(), false, std::nullopt)));
+  EthTxMeta meta(eth_account_id, std::move(tx));
+  meta.set_chain_id(mojom::kMainnetChainId);
+  base::DictValue meta_value = meta.ToValue();
+
+  // `chain_id` might be missing in tx value, `chain_id` from meta should be
+  // used in that case.
+  EXPECT_EQ(*meta_value.FindStringByDottedPath("tx.chain_id"), "0x1");
+  meta_value.RemoveByDottedPath("tx.chain_id");
+  meta_value.Set("chain_id", "0x123");
+  auto meta_from_value = eth_tx_state_manager_->ValueToEthTxMeta(meta_value);
+  EXPECT_EQ(meta_from_value->tx()->chain_id(), uint256_t{0x123});
 }
 
 }  // namespace brave_wallet

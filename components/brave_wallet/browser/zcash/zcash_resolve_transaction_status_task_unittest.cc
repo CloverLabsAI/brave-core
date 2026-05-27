@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "base/files/scoped_temp_dir.h"
+#include "base/functional/callback_helpers.h"
 #include "base/test/mock_callback.h"
 #include "base/test/task_environment.h"
 #include "brave/components/brave_wallet/browser/keyring_service.h"
@@ -17,9 +18,9 @@
 #include "brave/components/brave_wallet/browser/test_utils.h"
 #include "brave/components/brave_wallet/browser/zcash/zcash_action_context.h"
 #include "brave/components/brave_wallet/browser/zcash/zcash_rpc.h"
+#include "brave/components/brave_wallet/browser/zcash/zcash_test_utils.h"
 #include "brave/components/brave_wallet/browser/zcash/zcash_transaction.h"
 #include "brave/components/brave_wallet/browser/zcash/zcash_tx_meta.h"
-#include "brave/components/brave_wallet/common/common_utils.h"
 #include "brave/components/services/brave_wallet/public/mojom/zcash_decoder.mojom.h"
 #include "components/sync_preferences/testing_pref_service_syncable.h"
 #include "testing/gmock/include/gmock/gmock.h"
@@ -61,8 +62,6 @@ class ZCashResolveTransactionStatusTaskTest : public testing::Test {
 
   void SetUp() override {
     ASSERT_TRUE(temp_dir_.CreateUniqueTempDir());
-    base::FilePath db_path(
-        temp_dir_.GetPath().Append(FILE_PATH_LITERAL("orchard.db")));
 
     brave_wallet::RegisterProfilePrefs(prefs_.registry());
     brave_wallet::RegisterLocalStatePrefs(local_state_.registry());
@@ -77,12 +76,16 @@ class ZCashResolveTransactionStatusTaskTest : public testing::Test {
                        .EnsureAccount(mojom::KeyringId::kZCashMainnet, 0);
     account_id_ = account->account_id.Clone();
 
-    zcash_wallet_service_ = std::make_unique<ZCashWalletService>(
-        db_path, *keyring_service_,
-        std::make_unique<testing::NiceMock<ZCashRpc>>(nullptr, nullptr));
+    zcash_wallet_service_ = std::make_unique<TestingZCashWalletService>(
+        *keyring_service_, std::make_unique<testing::NiceMock<MockZCashRPC>>());
+    zcash_wallet_service_->SetupSyncState(
+        OrchardSyncState::CreateSyncStateSequence(),
+        OrchardSyncState::CreateSyncState(temp_dir_.GetPath()));
   }
 
-  testing::NiceMock<MockZCashRPC>& zcash_rpc() { return zcash_rpc_; }
+  MockZCashRPC& zcash_rpc() {
+    return static_cast<MockZCashRPC&>(zcash_wallet_service_->zcash_rpc());
+  }
 
   base::test::TaskEnvironment& task_environment() { return task_environment_; }
 
@@ -98,11 +101,7 @@ class ZCashResolveTransactionStatusTaskTest : public testing::Test {
   ZCashWalletService& zcash_wallet_service() { return *zcash_wallet_service_; }
 
   ZCashActionContext CreateContext() {
-    return ZCashActionContext(zcash_rpc_,
-#if BUILDFLAG(ENABLE_ORCHARD)
-                              {}, sync_state_,
-#endif
-                              account_id_);
+    return zcash_wallet_service_->CreateActionContext(account_id());
   }
 
   base::PassKey<class ZCashResolveTransactionStatusTaskTest> CreatePassKey() {
@@ -111,9 +110,6 @@ class ZCashResolveTransactionStatusTaskTest : public testing::Test {
 
  private:
   base::test::TaskEnvironment task_environment_;
-#if BUILDFLAG(ENABLE_ORCHARD)
-  base::SequenceBound<OrchardSyncState> sync_state_;
-#endif
 
   base::ScopedTempDir temp_dir_;
 
@@ -121,10 +117,9 @@ class ZCashResolveTransactionStatusTaskTest : public testing::Test {
   sync_preferences::TestingPrefServiceSyncable local_state_;
 
   std::unique_ptr<KeyringService> keyring_service_;
-  std::unique_ptr<ZCashWalletService> zcash_wallet_service_;
+  std::unique_ptr<TestingZCashWalletService> zcash_wallet_service_;
 
   mojom::AccountIdPtr account_id_;
-  testing::NiceMock<MockZCashRPC> zcash_rpc_;
 };
 
 TEST_F(ZCashResolveTransactionStatusTaskTest, Confirmed) {
@@ -133,23 +128,21 @@ TEST_F(ZCashResolveTransactionStatusTaskTest, Confirmed) {
   tx_meta->set_tx_hash("tx_hash");
 
   ON_CALL(zcash_rpc(), GetLatestBlock(_, _))
-      .WillByDefault(
-          [](const std::string& chain_id,
-             MockZCashRPC::GetLatestBlockCallback callback) {
-            EXPECT_EQ(chain_id, mojom::kZCashMainnet);
-            std::move(callback).Run(zcash::mojom::BlockID::New(
-                kTransactionHeight + 5u, std::vector<uint8_t>()));
-          });
+      .WillByDefault([](const std::string& chain_id,
+                        MockZCashRPC::GetLatestBlockCallback callback) {
+        EXPECT_EQ(chain_id, mojom::kZCashMainnet);
+        std::move(callback).Run(zcash::mojom::BlockID::New(
+            kTransactionHeight + 5u, std::vector<uint8_t>()));
+      });
 
   ON_CALL(zcash_rpc(), GetTransaction(_, _, _))
-      .WillByDefault(
-          [](const std::string& chain_id, const std::string& tx_hash,
-             MockZCashRPC::GetTransactionCallback callback) {
-            EXPECT_EQ(chain_id, mojom::kZCashMainnet);
-            EXPECT_EQ(tx_hash, "tx_hash");
-            std::move(callback).Run(zcash::mojom::RawTransaction::New(
-                std::vector<uint8_t>(), kTransactionHeight));
-          });
+      .WillByDefault([](const std::string& chain_id, const std::string& tx_hash,
+                        MockZCashRPC::GetTransactionCallback callback) {
+        EXPECT_EQ(chain_id, mojom::kZCashMainnet);
+        EXPECT_EQ(tx_hash, "tx_hash");
+        std::move(callback).Run(zcash::mojom::RawTransaction::New(
+            std::vector<uint8_t>(), kTransactionHeight));
+      });
 
   base::MockCallback<ZCashResolveTransactionStatusTask::
                          ZCashResolveTransactionStatusTaskCallback>

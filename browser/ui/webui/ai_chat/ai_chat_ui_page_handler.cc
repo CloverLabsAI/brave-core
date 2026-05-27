@@ -33,7 +33,7 @@
 #include "brave/components/constants/webui_url_constants.h"
 #include "chrome/browser/favicon/favicon_service_factory.h"
 #include "chrome/browser/profiles/profile.h"
-#include "chrome/browser/ui/chrome_select_file_policy.h"
+#include "chrome/browser/ui/select_file_policy/chrome_select_file_policy.h"
 #include "chrome/browser/ui/singleton_tabs.h"
 #include "components/favicon/core/favicon_service.h"
 #include "components/grit/brave_components_webui_strings.h"
@@ -355,6 +355,11 @@ void AIChatUIPageHandler::OnRequestArchive(
   // Conversations of previous navigations. That doens't apply to the standalone
   // UI where it will keep a previous navigation's conversation active.
 
+  // chat_ui_ may not be bound yet if a navigation occurs before the WebUI
+  // frontend calls SetChatUI().
+  if (!chat_ui_.is_bound()) {
+    return;
+  }
   chat_ui_->OnNewDefaultConversation(
       active_chat_tab_helper_
           ? std::make_optional(
@@ -363,6 +368,9 @@ void AIChatUIPageHandler::OnRequestArchive(
 }
 
 void AIChatUIPageHandler::OnFilesSelected() {
+  if (!chat_ui_.is_bound()) {
+    return;
+  }
   chat_ui_->OnUploadFilesSelected();
 }
 
@@ -377,7 +385,14 @@ void AIChatUIPageHandler::CloseUI() {
 void AIChatUIPageHandler::SetChatUI(mojo::PendingRemote<mojom::ChatUI> chat_ui,
                                     SetChatUICallback callback) {
   chat_ui_.Bind(std::move(chat_ui));
-  std::move(callback).Run(active_chat_tab_helper_ == nullptr);
+  std::move(callback).Run(
+// Android is always standalone.
+#if BUILDFLAG(IS_ANDROID)
+      true
+#else
+      active_chat_tab_helper_ == nullptr
+#endif
+  );
 
   chat_ui_->OnNewDefaultConversation(
       active_chat_tab_helper_
@@ -474,6 +489,9 @@ void AIChatUIPageHandler::NewConversation(
 
 void AIChatUIPageHandler::BindParentUIFrameFromChildFrame(
     mojo::PendingReceiver<mojom::ParentUIFrame> receiver) {
+  if (!chat_ui_.is_bound()) {
+    return;
+  }
   chat_ui_->OnChildFrameBound(std::move(receiver));
 }
 

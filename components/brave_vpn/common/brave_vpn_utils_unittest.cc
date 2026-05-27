@@ -63,7 +63,7 @@ TEST(BraveVPNUtilsUnitTest, MigrateAndMerge) {
       profile_pref_service.HasPrefPath(brave_vpn::prefs::kBraveVPNRootPref));
   EXPECT_TRUE(local_state_pref_service.HasPrefPath(
       brave_vpn::prefs::kBraveVPNRootPref));
-  base::Value::Dict result = std::move(vpn_settings);
+  base::DictValue result = std::move(vpn_settings);
   result.Merge(std::move(p3a_settings));
   EXPECT_EQ(
       local_state_pref_service.GetDict(brave_vpn::prefs::kBraveVPNRootPref),
@@ -199,6 +199,8 @@ TEST(BraveVPNUtilsUnitTest, AlreadyMigrated) {
 TEST(BraveVPNUtilsUnitTest, SelectedRegionNameMigration) {
   TestingPrefServiceSimple local_state_pref_service;
   brave_vpn::RegisterLocalStatePrefs(local_state_pref_service.registry());
+  brave_vpn::RegisterLocalStatePrefsForMigration(
+      local_state_pref_service.registry());
   EXPECT_EQ(1, local_state_pref_service.GetInteger(
                    brave_vpn::prefs::kBraveVPNRegionListVersion));
 
@@ -218,6 +220,8 @@ TEST(BraveVPNUtilsUnitTest, SelectedRegionNameMigration) {
 TEST(BraveVPNUtilsUnitTest, InvalidSelectedRegionNameMigration) {
   TestingPrefServiceSimple local_state_pref_service;
   brave_vpn::RegisterLocalStatePrefs(local_state_pref_service.registry());
+  brave_vpn::RegisterLocalStatePrefsForMigration(
+      local_state_pref_service.registry());
   EXPECT_EQ(1, local_state_pref_service.GetInteger(
                    brave_vpn::prefs::kBraveVPNRegionListVersion));
 

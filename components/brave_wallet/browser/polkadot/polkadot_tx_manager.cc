@@ -8,6 +8,7 @@
 #include <utility>
 
 #include "base/notimplemented.h"
+#include "base/strings/string_number_conversions.h"
 #include "brave/components/brave_wallet/browser/account_resolver_delegate.h"
 #include "brave/components/brave_wallet/browser/brave_wallet_utils.h"
 #include "brave/components/brave_wallet/browser/keyring_service.h"
@@ -19,6 +20,8 @@
 #include "brave/components/brave_wallet/browser/tx_service.h"
 #include "brave/components/brave_wallet/common/brave_wallet.mojom.h"
 #include "brave/components/brave_wallet/common/common_utils.h"
+#include "components/grit/brave_components_strings.h"
+#include "ui/base/l10n/l10n_util.h"
 
 namespace brave_wallet {
 
@@ -54,15 +57,100 @@ void PolkadotTxManager::AddUnapprovedTransaction(
   std::move(callback).Run(false, "", "Not implemented");
 }
 
+std::unique_ptr<PolkadotTxMeta> PolkadotTxManager::GetPolkadotTx(
+    const std::string& tx_meta_id) {
+  auto tx_meta = tx_state_manager().GetTx(tx_meta_id);
+  if (!tx_meta) {
+    return {};
+  }
+
+  // Because our tx_state_manager() points to the base object of the
+  // PolkadotTxStateManager, we dispatch correctly to the
+  // PolkadotTxStateManager::ValueToTxMeta() definition which creates a complete
+  // PolkadotTxMeta structure which makes this cast well-defined.
+  return base::WrapUnique<PolkadotTxMeta>(
+      static_cast<PolkadotTxMeta*>(tx_meta.release()));
+}
+
 void PolkadotTxManager::ApproveTransaction(
     const std::string& tx_meta_id,
     ApproveTransactionCallback callback) {
-  NOTIMPLEMENTED_LOG_ONCE();
+  auto tx_meta = GetPolkadotTx(tx_meta_id);
+  if (!tx_meta) {
+    std::move(callback).Run(
+        false,
+        mojom::ProviderErrorUnion::NewPolkadotProviderError(
+            mojom::PolkadotProviderError::kInternalError),
+        l10n_util::GetStringUTF8(IDS_BRAVE_WALLET_TRANSACTION_NOT_FOUND));
+    return;
+  }
 
-  std::move(callback).Run(false,
-                          mojom::ProviderErrorUnion::NewProviderError(
-                              mojom::ProviderError::kInternalError),
-                          "Not implemented");
+  tx_meta->set_status(mojom::TransactionStatus::Approved);
+  if (!tx_state_manager().AddOrUpdateTx(*tx_meta)) {
+    std::move(callback).Run(false,
+                            mojom::ProviderErrorUnion::NewPolkadotProviderError(
+                                mojom::PolkadotProviderError::kInternalError),
+                            WalletInternalErrorMessage());
+    return;
+  }
+
+  const auto& account_id = tx_meta->from();
+  const auto& chain_id = tx_meta->chain_id();
+  auto send_amount = tx_meta->tx()->amount();
+  auto recipient = tx_meta->tx()->recipient().pubkey;
+
+  polkadot_wallet_service_->SignAndSendTransaction(
+      chain_id, account_id->Clone(), send_amount, recipient,
+      base::BindOnce(&PolkadotTxManager::OnApprovePolkadotTransaction,
+                     weak_ptr_factory_.GetWeakPtr(), std::move(tx_meta),
+                     std::move(callback)));
+}
+
+void PolkadotTxManager::OnApprovePolkadotTransaction(
+    std::unique_ptr<PolkadotTxMeta> tx_meta,
+    ApproveTransactionCallback callback,
+    base::expected<std::pair<std::string, PolkadotExtrinsicMetadata>,
+                   std::string> tx_hash_metadata_pair) {
+  CHECK(tx_meta);
+
+  if (!tx_hash_metadata_pair.has_value()) {
+    tx_meta->set_status(mojom::TransactionStatus::Error);
+  } else {
+    const auto& [tx_hash, extrinsic_metadata] = tx_hash_metadata_pair.value();
+
+    tx_meta->set_status(mojom::TransactionStatus::Submitted);
+    tx_meta->set_submitted_time(base::Time::Now());
+    tx_meta->set_tx_hash(tx_hash);
+
+    auto* tx = tx_meta->tx();
+    CHECK(tx);
+
+    tx->set_extrinsic_metadata(extrinsic_metadata);
+  }
+
+  if (!tx_state_manager().AddOrUpdateTx(*tx_meta)) {
+    return std::move(callback).Run(
+        false,
+        mojom::ProviderErrorUnion::NewPolkadotProviderError(
+            mojom::PolkadotProviderError::kInternalError),
+        WalletInternalErrorMessage());
+  }
+
+  if (!tx_hash_metadata_pair.has_value()) {
+    return std::move(callback).Run(
+        false,
+        mojom::ProviderErrorUnion::NewPolkadotProviderError(
+            mojom::PolkadotProviderError::kInternalError),
+        tx_hash_metadata_pair.error());
+  }
+
+  UpdatePendingTransactions(tx_meta->chain_id());
+
+  return std::move(callback).Run(
+      true,
+      mojom::ProviderErrorUnion::NewPolkadotProviderError(
+          mojom::PolkadotProviderError::kSuccess),
+      tx_meta->tx_hash());
 }
 
 void PolkadotTxManager::AddUnapprovedPolkadotTransaction(
@@ -83,7 +171,7 @@ void PolkadotTxManager::AddUnapprovedPolkadotTransaction(
 void PolkadotTxManager::OnGetChainMetadataForUnapproved(
     mojom::NewPolkadotTransactionParamsPtr params,
     AddUnapprovedPolkadotTransactionCallback callback,
-    const base::expected<PolkadotChainMetadata, std::string>& chain_metadata) {
+    base::expected<PolkadotChainMetadata, std::string> chain_metadata) {
   if (!chain_metadata.has_value()) {
     return std::move(callback).Run(false, "", chain_metadata.error());
   }
@@ -94,14 +182,42 @@ void PolkadotTxManager::OnGetChainMetadataForUnapproved(
     return std::move(callback).Run(false, "", WalletInternalErrorMessage());
   }
 
+  std::string chain_id = params->chain_id;
+  auto account_id = params->from.Clone();
+  auto send_amount = MojomToUint128(params->amount);
+
+  polkadot_wallet_service_->GetFeeEstimate(
+      std::move(chain_id), std::move(account_id), send_amount,
+      recipient->pubkey,
+      base::BindOnce(&PolkadotTxManager::OnGetFeeForUnapproved,
+                     weak_ptr_factory_.GetWeakPtr(),
+                     std::move(chain_metadata.value()), std::move(params),
+                     std::move(callback)));
+}
+
+void PolkadotTxManager::OnGetFeeForUnapproved(
+    PolkadotChainMetadata chain_metadata,
+    mojom::NewPolkadotTransactionParamsPtr params,
+    AddUnapprovedPolkadotTransactionCallback callback,
+    base::expected<uint128_t, std::string> partial_fee) {
+  if (!partial_fee.has_value()) {
+    return std::move(callback).Run(false, "", WalletInternalErrorMessage());
+  }
+
   // We don't support Polkadot dApps so far, so all transactions come from
   // wallet origin.
   std::optional<url::Origin> origin = std::nullopt;
+
+  auto recipient =
+      ParsePolkadotAccount(params->to, chain_metadata.GetSs58Prefix());
+  // We should have already verified this upon retrieving the chain metadata.
+  CHECK(recipient);
 
   PolkadotTxMeta tx_metadata;
 
   PolkadotTransaction tx;
   tx.set_amount(MojomToUint128(params->amount));
+  tx.set_fee(partial_fee.value());
   tx.set_recipient(*recipient);
   tx.set_transfer_all(params->sending_max_amount);
   tx_metadata.set_tx(std::move(tx));

@@ -282,7 +282,7 @@ BraveSyncAPIWordsValidationStatus const
 
   // QR code version 3 can only carry 84 bytes so we hex encode 32 bytes
   // seed then we will have 64 bytes input data
-  const std::string sync_code_hex = base::HexEncode(seed.data(), seed.size());
+  const std::string sync_code_hex = base::HexEncode(seed);
 
   NSData* sync_code_data = [base::SysUTF8ToNSString(sync_code_hex.c_str())
       dataUsingEncoding:NSUTF8StringEncoding];  // NSISOLatin1StringEncoding
@@ -313,7 +313,7 @@ BraveSyncAPIWordsValidationStatus const
   auto device_list = _worker->GetDeviceList();
   auto* local_device_info = _worker->GetLocalDeviceInfo();
 
-  base::Value::List device_list_value;
+  base::ListValue device_list_value;
 
   for (const auto& device : device_list) {
     auto device_value = device->ToValue();

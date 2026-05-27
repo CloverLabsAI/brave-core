@@ -8,7 +8,6 @@
 
 #include "brave/browser/ui/brave_browser_window.h"
 #include "brave/browser/ui/views/bookmarks/brave_bookmark_bar_view.h"
-#include "brave/browser/ui/views/frame/brave_browser_view_layout.h"
 #include "brave/browser/ui/views/side_panel/side_panel.h"
 #include "build/build_config.h"
 #include "chrome/browser/ui/exclusive_access/exclusive_access_context.h"
@@ -22,7 +21,6 @@
   virtual bool IsWebPanelContents(content::WebContents* contents)
 
 #define BrowserWindow BraveBrowserWindow
-#define BrowserViewLayout BraveBrowserViewLayout
 #define BookmarkBarView BraveBookmarkBarView
 
 #define MaybeShowReadingListInSidePanelIPH \
@@ -36,6 +34,12 @@
   GetTabSearchBubbleHost_Unused(); \
   virtual TabSearchBubbleHost* GetTabSearchBubbleHost
 
+#if BUILDFLAG(IS_MAC)
+#define UsesImmersiveFullscreenMode virtual UsesImmersiveFullscreenMode
+#define UsesImmersiveFullscreenTabbedMode \
+  virtual UsesImmersiveFullscreenTabbedMode
+#endif
+
 #if BUILDFLAG(IS_WIN)
 // On Windows <winuser.h> defines LoadAccelerators
 // Using push_macro seems to be causing #undef not to work in Chromium 125.
@@ -48,15 +52,24 @@
 #define HideSplitView virtual HideSplitView
 #define ReparentTopContainerForEndOfImmersive \
   virtual ReparentTopContainerForEndOfImmersive
+#define ShouldDrawTabStrokes virtual ShouldDrawTabStrokes
+#define GetFrameElementInfo virtual GetFrameElementInfo
 
 #include <chrome/browser/ui/views/frame/browser_view.h>  // IWYU pragma: export
 
+#undef GetFrameElementInfo
 #undef ReparentTopContainerForEndOfImmersive
+#undef ShouldDrawTabStrokes
 #undef HideSplitView
 #undef ShowSplitView
 #undef LoadAccelerators
 #if BUILDFLAG(IS_WIN)
 // #pragma pop_macro("LoadAccelerators")
+#endif
+
+#if BUILDFLAG(IS_MAC)
+#undef UsesImmersiveFullscreenTabbedMode
+#undef UsesImmersiveFullscreenMode
 #endif
 
 #undef GetTabSearchBubbleHost
@@ -65,7 +78,6 @@
 #undef MaybeUpdateDevtools
 #undef MaybeShowReadingListInSidePanelIPH
 #undef BookmarkBarView
-#undef BrowserViewLayout
 #undef BrowserWindow
 #undef BrowserViewLayoutDelegateImplOld
 

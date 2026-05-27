@@ -13,7 +13,11 @@
 #include "base/check_op.h"
 #include "base/functional/bind.h"
 #include "brave/app/brave_command_ids.h"
+#include "brave/app/vector_icons/vector_icons.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
+#include "brave/browser/ui/views/frame/brave_browser_view.h"
+#include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_region_view.h"
+#include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_widget_delegate_view.h"
 #include "brave/browser/ui/views/location_bar/brave_location_bar_view.h"
 #include "brave/browser/ui/views/tabs/vertical_tab_utils.h"
 #include "brave/browser/ui/views/toolbar/bookmark_button.h"
@@ -32,13 +36,19 @@
 #include "chrome/browser/ui/ui_features.h"
 #include "chrome/browser/ui/views/bookmarks/bookmark_bubble_view.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
+#include "chrome/browser/ui/views/toolbar/toolbar_button.h"
+#include "chrome/browser/ui/views/toolbar/toolbar_divider.h"
 #include "chrome/browser/ui/views/toolbar/toolbar_view.h"
+#include "chrome/grit/generated_resources.h"
 #include "components/bookmarks/common/bookmark_pref_names.h"
 #include "components/prefs/pref_service.h"
 #include "ui/base/hit_test.h"
+#include "ui/base/l10n/l10n_util.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/base/window_open_disposition_utils.h"
 #include "ui/events/event.h"
+#include "ui/views/layout/flex_layout_types.h"
+#include "ui/views/view_class_properties.h"
 #include "ui/views/window/hit_test_utils.h"
 
 #if BUILDFLAG(ENABLE_AI_CHAT)
@@ -134,6 +144,30 @@ bool IsAvatarButtonHideable(Profile* profile) {
   return !profile->IsIncognitoProfile() && !profile->IsGuestSession();
 }
 
+// Brave-specific optional toolbar buttons should hide before the location bar
+// is forced to shrink. The location bar uses flex order 1001
+// (kLocationBarFlexOrder in toolbar_view.cc); assigning a higher order makes
+// these buttons the first to be evicted when horizontal space is tight.
+//
+// The orientation-aware FlexSpecification constructor is used here so that
+// kPreferredSnapToZero applies only to the main (horizontal) axis. The cross
+// (vertical) axis uses kPreferred so that height is always granted in full.
+// Using the two-argument constructor would apply kPreferredSnapToZero to both
+// axes: buttons whose preferred height exceeds the toolbar's cross-axis budget
+// (e.g. when a badge image is taller than the base icon) would have their
+// height snapped to zero, making them invisible despite having the correct
+// width.
+void SetBraveButtonFlexBehavior(views::View* btn) {
+  constexpr int kBraveOptionalButtonFlexOrder = 1010;
+  const views::FlexSpecification kBraveButtonFlex =
+      views::FlexSpecification(views::LayoutOrientation::kHorizontal,
+                               views::MinimumFlexSizeRule::kPreferredSnapToZero,
+                               views::MaximumFlexSizeRule::kPreferred, false,
+                               views::MinimumFlexSizeRule::kPreferred)
+          .WithOrder(kBraveOptionalButtonFlexOrder);
+  btn->SetProperty(views::kFlexBehaviorKey, kBraveButtonFlex);
+}
+
 }  // namespace
 
 class BraveToolbarView::LayoutGuard {
@@ -152,8 +186,6 @@ class BraveToolbarView::LayoutGuard {
 
 BraveToolbarView::BraveToolbarView(Browser* browser, BrowserView* browser_view)
     : ToolbarView(browser, browser_view) {
-  // See the comments in UpdateRecedingCornerRadius().
-  receding_corner_radius_ = GetLayoutConstant(TOOLBAR_CORNER_RADIUS);
 }
 
 BraveToolbarView::~BraveToolbarView() = default;
@@ -165,10 +197,10 @@ void BraveToolbarView::Init() {
   // See brave_non_client_hit_test_helper.h
   views::SetHitTestComponent(this, HTCAPTION);
 
-  DCHECK(location_bar_);
-  // Get ToolbarView's container_view as a parent of location_bar_ because
+  DCHECK(location_bar_view_);
+  // Get ToolbarView's container_view as a parent of location_bar_view_ because
   // container_view's type in ToolbarView is internal to toolbar_view.cc.
-  views::View* container_view = location_bar_->parent();
+  views::View* container_view = location_bar_view_->parent();
   DCHECK(container_view);
 
   views::SetHitTestComponent(container_view, HTCAPTION);
@@ -233,15 +265,22 @@ void BraveToolbarView::Init() {
                           base::Unretained(this)));
 
   if (tabs::utils::SupportsBraveVerticalTabs(browser_)) {
-    show_vertical_tabs_.Init(
-        brave_tabs::kVerticalTabsEnabled,
-        profile->GetOriginalProfile()->GetPrefs(),
-        base::BindRepeating(&BraveToolbarView::UpdateHorizontalPadding,
-                            base::Unretained(this)));
+    show_vertical_tabs_.Init(brave_tabs::kVerticalTabsEnabled,
+                             profile->GetPrefs(),
+                             base::BindRepeating(
+                                 [](BraveToolbarView* self) {
+                                   self->UpdateHorizontalPadding();
+                                   self->UpdateVerticalTabToggleVisibility();
+                                 },
+                                 base::Unretained(this)));
     show_title_bar_on_vertical_tabs_.Init(
         brave_tabs::kVerticalTabsShowTitleOnWindow,
         profile->GetOriginalProfile()->GetPrefs(),
         base::BindRepeating(&BraveToolbarView::UpdateHorizontalPadding,
+                            base::Unretained(this)));
+    vertical_tabs_collapsed_.Init(
+        brave_tabs::kVerticalTabsCollapsed, profile->GetPrefs(),
+        base::BindRepeating(&BraveToolbarView::UpdateVerticalTabToggleState,
                             base::Unretained(this)));
 #if BUILDFLAG(IS_LINUX)
     use_custom_chrome_frame_.Init(
@@ -257,17 +296,32 @@ void BraveToolbarView::Init() {
         browser, command, ui::DispositionFromEventFlags(event.flags()));
   };
 
+  // Add vertical tab toggle button to the left of the back button.
+  if (tabs::utils::SupportsBraveVerticalTabs(browser_)) {
+    auto back_button_index = container_view->GetIndexOf(back_);
+    vertical_tab_toggle_ = container_view->AddChildViewAt(
+        std::make_unique<ToolbarButton>(
+            base::BindRepeating(&BraveToolbarView::OnVerticalTabTogglePressed,
+                                base::Unretained(this))),
+        back_button_index.value_or(0));
+    vertical_tab_toggle_->SetVectorIcon(kVerticalTabStripToggleButtonIcon);
+    UpdateVerticalTabToggleVisibility();
+    UpdateVerticalTabToggleState();
+  }
+
   bookmark_ = container_view->AddChildViewAt(
       std::make_unique<BraveBookmarkButton>(
           base::BindRepeating(callback, browser_, IDC_BOOKMARK_THIS_TAB)),
-      *container_view->GetIndexOf(location_bar_));
+      *container_view->GetIndexOf(location_bar_view_));
   bookmark_->SetTriggerableEventFlags(ui::EF_LEFT_MOUSE_BUTTON |
                                       ui::EF_MIDDLE_MOUSE_BUTTON);
   bookmark_->UpdateImageAndText();
+  SetBraveButtonFlexBehavior(bookmark_);
 
   side_panel_ = container_view->AddChildViewAt(
       std::make_unique<SidePanelButton>(browser()),
       *container_view->GetIndexOf(GetAppMenuButton()) - 1);
+  SetBraveButtonFlexBehavior(side_panel_);
 
 #if BUILDFLAG(ENABLE_BRAVE_WALLET)
   wallet_ = container_view->AddChildViewAt(
@@ -276,6 +330,7 @@ void BraveToolbarView::Init() {
   wallet_->SetTriggerableEventFlags(ui::EF_LEFT_MOUSE_BUTTON |
                                     ui::EF_MIDDLE_MOUSE_BUTTON);
   wallet_->UpdateImageAndText();
+  SetBraveButtonFlexBehavior(wallet_);
 
   UpdateWalletButtonVisibility();
 #endif
@@ -287,6 +342,7 @@ void BraveToolbarView::Init() {
     ai_chat_button_ = container_view->AddChildViewAt(
         std::make_unique<AIChatButton>(browser()),
         *container_view->GetIndexOf(GetAppMenuButton()) - 1);
+    SetBraveButtonFlexBehavior(ai_chat_button_);
     show_ai_chat_button_.Init(
         ai_chat::prefs::kBraveAIChatShowToolbarButton,
         browser_->profile()->GetPrefs(),
@@ -305,6 +361,7 @@ void BraveToolbarView::Init() {
     brave_vpn_ = container_view->AddChildViewAt(
         std::make_unique<BraveVPNButton>(browser()),
         *container_view->GetIndexOf(GetAppMenuButton()) - 1);
+    SetBraveButtonFlexBehavior(brave_vpn_);
     show_brave_vpn_button_.Init(
         brave_vpn::prefs::kBraveVPNShowButton, profile->GetPrefs(),
         base::BindRepeating(&BraveToolbarView::OnVPNButtonVisibilityChanged,
@@ -413,11 +470,6 @@ void BraveToolbarView::Update(content::WebContents* tab) {
   }
 }
 
-void BraveToolbarView::UpdateRecedingCornerRadius() {
-  // Do nothing here as we'll show rounded corners always.
-  // |receding_corner_radius_| is initialized in ctor.
-}
-
 void BraveToolbarView::UpdateBookmarkVisibility() {
   if (!bookmark_) {
     return;
@@ -434,10 +486,10 @@ void BraveToolbarView::UpdateHorizontalPadding() {
     return;
   }
 
-  // Get ToolbarView's container_view as a parent of location_bar_ because
+  // Get ToolbarView's container_view as a parent of location_bar_view_ because
   // container_view's type in ToolbarView is internal to toolbar_view.cc.
-  DCHECK(location_bar_ && location_bar_->parent());
-  views::View* container_view = location_bar_->parent();
+  DCHECK(location_bar_view_ && location_bar_view_->parent());
+  views::View* container_view = location_bar_view_->parent();
 
   if (!tabs::utils::ShouldShowBraveVerticalTabs(browser()) ||
       tabs::utils::ShouldShowWindowTitleForVerticalTabs(browser())) {
@@ -456,7 +508,7 @@ void BraveToolbarView::ShowBookmarkBubble(const GURL& url,
   // Show BookmarkBubble attached to Brave's bookmark button
   // or the location bar if there is no bookmark button
   // (i.e. in non-normal display mode).
-  views::View* anchor_view = location_bar_;
+  views::View* anchor_view = location_bar_view_;
   if (bookmark_ && bookmark_->GetVisible()) {
     anchor_view = bookmark_;
   }
@@ -465,17 +517,21 @@ void BraveToolbarView::ShowBookmarkBubble(const GURL& url,
                                  browser_, url, already_bookmarked);
 }
 
+void BraveToolbarView::VisibilityChanged(views::View* starting_from,
+                                         bool visible) {
+  ToolbarView::VisibilityChanged(starting_from, visible);
+  if (visible) {
+    // Ink drop highlight is cleared whenever visibility changes, so re-apply.
+    UpdateVerticalTabToggleState();
+  }
+}
+
 void BraveToolbarView::ViewHierarchyChanged(
     const views::ViewHierarchyChangedDetails& details) {
   ToolbarView::ViewHierarchyChanged(details);
 
-  // Upstream has two more children |background_view_left_| and
-  // |background_view_right_| behind the container view.
-  const int container_view_index = 2;
-
-  if (details.is_add && children().size() > container_view_index &&
-      details.parent == children()[container_view_index]) {
-    // Mark children of the container view as client area so that they are not
+  if (details.is_add && details.parent == this) {
+    // Mark children of the toolbar view as client area so that they are not
     // perceived as caption area. See brave_non_client_hit_test_helper.h
     views::SetHitTestComponent(details.child, HTCLIENT);
   }
@@ -498,7 +554,7 @@ void BraveToolbarView::Layout(PassKey) {
   // if wide address bar option is off.
   // TODO(https://github.com/brave/brave-browser/issues/48810): Refactor to do
   // layout once.
-  LayoutGuard guard(static_cast<BraveLocationBarView*>(location_bar_));
+  LayoutGuard guard(static_cast<BraveLocationBarView*>(location_bar_view_));
   if (!location_bar_is_wide_.GetValue()) {
     guard.set_ignore_layout(true);
   }
@@ -517,23 +573,42 @@ void BraveToolbarView::ResetLocationBarBounds() {
 
   // Calculate proper location bar's margin and set its bounds.
   const gfx::Insets margin = CalcLocationBarMargin(
-      width(), location_bar_->width(), location_bar_->GetMinimumSize().width(),
-      location_bar_->x());
+      width(), location_bar_view_->width(),
+      location_bar_view_->GetMinimumSize().width(), location_bar_view_->x());
 
-  location_bar_->SetBounds(
-      location_bar_->x() + margin.left(), location_bar_->y(),
-      location_bar_->width() - margin.width(), location_bar_->height());
+  // When the window is at minimum width, GetLocationBarMarginHPercent()
+  // returns 0, so ResetLocationBarBounds() produces the same bounds and
+  // SetBoundsRect() exits early without calling LayoutImmediately(). In that
+  // case BraveLocationBarView::Layout() is never called in this pass and
+  // children keep stale positions from a previous wider layout, which can
+  // place Brave-specific views outside the bar's bounds.
+  // Only call InvalidateLayout() in that zero-margin case; calling it
+  // unconditionally causes spurious re-layouts on every hover/paint pass,
+  // which moves anchor views and makes anchored bubbles flicker.
+  if (margin.IsEmpty()) {
+    // Only the location bar needs layout here; pass true to prevent the
+    // invalidation from propagating to the parent toolbar.
+    // views::View::InvalidateLayout() is called explicitly because
+    // LocationBarView::InvalidateLayout() shadows the base-class bool overload.
+    location_bar_view_->views::View::InvalidateLayout(
+        /*avoid_propagate_during_layout*/ true);
+  }
+  location_bar_view_->SetBounds(location_bar_view_->x() + margin.left(),
+                                location_bar_view_->y(),
+                                location_bar_view_->width() - margin.width(),
+                                location_bar_view_->height());
 }
 
 void BraveToolbarView::ResetBookmarkButtonBounds() {
   DCHECK_EQ(DisplayMode::kNormal, display_mode_);
 
-  int button_right_margin = GetLayoutConstant(TOOLBAR_STANDARD_SPACING);
+  int button_right_margin =
+      GetLayoutConstant(LayoutConstant::kLocationBarMargin);
 
   if (bookmark_ && bookmark_->GetVisible()) {
     const int bookmark_width = bookmark_->GetPreferredSize().width();
     const int bookmark_x =
-        location_bar_->x() - bookmark_width - button_right_margin;
+        location_bar_view_->x() - bookmark_width - button_right_margin;
     bookmark_->SetX(bookmark_x);
   }
 }
@@ -569,6 +644,49 @@ void BraveToolbarView::UpdateWalletButtonVisibility() {
   wallet_->SetVisible(false);
 }
 #endif
+
+void BraveToolbarView::UpdateVerticalTabToggleVisibility() {
+  if (!vertical_tab_toggle_) {
+    return;
+  }
+
+  vertical_tab_toggle_->SetVisible(
+      tabs::utils::ShouldShowBraveVerticalTabs(browser_));
+}
+
+void BraveToolbarView::UpdateVerticalTabToggleState() {
+  if (!vertical_tab_toggle_) {
+    return;
+  }
+
+  const bool is_expanded = !vertical_tabs_collapsed_.GetValue();
+  vertical_tab_toggle_->SetHighlighted(is_expanded);
+  vertical_tab_toggle_->SetTooltipText(l10n_util::GetStringUTF16(
+      is_expanded ? IDS_VERTICAL_TABS_MINIMIZE : IDS_VERTICAL_TABS_EXPAND));
+  vertical_tab_toggle_->SetAccessibleName(l10n_util::GetStringUTF16(
+      is_expanded ? IDS_VERTICAL_TABS_MINIMIZE : IDS_VERTICAL_TABS_EXPAND));
+}
+
+void BraveToolbarView::OnVerticalTabTogglePressed() {
+  auto* brave_browser_view =
+      BraveBrowserView::From(BrowserView::GetBrowserViewForBrowser(browser_));
+  if (!brave_browser_view) {
+    return;
+  }
+
+  auto* delegate_view =
+      brave_browser_view->vertical_tab_strip_widget_delegate_view();
+  if (!delegate_view) {
+    return;
+  }
+
+  auto* region_view = delegate_view->vertical_tab_strip_region_view();
+  if (!region_view) {
+    return;
+  }
+
+  region_view->ToggleState();
+}
 
 BEGIN_METADATA(BraveToolbarView)
 END_METADATA

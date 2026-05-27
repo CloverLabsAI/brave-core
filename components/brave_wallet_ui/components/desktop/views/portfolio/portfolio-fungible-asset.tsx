@@ -4,9 +4,11 @@
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import * as React from 'react'
-import { useDispatch } from 'react-redux'
 import { Redirect, useHistory, useParams } from 'react-router'
 import { skipToken } from '@reduxjs/toolkit/query/react'
+
+// redux
+import { useAppDispatch } from '../../../../common/hooks/use-redux'
 
 // types
 import {
@@ -38,7 +40,8 @@ import {
 import { networkSupportsAccount } from '../../../../utils/network-utils'
 import {
   getAssetIdKey,
-  getDoesCoinSupportSwapOrBridge,
+  getDoesCoinSupportSwap,
+  getDoesCoinSupportBridge,
 } from '../../../../utils/asset-utils'
 import { getLocale } from '../../../../../common/locale'
 import { isRewardsAssetId } from '../../../../utils/rewards_utils'
@@ -77,7 +80,6 @@ import { useFindBuySupportedToken } from '../../../../common/hooks/use-multi-cha
 import {
   useGetNetworkQuery,
   useGetTransactionsQuery,
-  useGetTokenSpotPricesQuery,
   useGetPriceHistoryQuery,
   useGetDefaultFiatCurrencyQuery,
   useGetRewardsInfoQuery,
@@ -88,6 +90,9 @@ import {
   useAccountsQuery,
   useGetCombinedTokensRegistryQuery,
 } from '../../../../common/slices/api.slice.extra'
+import {
+  usePersistedTokenSpotPricesQuery, //
+} from '../../../../common/hooks/use-persisted-spot-prices'
 import {
   querySubscriptionOptions60s, //
 } from '../../../../common/slices/constants'
@@ -137,7 +142,7 @@ export const PortfolioFungibleAsset = () => {
   const isRewardsToken = assetId ? isRewardsAssetId(assetId) : false
 
   // redux
-  const dispatch = useDispatch()
+  const dispatch = useAppDispatch()
 
   // Local-Storage
   const [hidePortfolioBalances] = useSyncedLocalStorage(
@@ -274,15 +279,18 @@ export const PortfolioFungibleAsset = () => {
   const isLoadingGraphData =
     !selectedAssetFromParams || isFetchingPortfolioPriceHistory
 
-  const { data: spotPrices = [] } = useGetTokenSpotPricesQuery(
+  const { data: spotPrices = [] } = usePersistedTokenSpotPricesQuery(
     tokenPriceRequests.length && defaultFiat
       ? { requests: tokenPriceRequests, vsCurrency: defaultFiat }
       : skipToken,
     querySubscriptionOptions60s,
   )
-  const isSwapOrBridgeSupported =
-    selectedAssetFromParams
-    && getDoesCoinSupportSwapOrBridge(selectedAssetFromParams.coin)
+
+  const selectedCoin = selectedAssetFromParams?.coin
+  const isSwapSupported =
+    selectedCoin !== undefined && getDoesCoinSupportSwap(selectedCoin)
+  const isBridgeSupported =
+    selectedCoin !== undefined && getDoesCoinSupportBridge(selectedCoin)
 
   const selectedAssetTransactions = React.useMemo(() => {
     if (selectedAssetFromParams && tokensList && networksRegistry) {
@@ -498,21 +506,19 @@ export const PortfolioFungibleAsset = () => {
               icon='send'
               onClick={onClickSend}
             />
-            {isSwapOrBridgeSupported && (
-              <>
-                <PortfolioAssetActionButton
-                  text={getLocale('braveWalletSwap')}
-                  icon='currency-exchange'
-                  onClick={() => onClickSwapOrBridge('swap')}
-                />
-                {!isIOS && (
-                  <PortfolioAssetActionButton
-                    text={getLocale('braveWalletBridge')}
-                    icon='web3-bridge'
-                    onClick={() => onClickSwapOrBridge('bridge')}
-                  />
-                )}
-              </>
+            {isSwapSupported && (
+              <PortfolioAssetActionButton
+                text={getLocale('braveWalletSwap')}
+                icon='currency-exchange'
+                onClick={() => onClickSwapOrBridge('swap')}
+              />
+            )}
+            {!isIOS && isBridgeSupported && (
+              <PortfolioAssetActionButton
+                text={getLocale('braveWalletBridge')}
+                icon='web3-bridge'
+                onClick={() => onClickSwapOrBridge('bridge')}
+              />
             )}
             {isSelectedAssetDepositSupported && (
               <PortfolioAssetActionButton

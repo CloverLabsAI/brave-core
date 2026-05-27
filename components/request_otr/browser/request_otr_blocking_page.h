@@ -10,11 +10,14 @@
 #include <string>
 
 #include "base/time/time.h"
-#include "base/values.h"
 #include "components/security_interstitials/content/security_interstitial_page.h"
 #include "url/gurl.h"
 
 class PrefService;
+
+namespace base {
+class DictValue;
+}  // namespace base
 
 namespace content {
 class WebContents;
@@ -56,7 +59,7 @@ class RequestOTRBlockingPage
 
  protected:
   // SecurityInterstitialPage:: overrides
-  void PopulateInterstitialStrings(base::Value::Dict& load_time_data) override;
+  void PopulateInterstitialStrings(base::DictValue& load_time_data) override;
   int GetHTMLTemplateId() override;
 
  private:

@@ -7,6 +7,7 @@ package org.chromium.chrome.browser.settings;
 
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.widget.TextView;
 
@@ -21,6 +22,7 @@ import org.chromium.components.browser_ui.settings.ChromeBasePreference;
 @NullMarked
 public class BraveAccountPreference extends ChromeBasePreference {
     private final int mTitleTextColorResId;
+    private final boolean mTitleTruncateMiddle;
     private final int mSummaryTextColorResId;
 
     public BraveAccountPreference(Context context, @Nullable AttributeSet attrs) {
@@ -29,8 +31,11 @@ public class BraveAccountPreference extends ChromeBasePreference {
         TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.brave_account_preference);
         mTitleTextColorResId =
                 a.getResourceId(R.styleable.brave_account_preference_title_text_color, 0);
+        mTitleTruncateMiddle =
+                a.getBoolean(R.styleable.brave_account_preference_title_truncate_middle, false);
         mSummaryTextColorResId =
                 a.getResourceId(R.styleable.brave_account_preference_summary_text_color, 0);
+
         a.recycle();
     }
 
@@ -39,23 +44,37 @@ public class BraveAccountPreference extends ChromeBasePreference {
         super.onBindViewHolder(holder);
 
         if (holder.findViewById(android.R.id.title) instanceof TextView titleView) {
-            if (mTitleTextColorResId != 0) {
-                titleView.setTextColor(getContext().getColor(mTitleTextColorResId));
-            } else if (!isSelectable()) {
+            if (!isSelectable()) {
                 // Restore the default primary text color when the preference is non-selectable.
-                TypedArray ta =
-                        getContext()
-                                .obtainStyledAttributes(
-                                        new int[] {android.R.attr.textColorPrimary});
-                int defaultTitleColor = ta.getColor(0, titleView.getCurrentTextColor());
-                ta.recycle();
-                titleView.setTextColor(defaultTitleColor);
+                setColorFromAttr(titleView, android.R.attr.textColorPrimary);
+            } else if (!isEnabled()) {
+                // Use tertiary text color when preference is disabled.
+                setColorFromRes(titleView, R.color.text_tertiary);
+            } else {
+                setColorFromRes(titleView, mTitleTextColorResId);
+            }
+
+            if (mTitleTruncateMiddle) {
+                titleView.setSingleLine(true);
+                titleView.setEllipsize(TextUtils.TruncateAt.MIDDLE);
             }
         }
 
-        if (mSummaryTextColorResId != 0
-                && holder.findViewById(android.R.id.summary) instanceof TextView summaryView) {
-            summaryView.setTextColor(getContext().getColor(mSummaryTextColorResId));
+        if (holder.findViewById(android.R.id.summary) instanceof TextView summaryView) {
+            setColorFromRes(summaryView, mSummaryTextColorResId);
+        }
+    }
+
+    private void setColorFromAttr(TextView textView, int attr) {
+        TypedArray ta = getContext().obtainStyledAttributes(new int[] {attr});
+        int color = ta.getColor(0, textView.getCurrentTextColor());
+        ta.recycle();
+        textView.setTextColor(color);
+    }
+
+    private void setColorFromRes(TextView textView, int colorResId) {
+        if (colorResId != 0) {
+            textView.setTextColor(getContext().getColor(colorResId));
         }
     }
 }

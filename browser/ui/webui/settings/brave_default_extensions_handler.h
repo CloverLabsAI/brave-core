@@ -34,14 +34,14 @@ class BraveDefaultExtensionsHandler : public settings::SettingsPageUIHandler
   void OnJavascriptAllowed() override {}
   void OnJavascriptDisallowed() override {}
 
-  void GetRestartNeeded(const base::Value::List& args);
-  void SetWebTorrentEnabled(const base::Value::List& args);
-  void SetMediaRouterEnabled(const base::Value::List& args);
-  void SetWidevineEnabled(const base::Value::List& args);
-  void IsWidevineEnabled(const base::Value::List& args);
+  void GetRestartNeeded(const base::ListValue& args);
+  void SetWebTorrentEnabled(const base::ListValue& args);
+  void SetMediaRouterEnabled(const base::ListValue& args);
+  void SetWidevineEnabled(const base::ListValue& args);
+  void IsWidevineEnabled(const base::ListValue& args);
   void OnWidevineEnabledChanged();
-  void GetDecentralizedDnsResolveMethodList(const base::Value::List& args);
-  void GetEnsOffchainResolveMethodList(const base::Value::List& args);
+  void GetDecentralizedDnsResolveMethodList(const base::ListValue& args);
+  void GetEnsOffchainResolveMethodList(const base::ListValue& args);
 
   void InitializePrefCallbacks();
 
@@ -51,11 +51,9 @@ class BraveDefaultExtensionsHandler : public settings::SettingsPageUIHandler
                        const std::string& error,
                        extensions::webstore_install::Result result);
 #if BUILDFLAG(ENABLE_BRAVE_WALLET)
-#if BUILDFLAG(ENABLE_ORCHARD)
-  void ResetZCashSyncState(const base::Value::List& args);
-#endif
-  void ResetWallet(const base::Value::List& args);
-  void ResetTransactionInfo(const base::Value::List& args);
+  void ResetZCashSyncState(const base::ListValue& args);
+  void ResetWallet(const base::ListValue& args);
+  void ResetTransactionInfo(const base::ListValue& args);
 #endif  // BUILDFLAG(ENABLE_BRAVE_WALLET)
   void OnRestartNeededChanged();
   bool IsRestartNeeded();

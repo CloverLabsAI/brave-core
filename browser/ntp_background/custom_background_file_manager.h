@@ -15,7 +15,7 @@
 #include "base/functional/callback.h"
 #include "base/memory/ref_counted_memory.h"
 #include "base/memory/weak_ptr.h"
-#include "base/strings/utf_string_conversions.h"
+#include "base/strings/strcat.h"
 #include "brave/components/ntp_background_images/browser/url_constants.h"
 #include "url/gurl.h"
 #include "url/url_util.h"
@@ -90,11 +90,8 @@ class CustomBackgroundFileManager final {
         // remove leading slash
         const auto path = value.path().substr(1);
         DCHECK(!path.empty()) << "URL path is empty " << value;
-        url::RawCanonOutputT<char16_t> decoded_value;
-        url::DecodeURLEscapeSequences(
-            path, url::DecodeURLMode::kUTF8OrIsomorphic, &decoded_value);
-        value_ = base::UTF16ToUTF8(
-            std::u16string(decoded_value.data(), decoded_value.length()));
+        value_ = url::DecodeUrlEscapeSequences(
+            path, url::DecodeUrlMode::kUtf8OrIsomorphic);
       } else {
         // FilePath(local file path) -> std::string(prefs value)
         static_assert(std::is_same_v<FromT, base::FilePath>,
@@ -130,9 +127,9 @@ class CustomBackgroundFileManager final {
         // Do percent encoding and compose it with base url so that it can
         // be used as webui data url.
         url::RawCanonOutputT<char> encoded;
-        url::EncodeURIComponent(value_, &encoded);
-        return GURL(ntp_background_images::kCustomWallpaperURL +
-                    std::string(encoded.data(), encoded.length()));
+        url::EncodeUriComponent(value_, &encoded);
+        return GURL(base::StrCat(
+            {ntp_background_images::kCustomWallpaperURL, encoded.view()}));
       } else {
         static_assert(std::is_same_v<ToT, base::FilePath>,
                       "ToT must be one of std::string, GURL, base::FilePath");

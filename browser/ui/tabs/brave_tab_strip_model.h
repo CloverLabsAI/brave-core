@@ -51,18 +51,23 @@ class BraveTabStripModel : public TabStripModel {
       base::span<int> indices,
       uint32_t close_flags = TabCloseTypes::CLOSE_CREATE_HISTORICAL_TAB);
 
-  // Sets the custom title for the tab at the specified index.
-  void SetCustomTitleForTab(int index,
-                            const std::optional<std::u16string>& title);
-
   // Can be null when tree tab feature is disabled via flag or pref.
   const TreeTabModel* tree_model() const { return tree_tab_model_.get(); }
   TreeTabModel* tree_model() { return tree_tab_model_.get(); }
 
+  // Sets the collapsed state of a tree tab node. When it changes, notifies
+  // observers
+  void SetTreeTabNodeCollapsed(const tree_tab::TreeTabNodeId& id,
+                               bool collapsed);
+
+  // Returns the tree tab node id wrapping the given group, or nullptr if the
+  // group is not wrapped in a tree node (e.g. tree tabs off).
+  const tree_tab::TreeTabNodeId* GetTreeTabNodeIdForGroup(
+      tab_groups::TabGroupId group_id) const;
+
   // TabStripModel:
   void SelectRelativeTab(TabRelativeDirection direction,
                          TabStripUserGestureDetails detail) override;
-  void UpdateWebContentsStateAt(int index, TabChangeType change_type) override;
 
  private:
   friend class TreeTabsBrowserTest;
@@ -79,6 +84,8 @@ class BraveTabStripModel : public TabStripModel {
   }
 
   tabs::TabStripCollection& GetTabStripCollectionForTesting();
+
+  void SetSplitPinnedImplForTesting(split_tabs::SplitTabId split, bool pinned);
 
   // List of tab indexes sorted by most recently used
   std::vector<int> mru_cycle_list_;

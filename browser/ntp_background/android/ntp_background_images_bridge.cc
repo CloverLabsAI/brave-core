@@ -13,11 +13,13 @@
 #include <string>
 #include <vector>
 
+#include "base/android/callback_android.h"
 #include "base/android/jni_array.h"
 #include "base/android/jni_string.h"
 #include "base/files/file_path.h"
 #include "base/functional/bind.h"
 #include "base/no_destructor.h"
+#include "base/values.h"
 #include "brave/browser/brave_browser_process.h"
 #include "brave/browser/ntp_background/view_counter_service_factory.h"
 #include "brave/components/brave_ads/core/mojom/brave_ads.mojom.h"
@@ -35,7 +37,6 @@
 
 using base::android::AttachCurrentThread;
 using base::android::ConvertUTF8ToJavaString;
-using base::android::JavaParamRef;
 using base::android::JavaRef;
 using base::android::ScopedJavaLocalRef;
 using content::BrowserThread;
@@ -98,9 +99,8 @@ NTPBackgroundImagesBridge::~NTPBackgroundImagesBridge() {
 }
 
 static base::android::ScopedJavaLocalRef<jobject>
-JNI_NTPBackgroundImagesBridge_GetInstance(
-    JNIEnv* env,
-    const JavaParamRef<jobject>& j_profile) {
+JNI_NTPBackgroundImagesBridge_GetInstance(JNIEnv* env,
+                                          const JavaRef<jobject>& j_profile) {
   auto* profile = Profile::FromJavaObject(j_profile);
   return ntp_background_images::NTPBackgroundImagesBridgeFactory::GetInstance()
       ->GetForProfile(profile)
@@ -114,10 +114,10 @@ NTPBackgroundImagesBridge::GetJavaObject() {
 
 void NTPBackgroundImagesBridge::WallpaperLogoClicked(
     JNIEnv* env,
-    const base::android::JavaParamRef<jobject>& obj,
-    const base::android::JavaParamRef<jstring>& jwallpaperId,
-    const base::android::JavaParamRef<jstring>& jcreativeInstanceId,
-    const base::android::JavaParamRef<jstring>& jdestinationUrl,
+    const base::android::JavaRef<jobject>& obj,
+    const base::android::JavaRef<jstring>& jwallpaperId,
+    const base::android::JavaRef<jstring>& jcreativeInstanceId,
+    const base::android::JavaRef<jstring>& jdestinationUrl,
     int metricType) {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
   if (view_counter_service_) {
@@ -130,7 +130,7 @@ void NTPBackgroundImagesBridge::WallpaperLogoClicked(
 }
 
 base::android::ScopedJavaLocalRef<jobject>
-NTPBackgroundImagesBridge::CreateWallpaper(const base::Value::Dict& data) {
+NTPBackgroundImagesBridge::CreateWallpaper(const base::DictValue& data) {
   JNIEnv* env = AttachCurrentThread();
 
   auto* image_path =
@@ -145,8 +145,7 @@ NTPBackgroundImagesBridge::CreateWallpaper(const base::Value::Dict& data) {
 }
 
 base::android::ScopedJavaLocalRef<jobject>
-NTPBackgroundImagesBridge::CreateBrandedWallpaper(
-    const base::Value::Dict& data) {
+NTPBackgroundImagesBridge::CreateBrandedWallpaper(const base::DictValue& data) {
   JNIEnv* env = AttachCurrentThread();
 
   auto* image_path =
@@ -205,31 +204,40 @@ NTPBackgroundImagesBridge::CreateBrandedWallpaper(
       static_cast<int>(metric_type));
 }
 
-base::android::ScopedJavaLocalRef<jobject>
-NTPBackgroundImagesBridge::GetCurrentWallpaper(JNIEnv* env,
-                                               const JavaParamRef<jobject>& obj,
-                                               jboolean allow_sponsored_image) {
+void NTPBackgroundImagesBridge::GetCurrentWallpaper(
+    JNIEnv* env,
+    const JavaRef<jobject>& obj,
+    const JavaRef<jobject>& jcallback,
+    bool allow_sponsored_image) {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
   if (!view_counter_service_) {
-    return base::android::ScopedJavaLocalRef<jobject>();
+    base::android::RunObjectCallbackAndroid(jcallback, /*wallpaper=*/nullptr);
+    return;
   }
 
-  std::optional<base::Value::Dict> data =
-      view_counter_service_->GetCurrentWallpaperForDisplay(
-          allow_sponsored_image);
+  base::android::ScopedJavaGlobalRef<jobject> callback(jcallback);
+  view_counter_service_->GetCurrentWallpaperForDisplay(
+      base::BindOnce(&NTPBackgroundImagesBridge::GetCurrentWallpaperCallback,
+                     weak_ptr_factory_.GetWeakPtr(), std::move(callback)),
+      allow_sponsored_image);
+}
+
+void NTPBackgroundImagesBridge::GetCurrentWallpaperCallback(
+    base::android::ScopedJavaGlobalRef<jobject> callback,
+    std::optional<base::DictValue> data) {
+  DCHECK_CURRENTLY_ON(BrowserThread::UI);
   if (!data) {
-    return base::android::ScopedJavaLocalRef<jobject>();
+    base::android::RunObjectCallbackAndroid(callback, /*wallpaper=*/nullptr);
+    return;
   }
 
   view_counter_service_->RegisterPageView();
 
-  bool is_background =
+  const bool is_background =
       data->FindBool(ntp_background_images::kIsBackgroundKey).value_or(false);
-  if (!is_background) {
-    return CreateBrandedWallpaper(*data);
-  } else {
-    return CreateWallpaper(*data);
-  }
+  base::android::ScopedJavaLocalRef<jobject> wallpaper =
+      is_background ? CreateWallpaper(*data) : CreateBrandedWallpaper(*data);
+  base::android::RunObjectCallbackAndroid(callback, wallpaper);
 }
 
 void NTPBackgroundImagesBridge::OnBackgroundImagesDataDidUpdate(
@@ -243,3 +251,5 @@ void NTPBackgroundImagesBridge::OnSponsoredImagesDataDidUpdate(
   JNIEnv* env = AttachCurrentThread();
   Java_NTPBackgroundImagesBridge_onUpdated(env, java_object_);
 }
+
+DEFINE_JNI(NTPBackgroundImagesBridge)

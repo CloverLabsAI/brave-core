@@ -7,8 +7,10 @@ package org.chromium.chrome.browser.tasks;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.PersistableBundle;
 
 import org.chromium.base.BravePreferenceKeys;
+import org.chromium.base.IntentUtils;
 import org.chromium.build.annotations.NullMarked;
 import org.chromium.build.annotations.Nullable;
 import org.chromium.chrome.browser.ChromeInactivityTracker;
@@ -16,6 +18,7 @@ import org.chromium.chrome.browser.ntp.BraveFreshNtpHelper;
 import org.chromium.chrome.browser.preferences.ChromeSharedPreferences;
 import org.chromium.chrome.browser.tab.Tab;
 import org.chromium.chrome.browser.tabmodel.TabCreator;
+import org.chromium.chrome.browser.tabmodel.TabModel;
 import org.chromium.chrome.browser.tabmodel.TabModelSelector;
 import org.chromium.url.GURL;
 
@@ -29,9 +32,15 @@ public final class BraveReturnToChromeUtil {
 
     /** Returns whether should show a NTP as the home surface at startup. */
     public static boolean shouldShowNtpAsHomeSurfaceAtStartup(
-            Intent intent, Bundle bundle, ChromeInactivityTracker inactivityTracker) {
-        // When feature is disabled, use Brave's default behavior
-        if (!BraveFreshNtpHelper.isEnabled()) {
+            Intent intent,
+            Bundle bundle,
+            PersistableBundle persistableBundle,
+            ChromeInactivityTracker inactivityTracker) {
+        // Only show NTP when launched from the main launcher icon. This prevents showing
+        // NTP + snackbar when the app is opened via an external link (e.g., clicking a URL
+        // in other apps or sharing a link).
+        // When feature is disabled, use Brave's default behavior.
+        if (!IntentUtils.isMainIntentFromLauncher(intent) || !BraveFreshNtpHelper.isEnabled()) {
             return false;
         }
 
@@ -142,5 +151,42 @@ public final class BraveReturnToChromeUtil {
         // Call the upstream method to create the NTP
         return ReturnToChromeUtil.createNewTabAndShowHomeSurfaceUi(
                 tabCreator, homeSurfaceTracker, tabModelSelector, lastActiveTabUrl, lastActiveTab);
+    }
+
+    /**
+     * Sets the initial overview state on resume with NTP. Wraps the upstream method to handle the
+     * case where homeSurfaceTracker is null (not yet initialized during warm startup). When null,
+     * we pass a temporary no-op HomeSurfaceTracker to avoid the NPE in upstream's
+     * homeSurfaceTracker.isHomeSurfaceTab() call. This is safe because the temporary tracker's
+     * isHomeSurfaceTab() always returns false (no home surface tab set), which causes upstream to
+     * call updateHomeSurfaceAndTrackingTabs() on the throwaway instance — effectively a no-op that
+     * doesn't interfere with the real tracker created later in ChromeTabbedActivity initialization.
+     * The no-op tracker is also safe when passed through to upstream's showHomeSurfaceUiOnNtp() and
+     * createNewTabAndShowHomeSurfaceUi() in the else branch — those methods only call
+     * updateHomeSurfaceAndTrackingTabs() on it, which again just sets fields on the throwaway. The
+     * real tracker (ChromeTabbedActivity.mHomeSurfaceTracker) is created independently and flows
+     * into NewTabPage via NativePageFactory, so subsequent reads are unaffected.
+     *
+     * <p>Note: unlike upstream's shouldShowNtpAsHomeSurfaceAtStartup which bails out on activity
+     * recreate (isFromRecreate check), we intentionally allow the NTP to show in recreate scenarios
+     * (e.g., rotation, process death restore, foldable transitions). This is because our
+     * inactivity-based NTP logic should still apply — if the user was away for 1+ hours, we want
+     * the NTP shown regardless of whether the activity was recreated on return.
+     */
+    public static boolean setInitialOverviewStateOnResumeWithNtp(
+            boolean isIncognito,
+            boolean shouldShowNtpHomeSurfaceOnStartup,
+            TabModel currentTabModel,
+            TabCreator tabCreator,
+            @Nullable HomeSurfaceTracker homeSurfaceTracker) {
+        if (homeSurfaceTracker == null) {
+            homeSurfaceTracker = new HomeSurfaceTracker();
+        }
+        return ReturnToChromeUtil.setInitialOverviewStateOnResumeWithNtp(
+                isIncognito,
+                shouldShowNtpHomeSurfaceOnStartup,
+                currentTabModel,
+                tabCreator,
+                homeSurfaceTracker);
     }
 }

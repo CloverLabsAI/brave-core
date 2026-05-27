@@ -21,7 +21,7 @@ import UniformTypeIdentifiers
 import os.log
 
 /// Shortcut Activity Types and detailed information to create and perform actions
-public enum ActivityType: String {
+public enum ActivityType: String, CaseIterable {
   case newTab = "NewTab"
   case newPrivateTab = "NewPrivateTab"
   case openBookmarks = "OpenBookmarks"
@@ -232,7 +232,10 @@ public class ActivityShortcutManager: NSObject {
       bvc.popToBVC()
 
       let tab = bvc.tabManager.selectedTab
-      PlaylistCoordinator.shared.getPlaylistController(tab: tab) { playlistController in
+      PlaylistCoordinator.shared.getPlaylistController(
+        tab: tab,
+        profile: bvc.profileController.profile
+      ) { playlistController in
         PlaylistP3A.recordUsage()
         bvc.present(playlistController, animated: true)
       }

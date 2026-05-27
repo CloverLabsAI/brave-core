@@ -37,9 +37,7 @@
 namespace skus {
 
 SkusJSHandler::SkusJSHandler(content::RenderFrame* render_frame)
-    : content::RenderFrameObserver(render_frame) {
-  self_ = this;
-}
+    : content::RenderFrameObserver(render_frame) {}
 
 SkusJSHandler::~SkusJSHandler() = default;
 
@@ -103,7 +101,6 @@ void SkusJSHandler::Install(content::RenderFrame* render_frame) {
 }
 
 void SkusJSHandler::OnDestruct() {
-  self_.Clear();
 }
 
 // window.chrome.braveSkus.refresh_order
@@ -145,7 +142,7 @@ void SkusJSHandler::OnRefreshOrder(
 
   v8::Local<v8::Promise::Resolver> resolver = promise_resolver.Get(isolate);
 
-  std::optional<base::Value::Dict> result_dict = base::JSONReader::ReadDict(
+  std::optional<base::DictValue> result_dict = base::JSONReader::ReadDict(
       response->message, base::JSON_PARSE_CHROMIUM_EXTENSIONS |
                              base::JSONParserOptions::JSON_PARSE_RFC);
   if (!result_dict) {
@@ -298,7 +295,7 @@ void SkusJSHandler::OnCredentialSummary(
 
   v8::Local<v8::Promise::Resolver> resolver = promise_resolver.Get(isolate);
 
-  std::optional<base::Value::Dict> result_dict = base::JSONReader::ReadDict(
+  std::optional<base::DictValue> result_dict = base::JSONReader::ReadDict(
       response->message, base::JSON_PARSE_CHROMIUM_EXTENSIONS |
                              base::JSONParserOptions::JSON_PARSE_RFC);
   if (!result_dict) {

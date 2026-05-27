@@ -7,10 +7,11 @@
 
 #include "brave/browser/ui/webui/brave_browser_command/brave_browser_command_handler.h"
 
-#include "base/containers/contains.h"
-#include "brave/browser/brave_rewards/rewards_service_factory.h"
+#include <algorithm>
+
 #include "brave/components/ai_chat/core/common/buildflags/buildflags.h"
 #include "brave/components/brave_education/education_urls.h"
+#include "brave/components/brave_rewards/core/buildflags/buildflags.h"
 #include "brave/components/brave_vpn/common/buildflags/buildflags.h"
 #include "brave/components/brave_wallet/common/buildflags/buildflags.h"
 #include "brave/components/constants/webui_url_constants.h"
@@ -22,6 +23,10 @@
 
 #if BUILDFLAG(ENABLE_BRAVE_VPN)
 #include "brave/browser/brave_vpn/vpn_utils.h"
+#endif
+
+#if BUILDFLAG(ENABLE_BRAVE_REWARDS)
+#include "brave/browser/brave_rewards/rewards_service_factory.h"
 #endif
 
 #if BUILDFLAG(ENABLE_BRAVE_WALLET)
@@ -38,8 +43,12 @@ bool CanShowWalletOnboarding(Profile* profile) {
 #endif  // BUILDFLAG(ENABLE_BRAVE_WALLET)
 
 bool CanShowRewardsOnboarding(Profile* profile) {
+#if BUILDFLAG(ENABLE_BRAVE_REWARDS)
   return brave_rewards::RewardsServiceFactory::GetForProfile(profile) !=
          nullptr;
+#else
+  return false;
+#endif
 }
 
 bool CanShowVPNBubble(Profile* profile) {
@@ -76,7 +85,7 @@ BraveBrowserCommandHandler::~BraveBrowserCommandHandler() = default;
 void BraveBrowserCommandHandler::CanExecuteCommand(
     brave_browser_command::mojom::Command command_id,
     CanExecuteCommandCallback callback) {
-  if (!base::Contains(supported_commands_, command_id)) {
+  if (!std::ranges::contains(supported_commands_, command_id)) {
     std::move(callback).Run(false);
     return;
   }
@@ -106,7 +115,7 @@ void BraveBrowserCommandHandler::CanExecuteCommand(
 void BraveBrowserCommandHandler::ExecuteCommand(
     brave_browser_command::mojom::Command command_id,
     ExecuteCommandCallback callback) {
-  if (!base::Contains(supported_commands_, command_id)) {
+  if (!std::ranges::contains(supported_commands_, command_id)) {
     std::move(callback).Run(false);
     return;
   }
@@ -119,8 +128,13 @@ void BraveBrowserCommandHandler::ExecuteCommand(
       break;
 #endif  // BUILDFLAG(ENABLE_BRAVE_WALLET)
     case brave_browser_command::mojom::Command::kOpenRewardsOnboarding:
+#if BUILDFLAG(ENABLE_BRAVE_REWARDS)
       delegate_->OpenRewardsPanel();
       break;
+#else
+      std::move(callback).Run(false);
+      return;
+#endif
     case brave_browser_command::mojom::Command::kOpenVPNOnboarding:
 #if BUILDFLAG(ENABLE_BRAVE_VPN)
       delegate_->OpenVPNPanel();

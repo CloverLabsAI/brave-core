@@ -63,6 +63,7 @@ const transactionDummyData: SerializableTransactionInfo[][] = [
       txDataUnion: {
         ethTxData1559: {
           baseData: {
+            chainId: '0x1',
             data: Array.from(new Uint8Array(24)),
             gasLimit: '0xfde8',
             gasPrice: '0x20000000000',
@@ -72,10 +73,8 @@ const transactionDummyData: SerializableTransactionInfo[][] = [
             signOnly: false,
             signedTransaction: undefined,
           },
-          chainId: '',
           maxFeePerGas: '',
           maxPriorityFeePerGas: '',
-          gasEstimation: undefined,
         },
         ethTxData: undefined,
         solanaTxData: undefined,
@@ -103,6 +102,7 @@ const transactionDummyData: SerializableTransactionInfo[][] = [
       txDataUnion: {
         ethTxData1559: {
           baseData: {
+            chainId: '0x1',
             data: Array.from(new Uint8Array(24)),
             gasLimit: '0xfde8',
             gasPrice: '0x20000000000',
@@ -112,10 +112,8 @@ const transactionDummyData: SerializableTransactionInfo[][] = [
             signOnly: false,
             signedTransaction: undefined,
           },
-          chainId: '',
           maxFeePerGas: '',
           maxPriorityFeePerGas: '',
-          gasEstimation: undefined,
         },
         ethTxData: undefined,
         solanaTxData: undefined,
@@ -143,6 +141,7 @@ const transactionDummyData: SerializableTransactionInfo[][] = [
       txDataUnion: {
         ethTxData1559: {
           baseData: {
+            chainId: '0x1',
             data: Array.from(new Uint8Array(24)),
             gasLimit: '0xfde8',
             gasPrice: '0x20000000000',
@@ -152,10 +151,8 @@ const transactionDummyData: SerializableTransactionInfo[][] = [
             signOnly: false,
             signedTransaction: undefined,
           },
-          chainId: '',
           maxFeePerGas: '',
           maxPriorityFeePerGas: '',
-          gasEstimation: undefined,
         },
         ethTxData: undefined,
         solanaTxData: undefined,
@@ -183,6 +180,7 @@ const transactionDummyData: SerializableTransactionInfo[][] = [
       txDataUnion: {
         ethTxData1559: {
           baseData: {
+            chainId: '0x1',
             data: Array.from(new Uint8Array(24)),
             gasLimit: '0xfde8',
             gasPrice: '0x20000000000',
@@ -192,10 +190,8 @@ const transactionDummyData: SerializableTransactionInfo[][] = [
             signOnly: false,
             signedTransaction: undefined,
           },
-          chainId: '',
           maxFeePerGas: '',
           maxPriorityFeePerGas: '',
-          gasEstimation: undefined,
         },
         ethTxData: undefined,
         solanaTxData: undefined,
@@ -223,6 +219,7 @@ const transactionDummyData: SerializableTransactionInfo[][] = [
       txDataUnion: {
         ethTxData1559: {
           baseData: {
+            chainId: '0x1',
             data: Array.from(new Uint8Array(24)),
             gasLimit: '0xfde8',
             gasPrice: '0x20000000000',
@@ -232,10 +229,8 @@ const transactionDummyData: SerializableTransactionInfo[][] = [
             signOnly: false,
             signedTransaction: undefined,
           },
-          chainId: '',
           maxFeePerGas: '',
           maxPriorityFeePerGas: '',
-          gasEstimation: undefined,
         },
         ethTxData: undefined,
         solanaTxData: undefined,
@@ -265,6 +260,7 @@ const transactionDummyData: SerializableTransactionInfo[][] = [
       txDataUnion: {
         ethTxData1559: {
           baseData: {
+            chainId: '0x1',
             data: Array.from(new Uint8Array(24)),
             gasLimit: '0xfde8',
             gasPrice: '0x20000000000',
@@ -274,10 +270,8 @@ const transactionDummyData: SerializableTransactionInfo[][] = [
             signOnly: false,
             signedTransaction: undefined,
           },
-          chainId: '',
           maxFeePerGas: '',
           maxPriorityFeePerGas: '',
-          gasEstimation: undefined,
         },
         ethTxData: undefined,
         solanaTxData: undefined,
@@ -305,6 +299,7 @@ const transactionDummyData: SerializableTransactionInfo[][] = [
       txDataUnion: {
         ethTxData1559: {
           baseData: {
+            chainId: '0x1',
             data: Array.from(new Uint8Array(24)),
             gasLimit: '0xfde8',
             gasPrice: '0x20000000000',
@@ -314,10 +309,8 @@ const transactionDummyData: SerializableTransactionInfo[][] = [
             signOnly: false,
             signedTransaction: undefined,
           },
-          chainId: '',
           maxFeePerGas: '',
           maxPriorityFeePerGas: '',
-          gasEstimation: undefined,
         },
         ethTxData: undefined,
         solanaTxData: undefined,

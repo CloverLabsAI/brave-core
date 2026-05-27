@@ -7,6 +7,7 @@
 
 #include "base/strings/string_number_conversions.h"
 #include "brave/components/brave_wallet/browser/cardano/cardano_rpc_blockfrost_api.h"
+#include "brave/components/brave_wallet/common/cardano_address.h"
 
 namespace brave_wallet::cardano_rpc {
 
@@ -14,8 +15,26 @@ namespace {
 
 constexpr char kNativeLovelaceToken[] = "lovelace";
 constexpr size_t kCardanoScriptHashSize = 28u;
+// https://github.com/IntersectMBO/cardano-ledger/blob/371f9729e8a33d07629b55c1bb679901e19a5fe3/eras/conway/impl/cddl/data/conway.cddl#L54
+constexpr size_t kCardanoMaxTokenNameSize = 32u;
 
 }  // namespace
+
+std::optional<TokenId> TokenIdFromHex(std::string_view hex) {
+  TokenId token_id;
+  if (!base::HexStringToBytes(hex, &token_id)) {
+    return std::nullopt;
+  }
+  // Fixed-size policy_id and non-empty name.
+  if (token_id.size() < kCardanoScriptHashSize + 1u) {
+    return std::nullopt;
+  }
+
+  if (token_id.size() > kCardanoScriptHashSize + kCardanoMaxTokenNameSize) {
+    return std::nullopt;
+  }
+  return token_id;
+}
 
 // static
 std::optional<EpochParameters> EpochParameters::FromBlockfrostApiValue(
@@ -62,7 +81,8 @@ std::optional<Block> Block::FromBlockfrostApiValue(
   return result;
 }
 
-UnspentOutput::UnspentOutput() = default;
+UnspentOutput::UnspentOutput(CardanoAddress address_to)
+    : address_to(std::move(address_to)) {}
 UnspentOutput::UnspentOutput(const UnspentOutput&) = default;
 UnspentOutput::UnspentOutput(UnspentOutput&&) = default;
 UnspentOutput& UnspentOutput::operator=(const UnspentOutput&) = default;
@@ -77,8 +97,7 @@ std::optional<UnspentOutput> UnspentOutput::FromBlockfrostApiValue(
     return std::nullopt;
   }
 
-  UnspentOutput result;
-  result.address_to = std::move(address_to);
+  UnspentOutput result(std::move(address_to));
   if (!base::HexStringToSpan(api_unspent_output->tx_hash, result.tx_hash)) {
     return std::nullopt;
   }
@@ -100,16 +119,12 @@ std::optional<UnspentOutput> UnspentOutput::FromBlockfrostApiValue(
       result.lovelace_amount = amount;
       found_lovelace = true;
     } else {
-      TokenId token_id;
-      if (!base::HexStringToBytes(asset.unit, &token_id)) {
-        return std::nullopt;
-      }
-      // Fixed-size policy_id and non-empty name.
-      if (token_id.size() < kCardanoScriptHashSize + 1u) {
+      auto token_id = TokenIdFromHex(asset.unit);
+      if (!token_id) {
         return std::nullopt;
       }
 
-      if (!result.tokens.emplace(std::move(token_id), amount).second) {
+      if (!result.tokens.emplace(std::move(token_id.value()), amount).second) {
         return std::nullopt;
       }
     }

@@ -11,11 +11,14 @@
 #include <vector>
 
 #include "base/functional/callback.h"
-#include "base/values.h"
 #include "brave/components/brave_wallet/common/brave_wallet.mojom.h"
 
 // TODO(apaymyshev): refactor utility methods to return std::optional instead
 // of bool + out-parameter.
+
+namespace base {
+class Value;
+}  // namespace base
 
 namespace brave_wallet {
 
@@ -39,7 +42,7 @@ bool ParseGetSignatureStatuses(
 bool ParseGetAccountInfo(const base::Value& json_value,
                          std::optional<SolanaAccountInfo>* account_info_out);
 bool ParseGetAccountInfoPayload(
-    const base::Value::Dict& value_dict,
+    const base::DictValue& value_dict,
     std::optional<SolanaAccountInfo>* account_info_out);
 bool ParseGetFeeForMessage(const base::Value& json_value, uint64_t* fee);
 bool ParseGetBlockHeight(const base::Value& json_value, uint64_t* block_height);

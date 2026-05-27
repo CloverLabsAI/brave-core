@@ -8,8 +8,11 @@
 
 #include "base/memory/raw_ref.h"
 #include "base/run_loop.h"
-#include "base/values.h"
 #include "brave/components/ntp_background_images/browser/ntp_background_images_service.h"
+
+namespace base {
+class DictValue;
+}  // namespace base
 
 namespace ntp_background_images {
 
@@ -37,7 +40,7 @@ class NTPBackgroundImagesServiceWaiter
   // NTPBackgroundImagesService::Observer:
   void OnBackgroundImagesDataDidUpdate(NTPBackgroundImagesData* data) override;
   void OnSponsoredImagesDataDidUpdate(NTPSponsoredImagesData* data) override;
-  void OnSponsoredContentDidUpdate(const base::Value::Dict& dict) override;
+  void OnSponsoredContentDidUpdate(const base::DictValue& dict) override;
 
   const raw_ref<NTPBackgroundImagesService> service_;
 

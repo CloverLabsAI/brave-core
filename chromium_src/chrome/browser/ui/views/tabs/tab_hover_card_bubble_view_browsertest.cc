@@ -10,10 +10,10 @@
 #include "chrome/browser/ui/browser_command_controller.h"
 #include "chrome/browser/ui/browser_commands.h"
 #include "chrome/browser/ui/browser_list.h"
-#include "chrome/browser/ui/tabs/tab_renderer_data.h"
+#include "chrome/browser/ui/tabs/tab_data.h"
 #include "chrome/browser/ui/test/test_browser_dialog.h"
+#include "chrome/browser/ui/views/tabs/hovercard/tab_hover_card_test_util.h"
 #include "chrome/browser/ui/views/tabs/tab.h"
-#include "chrome/browser/ui/views/tabs/tab_hover_card_test_util.h"
 #include "chrome/browser/ui/views/tabs/tab_strip.h"
 #include "content/public/test/browser_test.h"
 #include "url/gurl.h"
@@ -40,11 +40,17 @@ class TabHoverCardBubbleViewBrowserTest : public DialogBrowserTest,
 
   // DialogBrowserTest:
   void ShowUi(const std::string& name) override {
-    std::vector<std::pair<int, TabRendererData>> data_list;
-    data_list.emplace_back(0, TabRendererData());
-    data_list[0].second.title = kTabTitle;
-    data_list[0].second.last_committed_url = GURL(kTabUrl);
-    GetTabStrip(browser())->AddTabsAt(std::move(data_list));
+    std::vector<TabStrip::AddTabData> data_list;
+    data_list.push_back(
+        {.index = 0, .handle = tabs::TabHandle(0), .is_pinned = false});
+    GetTabStrip(browser())->AddTabsAt(data_list);
+
+    // As tabs::TabHandle::Get() would return nullptr, the tab data would not be
+    // set. So we need to set the tab data manually here for testing.
+    tabs::TabData tab_data;
+    tab_data.title = kTabTitle;
+    tab_data.last_committed_url = GURL(kTabUrl);
+    GetTabStrip(browser())->tab_at(0)->SetDataForTesting(tab_data);
 
     SimulateHoverTab(browser(), 0);
   }
@@ -68,8 +74,8 @@ class TabHoverCardBubbleViewBrowserTest : public DialogBrowserTest,
       return false;
     }
 
-    EXPECT_EQ(kTabTitle, hover_card->GetTitleTextForTesting());
-    EXPECT_EQ(kTabDomain, hover_card->GetDomainTextForTesting());
+    EXPECT_EQ(kTabTitle, hover_card->GetTitleViewForTesting()->GetText());
+    EXPECT_EQ(kTabDomain, hover_card->GetDomainViewForTesting()->GetText());
     return true;
   }
 };

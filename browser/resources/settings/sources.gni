@@ -25,7 +25,7 @@ brave_settings_web_component_files = [
   "brave_appearance_page/sidebar.ts",
   "brave_appearance_page/tabs.ts",
   "brave_appearance_page/toolbar.ts",
-  "brave_clear_browsing_data_dialog/brave_clear_browsing_data_on_exit_page.ts",
+  "brave_clear_browsing_data_dialog/brave_clear_browsing_data_on_exit_page_v2.ts",
   "brave_content_page/content.ts",
   "brave_content_page/content_page_index.ts",
   "brave_content_page/playlist.ts",
@@ -77,7 +77,8 @@ brave_settings_ts_files = [
   "br/appearance_page.ts",
   "br/appearance_page_index.ts",
   "br/basic_page.ts",
-  "br/clear_browsing_data_dialog.ts",
+  "br/clear_browsing_data_dialog_v2.ts",
+  "br/clear_browsing_data_time_picker.ts",
   "br/config.ts",
   "br/cookies_page.ts",
   "br/default_browser_page.ts",
@@ -117,7 +118,7 @@ brave_settings_ts_files = [
   "br/site_settings_page.ts",
   "br/sync_account_control.ts",
   "br/sync_controls.ts",
-  "brave_clear_browsing_data_dialog/brave_clear_browsing_data_dialog_behavior.ts",
+  "brave_clear_browsing_data_dialog/brave_clear_browsing_data_dialog_v2_behavior.ts",
   "brave_clear_browsing_data_dialog/brave_clear_browsing_data_dialog_proxy.ts",
   "brave_autofill_page/brave_autofill_page.ts",
   "brave_add_site_dialog/brave_add_site_dialog.ts",
@@ -191,8 +192,13 @@ if (enable_ai_chat) {
     "brave_leo_assistant_page/model_config_ui.ts",
     "brave_leo_assistant_page/personalization.ts",
   ]
-  brave_settings_ts_files +=
-      [ "brave_leo_assistant_page/brave_leo_assistant_browser_proxy.ts" ]
+  brave_settings_ts_files += [
+    "brave_leo_assistant_page/brave_leo_assistant_browser_proxy.ts",
+    "brave_leo_assistant_page/model_selector.html.ts",
+    "brave_leo_assistant_page/model_selector.ts",
+  ]
+  brave_settings_local_css_files +=
+      [ "brave_leo_assistant_page/model_selector.css" ]
 }
 
 brave_settings_ts_definitions =

@@ -1,8 +1,8 @@
 diff --git a/components/content_settings/core/browser/content_settings_uma_util.cc b/components/content_settings/core/browser/content_settings_uma_util.cc
-index 36db4f1609d80cad7e8958bb0c2a24dc593696c8..7fc39c3750ddb370d8fee11b1c0532949e5d23e8 100644
+index 0ee32ccebe15e7ad725f086daf4f33fd31c00287..8ca8d5e912fb4398819bdc77b9d91f9cd8271839 100644
 --- a/components/content_settings/core/browser/content_settings_uma_util.cc
 +++ b/components/content_settings/core/browser/content_settings_uma_util.cc
-@@ -166,6 +166,7 @@ constexpr auto kHistogramValue = base::MakeFixedFlatMap<ContentSettingsType,
+@@ -168,6 +168,7 @@ constexpr auto kHistogramValue = base::MakeFixedFlatMap<ContentSettingsType,
  
      // As mentioned at the top, please don't forget to update ContentType in
      // enums.xml when you add entries here!

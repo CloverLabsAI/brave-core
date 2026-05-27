@@ -3,12 +3,13 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 
-const chalk = require('chalk')
-const config = require('./config')
-const fs = require('fs')
-const path = require('path')
-const Log = require('./logging')
-const util = require('./util')
+import chalk from 'chalk'
+import config from './config.js'
+import { isCI } from './ciDetect.ts'
+import fs from 'node:fs'
+import path from 'node:path'
+import Log from './logging.js'
+import util from './util.js'
 
 function toGClientConfigItem(name, value, pretty = true) {
   if (value === undefined) {
@@ -36,21 +37,18 @@ function writeGclientConfig(
   targetArchList,
   onlyChromium = false,
 ) {
+  /** @type {Record<string, any>} */
   const gclientConfig = {
     solutions: [
       {
         managed: false,
         name: 'src',
         url: config.chromiumRepo,
-        custom_deps: {
-          ...config.chromiumCustomDeps,
-        },
-        custom_vars: {
-          ...config.chromiumCustomVars,
-        },
+        custom_deps: config.chromiumCustomDeps,
+        custom_vars: config.chromiumCustomVars,
       },
     ],
-    cache_dir: process.env.GIT_CACHE_PATH,
+    cache_dir: config.gitCachePath,
     target_os: targetOSList,
     target_cpu: targetArchList,
     ...config.gclientGlobalVars,
@@ -207,6 +205,7 @@ function syncChromium(program) {
     config.rootDir,
     '.brave_latest_successful_sync.json',
   )
+  // @ts-ignore
   const latestSyncInfo = util.readJSON(latestSyncInfoFilePath, {})
   const expectedSyncInfo = {
     chromiumRef: requiredChromiumRef,
@@ -219,7 +218,7 @@ function syncChromium(program) {
   )
   const shouldSyncChromium = chromiumNeedsUpdate || syncWithForce
   if (!shouldSyncChromium && !syncChromiumValue) {
-    if (deleteUnusedDeps && !config.isCI) {
+    if (deleteUnusedDeps && !isCI) {
       Log.warn(
         '--delete_unused_deps is ignored for src/ dir because Chromium sync '
           + 'is required. Pass --sync_chromium to force it.',
@@ -231,7 +230,7 @@ function syncChromium(program) {
   if (deleteUnusedDeps) {
     if (util.isGitExclusionExists(config.srcDir, '/brave/')) {
       args.push('-D')
-    } else if (!config.isCI) {
+    } else if (!isCI) {
       Log.warn(
         '--delete_unused_deps is ignored because sync has not yet added '
           + 'the exclusion for the src/brave/ directory, likely because sync '
@@ -276,7 +275,9 @@ function syncChromium(program) {
 
   util.runGclient(args)
   util.modifyGitExclusions(config.srcDir, {
+    // @ts-ignore
     remove: ['brave/', 'brave_origin/'],
+    // @ts-ignore
     add: ['/brave/'],
   })
   util.writeJSON(latestSyncInfoFilePath, expectedSyncInfo)
@@ -302,7 +303,7 @@ async function checkInternalDepsEndpoint() {
   }
 }
 
-module.exports = {
+export default {
   writeGclientConfig,
   readGclientConfig,
   syncChromium,

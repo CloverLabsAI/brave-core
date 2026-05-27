@@ -9,7 +9,6 @@
 #include <utility>
 
 #include "base/check.h"
-#include "base/containers/contains.h"
 #include "base/files/scoped_temp_dir.h"
 #include "base/memory/raw_ref.h"
 #include "base/notreached.h"
@@ -63,6 +62,10 @@ std::string NewAccName(mojom::KeyringId keyring_id, uint32_t index) {
         return "Polkadot Mainnet Account";
       case mojom::KeyringId::kPolkadotTestnet:
         return "Polkadot Testnet Account";
+      case mojom::KeyringId::kPolkadotImport:
+        return "Polkadot Imported Account";
+      case mojom::KeyringId::kPolkadotImportTestnet:
+        return "Polkadot Imported Testnet Account";
     }
     NOTREACHED() << keyring_id;
   };
@@ -117,10 +120,8 @@ mojom::AccountInfoPtr AccountUtils::GetDerivedAccount(
 mojom::AccountInfoPtr AccountUtils::CreateDerivedAccount(
     mojom::KeyringId keyring_id,
     const std::string& name) {
-  auto acc =
-      keyring_service_
-          ->AddAccountSync(GetCoinForKeyring(keyring_id), keyring_id, name)
-          ->Clone();
+  auto acc = keyring_service_->AddAccountSync(GetCoinForKeyring(keyring_id),
+                                              keyring_id, name);
   EXPECT_TRUE(acc);
   return acc;
 }
@@ -168,14 +169,11 @@ mojom::AccountInfoPtr AccountUtils::CreateImportedAccount(
     const std::string& name) {
   EXPECT_TRUE(IsBitcoinImportKeyring(keyring_id));
   const auto network = GetNetworkForBitcoinKeyring(keyring_id);
-  auto acc =
-      keyring_service_
-          ->ImportBitcoinAccountSync(name,
-                                     (network == mojom::kBitcoinMainnet)
-                                         ? kBtcMainnetImportAccount0
-                                         : kBtcTestnetImportAccount0,
-                                     GetNetworkForBitcoinKeyring(keyring_id))
-          ->Clone();
+  auto acc = keyring_service_->ImportBitcoinAccountSync(
+      name,
+      (network == mojom::kBitcoinMainnet) ? kBtcMainnetImportAccount0
+                                          : kBtcTestnetImportAccount0,
+      GetNetworkForBitcoinKeyring(keyring_id));
   EXPECT_TRUE(acc);
   return acc;
 }
@@ -202,8 +200,7 @@ mojom::AccountInfoPtr AccountUtils::CreateHardwareAccount(
         mojom::KeyringId::kBitcoinHardwareTestnet);
   }
   auto acc =
-      keyring_service_->AddBitcoinHardwareAccountSync(std::move(hw_account))
-          ->Clone();
+      keyring_service_->AddBitcoinHardwareAccountSync(std::move(hw_account));
   EXPECT_TRUE(acc);
   return acc;
 }
@@ -390,7 +387,7 @@ std::vector<mojom::AccountInfoPtr> AccountUtils::AllAccounts(
     const std::vector<mojom::KeyringId>& keyring_ids) {
   std::vector<mojom::AccountInfoPtr> result;
   for (auto& acc : keyring_service_->GetAllAccountInfos()) {
-    if (base::Contains(keyring_ids, acc->account_id->keyring_id)) {
+    if (std::ranges::contains(keyring_ids, acc->account_id->keyring_id)) {
       result.push_back(acc->Clone());
     }
   }

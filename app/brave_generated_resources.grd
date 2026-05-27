@@ -403,7 +403,7 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
       <message name="IDS_LOCATION_BAR_ONION_AVAILABLE_TOOLTIP_TEXT" desc="The tooltip text for onion available button.">
         Open using .onion address: <ph name="ADDRESS">$1</ph>
       </message>
-      <message name="IDS_CONTENT_CONTEXT_FORCE_PASTE" desc="The name of the context menu item to paste without triggering onpaste handlers">
+      <message name="IDS_FORCE_PASTE" desc="The name of the context menu item to paste without triggering onpaste handlers">
         Force Paste
       </message>
 
@@ -680,7 +680,7 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
         </if>
         <if expr="is_macosx">
           <message name="IDS_OBSOLETE_SYSTEM_CONFIRM_DIALOG_CONTENT" desc="The text for obsolete system confirm dialog">
-            By clicking OK, you acknowledge that your installation of Brave will NOT receive critical security fixes until you update to macOS 10.15 or later. This warning will NOT show again.
+            By clicking OK, you acknowledge that your installation of Brave will NOT receive critical security fixes until you update to macOS 13 or later. This warning will NOT show again.
           </message>
         </if>
 
@@ -704,18 +704,6 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
       </message>
       <message name="IDS_BRAVE_ADS_NOTIFICATION_AD_ACCESSIBLE_NAME" desc="Text to be spoken when a notification ad is shown">
         Brave Notification Ad
-      </message>
-      <message name="IDS_BRAVE_ADS_NOTIFICATION_EXTERNAL_WALLET_CONNECTED_TITLE" desc="The notification title to show when an external wallet is connected">
-        &#x1F389; You're now earning!
-      </message>
-      <message name="IDS_BRAVE_ADS_NOTIFICATION_EXTERNAL_WALLET_CONNECTED_BODY" desc="The notification body to show when an external wallet is connected">
-        You earn whenever a notification like this appears on your screen. You don't need to click to earn.
-      </message>
-      <message name="IDS_BRAVE_ADS_NOTIFICATION_CLICKED_SAME_AD_MULTIPLE_TIMES_TITLE" desc="The notification title to show when a user clicks an ad multiple times">
-        You earn when a Brave Ads notification appears
-      </message>
-      <message name="IDS_BRAVE_ADS_NOTIFICATION_CLICKED_SAME_AD_MULTIPLE_TIMES_BODY" desc="The notification body to show when a user clicks an ad multiple times">
-        You don't need to click to earn, but do click if you're interested!
       </message>
       <message name="IDS_BRAVE_ADS_SEARCH_RESULT_AD_CLICKED_INFOBAR_MESSAGE" desc="The text label of creative search result ad infobar message">
         Thanks for supporting Brave Search by clicking a private ad. Unlike Big Tech, we measure ad performance anonymously to preserve your privacy.
@@ -962,9 +950,6 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
         <message name="IDS_CXMENU_OPEN_CONTAINERS_SETTINGS" desc="The label of the context menu item for opening the Containers settings page.">
           Manage containers
         </message>
-        <message name="IDS_TAB_CXMENU_RENAME_TAB" desc="The label of the tab context menu item for renaming a tab.">
-          Rename tab
-        </message>
       </if>
       <if expr="use_titlecase">
         <message name="IDS_TAB_CXMENU_BOOKMARK_ALL_TABS" desc="In Title Case: The label of the tab context menu item for creating a bookmark folder containing an entry for each open tab.">
@@ -996,9 +981,6 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
         </message>
         <message name="IDS_CXMENU_OPEN_CONTAINERS_SETTINGS" desc="The label of the tab context menu item for opening the Containers settings page.">
           Manage Containers
-        </message>
-        <message name="IDS_TAB_CXMENU_RENAME_TAB" desc="The label of the tab context menu item for renaming a tab.">
-          Rename Tab
         </message>
       </if>
 
@@ -1401,6 +1383,12 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
       </message>
 
       <!-- Tab Search -->
+      <message name="IDS_BRAVE_TAB_SEARCH_TAB_NAME" desc="Tab name for the search tab in the tab search panel">
+        Search
+      </message>
+      <message name="IDS_BRAVE_TAB_ORGANIZATION_TAB_NAME" desc="Tab name for the Leo AI tab organization tab in the tab search panel">
+        Organize
+      </message>
       <message name="IDS_BRAVE_ORGANIZE_TAB_TITLE" desc="Title for the tab organizer page">
         Tab focus
       </message>
@@ -1441,6 +1429,14 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
         Enable
       </message>
 
+      <!--PSST -->
+      <message name="IDS_BRAVE_PSST_INFOBAR_MESSAGE" desc="Infobar message body informing the user that Brave's Privacy Settings Suggestion Tool (PSST) can optimize their privacy settings on this site.">
+        Brave can help you optimize this site's privacy settings. Would you like to review Brave's suggestions?
+      </message>
+      <message name="IDS_BRAVE_PSST_INFO_BAR_REVIEW_SUGGESTIONS" desc="Button label for the infobar action that starts the review of Privacy Settings Suggestion Tool (PSST) recommendations.">
+        Review Suggestions
+      </message>
+
       <!-- Brave policy -->
       <message name="IDS_BRAVE_CONTROLLED_SETTING_POLICY" desc="Text displayed in the controlled settings bubble when a setting's value is managed by policy.">
         This setting is managed by your administrator or by another Brave policy.
@@ -1460,6 +1456,9 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
       </message>
       <message name="IDS_BRAVE_PASSWORD_MANAGER_UI_IMPORT_DESCRIPTION_SIGNEDOUT_USERS" desc="The description for the password import banner in Password Manager settings.">
         To import passwords to <ph name="BRAND">$1<ex>Brave Password Manager</ex></ph> on this device, select a CSV file
+      </message>
+      <message name="IDS_LOCAL_AI_TASK_MANAGER_TITLE" desc="The label for the on-device AI background process in the Task Manager.">
+        On-Device AI
       </message>
       <!--Add new items to the appropriate sections above -->
     </messages>

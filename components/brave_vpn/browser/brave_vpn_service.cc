@@ -16,7 +16,6 @@
 #include "base/json/json_writer.h"
 #include "base/logging.h"
 #include "base/strings/string_util.h"
-#include "base/strings/utf_string_conversions.h"
 #include "base/time/time.h"
 #include "brave/components/brave_vpn/browser/api/brave_vpn_api_helper.h"
 #include "brave/components/brave_vpn/browser/brave_vpn_service_helper.h"
@@ -208,6 +207,14 @@ void BraveVpnService::OnSelectedRegionChanged(const std::string& region_name) {
   for (const auto& obs : observers_) {
     obs->OnSelectedRegionChanged(region_ptr.Clone());
   }
+}
+
+void BraveVpnService::OnInstallSystemServicesCompleted(bool success) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  VLOG(2) << __func__ << " success - " << success;
+#if BUILDFLAG(IS_WIN)
+  brave_vpn_metrics_.RecordSystemServiceInstallationResult(success);
+#endif
 }
 
 mojom::ConnectionState BraveVpnService::GetConnectionState() const {
@@ -493,7 +500,7 @@ void BraveVpnService::GetAllRegions(GetAllRegionsCallback callback) {
 void BraveVpnService::OnFetchRegionList(GetAllRegionsCallback callback,
                                         const std::string& region_list,
                                         bool success) {
-  std::optional<base::Value::List> value = base::JSONReader::ReadList(
+  std::optional<base::ListValue> value = base::JSONReader::ReadList(
       region_list, base::JSON_PARSE_CHROMIUM_EXTENSIONS);
   if (value) {
     auto new_regions = ParseRegionList(*value);
@@ -534,7 +541,7 @@ void BraveVpnService::GetPurchaseToken(GetPurchaseTokenCallback callback) {
         profile_prefs_->GetString(prefs::kBraveVPNProductIdAndroid);
   }
 
-  base::Value::Dict response;
+  base::DictValue response;
   response.Set("type", "android");
   response.Set("raw_receipt", purchase_token_string);
   response.Set("package", package_string);
@@ -651,7 +658,7 @@ void BraveVpnService::OnCredentialSummary(const std::string& domain,
     return;
   }
 
-  std::optional<base::Value::Dict> records = base::JSONReader::ReadDict(
+  std::optional<base::DictValue> records = base::JSONReader::ReadDict(
       summary->message, base::JSONParserOptions::JSON_PARSE_RFC);
 
   // Early return when summary is invalid or it's empty dict.
@@ -732,11 +739,8 @@ void BraveVpnService::OnPrepareCredentialsPresentation(
   const std::string encoded_credential = credential_cookie.Value();
   const auto time =
       net::cookie_util::ParseCookieExpirationTime(*credential_cookie.Expires());
-  url::RawCanonOutputT<char16_t> unescaped;
-  url::DecodeURLEscapeSequences(
-      encoded_credential, url::DecodeURLMode::kUTF8OrIsomorphic, &unescaped);
-  std::string credential;
-  base::UTF16ToUTF8(unescaped.data(), unescaped.length(), &credential);
+  std::string credential = url::DecodeUrlEscapeSequences(
+      encoded_credential, url::DecodeUrlMode::kUtf8OrIsomorphic);
   if (credential.empty()) {
     SetPurchasedState(env, PurchasedState::NOT_PURCHASED);
     return;

@@ -28,28 +28,25 @@ class LinkPreviewViewController: UIViewController {
   required init?(coder aDecoder: NSCoder) { fatalError() }
 
   override func viewDidLoad() {
-    guard let browserController else {
+    guard let browserController, let parentTab else {
       return
     }
 
-    let isPrivate = parentTab?.isPrivate ?? false
+    var initialConfiguration: WKWebViewConfiguration?
+    if !FeatureList.kUseProfileWebViewConfiguration.enabled {
+      initialConfiguration =
+        parentTab.isPrivate
+        ? TabManager.privateConfiguration : TabManager.defaultConfiguration
+    }
     let tab = TabStateFactory.create(
-      with: .init(
-        initialConfiguration: isPrivate
-          ? TabManager.privateConfiguration : TabManager.defaultConfiguration,
-        braveCore: browserController.profileController
-      )
+      with: .init(profile: parentTab.profile, initialConfiguration: initialConfiguration)
     )
     tab.miscDelegate = browserController
     tab.createWebView()
     tab.addPolicyDecider(browserController)
-    let profile =
-      tab.isPrivate
-      ? browserController.profileController.profile.offTheRecordProfile
-      : browserController.profileController.profile
     let braveShieldsTabHelper: BraveShieldsTabHelper = .init(
       tab: tab,
-      braveShieldsSettings: BraveShieldsSettingsServiceFactory.get(profile: profile)
+      braveShieldsSettings: BraveShieldsSettingsServiceFactory.get(profile: tab.profile)
     )
     tab.braveShieldsHelper = braveShieldsTabHelper
     tab.addPolicyDecider(braveShieldsTabHelper)
@@ -72,7 +69,7 @@ class LinkPreviewViewController: UIViewController {
         shieldLevel: shieldLevel
       )
       for ruleList in ruleLists {
-        currentTab.configuration.userContentController.add(ruleList)
+        currentTab.configuration?.userContentController.add(ruleList)
       }
     }
 

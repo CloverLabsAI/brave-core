@@ -1,3 +1,0 @@
-[workspace]
-resolver = "2"
-members = ["opaque_ke", "candle_embedding_gemma"]

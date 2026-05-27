@@ -21,15 +21,16 @@
 #include "base/task/sequenced_task_runner.h"
 #include "base/task/thread_pool.h"
 #include "brave/components/brave_ads/core/mojom/brave_ads.mojom.h"
-#include "brave/components/brave_ads/core/public/ad_units/new_tab_page_ad/new_tab_page_ad_prefetcher.h"
 #include "brave/components/brave_ads/core/public/ad_units/new_tab_page_ad/new_tab_page_ad_util.h"
 #include "brave/components/brave_ads/core/public/ads.h"
 #include "brave/components/brave_ads/core/public/ads_callback.h"
 #include "brave/components/brave_ads/core/public/ads_client/ads_client.h"
 #include "brave/components/brave_ads/core/public/ads_constants.h"
-#include "brave/components/brave_ads/core/public/flags/flags_util.h"
+#include "brave/components/brave_ads/core/public/command_line_switches/command_line_switches_util.h"
 #include "components/prefs/pref_service.h"
 #include "sql/database.h"
+#include "ui/base/page_transition_types.h"
+#include "url/gurl.h"
 
 namespace brave_ads {
 
@@ -46,12 +47,15 @@ AdsServiceImplIOS::AdsServiceImplIOS(PrefService* prefs)
       file_task_runner_(base::ThreadPool::CreateSequencedTaskRunner(
           {base::MayBlock(), base::TaskPriority::USER_VISIBLE,
            base::TaskShutdownBehavior::BLOCK_SHUTDOWN})),
-      new_tab_page_ad_prefetcher_(
-          std::make_unique<NewTabPageAdPrefetcher>(/*ads_service=*/*this)) {
+      ads_client_notifier_(std::make_unique<AdsClientNotifier>()) {
   CHECK(prefs_);
 }
 
 AdsServiceImplIOS::~AdsServiceImplIOS() = default;
+
+AdsClientNotifier* AdsServiceImplIOS::GetAdsClientNotifier() {
+  return ads_client_notifier_.get();
+}
 
 bool AdsServiceImplIOS::IsInitialized() const {
   return !!ads_;
@@ -192,33 +196,8 @@ void AdsServiceImplIOS::GetStatementOfAccounts(
   ads_->GetStatementOfAccounts(std::move(callback));
 }
 
-void AdsServiceImplIOS::PrefetchNewTabPageAd() {
-  if (!IsInitialized()) {
-    return;
-  }
-
-  new_tab_page_ad_prefetcher_->Prefetch();
-}
-
-mojom::NewTabPageAdInfoPtr AdsServiceImplIOS::MaybeGetPrefetchedNewTabPageAd() {
-  if (!IsInitialized()) {
-    return nullptr;
-  }
-
-  return new_tab_page_ad_prefetcher_->MaybeGetPrefetchedAd();
-}
-
-void AdsServiceImplIOS::OnFailedToPrefetchNewTabPageAd(
-    const std::string& /*placement_id*/,
-    const std::string& /*creative_instance_id*/) {
-  ResetNewTabPageAd();
-
-  PurgeOrphanedAdEventsForType(mojom::AdType::kNewTabPageAd,
-                               /*intentional*/ base::DoNothing());
-}
-
 void AdsServiceImplIOS::ParseAndSaveNewTabPageAds(
-    base::Value::Dict dict,
+    base::DictValue dict,
     ParseAndSaveNewTabPageAdsCallback callback) {
   if (task_queue_.should_queue()) {
     // TODO(https://github.com/brave/brave-browser/issues/44925): Transition
@@ -230,13 +209,10 @@ void AdsServiceImplIOS::ParseAndSaveNewTabPageAds(
   }
 
   if (!IsInitialized()) {
-    return std::move(callback).Run(/*success*/ false);
+    return std::move(callback).Run(/*success=*/false);
   }
 
-  ads_->ParseAndSaveNewTabPageAds(
-      std::move(dict),
-      base::BindOnce(&AdsServiceImplIOS::OnParseAndSaveNewTabPageAdsCallback,
-                     weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
+  ads_->ParseAndSaveNewTabPageAds(std::move(dict), std::move(callback));
 }
 
 void AdsServiceImplIOS::MaybeServeNewTabPageAd(
@@ -374,89 +350,60 @@ void AdsServiceImplIOS::ToggleMarkAdAsInappropriate(
 }
 
 void AdsServiceImplIOS::NotifyTabTextContentDidChange(
-    int32_t /*tab_id*/,
-    const std::vector<GURL>& /*redirect_chain*/,
-    const std::string& /*text*/) {
-  // TODO(https://github.com/brave/brave-browser/issues/42373): Utilize
-  // AdsClientNotifier in AdsServiceImplIOS
-  NOTIMPLEMENTED() << "Not used on iOS.";
+    int32_t tab_id,
+    const std::vector<GURL>& redirect_chain,
+    const std::string& text) {
+  ads_client_notifier_->NotifyTabTextContentDidChange(tab_id, redirect_chain,
+                                                      text);
 }
 
-void AdsServiceImplIOS::NotifyTabHtmlContentDidChange(
-    int32_t /*tab_id*/,
-    const std::vector<GURL>& /*redirect_chain*/,
-    const std::string& /*html*/) {
-  // TODO(https://github.com/brave/brave-browser/issues/42373): Utilize
-  // AdsClientNotifier in AdsServiceImplIOS
-  NOTIMPLEMENTED() << "Not used on iOS.";
+void AdsServiceImplIOS::NotifyTabDidStartPlayingMedia(int32_t tab_id) {
+  ads_client_notifier_->NotifyTabDidStartPlayingMedia(tab_id);
 }
 
-void AdsServiceImplIOS::NotifyTabDidStartPlayingMedia(int32_t /*tab_id*/) {
-  // TODO(https://github.com/brave/brave-browser/issues/42373): Utilize
-  // AdsClientNotifier in AdsServiceImplIOS
-  NOTIMPLEMENTED() << "Not used on iOS.";
-}
-
-void AdsServiceImplIOS::NotifyTabDidStopPlayingMedia(int32_t /*tab_id*/) {
-  // TODO(https://github.com/brave/brave-browser/issues/42373): Utilize
-  // AdsClientNotifier in AdsServiceImplIOS
-  NOTIMPLEMENTED() << "Not used on iOS.";
+void AdsServiceImplIOS::NotifyTabDidStopPlayingMedia(int32_t tab_id) {
+  ads_client_notifier_->NotifyTabDidStopPlayingMedia(tab_id);
 }
 
 void AdsServiceImplIOS::NotifyTabDidChange(
-    int32_t /*tab_id*/,
-    const std::vector<GURL>& /*redirect_chain*/,
-    bool /*is_new_navigation*/,
-    bool /*is_restoring*/,
-    bool /*is_visible*/) {
-  // TODO(https://github.com/brave/brave-browser/issues/42373): Utilize
-  // AdsClientNotifier in AdsServiceImplIOS
-  NOTIMPLEMENTED() << "Not used on iOS.";
+    int32_t tab_id,
+    const std::vector<GURL>& redirect_chain,
+    bool is_new_navigation,
+    bool is_restoring,
+    bool is_visible) {
+  ads_client_notifier_->NotifyTabDidChange(
+      tab_id, redirect_chain, is_new_navigation, is_restoring, is_visible);
 }
 
-void AdsServiceImplIOS::NotifyTabDidLoad(int32_t /*tab_id*/,
-                                         int /*http_status_code*/) {
-  // TODO(https://github.com/brave/brave-browser/issues/42373): Utilize
-  // AdsClientNotifier in AdsServiceImplIOS
-  NOTIMPLEMENTED() << "Not used on iOS.";
+void AdsServiceImplIOS::NotifyTabDidLoad(int32_t tab_id, int http_status_code) {
+  ads_client_notifier_->NotifyTabDidLoad(tab_id, http_status_code);
 }
 
-void AdsServiceImplIOS::NotifyDidCloseTab(int32_t /*tab_id*/) {
-  // TODO(https://github.com/brave/brave-browser/issues/42373): Utilize
-  // AdsClientNotifier in AdsServiceImplIOS
-  NOTIMPLEMENTED() << "Not used on iOS.";
+void AdsServiceImplIOS::NotifyDidCloseTab(int32_t tab_id) {
+  ads_client_notifier_->NotifyDidCloseTab(tab_id);
 }
 
 void AdsServiceImplIOS::NotifyUserGestureEventTriggered(
-    int32_t /*page_transition_type*/) {
-  // TODO(https://github.com/brave/brave-browser/issues/42373): Utilize
-  // AdsClientNotifier in AdsServiceImplIOS
-  NOTIMPLEMENTED() << "Not used on iOS.";
+    int32_t page_transition) {
+  ads_client_notifier_->NotifyUserGestureEventTriggered(
+      static_cast<ui::PageTransition>(page_transition));
 }
 
 void AdsServiceImplIOS::NotifyBrowserDidBecomeActive() {
-  // TODO(https://github.com/brave/brave-browser/issues/42373): Utilize
-  // AdsClientNotifier in AdsServiceImplIOS
-  NOTIMPLEMENTED() << "Not used on iOS.";
+  ads_client_notifier_->NotifyBrowserDidBecomeActive();
 }
 
 void AdsServiceImplIOS::NotifyBrowserDidResignActive() {
-  // TODO(https://github.com/brave/brave-browser/issues/42373): Utilize
-  // AdsClientNotifier in AdsServiceImplIOS
-  NOTIMPLEMENTED() << "Not used on iOS.";
+  ads_client_notifier_->NotifyBrowserDidResignActive();
 }
 
 void AdsServiceImplIOS::NotifyDidSolveAdaptiveCaptcha() {
-  // TODO(https://github.com/brave/brave-browser/issues/42373): Utilize
-  // AdsClientNotifier in AdsServiceImplIOS
-  NOTIMPLEMENTED() << "Not used on iOS.";
+  ads_client_notifier_->NotifyDidSolveAdaptiveCaptcha();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 void AdsServiceImplIOS::Shutdown() {
-  ResetNewTabPageAd();
-
   NotifyDidShutdownAdsService();
 
   ads_.reset();
@@ -470,7 +417,7 @@ void AdsServiceImplIOS::InitializeAds(InitializeCallback callback) {
 
   ads_->SetSysInfo(mojom_sys_info_.Clone());
   ads_->SetBuildChannel(mojom_build_channel_.Clone());
-  ads_->SetFlags(BuildFlags());
+  ads_->SetCommandLineSwitches(BuildCommandLineSwitches());
 
   ads_->Initialize(
       mojom_wallet_.Clone(),
@@ -526,36 +473,6 @@ void AdsServiceImplIOS::ClearAdsData(ClearDataCallback callback, bool success) {
 void AdsServiceImplIOS::ClearAdsDataCallback(ClearDataCallback callback) {
   NotifyDidClearAdsServiceData();
   InitializeAds(std::move(callback));
-}
-
-void AdsServiceImplIOS::RefetchNewTabPageAd() {
-  ResetNewTabPageAd();
-
-  PurgeOrphanedAdEventsForType(
-      mojom::AdType::kNewTabPageAd,
-      base::BindOnce(&AdsServiceImplIOS::RefetchNewTabPageAdCallback,
-                     weak_ptr_factory_.GetWeakPtr()));
-}
-
-void AdsServiceImplIOS::RefetchNewTabPageAdCallback(bool success) {
-  if (success) {
-    new_tab_page_ad_prefetcher_->Prefetch();
-  }
-}
-
-void AdsServiceImplIOS::ResetNewTabPageAd() {
-  new_tab_page_ad_prefetcher_ =
-      std::make_unique<NewTabPageAdPrefetcher>(/*ads_service=*/*this);
-}
-
-void AdsServiceImplIOS::OnParseAndSaveNewTabPageAdsCallback(
-    ParseAndSaveNewTabPageAdsCallback callback,
-    bool success) {
-  if (success) {
-    PrefetchNewTabPageAd();
-  }
-
-  std::move(callback).Run(success);
 }
 
 }  // namespace brave_ads

@@ -3,15 +3,17 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 
-const assert = require('assert')
-const fs = require('fs-extra')
-const path = require('path')
+import assert from 'node:assert'
+import fs from 'fs-extra'
+import path from 'node:path'
 
 // This function is used to get the call stack of the guarded operation. It is
 // stored in the guard file.
 function getGuardCallStack() {
+  // @ts-ignore
   const stack = new Error().stack.split('\n').slice(2)
   for (let i = 0; i < stack.length; i++) {
+    // @ts-ignore
     if (!stack[i].includes('at ActionGuard.')) {
       return 'GUARD_CALLSTACK:\n' + stack.slice(i).join('\n')
     }
@@ -21,7 +23,7 @@ function getGuardCallStack() {
 
 // This class is used to ensure that a given action is successfully completed,
 // otherwise a rerun might be required.
-class ActionGuard {
+export default class ActionGuard {
   // Path to the guard file.
   #guardFilePath
   // Cleanup closure to perform a cleanup (optional) before running the action.
@@ -86,5 +88,3 @@ class ActionGuard {
     }
   }
 }
-
-module.exports = ActionGuard

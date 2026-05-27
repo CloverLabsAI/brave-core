@@ -12,7 +12,7 @@ import { getString } from '../../lib/strings'
 import {
   BraveBackground,
   SponsoredImageBackground,
-} from '../../state/background_state'
+} from '../../state/background_store'
 import {
   useCurrentBackground,
   useBackgroundActions,
@@ -71,6 +71,7 @@ function SponsoredBackgroundLogo(props: SponsoredBackgroundLogoProps) {
       url={logo.destinationUrl}
       className='sponsored-logo'
       onClick={() => actions.notifySponsoredImageLogoClicked()}
+      onContextMenu={(e) => e.preventDefault()}
     >
       <Icon name='launch' />
       <img

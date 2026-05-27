@@ -101,12 +101,12 @@ void MetricLogStore::UpdateValue(const std::string& histogram_name,
 
   if (!entry.sent) {
     DCHECK(entry.sent_timestamp.is_null());
-    unsent_entries_.insert(histogram_name);
+    InsertUnsentEntry(histogram_name);
   }
 
   // Update the persistent value.
   ScopedDictPrefUpdate update(&*local_state_, GetPrefName());
-  base::Value::Dict* log_dict = update->EnsureDict(histogram_name);
+  base::DictValue* log_dict = update->EnsureDict(histogram_name);
   log_dict->Set(kLogValueKey, base::NumberToString(value));
   log_dict->Set(kLogSentKey, entry.sent);
 }
@@ -114,6 +114,7 @@ void MetricLogStore::UpdateValue(const std::string& histogram_name,
 void MetricLogStore::RemoveValueIfExists(const std::string& histogram_name) {
   log_.erase(histogram_name);
   unsent_entries_.erase(histogram_name);
+  deferred_entries_.erase(histogram_name);
 
   // Update the persistent value.
   ScopedDictPrefUpdate(&*local_state_, GetPrefName())->Remove(histogram_name);
@@ -146,7 +147,7 @@ void MetricLogStore::ResetUploadStamps() {
       it->second.ResetSentState();
 
       // Update persistent values.
-      base::Value::Dict* log_dict = update->EnsureDict(it->first);
+      base::DictValue* log_dict = update->EnsureDict(it->first);
       log_dict->Set(kLogSentKey, it->second.sent);
       log_dict->Set(kLogTimestampKey,
                     it->second.sent_timestamp.InSecondsFSinceUnixEpoch());
@@ -159,10 +160,11 @@ void MetricLogStore::ResetUploadStamps() {
     RecordSentAnswersCount(log_.size() - unsent_entries_.size());
   }
 
-  // Rebuild the unsent set.
+  // Rebuild the unsent and deferred sets.
   unsent_entries_.clear();
+  deferred_entries_.clear();
   for (const auto& pair : log_) {
-    unsent_entries_.insert(pair.first);
+    InsertUnsentEntry(pair.first);
   }
 }
 
@@ -235,7 +237,7 @@ void MetricLogStore::DiscardStagedLog(std::string_view reason) {
 
   // Update the persistent value.
   ScopedDictPrefUpdate update(&*local_state_, GetPrefName());
-  base::Value::Dict* log_dict = update->EnsureDict(log_iter->first);
+  base::DictValue* log_dict = update->EnsureDict(log_iter->first);
   log_dict->Set(kLogSentKey, log_iter->second.sent);
   log_dict->Set(kLogTimestampKey,
                 log_iter->second.sent_timestamp.InSecondsFSinceUnixEpoch());
@@ -261,10 +263,10 @@ void MetricLogStore::LoadPersistedUnsentLogs() {
 
   const char* pref_name = GetPrefName();
 
-  const base::Value::Dict& log_dict = local_state_->GetDict(pref_name);
+  const base::DictValue& log_dict = local_state_->GetDict(pref_name);
   for (const auto [name, value] : log_dict) {
     LogEntry entry;
-    const base::Value::Dict& dict = value.GetDict();
+    const base::DictValue& dict = value.GetDict();
     if (const std::string* v = dict.FindString(kLogValueKey)) {
       if (!base::StringToUint64(*v, &entry.value)) {
         return;
@@ -291,7 +293,18 @@ void MetricLogStore::LoadPersistedUnsentLogs() {
 
     log_[name] = entry;
     if (!entry.sent) {
-      unsent_entries_.insert(name);
+      InsertUnsentEntry(name);
+    }
+  }
+}
+
+void MetricLogStore::ReevaluateDeferredEntries() {
+  for (auto it = deferred_entries_.begin(); it != deferred_entries_.end();) {
+    if (!delegate_->ShouldDeferMetric(*it)) {
+      unsent_entries_.insert(*it);
+      it = deferred_entries_.erase(it);
+    } else {
+      ++it;
     }
   }
 }
@@ -312,6 +325,14 @@ void MetricLogStore::RemoveObsoleteLogs() {
 const metrics::LogMetadata MetricLogStore::staged_log_metadata() const {
   DCHECK(has_staged_log());
   return {};
+}
+
+void MetricLogStore::InsertUnsentEntry(std::string_view histogram_name) {
+  if (delegate_->ShouldDeferMetric(histogram_name)) {
+    deferred_entries_.emplace(histogram_name);
+  } else {
+    unsent_entries_.emplace(histogram_name);
+  }
 }
 
 }  // namespace p3a

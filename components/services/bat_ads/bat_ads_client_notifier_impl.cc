@@ -8,6 +8,7 @@
 #include <utility>
 
 #include "base/check.h"
+#include "ui/base/page_transition_types.h"
 
 namespace bat_ads {
 
@@ -74,14 +75,6 @@ void BatAdsClientNotifierImpl::NotifyTabTextContentDidChange(
                                                      text);
 }
 
-void BatAdsClientNotifierImpl::NotifyTabHtmlContentDidChange(
-    int32_t tab_id,
-    const std::vector<GURL>& redirect_chain,
-    const std::string& html) {
-  ads_client_notifier_.NotifyTabHtmlContentDidChange(tab_id, redirect_chain,
-                                                     html);
-}
-
 void BatAdsClientNotifierImpl::NotifyTabDidStartPlayingMedia(int32_t tab_id) {
   ads_client_notifier_.NotifyTabDidStartPlayingMedia(tab_id);
 }
@@ -110,8 +103,11 @@ void BatAdsClientNotifierImpl::NotifyDidCloseTab(int32_t tab_id) {
 }
 
 void BatAdsClientNotifierImpl::NotifyUserGestureEventTriggered(
-    int32_t page_transition_type) {
-  ads_client_notifier_.NotifyUserGestureEventTriggered(page_transition_type);
+    int32_t page_transition) {
+  if (ui::IsValidPageTransitionType(page_transition)) {
+    ads_client_notifier_.NotifyUserGestureEventTriggered(
+        static_cast<ui::PageTransition>(page_transition));
+  }
 }
 
 void BatAdsClientNotifierImpl::NotifyUserDidBecomeIdle() {

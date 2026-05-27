@@ -32,6 +32,7 @@
 #include "base/notreached.h"
 #include "base/strings/string_number_conversions.h"
 #include "base/strings/string_util.h"
+#include "base/time/time.h"
 #include "base/values.h"
 #include "brave/components/brave_page_graph/common/features.h"
 #include "brave/components/brave_shields/core/common/brave_shield_constants.h"
@@ -95,7 +96,6 @@
 #include "brave/third_party/blink/renderer/core/brave_page_graph/requests/tracked_request.h"
 #include "brave/third_party/blink/renderer/core/brave_page_graph/scripts/script_tracker.h"
 #include "brave/third_party/blink/renderer/core/brave_page_graph/types.h"
-#include "brave/third_party/blink/renderer/core/brave_page_graph/utilities/response_metadata.h"
 #include "brave/v8/include/v8-isolate-page-graph-utils.h"
 #include "third_party/blink/public/mojom/script/script_type.mojom-shared.h"
 #include "third_party/blink/public/platform/web_string.h"
@@ -197,7 +197,7 @@ namespace blink {
 
 namespace {
 
-constexpr char kPageGraphVersion[] = "0.7.5";
+constexpr char kPageGraphVersion[] = "0.7.7";
 constexpr char kPageGraphUrl[] =
     "https://github.com/brave/brave-browser/wiki/PageGraph";
 
@@ -240,9 +240,9 @@ PageGraph* GetPageGraphFromIsolate(v8::Isolate* isolate) {
 
   if (auto* top_local_frame =
           blink::DynamicTo<blink::LocalFrame>(&frame->Tree().Top())) {
-    return top_local_frame->GetPageGraph();
+    return blink::PageGraph::From(*top_local_frame);
   } else {
-    return frame->GetPageGraph();
+    return blink::PageGraph::From(*frame);
   }
 }
 
@@ -341,11 +341,19 @@ static void AssignSecurityOriginToNodeDOMRoot(
 }  // namespace
 
 // static
+const char PageGraph::kSupplementName[] = "PageGraph";
+
+// static
+PageGraph* PageGraph::From(LocalFrame& frame) {
+  return Supplement<LocalFrame>::From<PageGraph>(frame);
+}
+
+// static
 void PageGraph::ProvideTo(LocalFrame& frame) {
   if (!base::FeatureList::IsEnabled(brave_page_graph::features::kPageGraph)) {
     return;
   }
-  CHECK(!frame.GetPageGraph());
+  CHECK(!PageGraph::From(frame));
   CHECK(frame.IsLocalRoot());
   Page* page = frame.GetPage();
   CHECK(page);
@@ -357,8 +365,8 @@ void PageGraph::ProvideTo(LocalFrame& frame) {
     blink::Node* initiator_node =
         blink::DOMNodeIds::NodeForId(initiator_dom_node_id);
     if (initiator_node) {
-      auto initiator_tree_page_graph =
-          initiator_node->TreeRoot().GetDocument().GetFrame()->GetPageGraph();
+      auto* initiator_tree_page_graph = Supplement<LocalFrame>::From<PageGraph>(
+          *initiator_node->TreeRoot().GetDocument().GetFrame());
       if (initiator_tree_page_graph) {
         frame.GetProbeSink()->AddPageGraph(initiator_tree_page_graph);
         return;
@@ -372,7 +380,8 @@ void PageGraph::ProvideTo(LocalFrame& frame) {
     if (!main_local_frame) {
       continue;
     }
-    auto related_page_graph = main_local_frame->GetPageGraph();
+    auto* related_page_graph =
+        Supplement<LocalFrame>::From<PageGraph>(main_local_frame);
     if (related_page_graph) {
       frame.GetProbeSink()->AddPageGraph(related_page_graph);
       return;
@@ -385,7 +394,8 @@ void PageGraph::ProvideTo(LocalFrame& frame) {
     if (!main_local_frame) {
       continue;
     }
-    auto ordinary_page_graph = main_local_frame->GetPageGraph();
+    auto* ordinary_page_graph =
+        Supplement<LocalFrame>::From<PageGraph>(main_local_frame);
     if (ordinary_page_graph) {
       frame.GetProbeSink()->AddPageGraph(ordinary_page_graph);
       return;
@@ -395,11 +405,11 @@ void PageGraph::ProvideTo(LocalFrame& frame) {
   // Create a new PageGraph for the current frame.
   PageGraph* page_graph = MakeGarbageCollected<PageGraph>(frame);
   frame.GetProbeSink()->AddPageGraph(page_graph);
-  frame.SetPageGraph(page_graph);
+  Supplement<LocalFrame>::ProvideTo(frame, page_graph);
 }
 
 PageGraph::PageGraph(LocalFrame& local_frame)
-    : local_frame_(local_frame),
+    : Supplement<LocalFrame>(local_frame),
       frame_id_(GetFrameId(local_frame)),
       script_tracker_(this),
       request_tracker_(this) {
@@ -437,13 +447,13 @@ PageGraph::PageGraph(LocalFrame& local_frame)
 PageGraph::~PageGraph() = default;
 
 void PageGraph::Trace(blink::Visitor* visitor) const {
-  visitor->Trace(local_frame_);
+  Supplement<LocalFrame>::Trace(visitor);
   visitor->Trace(execution_context_nodes_);
   visitor->Trace(processed_js_urls_);
 }
 
 void PageGraph::NodeCreated(blink::Node* node) {
-  DCHECK(!base::Contains(currently_constructed_nodes_, node));
+  DCHECK(!currently_constructed_nodes_.contains(node));
   currently_constructed_nodes_.emplace(node, false);
 }
 
@@ -627,29 +637,6 @@ void PageGraph::WillSendRequest(
              << " resource type: " << page_graph_resource_type
              << " url: " << request.Url() << "\n"
              << base::debug::StackTrace().ToString();
-}
-
-void PageGraph::DidReceiveResourceResponse(
-    uint64_t identifier,
-    blink::DocumentLoader* loader,
-    const blink::ResourceResponse& response,
-    const blink::Resource* cached_resource) {
-  if (TrackedRequestRecord* request_record =
-          request_tracker_.GetTrackingRecord(identifier)) {
-    if (TrackedRequest* request = request_record->request.get()) {
-      request->GetResponseMetadata().ProcessResourceResponse(response);
-    }
-    return;
-  }
-
-  if (DocumentRequest* document_request =
-          request_tracker_.GetDocumentRequestInfo(identifier)) {
-    document_request->response_metadata.ProcessResourceResponse(response);
-    return;
-  }
-
-  LOG(ERROR) << "DidReceiveResourceResponse) untracked request id: "
-             << identifier;
 }
 
 void PageGraph::DidReceiveData(uint64_t identifier,
@@ -863,8 +850,7 @@ void PageGraph::RegisterPageGraphWebAPICallWithResult(
       return;
     } else if (name_piece == "Document.cookie.set") {
       String value(args[0].GetString());
-      blink::Vector<String> cookie_structure;
-      value.Split("=", cookie_structure);
+      blink::Vector<String> cookie_structure = value.SplitSkippingEmpty('=');
       String cookie_key = *(cookie_structure.begin());
       String cookie_value =
           value.Substring(cookie_key.length() + 1, value.length());
@@ -948,8 +934,8 @@ void PageGraph::RegisterPageGraphJavaScriptUrl(blink::Document* document,
   processed_js_urls_.insert(execution_context, Vector<ProcessedJavascriptURL>())
       .stored_value->value.push_back(ProcessedJavascriptURL{
           .script_code =
-              blink::DecodeURLEscapeSequences(
-                  url.GetString(), blink::DecodeURLMode::kUTF8OrIsomorphic)
+              blink::DecodeUrlEscapeSequences(
+                  url.GetString(), blink::DecodeUrlMode::kUtf8OrIsomorphic)
                   .Substring(kJavascriptSchemeLength),
           .parent_script_id = GetExecutingScriptId(execution_context),
       });
@@ -961,7 +947,8 @@ void PageGraph::ConsoleMessageAdded(blink::ConsoleMessage* console_message) {
     blink::LocalFrame* frame = console_message->Frame();
     blink::Document* document = frame ? frame->GetDocument() : nullptr;
     if (!document) {
-      document = local_frame_->GetDocument();
+      frame = GetSupplementable();
+      document = frame->GetDocument();
       if (!document) {
         return nullptr;
       }
@@ -974,7 +961,7 @@ void PageGraph::ConsoleMessageAdded(blink::ConsoleMessage* console_message) {
   }
 
   std::ostringstream str;
-  base::Value::Dict dict;
+  base::DictValue dict;
   str << console_message->GetSource();
   dict.Set("source", str.str());
   str.str("");
@@ -982,7 +969,7 @@ void PageGraph::ConsoleMessageAdded(blink::ConsoleMessage* console_message) {
   dict.Set("level", str.str());
   dict.Set("message", console_message->Message().Utf8());
 
-  base::Value::Dict loc;
+  base::DictValue loc;
   loc.Set("url", console_message->Location()->Url().Utf8());
   loc.Set("line", static_cast<int>(console_message->Location()->LineNumber()));
   loc.Set("column",
@@ -990,7 +977,7 @@ void PageGraph::ConsoleMessageAdded(blink::ConsoleMessage* console_message) {
   loc.Set("script_id", console_message->Location()->ScriptId());
   dict.Set("location", std::move(loc));
 
-  base::Value::List args;
+  base::ListValue args;
   args.Append(std::move(dict));
   RegisterWebAPICall(execution_context, "ConsoleMessageAdded", std::move(args));
 }
@@ -1039,10 +1026,10 @@ void PageGraph::AddGraphItem(std::unique_ptr<GraphItem> graph_item) {
   if (auto* graph_node = DynamicTo<GraphNode>(item)) {
     nodes_.push_back(graph_node);
     if (auto* element_node = DynamicTo<NodeHTMLElement>(graph_node)) {
-      DCHECK(!base::Contains(element_nodes_, element_node->GetDOMNodeId()));
+      DCHECK(!element_nodes_.Contains(element_node->GetDOMNodeId()));
       element_nodes_.insert(element_node->GetDOMNodeId(), element_node);
     } else if (auto* text_node = DynamicTo<NodeHTMLText>(graph_node)) {
-      DCHECK(!base::Contains(text_nodes_, text_node->GetDOMNodeId()));
+      DCHECK(!text_nodes_.Contains(text_node->GetDOMNodeId()));
       text_nodes_.insert(text_node->GetDOMNodeId(), text_node);
     } else if (auto* resource_node = DynamicTo<NodeResource>(graph_node)) {
       resource_nodes_.insert(resource_node->GetURL(), resource_node);
@@ -1116,7 +1103,7 @@ void PageGraph::GenerateReportForNode(const blink::DOMNodeId node_id,
 
   for (const GraphNode* succ : successors) {
     ItemName item_name = succ->GetItemName();
-    if (item_name.StartsWith("resource #")) {
+    if (item_name.starts_with("resource #")) {
       for (const GraphEdge* edge : succ->GetInEdges()) {
         String reportItem(edge->GetItemDesc() +
                           "\r\n\r\nby: " + edge->GetOutNode()->GetItemDesc());
@@ -1155,6 +1142,9 @@ String PageGraph::ToGraphML() const {
     xmlNewTextChild(desc_container_node, NULL, BAD_CAST "url",
                     XmlUtf8String(source_url_).get());
   }
+  const auto date = base::Time::Now().InSecondsFSinceUnixEpoch();
+  xmlNewTextChild(desc_container_node, nullptr, BAD_CAST "date",
+                  BAD_CAST base::NumberToString(date).c_str());
 
   xmlNodePtr time_container_node =
       xmlNewChild(desc_container_node, nullptr, BAD_CAST "time", nullptr);
@@ -1189,7 +1179,7 @@ String PageGraph::ToGraphML() const {
   // SAFETY: unfortunately xmlDocDumpMemoryEnc is a C api that
   // manages the buffer internally, so we have to rely on it for the
   // pointer/size pair.
-  auto graphml_string = String::FromUTF8(base::as_bytes(UNSAFE_BUFFERS(
+  auto graphml_string = String::FromUtf8(base::as_bytes(UNSAFE_BUFFERS(
       base::span(xml_string, base::checked_cast<size_t>(size)))));
   DCHECK(!graphml_string.empty());
 
@@ -1271,7 +1261,7 @@ bool PageGraph::RegisterCurrentlyConstructedNode(blink::Node* node) {
 
   RegisterPageGraphNodeFullyCreated(node);
   // Node should be removed from currently_constructed_nodes_.
-  DCHECK(!base::Contains(currently_constructed_nodes_, node));
+  DCHECK(!currently_constructed_nodes_.contains(node));
   // Mark the node as an already registered for the upcoming
   // RegisterPageGraphNodeFullyCreated call.
   currently_constructed_nodes_.emplace(node, true);
@@ -1305,7 +1295,7 @@ void PageGraph::RegisterDocumentNodeCreated(blink::Document* document) {
       AddNode<NodeDOMRoot>(node_id, local_tag_name, is_frame_attached);
   auto url = document->Url();
   dom_root->SetURL(url);
-  if (!source_url_ && url.IsValid() && url.ProtocolIsInHTTPFamily()) {
+  if (!source_url_ && url.IsValid() && url.ProtocolIsInHttpFamily()) {
     source_url_ = url;
   }
 
@@ -2163,7 +2153,7 @@ NodeBinding* PageGraph::GetBindingNode(const Binding binding,
 }
 
 bool PageGraph::IsRootFrame() const {
-  return local_frame_->IsLocalRoot();
+  return GetSupplementable()->IsLocalRoot();
 }
 
 }  // namespace blink

@@ -5,11 +5,9 @@
 
 #include "brave/components/brave_news/browser/publishers_controller.h"
 
-#include <tuple>
 #include <utility>
 #include <vector>
 
-#include "base/containers/contains.h"
 #include "base/functional/bind.h"
 #include "base/test/scoped_feature_list.h"
 #include "base/values.h"
@@ -25,7 +23,6 @@
 #include "components/sync_preferences/testing_pref_service_syncable.h"
 #include "content/public/test/browser_task_environment.h"
 #include "net/traffic_annotation/network_traffic_annotation_test_helper.h"
-#include "services/data_decoder/public/cpp/test_support/in_process_data_decoder.h"
 #include "services/network/public/cpp/weak_wrapper_shared_url_loader_factory.h"
 #include "services/network/test/test_url_loader_factory.h"
 #include "testing/gtest/include/gtest/gtest.h"
@@ -113,20 +110,20 @@ class BraveNewsPublishersControllerTest : public testing::Test {
   }
 
   bool DirectSourceExists(const std::string& publisher_id) {
-    return base::Contains(pref_manager_->GetSubscriptions().direct_feeds(),
-                          publisher_id, &DirectFeed::id);
+    return std::ranges::contains(
+        pref_manager_->GetSubscriptions().direct_feeds(), publisher_id,
+        &DirectFeed::id);
   }
 
-  Publishers GetPublishers() {
-    auto [publishers] = WaitForCallback(base::BindOnce(
-        [](BraveNewsPublishersControllerTest* test,
-           GetPublishersCallback callback) {
-          test->publishers_controller_->GetOrFetchPublishers(
-              test->pref_manager_->GetSubscriptions(), std::move(callback),
-              true);
-        },
-        base::Unretained(this)));
-    return std::move(publishers);
+  const Publishers& GetPublishers() {
+    base::RunLoop run_loop;
+    publishers_controller_->GetOrFetchPublishers(
+        pref_manager_->GetSubscriptions(),
+        base::BindLambdaForTesting(
+            [&run_loop](const Publishers& publishers) { run_loop.Quit(); }),
+        true);
+    run_loop.Run();
+    return publishers_controller_->last_publishers();
   }
 
   mojom::PublisherPtr GetPublisherForSite(const GURL& url) {
@@ -156,7 +153,6 @@ class BraveNewsPublishersControllerTest : public testing::Test {
  protected:
   base::test::ScopedFeatureList scoped_features_;
   content::BrowserTaskEnvironment browser_task_environment_;
-  data_decoder::test::InProcessDataDecoder data_decoder_;
   network::TestURLLoaderFactory test_url_loader_factory_;
   api_request_helper::APIRequestHelper api_request_helper_;
 
@@ -168,7 +164,7 @@ class BraveNewsPublishersControllerTest : public testing::Test {
 TEST_F(BraveNewsPublishersControllerTest, CanReceiveFeeds) {
   test_url_loader_factory_.AddResponse(GetSourcesUrl(), kPublishersResponse,
                                        net::HTTP_OK);
-  auto result = GetPublishers();
+  const auto& result = GetPublishers();
   ASSERT_EQ(3u, result.size());
   EXPECT_TRUE(result.contains("111"));
   EXPECT_TRUE(result.contains("333"));
@@ -331,7 +327,9 @@ TEST_F(BraveNewsPublishersControllerTest, NoPreferredLocale_ReturnsFirstMatch) {
         "enabled": false
     }])",
                                        net::HTTP_OK);
-  GetPublishers();
+  const auto& publishers = GetPublishers();
+  ASSERT_FALSE(publishers.empty());
+  const auto first_publisher_id = publishers.begin()->first;
 
   auto [locale] = WaitForCallback(
       base::BindOnce(&PublishersController::GetLocale,
@@ -341,10 +339,12 @@ TEST_F(BraveNewsPublishersControllerTest, NoPreferredLocale_ReturnsFirstMatch) {
   EXPECT_EQ("en_US", locale);
 
   auto publisher = GetPublisherForSite(GURL("https://tp1.example.com/"));
-  EXPECT_EQ("111", publisher->publisher_id);
+  ASSERT_TRUE(publisher);
+  EXPECT_EQ(publisher->publisher_id, first_publisher_id);
 
   publisher = GetPublisherForFeed(GURL("https://tp1.example.com/feed"));
-  EXPECT_EQ("111", publisher->publisher_id);
+  ASSERT_TRUE(publisher);
+  EXPECT_EQ(publisher->publisher_id, first_publisher_id);
 }
 
 TEST_F(BraveNewsPublishersControllerTest,
@@ -399,8 +399,38 @@ TEST_F(BraveNewsPublishersControllerTest, CanGetPublishers) {
   test_url_loader_factory_.AddResponse(GetSourcesUrl(), kPublishersResponse,
                                        net::HTTP_OK);
 
-  auto result = GetPublishers();
+  const auto& result = GetPublishers();
   EXPECT_EQ(3u, result.size());
+}
+
+TEST_F(BraveNewsPublishersControllerTest, DirectFeedsHandling) {
+  test_url_loader_factory_.AddResponse(GetSourcesUrl(), kPublishersResponse,
+                                       net::HTTP_OK);
+  // Add a direct feed to the preferences.
+  const auto direct_feed_id = pref_manager_->AddDirectPublisher(
+      GURL("https://example.com/feed1.xml"), "Test Feed 1");
+  EXPECT_TRUE(DirectSourceExists(direct_feed_id));
+
+  {
+    const auto& result = GetPublishers();  // This populates the cache
+    const auto& cached_result = GetPublishers();
+
+    EXPECT_EQ(cached_result.size(), 4u);
+    EXPECT_EQ(result.size(), 4u);
+    EXPECT_EQ(result.at(direct_feed_id)->type,
+              mojom::PublisherType::DIRECT_SOURCE);
+    EXPECT_EQ(result.at("111")->type, mojom::PublisherType::COMBINED_SOURCE);
+  }
+
+  {
+    // Remove the direct feed from the preferences.
+    pref_manager_->SetPublisherSubscribed(direct_feed_id,
+                                          mojom::UserEnabled::DISABLED);
+    EXPECT_FALSE(DirectSourceExists(direct_feed_id));
+
+    const auto& result = GetPublishers();
+    EXPECT_EQ(result.size(), 3u);
+  }
 }
 
 }  // namespace brave_news

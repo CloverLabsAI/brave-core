@@ -48,6 +48,7 @@ enum class SpeedreaderBubbleLocation : int;
 namespace sidebar {
 FORWARD_DECLARE_TEST(SidebarBrowserWithSplitViewTest,
                      ShowSidebarOnMouseOverTest);
+FORWARD_DECLARE_TEST(SidebarV2BrowserTest, BrowserStartsWithV2Enabled);
 }  // namespace sidebar
 
 namespace content {
@@ -108,10 +109,6 @@ class BraveBrowserView : public BrowserView,
   WalletButton* GetWalletButton();
   views::View* GetWalletButtonAnchorView();
 #endif
-  void UpdateContentsSeparatorVisibility();
-
-  // Triggers layout of web modal dialogs
-  void NotifyDialogPositionRequiresUpdate();
 
   // BrowserView overrides:
   void Layout(PassKey) override;
@@ -137,6 +134,12 @@ class BraveBrowserView : public BrowserView,
   bool IsInTabDragging() const override;
   void ReadyToListenFullscreenChanges() override;
   bool IsWebPanelContents(content::WebContents* contents) override;
+  ClientFrameElementInfo GetFrameElementInfo() const override;
+
+#if BUILDFLAG(IS_MAC)
+  bool UsesImmersiveFullscreenMode() const override;
+  bool UsesImmersiveFullscreenTabbedMode() const override;
+#endif
 
 #if defined(USE_AURA)
   views::View* sidebar_host_view() { return sidebar_host_view_; }
@@ -177,6 +180,7 @@ class BraveBrowserView : public BrowserView,
 
   FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest, VisualState);
   FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest, Fullscreen);
+  FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest, VerticalTabLayoutInRTL);
   FRIEND_TEST_ALL_PREFIXES(VerticalTabStripDragAndDropBrowserTest,
                            DragTabToReorder);
   FRIEND_TEST_ALL_PREFIXES(SpeedReaderBrowserTest, Toolbar);
@@ -198,6 +202,8 @@ class BraveBrowserView : public BrowserView,
                            ContentsShadowTest);
   FRIEND_TEST_ALL_PREFIXES(sidebar::SidebarBrowserWithSplitViewTest,
                            ShowSidebarOnMouseOverTest);
+  FRIEND_TEST_ALL_PREFIXES(sidebar::SidebarV2BrowserTest,
+                           BrowserStartsWithV2Enabled);
 
   static void SetDownloadConfirmReturnForTesting(bool allow);
 
@@ -222,6 +228,7 @@ class BraveBrowserView : public BrowserView,
   void ShowSplitView(bool focus_active_view) override;
   void HideSplitView() override;
   void ReparentTopContainerForEndOfImmersive() override;
+  bool ShouldDrawTabStrokes() const override;
 
   void HandleBrowserWindowMouseEvent(const ui::MouseEvent& event);
   bool IsBraveWebViewRoundedCornersEnabled();
@@ -283,6 +290,15 @@ class BraveBrowserView : public BrowserView,
   base::ScopedObservation<commands::AcceleratorService,
                           commands::AcceleratorService::Observer>
       accelerators_observation_{this};
+
+#if BUILDFLAG(IS_MAC)
+  // Cached at construction: true if vertical tabs were enabled at startup.
+  // When true, immersive fullscreen is disabled for this window's lifetime.
+  // Essential immersive mode objects (e.g. overlay_widget_) are initialized
+  // only at browser window startup; if they are not created then, immersive
+  // mode does not work at runtime.
+  bool vertical_tabs_on_at_startup_ = false;
+#endif
 
   base::WeakPtrFactory<BraveBrowserView> weak_ptr_{this};
 };

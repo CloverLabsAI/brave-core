@@ -60,15 +60,19 @@ PageMetrics::PageMetrics(PrefService* local_state,
                          history::HistoryService* history_service,
                          bookmarks::BookmarkModel* bookmark_model,
                          DefaultBrowserMonitor* default_browser_monitor,
+                         TemplateURLService* template_url_service,
                          FirstRunTimeCallback first_run_time_callback)
     : local_state_(local_state),
       profile_prefs_(profile_prefs),
       host_content_settings_map_(host_content_settings_map),
       history_service_(history_service),
       first_run_time_callback_(first_run_time_callback),
-      default_browser_monitor_(default_browser_monitor) {
+      default_browser_monitor_(default_browser_monitor),
+      brave_search_metrics_(local_state, template_url_service),
+      navigation_source_metrics_(local_state) {
   DCHECK(local_state);
   DCHECK(history_service);
+  DCHECK(template_url_service);
 
   default_browser_observation_.Observe(default_browser_monitor_);
 
@@ -152,11 +156,20 @@ void PageMetrics::RegisterPrefs(PrefRegistrySimple* registry) {
   registry->RegisterListPref(kMiscMetricsInterstitialAllowDecisionCount);
   registry->RegisterListPref(kMiscMetricsFailedHTTPSUpgradeCount);
   registry->RegisterTimePref(kMiscMetricsFailedHTTPSUpgradeMetricAddedTime, {});
+  BraveSearchMetrics::RegisterPrefs(registry);
+  NavigationSourceMetrics::RegisterPrefs(registry);
 }
 
-void PageMetrics::IncrementPagesLoadedCount(bool is_reload) {
+void PageMetrics::IncrementPagesLoadedCount(bool is_reload, bool is_otr) {
   VLOG(2) << "PageMetricsService: increment page load count, is_reload "
-          << is_reload;
+          << is_reload << ", is_otr " << is_otr;
+  if (!is_reload) {
+    navigation_source_metrics_.IncrementPagesLoadedCount();
+  }
+  // Navigation source metrics count OTR pages, but page load storage does not.
+  if (is_otr) {
+    return;
+  }
   InitStorage();
   if (is_reload) {
     pages_reloaded_storage_->AddDelta(1);
@@ -197,6 +210,8 @@ void PageMetrics::ReportAllMetrics() {
   ReportPagesLoaded();
   ReportFailedHTTPSUpgrades();
   ReportBookmarkCount();
+  brave_search_metrics_.ReportAllMetrics();
+  navigation_source_metrics_.ReportAllMetrics();
   periodic_report_timer_.Start(
       FROM_HERE, base::Time::Now() + kReportInterval,
       base::BindOnce(&PageMetrics::ReportAllMetrics, base::Unretained(this)));
@@ -333,14 +348,13 @@ void PageMetrics::ReportFirstPageLoadTime() {
 }
 
 void PageMetrics::OnDomainDiversityResult(
-    std::pair<history::DomainDiversityResults, history::DomainDiversityResults>
-        metrics) {
-  if (metrics.first.empty() || metrics.second.empty()) {
+    history::DomainDiversityResults metrics) {
+  if (metrics.empty()) {
     return;
   }
   // The second entry in the pair counts both local, and foreign (synced)
   // visits.
-  const history::DomainMetricSet& metric_set = metrics.first.front();
+  const history::DomainMetricSet& metric_set = metrics.front();
   if (!metric_set.seven_day_metric.has_value()) {
     return;
   }
@@ -349,12 +363,8 @@ void PageMetrics::OnDomainDiversityResult(
   ReportDomainsLoadedWithStatus();
 }
 
-void PageMetrics::OnDefaultBrowserStatusChanged() {
+void PageMetrics::OnDefaultBrowserStatusChanged(bool is_default) {
   ReportDomainsLoadedWithStatus();
-
-  if (has_pending_brave_query_) {
-    ReportBraveQuery();
-  }
 }
 
 void PageMetrics::ReportDomainsLoadedWithStatus() {
@@ -405,16 +415,6 @@ void PageMetrics::ReportBookmarkCount() {
     return;
   }
   bookmark_counter_->Restart();
-}
-
-void PageMetrics::ReportBraveQuery() {
-  auto is_default = default_browser_monitor_->GetCachedDefaultStatus();
-  if (!is_default) {
-    has_pending_brave_query_ = true;
-    return;
-  }
-  base::UmaHistogramBoolean(kSearchBraveDailyHistogramName, *is_default);
-  has_pending_brave_query_ = false;
 }
 
 }  // namespace misc_metrics

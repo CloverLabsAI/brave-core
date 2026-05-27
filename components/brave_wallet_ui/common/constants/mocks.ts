@@ -56,6 +56,7 @@ export const getMockedTransactionInfo =
       txDataUnion: {
         ethTxData1559: {
           baseData: {
+            chainId: BraveWallet.LOCALHOST_CHAIN_ID,
             to: '0x8b52c24d6e2600bdb8dbb6e8da849ed38ab7e81f',
             value: '0x01706a99bf354000', // 103700000000000000 wei (0.1037 ETH)
             // data: new Uint8Array(0),
@@ -66,10 +67,8 @@ export const getMockedTransactionInfo =
             signOnly: false,
             signedTransaction: undefined,
           },
-          chainId: BraveWallet.LOCALHOST_CHAIN_ID,
           maxPriorityFeePerGas: '',
           maxFeePerGas: '',
-          gasEstimation: undefined,
         },
         ethTxData: {} as any,
         filTxData: undefined,
@@ -205,6 +204,34 @@ export const mockBtcMainnetNetwork: BraveWallet.NetworkInfo = {
   iconUrls: [],
   coin: BraveWallet.CoinType.BTC,
   supportedKeyrings: [BraveWallet.KeyringId.kBitcoin84],
+}
+
+export const mockZecMainnetNetwork: BraveWallet.NetworkInfo = {
+  chainId: BraveWallet.Z_CASH_MAINNET,
+  chainName: 'Zcash Mainnet',
+  activeRpcEndpointIndex: 0,
+  rpcEndpoints: [{ url: 'https://zec-mainnet.wallet.brave.com/' }],
+  blockExplorerUrls: ['https://3xpl.com/zcash/transaction'],
+  symbol: 'ZEC',
+  symbolName: 'Zcash',
+  decimals: 8,
+  iconUrls: [],
+  coin: BraveWallet.CoinType.ZEC,
+  supportedKeyrings: [BraveWallet.KeyringId.kZCashMainnet],
+}
+
+export const mockZecTestnetNetwork: BraveWallet.NetworkInfo = {
+  chainId: BraveWallet.Z_CASH_TESTNET,
+  chainName: 'Zcash Testnet',
+  activeRpcEndpointIndex: 0,
+  rpcEndpoints: [{ url: 'https://zec-testnet.wallet.brave.com/' }],
+  blockExplorerUrls: ['https://blockexplorer.one/zcash/testnet/tx'],
+  symbol: 'ZEC',
+  symbolName: 'Zcash',
+  decimals: 8,
+  iconUrls: [],
+  coin: BraveWallet.CoinType.ZEC,
+  supportedKeyrings: [BraveWallet.KeyringId.kZCashTestnet],
 }
 
 export const mockAccount: BraveWallet.AccountInfo = {
@@ -686,6 +713,7 @@ BraveWallet.SignCardanoTransactionRequest = {
         'a7b4c1021fa375a4fccb1ac1b3bb01743b3989b5eb732cc6240add8c71edb925',
       outpointIndex: 0,
       value: BigInt(10000000),
+      tokens: [],
     },
     {
       address:
@@ -694,6 +722,7 @@ BraveWallet.SignCardanoTransactionRequest = {
         'addr1v83gkkw3nqzakg5xynlurqcfqhgd65vkfvf5xv8tx25ufds2yvy2h',
       outpointIndex: 1,
       value: BigInt(12345678),
+      tokens: [],
     },
   ],
   outputs: [
@@ -701,11 +730,13 @@ BraveWallet.SignCardanoTransactionRequest = {
       address:
         'addr1qy8ampwn98c9y6gcea9cturevw2njm9pcs8apt8aunljymuy88wktx2awyus6hccdu76k3n6gjvkvl3zunyc47k4tgns5k87m6',
       value: BigInt(10000000),
+      tokens: [],
     },
     {
       address:
         'addr1q9dl94auumrxp5vxtlxq3e24tfugw6fx05tvqd8rueaa4vz5d8cwkwqtlz2xuvequaczm98tccrcrxfeeu4049fxdqgqccrkze',
       value: BigInt(1234567),
+      tokens: [],
     },
   ],
 }

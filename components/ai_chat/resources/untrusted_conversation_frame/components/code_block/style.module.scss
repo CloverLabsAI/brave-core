@@ -23,19 +23,28 @@
     padding: var(--leo-spacing-s);
   }
 
-  font: var(--leo-font-large-regular);
-  font-size: 14px;
-  font-style: normal;
+  font-size: inherit;
 }
 
 .toolbar {
-  background: var(--leo-color-container-background);
-  padding: var(--leo-spacing-m) 16px var(--leo-spacing-m) var(--leo-spacing-2xl);
+  background: var(--leo-color-page-background);
+  padding: var(--leo-spacing-m) var(--leo-spacing-m) var(--leo-spacing-m)
+    var(--leo-spacing-xl);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--leo-spacing-m);
 
   leo-button {
     max-width: max-content;
   }
+}
+
+.toolbarLabel {
+  font: var(--leo-font-default-regular);
+  color: var(--leo-color-text-primary);
+}
+
+.codeBlock {
+  padding: var(--leo-spacing-xl) !important;
 }

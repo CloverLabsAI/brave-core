@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "base/containers/fixed_flat_set.h"
+#include "brave/browser/ai_chat/ai_chat_enterprise_policy_checker.h"
 #include "brave/browser/ai_chat/page_content_blocks.h"
 #include "brave/browser/ai_chat/tools/click_tool.h"
 #include "brave/browser/ai_chat/tools/drag_and_release_tool.h"
@@ -25,15 +26,18 @@
 #include "brave/components/ai_chat/core/common/buildflags/buildflags.h"
 #include "brave/components/ai_chat/core/common/features.h"
 #include "chrome/browser/actor/actor_keyed_service.h"
+#include "chrome/browser/actor/actor_proto_conversion.h"
 #include "chrome/browser/actor/actor_task.h"
 #include "chrome/browser/actor/actor_task_metadata.h"
-#include "chrome/browser/actor/browser_action_util.h"
+#include "chrome/browser/glic/actor/glic_actor_policy_checker.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser_navigator.h"
 #include "chrome/browser/ui/browser_tabstrip.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/common/actor.mojom.h"
+#include "chrome/common/actor/action_result.h"
 #include "chrome/common/actor/task_id.h"
+#include "components/actor/task_source_info.h"
 #include "components/optimization_guide/content/browser/page_content_proto_provider.h"
 #include "components/tabs/public/tab_interface.h"
 #include "content/public/browser/web_contents.h"
@@ -74,7 +78,10 @@ ContentAgentToolProvider::ContentAgentToolProvider(
   // If we want each conversation message to act on a different set of tabs and
   // not have access to any tabs previously acted on in the same conversation,
   // we should create a new task inside `ToolProvider::OnNewGenerationLoop`.
-  task_id_ = actor_service_->CreateTask();
+  task_id_ = actor_service_->CreateTask(
+      actor::TaskSourceInfo(actor::TaskSourceInfo::Client::kExperimentalActor,
+                            /*id=*/std::nullopt),
+      AIChatEnterprisePolicyChecker::NoEnterprisePolicyChecker());
 
   actor_task_state_changed_subscription_ =
       actor_service_->AddTaskStateChangedCallback(base::BindRepeating(
@@ -111,20 +118,27 @@ void ContentAgentToolProvider::OnGenerationCompleteWithNoToolsToHandle() {
 void ContentAgentToolProvider::PauseAllTasks() {
   // When user asks to pause the task, we can return control to the tabs.
   if (!task_id_.is_null()) {
-    actor_service_->GetTask(task_id_)->Pause(false);
+    if (auto* task = actor_service_->GetTask(task_id_)) {
+      task->Pause(false);
+    }
   }
 }
 
 void ContentAgentToolProvider::ResumeAllTasks() {
   if (!task_id_.is_null()) {
-    actor_service_->GetTask(task_id_)->Resume();
+    if (auto* task = actor_service_->GetTask(task_id_)) {
+      task->Resume();
+    }
   }
 }
 
 void ContentAgentToolProvider::StopAllTasks() {
   if (!task_id_.is_null()) {
     actor::TaskId stopping_task_id = std::move(task_id_);
-    task_id_ = actor_service_->CreateTask();
+    task_id_ = actor_service_->CreateTask(
+        actor::TaskSourceInfo(actor::TaskSourceInfo::Client::kExperimentalActor,
+                              /*id=*/std::nullopt),
+        AIChatEnterprisePolicyChecker::NoEnterprisePolicyChecker());
     actor_service_->StopTask(stopping_task_id,
                              actor::ActorTask::StoppedReason::kTaskComplete);
   }
@@ -163,11 +177,19 @@ void ContentAgentToolProvider::GetOrCreateTabHandleForTask(
       observer.OnContentTaskStarted(task_tab_handle_.raw_value());
     }
   }
-  actor_service_->GetTask(task_id_)->AddTab(
+  auto* task = actor_service_->GetTask(task_id_);
+  if (!task) {
+    // Task was removed (e.g. stopped between generation
+    // completing and tool execution). Still call the callback
+    // to avoid hanging the tool chain.
+    std::move(callback).Run(task_tab_handle_);
+    return;
+  }
+  task->AddTab(
       task_tab_handle_,
       base::BindOnce(&ContentAgentToolProvider::TabAddedToTask,
                      weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
-  actor_service_->GetTask(task_id_)->Resume();
+  task->Resume();
 }
 
 void ContentAgentToolProvider::TabAddedToTask(
@@ -184,7 +206,8 @@ void ContentAgentToolProvider::ExecuteActions(
   if (!requests.has_value()) {
     DLOG(ERROR) << "Action Failed to convert BrowserAction to ToolRequests.";
     std::move(callback).Run(CreateContentBlocksForText(
-        "Error: action failed - incorrect parameters"));
+                                "Error: action failed - incorrect parameters"),
+                            {});
     return;
   }
 
@@ -195,12 +218,10 @@ void ContentAgentToolProvider::ExecuteActions(
                      weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
 }
 
-void ContentAgentToolProvider::OnActorTaskStateChanged(
-    actor::TaskId task_id,
-    actor::ActorTask::State task_state) {
-  DVLOG(4) << __func__ << " " << task_state;
-  if (!task_id_.is_null() && task_id_ == task_id &&
-      kActorStatesToNotify.contains(task_state)) {
+void ContentAgentToolProvider::OnActorTaskStateChanged(actor::ActorTask& task) {
+  DVLOG(4) << __func__ << " " << task.GetState();
+  if (!task_id_.is_null() && task_id_ == task.id() &&
+      kActorStatesToNotify.contains(task.GetState())) {
     NotifyTaskStateChanged();
   }
 }
@@ -221,9 +242,11 @@ void ContentAgentToolProvider::CreateTools() {
 
 void ContentAgentToolProvider::OnActionsFinished(
     Tool::UseToolCallback callback,
-    actor::mojom::ActionResultCode result_code,
-    std::optional<size_t> index_of_failed_action,
     std::vector<actor::ActionResultWithLatencyInfo> action_results) {
+  actor::mojom::ActionResultCode result_code =
+      actor::mojom::ActionResultCode::kOk;
+  std::optional<size_t> index_of_failed_action;
+  ExtractErrorResult(action_results, &result_code, index_of_failed_action);
   if (result_code == actor::mojom::ActionResultCode::kOk) {
     // Send current page content for result
 
@@ -238,7 +261,7 @@ void ContentAgentToolProvider::OnActionsFinished(
     // closed.
     if (!task_tab_handle_.Get() || !task_tab_handle_.Get()->GetContents()) {
       std::move(callback).Run(
-          CreateContentBlocksForText("Error: tab is no longer open"));
+          CreateContentBlocksForText("Error: tab is no longer open"), {});
       return;
     }
 
@@ -250,11 +273,13 @@ void ContentAgentToolProvider::OnActionsFinished(
              actor::mojom::ActionResultCode::kEmptyActionSequence) {
     DLOG(ERROR) << "Actions were empty";
     std::move(callback).Run(CreateContentBlocksForText(
-        "Error: action failed - no actions specified"));
+                                "Error: action failed - no actions specified"),
+                            {});
   } else {
     DLOG(ERROR) << "Action failed, see actor.mojom for result code meaning: "
                 << result_code;
-    std::move(callback).Run(CreateContentBlocksForText("Error: action failed"));
+    std::move(callback).Run(CreateContentBlocksForText("Error: action failed"),
+                            {});
   }
 }
 
@@ -264,7 +289,7 @@ void ContentAgentToolProvider::ReceivedAnnotatedPageContent(
   if (!content.has_value()) {
     DLOG(ERROR) << "Error getting page content";
     std::move(callback).Run(
-        CreateContentBlocksForText("Error: could not get page content"));
+        CreateContentBlocksForText("Error: could not get page content"), {});
     return;
   }
 
@@ -272,7 +297,7 @@ void ContentAgentToolProvider::ReceivedAnnotatedPageContent(
 
   if (!apc.has_root_node()) {
     DLOG(ERROR) << "No root node";
-    std::move(callback).Run(CreateContentBlocksForText("No root node"));
+    std::move(callback).Run(CreateContentBlocksForText("No root node"), {});
     return;
   }
 
@@ -280,7 +305,7 @@ void ContentAgentToolProvider::ReceivedAnnotatedPageContent(
   content_blocks.insert(
       content_blocks.begin(),
       std::move(CreateContentBlocksForText("Action successful")[0]));
-  std::move(callback).Run(std::move(content_blocks));
+  std::move(callback).Run(std::move(content_blocks), {});
 }
 
 }  // namespace ai_chat

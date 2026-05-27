@@ -26,9 +26,8 @@ FORWARD_DECLARE_TEST(EthTransactionTest, GetSignedTransaction);
 FORWARD_DECLARE_TEST(EthTransactionTest, TransactionAndValue);
 FORWARD_DECLARE_TEST(Eip2930TransactionUnitTest, GetSignedTransaction);
 
-// TODO(apaymyshev): make use of that enum instead of magic numbers.
 // https://eips.ethereum.org/EIPS/eip-2718
-enum EthTransactionType : uint8_t {
+enum class EthTransactionType : uint8_t {
   kLegacy = 0,
   kEip2930 = 1,  // https://eips.ethereum.org/EIPS/eip-2930#definitions
   kEip1559 = 2   // https://eips.ethereum.org/EIPS/eip-1559#specification
@@ -39,27 +38,31 @@ class EthTransaction {
   EthTransaction();
   EthTransaction(const EthTransaction&);
   virtual ~EthTransaction();
-  bool operator==(const EthTransaction&) const;
+  bool operator==(const EthTransaction&) const = default;
 
   static std::optional<EthTransaction> FromTxData(
       const mojom::TxDataPtr& tx_data,
       bool strict = true);
-  static std::optional<EthTransaction> FromValue(
-      const base::Value::Dict& value);
+  static std::optional<EthTransaction> FromValue(const base::DictValue& value);
 
-  uint8_t type() const { return type_; }
+  EthTransactionType type() const { return type_; }
+  uint256_t chain_id() const { return chain_id_; }
 
   std::optional<uint256_t> nonce() const { return nonce_; }
   uint256_t gas_price() const { return gas_price_; }
   uint256_t gas_limit() const { return gas_limit_; }
-  EthAddress to() const { return to_; }
+  std::variant<EthAddress, EthContractCreationAddress> to() const {
+    return to_;
+  }
   uint256_t value() const { return value_; }
   std::vector<uint8_t> data() const { return data_; }
   uint256_t v() const { return v_; }
   std::vector<uint8_t> r() const { return r_; }
   std::vector<uint8_t> s() const { return s_; }
 
-  void set_to(EthAddress to) { to_ = to; }
+  void set_chain_id(uint256_t chain_id) { chain_id_ = chain_id; }
+  void set_to(const EthAddress& to) { to_ = to; }
+  void set_to(const EthContractCreationAddress& to) { to_ = to; }
   void set_value(uint256_t value) { value_ = value; }
   void set_nonce(std::optional<uint256_t> nonce) { nonce_ = nonce; }
   void set_data(const std::vector<uint8_t>& data) { data_ = data; }
@@ -68,67 +71,79 @@ class EthTransaction {
   bool ProcessVRS(const std::vector<uint8_t>& v,
                   const std::vector<uint8_t>& r,
                   const std::vector<uint8_t>& s);
-  bool IsToCreationAddress() const { return to_.IsEmpty(); }
+  bool IsToCreationAddress() const {
+    return std::get_if<EthContractCreationAddress>(&to_);
+  }
 
-  // return rlp([nonce, gasPrice, gasLimit, to, value, data, chainID, 0, 0])
-  // Support EIP-155 chain id
-  virtual std::vector<uint8_t> GetMessageToSign(uint256_t chain_id) const;
+  // Creates binary message for signing depending on transaction's version.
+  std::vector<uint8_t> GetMessageToSign() const;
 
   // keccak(GetMessageToSign(chain_id))
-  KeccakHashArray GetHashedMessageToSign(uint256_t chain_id) const;
+  KeccakHashArray GetHashedMessageToSign() const;
 
-  // return rlp([nonce, gasPrice, gasLimit, to, value, data, v, r, s])
-  virtual std::string GetSignedTransaction() const;
+  // Returns hex of serialized transaction.
+  std::string GetSignedTransaction() const;
 
-  // return keccack(rlp([nonce, gasPrice, gasLimit, to, value, data, v, r, s]))
-  virtual std::string GetTransactionHash() const;
+  // Returns hex of serialized transaction keccak hash.
+  std::string GetTransactionHash() const;
 
   // signature and recid will be used to produce v, r, s
   // Support EIP-155 chain id
-  virtual void ProcessSignature(const Secp256k1Signature& signature,
-                                uint256_t chain_id);
+  void ProcessSignature(const Secp256k1Signature& signature);
 
-  virtual bool IsSigned() const;
+  bool IsSigned() const;
 
-  virtual base::Value::Dict ToValue() const;
+  base::DictValue ToValue() const;
 
   // Minimum gas required (data fee + tx fee + contract creation fee)
   uint256_t GetBaseFee() const;
+
+  std::string GetToHex() const;
+  std::string GetToChecksumAddress() const;
+
+ protected:
+  FRIEND_TEST_ALL_PREFIXES(EthTransactionUnitTest, GetSignedTransactionAndHash);
+  FRIEND_TEST_ALL_PREFIXES(EthTransactionUnitTest, TransactionAndValue);
+  FRIEND_TEST_ALL_PREFIXES(EthTransactionUnitTest, GetDataFee);
+  FRIEND_TEST_ALL_PREFIXES(Eip2930TransactionUnitTest,
+                           GetSignedTransactionAndHash);
+
+  EthTransaction(uint256_t chain_id,
+                 std::optional<uint256_t> nonce,
+                 uint256_t gas_price,
+                 uint256_t gas_limit,
+                 std::variant<EthAddress, EthContractCreationAddress> to,
+                 uint256_t value,
+                 const std::vector<uint8_t>& data);
+
+  std::vector<uint8_t> GetToBytes() const;
+
+  // return rlp([nonce, gasPrice, gasLimit, to, value, data, chainID, 0, 0])
+  // Support EIP-155 chain id
+  virtual std::vector<uint8_t> GetMessageToSignImpl() const;
+
   // Gas paid for the data.
   virtual uint256_t GetDataFee() const;
 
- protected:
-  // type 0 would be LegacyTransaction
-  uint8_t type_ = 0;
+  virtual base::DictValue ToValueImpl() const;
 
+  // keccak(rlp([nonce, gasPrice, gasLimit, to, value, data, v, r, s]))
+  virtual std::vector<uint8_t> Serialize() const;
+
+  EthTransactionType type_ = EthTransactionType::kLegacy;
+
+  uint256_t chain_id_ = 0;
   std::optional<uint256_t> nonce_;
-  uint256_t gas_price_;
-  uint256_t gas_limit_;
-  EthAddress to_;
-  uint256_t value_;
+  uint256_t gas_price_ = 0;
+  uint256_t gas_limit_ = 0;
+  std::variant<EthAddress, EthContractCreationAddress> to_{
+      EthContractCreationAddress()};
+  uint256_t value_ = 0;
   std::vector<uint8_t> data_;
 
   uint256_t v_ = 0;
   std::vector<uint8_t> r_;
   std::vector<uint8_t> s_;
-
- protected:
-  EthTransaction(std::optional<uint256_t> nonce,
-                 uint256_t gas_price,
-                 uint256_t gas_limit,
-                 const EthAddress& to,
-                 uint256_t value,
-                 const std::vector<uint8_t>& data);
-
-  virtual bool VIsRecid() const;
-
- private:
-  FRIEND_TEST_ALL_PREFIXES(EthTransactionUnitTest, GetSignedTransactionAndHash);
-  FRIEND_TEST_ALL_PREFIXES(EthTransactionUnitTest, TransactionAndValue);
-  FRIEND_TEST_ALL_PREFIXES(Eip2930TransactionUnitTest,
-                           GetSignedTransactionAndHash);
-
-  base::Value Serialize() const;
 };
 
 }  // namespace brave_wallet

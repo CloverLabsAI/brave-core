@@ -32,6 +32,7 @@
 #include "brave/components/vector_icons/vector_icons.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/themes/theme_properties.h"
+#include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/color/chrome_color_id.h"
 #include "chrome/browser/ui/exclusive_access/exclusive_access_manager.h"
 #include "chrome/browser/ui/exclusive_access/fullscreen_controller.h"
@@ -41,7 +42,6 @@
 #include "chrome/browser/ui/ui_features.h"
 #include "chrome/browser/ui/views/chrome_layout_provider.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
-#include "chrome/browser/ui/views/toolbar/toolbar_button.h"
 #include "chrome/browser/ui/views/toolbar/toolbar_ink_drop_util.h"
 #include "chrome/browser/ui/views/toolbar/toolbar_view.h"
 #include "chrome/common/pref_names.h"
@@ -78,60 +78,8 @@
 
 namespace {
 
-constexpr int kHeaderInset = tabs::kMarginForVerticalTabContainers;
 constexpr int kSeparatorHeight = 1;
 constexpr int kBorderThickness = 1;
-
-// Use toolbar button's ink drop effect.
-class ToggleButton : public ToolbarButton {
-  METADATA_HEADER(ToggleButton, ToolbarButton)
- public:
-  ToggleButton(PressedCallback callback,
-               BraveVerticalTabStripRegionView* region_view)
-      : ToolbarButton(std::move(callback)), region_view_(*region_view) {
-    SetVectorIcon(kVerticalTabStripToggleButtonIcon);
-    SetPreferredSize(gfx::Size{GetIconWidth(), GetIconWidth()});
-    SetHorizontalAlignment(gfx::ALIGN_CENTER);
-  }
-  ~ToggleButton() override = default;
-
-  // ToolbarButton:
-  void OnThemeChanged() override {
-    ToolbarButton::OnThemeChanged();
-    SetHighlighted(region_view_->state() ==
-                   BraveVerticalTabStripRegionView::State::kExpanded);
-  }
-
-  void StateChanged(ButtonState old_state) override {
-    ToolbarButton::StateChanged(old_state);
-
-    if (GetState() == views::Button::STATE_NORMAL) {
-      // Double check highlight state after changing state to normal. Dragging
-      // the button can make the highlight effect hidden.
-      // https://github.com/brave/brave-browser/issues/31421
-      SetHighlighted(region_view_->state() ==
-                     BraveVerticalTabStripRegionView::State::kExpanded);
-    }
-  }
-
-  std::u16string GetRenderedTooltipText(const gfx::Point& p) const override {
-    if (region_view_->state() ==
-        BraveVerticalTabStripRegionView::State::kExpanded) {
-      return l10n_util::GetStringUTF16(IDS_VERTICAL_TABS_MINIMIZE);
-    }
-
-    // When it's minimized or floating.
-    return l10n_util::GetStringUTF16(IDS_VERTICAL_TABS_EXPAND);
-  }
-
-  constexpr static int GetIconWidth() { return tabs::kVerticalTabHeight; }
-
- private:
-  raw_ref<BraveVerticalTabStripRegionView> region_view_;
-};
-
-BEGIN_METADATA(ToggleButton)
-END_METADATA
 
 class ShortcutBox : public views::View {
   METADATA_HEADER(ShortcutBox, views::View)
@@ -178,12 +126,12 @@ END_METADATA
 class VerticalTabNewTabButton : public BraveNewTabButton {
   METADATA_HEADER(VerticalTabNewTabButton, BraveNewTabButton)
  public:
-  VerticalTabNewTabButton(TabStripController* tab_strip_controller,
-                          PressedCallback callback,
-                          const std::u16string& shortcut_text)
-      : BraveNewTabButton(tab_strip_controller,
-                          std::move(callback),
-                          kLeoPlusAddIcon) {
+  VerticalTabNewTabButton(PressedCallback callback,
+                          const std::u16string& shortcut_text,
+                          BrowserWindowInterface* browser_window_interface)
+      : BraveNewTabButton(std::move(callback),
+                          kLeoPlusAddIcon,
+                          browser_window_interface) {
     // Turn off inkdrop to have same bg color with tab's.
     views::InkDrop::Get(this)->SetMode(views::InkDropHost::InkDropMode::OFF);
 
@@ -321,91 +269,17 @@ END_METADATA
 
 }  // namespace
 
-class BraveVerticalTabStripRegionView::HeaderView : public views::View {
-  METADATA_HEADER(HeaderView, views::View)
- public:
-  HeaderView(views::Button::PressedCallback toggle_callback,
-             BraveVerticalTabStripRegionView* region_view,
-             BrowserWindowInterface* browser_window_interface)
-      : region_view_(region_view), tab_strip_(region_view->tab_strip()) {
-    SetBorder(views::CreateEmptyBorder(gfx::Insets(kHeaderInset)));
-
-    layout_ = SetLayoutManager(std::make_unique<views::BoxLayout>(
-        views::BoxLayout::Orientation::kHorizontal));
-    layout_->set_cross_axis_alignment(
-        views::BoxLayout::CrossAxisAlignment::kStretch);
-
-    toggle_button_ = AddChildView(std::make_unique<ToggleButton>(
-        std::move(toggle_callback), region_view));
-
-    spacer_ = AddChildView(std::make_unique<views::View>());
-
-    vertical_tab_on_right_.Init(
-        brave_tabs::kVerticalTabsOnRight,
-        region_view_->browser()->profile()->GetPrefs(),
-        base::BindRepeating(&HeaderView::OnVerticalTabPositionChanged,
-                            base::Unretained(this)));
-    OnVerticalTabPositionChanged();
-  }
-  ~HeaderView() override = default;
-
-  ToggleButton* toggle_button() { return toggle_button_; }
-
-  // views::View:
-  void OnThemeChanged() override {
-    View::OnThemeChanged();
-
-    SetBackground(views::CreateSolidBackground(
-        GetColorProvider()->GetColor(kColorToolbar)));
-  }
-
- private:
-  void OnVerticalTabPositionChanged() {
-    std::vector<views::View*> new_children = {toggle_button_.get(),
-                                              spacer_.get()};
-    if (tabs::utils::IsVerticalTabOnRight(region_view_->browser())) {
-      std::reverse(new_children.begin(), new_children.end());
-    }
-
-    CHECK_EQ(children().size(), new_children.size());
-    if (children().front() == new_children.front()) {
-      // In order to make sure that |spacer_| has flex behavior on start up.
-      layout_->SetFlexForView(
-          spacer_, 1 /* resize |spacer| to fill the rest of space */);
-      return;
-    }
-
-    // View::ReorderChildView() didn't work for us. So remove child views and
-    // add them again.
-    while (!children().empty()) {
-      RemoveChildView(children().front());
-    }
-
-    std::ranges::for_each(new_children, [&](auto* v) { AddChildView(v); });
-    layout_->SetFlexForView(spacer_,
-                            1 /* resize |spacer| to fill the rest of space */);
-  }
-
-  raw_ptr<views::BoxLayout> layout_ = nullptr;
-  raw_ptr<BraveVerticalTabStripRegionView> region_view_ = nullptr;
-  raw_ptr<const TabStrip> tab_strip_ = nullptr;
-  raw_ptr<ToggleButton> toggle_button_ = nullptr;
-  raw_ptr<views::View> spacer_ = nullptr;
-  BooleanPrefMember vertical_tab_on_right_;
-};
-
-using HeaderView = BraveVerticalTabStripRegionView::HeaderView;
-BEGIN_METADATA(HeaderView)
-END_METADATA
-
 BraveVerticalTabStripRegionView::BraveVerticalTabStripRegionView(
     BrowserView* browser_view,
-    TabStripRegionView* region_view)
+    HorizontalTabStripRegionView* region_view)
     : views::AnimationDelegateViews(this),
       browser_view_(browser_view),
       browser_(browser_view->browser()),
       original_region_view_(region_view),
       tab_style_(TabStyle::Get()) {
+  // As we follow user's choice for vertical tab alignment,
+  // we don't need to mirror this view.
+  SetMirrored(false);
   SetNotifyEnterExitOnChild(true);
 
   // The default state is kExpanded, so reset animation state to 1.0.
@@ -415,19 +289,13 @@ BraveVerticalTabStripRegionView::BraveVerticalTabStripRegionView(
   region_view_container_->SetLayoutManager(
       std::make_unique<views::FillLayout>());
 
-  header_view_ = AddChildView(std::make_unique<HeaderView>(
-      base::BindRepeating(&BraveVerticalTabStripRegionView::ToggleState,
-                          base::Unretained(this)),
-      this, browser_));
-  header_view_->toggle_button()->SetHighlighted(state_ == State::kExpanded);
   separator_ = AddChildView(std::make_unique<views::View>());
   separator_->SetBackground(
       views::CreateSolidBackground(kColorBraveVerticalTabSeparator));
   new_tab_button_ = AddChildView(std::make_unique<VerticalTabNewTabButton>(
-      original_region_view_->tab_strip_->controller(),
       base::BindRepeating(&TabStrip::NewTabButtonPressed,
                           base::Unretained(original_region_view_->tab_strip_)),
-      GetShortcutTextForNewTabButton(browser_view)));
+      GetShortcutTextForNewTabButton(browser_view), browser_));
 
   resize_area_ = AddChildView(std::make_unique<ResettableResizeArea>(this));
   SetBackground(views::CreateSolidBackground(kColorToolbar));
@@ -609,7 +477,6 @@ void BraveVerticalTabStripRegionView::SetState(State state) {
 
   last_state_ = std::exchange(state_, state);
   resize_area_->SetEnabled(state == State::kExpanded);
-  header_view_->toggle_button()->SetHighlighted(state == State::kExpanded);
 
   if (!tabs::utils::ShouldShowBraveVerticalTabs(browser_)) {
     // This can happen when "float on mouse hover" is enabled and tab strip
@@ -621,15 +488,18 @@ void BraveVerticalTabStripRegionView::SetState(State state) {
   tab_strip->SetAvailableWidthCallback(base::BindRepeating(
       &BraveVerticalTabStripRegionView::GetAvailableWidthForTabContainer,
       base::Unretained(this)));
-  tab_strip->tab_container_->InvalidateIdealBounds();
-  tab_strip->tab_container_->CompleteAnimationAndLayout();
 
   if (gfx::Animation::ShouldRenderRichAnimation()) {
     state_ == State::kCollapsed ? width_animation_.Hide()
                                 : width_animation_.Show();
-  } else if (state_ == State::kCollapsed) {
-    // Call the callback immediately if no animation.
-    OnCollapseAnimationEnded();
+  } else {
+    tab_strip->tab_container_->InvalidateIdealBounds();
+    tab_strip->tab_container_->CompleteAnimationAndLayout();
+
+    if (state_ == State::kCollapsed) {
+      // Call the callback immediately if no animation.
+      OnCollapseAnimationEnded();
+    }
   }
 
   if (!GetVisible() && state_ != State::kCollapsed) {
@@ -646,7 +516,7 @@ void BraveVerticalTabStripRegionView::SetState(State state) {
   if (last_state_ == State::kFloating && state_ == State::kExpanded) {
     // In this case we need to lay out pinned tabs so that they need to hide
     // title and close button.
-    for (int i = 0; i < tab_strip->GetModelPinnedTabCount(); ++i) {
+    for (int i = 0; i < tab_strip->NumPinnedTabsInModel(); ++i) {
       tab_strip->tab_at(i)->InvalidateLayout();
     }
   }
@@ -695,10 +565,6 @@ BraveVerticalTabStripRegionView::ExpandTabStripForDragging() {
   SetSize(GetPreferredSize());
 
   return resetter;
-}
-
-gfx::Vector2d BraveVerticalTabStripRegionView::GetOffsetForDraggedTab() const {
-  return {0, header_view_->GetPreferredSize().height()};
 }
 
 int BraveVerticalTabStripRegionView::GetAvailableWidthForTabContainer() {
@@ -763,22 +629,18 @@ void BraveVerticalTabStripRegionView::Layout(PassKey) {
 
   const auto contents_bounds = GetContentsBounds();
 
-  const gfx::Size header_size{contents_bounds.width(),
-                              tabs::kVerticalTabHeight + kHeaderInset * 2};
-  header_view_->SetBoundsRect(gfx::Rect(contents_bounds.origin(), header_size));
-
   constexpr int kNewTabButtonHeight = tabs::kVerticalTabHeight;
   const int contents_view_max_height =
       contents_bounds.height() - tabs::kMarginForVerticalTabContainers -
       kNewTabButtonHeight - tabs::kMarginForVerticalTabContainers -
-      kSeparatorHeight - header_view_->height();
+      kSeparatorHeight;
   // Using tab_container_'s preferred height because tab_strip's preferred
   // height could be 0 in tests.
   const int contents_view_preferred_height =
       tab_strip()->tab_container_->GetPreferredSize().height();
 
   region_view_container_->SetBoundsRect(gfx::Rect(
-      header_view_->bounds().bottom_left(),
+      contents_bounds.origin(),
       gfx::Size(
           contents_bounds.width(),
           std::min(contents_view_max_height, contents_view_preferred_height))));
@@ -1024,7 +886,7 @@ void BraveVerticalTabStripRegionView::AnimationEnded(
 void BraveVerticalTabStripRegionView::UpdateNewTabButtonVisibility() {
   const bool is_vertical_tabs =
       tabs::utils::ShouldShowBraveVerticalTabs(browser_);
-  auto* original_ntb = original_region_view_->GetNewTabButton();
+  auto* original_ntb = original_region_view_->new_tab_button();
   original_ntb->SetVisible(!is_vertical_tabs);
   new_tab_button_->SetVisible(is_vertical_tabs);
   separator_->SetVisible(is_vertical_tabs);
@@ -1033,7 +895,7 @@ void BraveVerticalTabStripRegionView::UpdateNewTabButtonVisibility() {
 int BraveVerticalTabStripRegionView::GetTabStripViewportMaxHeight() const {
   // Don't depend on |contents_view_|'s current height. It could be bigger than
   // the actual viewport height.
-  return GetContentsBounds().height() - header_view_->height() -
+  return GetContentsBounds().height() -
          (separator_->height() + tabs::kMarginForVerticalTabContainers) -
          new_tab_button_->height();
 }
@@ -1336,11 +1198,6 @@ std::u16string BraveVerticalTabStripRegionView::GetShortcutTextForNewTabButton(
   return {};
 }
 #endif
-
-views::LabelButton&
-BraveVerticalTabStripRegionView::GetToggleButtonForTesting() {
-  return *header_view_->toggle_button();
-}
 
 void BraveVerticalTabStripRegionView::OnCollapseAnimationEnded() {
   CHECK_EQ(state_, State::kCollapsed);

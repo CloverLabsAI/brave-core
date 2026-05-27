@@ -483,14 +483,25 @@
 <translation id="1518915449477235311"><ph name="URL"/> Brave-ൽ Leo AI സംഭാഷണങ്ങൾ തുറക്കാൻ അനുവദിക്കുമോ?</translation>
 <translation id="4355784577209159847">പാരമ്പര്യ Google സൈനിന് മൂന്നാം കക്ഷി കുക്കികളെ ഉപയോഗിച്ചുകൊണ്ടുള്ള അനുമതി അനുവദിക്കുക</translation>
 <translation id="5770656036486891920"><ph name="URL"/> പാരമ്പര്യ Google സൈനിന് മൂന്നാം കക്ഷി കുക്കികളെ ഉപയോഗിക്കുന്നതാണ്</translation>
-<translation id="6053826678715267477">localhost പ്രദാനങ്ങൾ ഉപയോഗിക്കുന്നതിന് അനുമതി നൽകുക</translation>
-<translation id="2973562729984406132"><ph name="URL"/> localhost പ്രദാനങ്ങൾ ഉപയോഗിക്കുന്നതിന് അനുമതി ദ്രിശ്യമാണ്</translation>
+<translation id="5582087890067572966">🎉 നിങ്ങൾ ഇപ്പോൾ സമ്പാദിക്കുന്നു!</translation>
+<translation id="4364336119478610380">ഇത്തരത്തിലുള്ള ഒരു അറിയിപ്പ് നിങ്ങളുടെ സ്ക്രീനിൽ വരുമ്പോൾ നിങ്ങൾ സമ്പാദിക്കുന്നു. സമ്പാദിക്കാൻ നിങ്ങള്ക്കു ക്ലിക്ക് ചെയ്യേണ്ട ആവശ്യമില്ല.</translation>
+<translation id="5893017172751072752">Brave Ads അറിയിപ്പ് കാണുമ്പോള്‍ നിങ്ങള്‍ സമ്പാദിക്കും</translation>
+<translation id="3447730462826640312">സമ്പാദിക്കാൻ ക്ലിക്ക് ചെയ്യേണ്ട ആവശ്യമില്ല, പക്ഷേ താത്പര്യമുള്ളവർക്ക് ക്ലിക്ക് ചെയ്യുക!</translation>
 <translation id="2104347391516032700">ബാറ്റ് റിവാർഡ്സ് സേവനം</translation>
 <translation id="5939518447894949180">റീസെറ്റ് ചെയ്യുക</translation>
 <translation id="3349204812119681938">Brave Rewards പുനഃക്രമീകരിക്കുക</translation>
 <translation id="4915997950539925115">പുനഃക്രമീകരിക്കുമ്പോൾ, നിങ്ങളുടെ നിലവിലെ Brave Rewards പ്രൊഫൈൽ നീക്കം ചെയ്യപ്പെടുകയും, Brave Rewards നിലവിലെ ഡയറീകൃതമാകാൻ കഴിയുന്നില്ല. നിങ്ങൾ Brave Rewards വീണ്ടും നടപ്പാക്കുകയാണെങ്കിൽ, അതിനെ ഒരു പുതിയ പ്രോഫൈലിൽ നിന്ന് ആരംഭിക്കും. കൂടുതൽ വിവരങ്ങൾക്കായി, <ph name="LINK_BEGIN"/>പുനഃക്രമീകരിക്കൽ<ph name="LINK_END"/> എന്ന സഹായ ലേഖനം വായിക്കുക.</translation>
 <translation id="4806029412510565611">എന്റെ നിലവിലെ Brave Rewards പ്രൊഫൈൽ ഉം Brave Rewards ഡാറ്റയും നിന്ന് എന്റെ ഉപകരണത്തിൽ നിന്ന് നീക്കം ചെയ്യുമെന്നും, <ph name="LINK_BEGIN"/>പുനഃക്രമീകരിക്കൽ<ph name="LINK_END"/> സംബന്ധമായ സഹായ ലേഖനം വായിച്ചിട്ടുണ്ടെന്നും എനിക്ക് മനസ്സിലാകും.</translation>
 <translation id="8835777704176513489">Disable and reset Rewards</translation>
+<translation id="1570055891464728855">ഇപ്പോള്‍ റീസെറ്റുചെയ്യുക</translation>
+<translation id="6431824580671230473"><ph name="PROVIDER"/> അക്കൗണ്ടിലെ നിലവിലുള്ള BAT റീസെറ്റ് ചെയ്താലും ബാധിക്കുകയില്ല.</translation>
+<translation id="2881473942058010900"><ph name="PROVIDER"/> ന് കണക്ടായിരിക്കുന്നിടത്ത് പരസ്യങ്ങൾക്ക് നിങ്ങൾക്ക് കൈമാറുക ലഭിക്കില്ല. Brave റിവാർഡുകൾ റീസെറ്റ് ചെയ്യുകയും വേറെ പേയ്മെന്റ് അക്കൗണ്ടുമായി കണക്ട് ചെയ്യുകയും ചെയ്യുക. <ph name="LINK_BEGIN"/>കൂടുതൽ അറിയുക<ph name="LINK_END"/></translation>
+<translation id="5803444802570526678"><ph name="PROVIDER"/> അക്കൗണ്ടിന് ഇനി പിന്തുണയില്ല.</translation>
+<translation id="3794463124070392793">നിങ്ങളുടെ പ്രദേശം സ്ഥിരീകരിക്കുക</translation>
+<translation id="4620879582500359234"><ph name="PROVIDER"/> അക്കൗണ്ടിലെ നിലവിലുള്ള BAT അവിടെതന്നെ തുടരും.</translation>
+<translation id="935303782545595866">നിങ്ങളുടെ 30-ദിവസത്തെ പരസ്യാ ചരിത്രവും മറ്റ് Brave റിവാർഡുകൾ ക്രമീകരണങ്ങളും റീസെറ്റ് ചെയ്യപ്പെടും.</translation>
+<translation id="6279637499952804615">ഈ ഘട്ടത്തിനു ശേഷം നിങ്ങൾക്ക് വ്യത്യസ്തമായ പേയ്മെന്റ് അക്കൗണ്ടിലേയ്ക്ക് മാറാം.</translation>
+<translation id="5419770758409992826">നിങ്ങളുടെ <ph name="PROVIDER"/> അക്കൗണ്ട് ഡിസ്കണക്റ്റ് ചെയ്യപ്പെടുകയും, Brave റിവാർഡ്സ് പ്രൊഫൈൽ റീസെറ്റ് ചെയ്യപ്പെടുകയും ചെയ്യും.</translation>
 <translation id="7717357606512850995">സ്റ്റാറ്റസ് പരിശോധിക്കുക</translation>
 <translation id="6473937687348632190"><ph name="MONTH"/> හි ചലനം ജീവിതം പൂർത്തിയായി.</translation>
 <translation id="1711367267038576241"><ph name="MONTH"/> നിലാം ദിനങ്ങൾ <ph name="DATE"/> വരെ പ്രക്രിയ തുടങ്ങും.</translation>
@@ -515,15 +526,15 @@
     }</translation>
 <translation id="3264975266761862670">വിജയം നേടാൻ തയ്യാറായിരിക്കുന്നു?</translation>
 <translation id="2784412028126205842">ഒരു പേയ്ഔട്ട് അക്കൗണ്ട് ബന്ധിപ്പിക്കുക</translation>
-<translation id="766126983336630294">{ADS_VIEWED, plural,
-      =0 {നിങ്ങൾ ഈ മാസം <ph name="COUNT_BEGIN"/># പരസ്യങ്ങൾ<ph name="COUNT_END"/> കണ്ടിട്ടുണ്ട്}
-      =1 {നിങ്ങൾ ഈ മാസം കണ്ട <ph name="COUNT_BEGIN"/># പരസ്യത്തിന്<ph name="COUNT_END"/> നിങ്ങൾക്ക് പണം ലഭിക്കാം.}
-      other {നിങ്ങൾ ഈ മാസം കണ്ട <ph name="COUNT_BEGIN"/># പരസ്യത്തിന്<ph name="COUNT_END"/> നിങ്ങൾക്ക് പണം ലഭിക്കാം.}
+<translation id="1789518312567918588">{ADS_VIEWED, plural,
+      =0 {നിങ്ങൾ ഈ മാസം <ph name="COUNT_BEGIN"/> # പരസ്യങ്ങൾ<ph name="COUNT_END"/> കണ്ടിട്ടുണ്ട്}
+      =1 {നിങ്ങൾ ഈ മാസം കണ്ട <ph name="COUNT_BEGIN"/> # പരസ്യത്തിന്<ph name="COUNT_END"/> നിങ്ങൾക്ക് പണം ലഭിക്കാം.}
+      other {നിങ്ങൾ ഈ മാസം കണ്ട <ph name="COUNT_BEGIN"/> # പരസ്യത്തിന്<ph name="COUNT_END"/> നിങ്ങൾക്ക് പണം ലഭിക്കാം.}
     }</translation>
-<translation id="8611388433418909120">{ADS_VIEWED, plural,
-      =0 {ഈ മാസം നിങ്ങൾക്ക് <ph name="COUNT_BEGIN"/># പരസ്യങ്ങൾ<ph name="COUNT_END"/> ലഭിച്ചിട്ടില്ല.}
-      =1 {ഈ മാസം നിങ്ങൾക്ക് ഒരു <ph name="COUNT_BEGIN"/># പരസ്യം<ph name="COUNT_END"/> ലഭിച്ചു.}
-      other {ഈ മാസം നിങ്ങൾക്ക് <ph name="COUNT_BEGIN"/># പരസ്യങ്ങൾ<ph name="COUNT_END"/> ലഭിച്ചു.}
+<translation id="1100743684843603297">{ADS_VIEWED, plural,
+      =0 {നിങ്ങൾ ഈ മാസം <ph name="COUNT_BEGIN"/> # പരസ്യങ്ങൾ<ph name="COUNT_END"/> കണ്ടിട്ടുണ്ട്}
+      =1 {നിങ്ങൾ ഈ മാസം <ph name="COUNT_BEGIN"/> # പരസ്യങ്ങൾ കാണുന്നതിനായി പണമുകൾ സമ്പാദിച്ചിരിക്കുന്നു}
+      other {നിങ്ങൾ ഈ മാസം <ph name="COUNT_BEGIN"/> # പരസ്യങ്ങൾ കാണുന്നതിനായി പണമുകൾ സമ്പാദിച്ചിരിക്കുന്നു}
     }</translation>
 <translation id="6067959437127691361">Brave Rewards ഉപയോഗിക്കുന്നതിലൂടെ ഉള്ളടക്കി സ്രഷ്ടാക്കളെ പിന്തുണയ്ക്കുകയും, നിങ്ങള്‍ക്ക്‌ BAT നേടാന്‍ സഹായിക്കുകയും ചെയ്യും.</translation>
 <translation id="2359808026110333948">തുടരുക</translation>
@@ -601,7 +612,7 @@
 <translation id="5802986777701714573">നിങ്ങൾക്കായി മാവറിന് നിങ്ങളുടെ മാസത്തിൽ നിന്നും ഘട്ടം ബിരുദം സ്വീകരിക്കാനുള്ള ഒരു പുതിയ മാർഗ്ഗം ചേർത്തിരിക്കുന്നു. ഞങ്ങളുടെ പങ്കാളികളിൽനിന്ന് ഒരു അക്കൗണ്ട് ബന്ധിപ്പിക്കുക അല്ലെങ്കിൽ പുതിയ സ്വയം-ഭരണ ഓപ്ഷന് തുടരുക.</translation>
 <translation id="3251885322612056119">അപ്ഡേറ്റ് ചെയ്ത സേവന നിബന്ധനകൾ</translation>
 <translation id="7454675823870922788"><ph name="LINK_BEGIN"/>Brave Rewards Terms of Service<ph name="LINK_END"/></translation>
-<translation id="56057964000416013">നമ്മുടെ സേവനതത്വങ്ങൾ നാം പുതുക്കിയിട്ടുണ്ട്. Brave റിവാർഡുകൾ തുടരാൻ, പുതുക്കിയ നിബന്ധനകൾ അവലോകനം ചെയ്യുകയും യോജിപ്പിക്കുകയും ചെയ്യുക.</translation>
+<translation id="616595399243298960">നമ്മുടെ സേവനതത്വങ്ങൾ നാം പുതുക്കിയിട്ടുണ്ട്. Brave റിവാർഡുകൾ തുടരാൻ, പുതുക്കിയ നിബന്ധനകൾ അവലോകനം ചെയ്യുകയും യോജിപ്പിക്കുകയും ചെയ്യുക.</translation>
 <translation id="5192526308598085294"><ph name="LINK_BEGIN"/>Brave Rewards സേവന വ്യവസ്ഥകൾ<ph name="LINK_END"/> കാണുക</translation>
 <translation id="4130750466177569591">ഞാൻ സമ്മതിക്കുന്നു</translation>
 <translation id="343114360276812078">നിബന്ധനകൾ അവലോകനം ചെയ്യുക</translation>
@@ -649,6 +660,8 @@
 <translation id="6751803821780922506">നിങ്ങൾ BAT എവിടേക്ക് സ്വീകരിക്കണം എന്ന് തിരഞ്ഞെടുക്കുക</translation>
 <translation id="3162035476318501831">പ്രദേശങ്ങളും പിന്തുണയും കുറിച്ച് കൂടുതലറിയുക.</translation>
 <translation id="7329170127335794328">നിങ്ങളുടെ പ്രദേശത്ത് നിലവിൽ ലഭ്യമല്ല</translation>
+<translation id="1947910788470806100">നിങ്ങളുടെ പ്രദേശത്ത് പേയ്മെന്റ് ഓപ്ഷനുകൾ നീക്കം ചെയ്തിരിക്കുന്നു. ലഭ്യതയുടെ സ്ഥാനം പരിശോധിക്കാൻ പിന്നീടു വീണ്ടും പരിശോധിക്കുക.</translation>
+<translation id="271689813824682404">പേയ്മെന്റ് ഓപ്ഷനുകൾ ലഭ്യമല്ല</translation>
 <translation id="966956302643313970">Basic Attention Token (BAT) റിവാർഡുകൾ നേടുന്നതിനായി, ഒരു അക്കൗണ്ട് ബന്ധിപ്പിക്കുക. നിങ്ങൾ നേടുന്ന BAT_VERTICAL_BAR നിങ്ങളെക്കാര്യങ്ങൾ ചെയ്യുന്നത് ഒരു ഇമെയിൽ വിലാസമാണ്.</translation>
 <translation id="4009439571146350519">മറ്റൊരു വാലറ്റ് അല്ലെങ്കിൽ Solana പിന്തുണയ്ക്കുന്നവ</translation>
 <translation id="333231090524745752"><ph name="TOS_LINK_BEGIN"/>Terms of Use<ph name="TOS_LINK_END"/> and <ph name="PP_LINK_BEGIN"/>Privacy Policy<ph name="PP_LINK_END"/>.</translation>
@@ -858,7 +871,10 @@ other {<ph name="EXCHANGE_NAME"/> + {SWAP_EXCHANGE_STEPS} ഘട്ടങ്ങ�
 <translation id="646023614746251785">മാറ്റം സ്ഥിരീകരിക്കുക</translation>
 <translation id="6264944956989873014">ബ്രിഡ്ജ് സ്ഥിരീകരിക്കുക</translation>
 <translation id="7067917728851842589">അയക്കൽ സ്ഥിരീകരിക്കുക</translation>
+<translation id="2841837950101800123">നൽകുന്നയാൾ</translation>
+<translation id="1114725160772317155">നൽകുന്നയാളുടെ നില</translation>
 <translation id="2351357639951873714">ഷീൽഡ് സ്ഥിരീകരിക്കുക</translation>
+<translation id="7480044382160806610">അൺഷീൽഡ് സ്ഥിരീകരിക്കുക</translation>
 <translation id="8332923694292360653">ചെലവാക്കുക</translation>
 <translation id="3735740477244556633">ഇപ്രകാരം അടുക്കുക</translation>
 <translation id="6484605214219822434">പാലം നിരീക്ഷിക്കുക</translation>
@@ -880,6 +896,8 @@ other {<ph name="EXCHANGE_NAME"/> + {SWAP_EXCHANGE_STEPS} ഘട്ടങ്ങ�
 <translation id="7465227658364622464">Jupiter സൊലാന വിലാസവും IP വിലാസവും ഒരു ഇടപാട് നികത്താൻ പ്രോസസ്സിംഗ്‌ (ക്വോട്ടുകൾ ഉൾപ്പെടെ) നടത്തും. Jupiter ഈ ഡാറ്റ പ്രോസസ്സിംഗ് ഇടപാടുകൾക്ക് ഉപയോഗിക്കുന്നതിന് മാത്രം ഉണ്ടായിരിക്കും.</translation>
 <translation id="712738518060477110">ക്വോട്ട് <ph name="SWAP_FEE_PERCENTAGE"/> Brave ഫീസ് ഉൾക്കൊള്ളുന്നു.</translation>
 <translation id="8368540604723748428">വളരെ അധികം ഡെസിമൽ സ്ഥാനങ്ങൾ</translation>
+<translation id="4797709125717981664">ആവശ്യമായ ഏറ്റവും കുറഞ്ഞത് 1 ADA ആണ്</translation>
+<translation id="3826737479910350533">അയയ്ക്കുന്ന തുക വളരെ ചെറുതാണ്</translation>
 <translation id="6575120282593094155">നിങ്ങൾക്ക് <ph name="ACCOUNT_TYPE"/> അക്കൗണ്ട് ഇതുവരെ ഇല്ല. ഇപ്പോള്‍ ഉണ്ടാക്കണോ?</translation>
 <translation id="1426410128494586442">അതെ</translation>
 <translation id="4250680216510889253">ഇല്ല</translation>
@@ -926,7 +944,7 @@ other {<ph name="EXCHANGE_NAME"/> + {SWAP_EXCHANGE_STEPS} ഘട്ടങ്ങ�
 <translation id="2274014756904854136">തുടരാൻ സ്ക്രീൻ ഇരട്ട ദിവസിരിക്കുക</translation>
 <translation id="7795718119973968770">നിങ്ങളുടെ സുരക്ഷയ്ക്ക് വേണ്ടി നിങ്ങളുടെ വാലറ്റ് പിന്നിട്ടിരിക്കുന്നു. തുടരാൻ വാലറ്റ് അൺലോക്ക് ചെയ്യുക.</translation>
 <translation id="9175546523521600401">വാലറ്റ് പൂട്ടുക</translation>
-<translation id="765834632354589737">വാലറ്റ് ബാക്കപ്പ്</translation>
+<translation id="7117128722034148989">വാലറ്റ് ബാക്കപ്പ്</translation>
 <translation id="1108298724135935307">കണക്റ്റുചെയ്ത സൈറ്റുകൾ</translation>
 <translation id="5716350339763180836">ബാലൻസുകൾ</translation>
 <translation id="5538251867290702601">ഗ്രാഫ്</translation>
@@ -982,6 +1000,7 @@ other {<ph name="EXCHANGE_NAME"/> + {SWAP_EXCHANGE_STEPS} ഘട്ടങ്ങ�
 <translation id="2795015351889043417">JSON ფയൽ</translation>
 <translation id="5468881191994555667">ഡേവൈസ് തിരഞ്ഞെടുക്കുക</translation>
 <translation id="795667975304826397">ഫയൽ തിരഞ്ഞെടുത്തിട്ടില്ല</translation>
+<translation id="6720675936326555106">തിരഞ്ഞെടുത്ത ഫയൽ</translation>
 <translation id="5891811606602061966">അക്കൗണ്ട് ഇറക്കുമതി ചെയ്യുന്നതില്‍ പരാജയപ്പെട്ടു, വീണ്ടും ശ്രമിക്കുക.</translation>
 <translation id="6566535583781706170">അക്കൗണ്ട് ഇറക്കുമതി ചെയ്യുക</translation>
 <translation id="5051929972046200722">നിങ്ങളുടെ ഹാർഡ്വെയർ വാലറ്റ് ഉപകരണം തിരഞ്ഞെടുക്കുക</translation>
@@ -1028,13 +1047,21 @@ other {<ph name="EXCHANGE_NAME"/> + {SWAP_EXCHANGE_STEPS} ഘട്ടങ്ങ�
 <translation id="2416098547200943834">നോട്ട്: സ്വകാര്യ കീ ഒരു ഹൈക്സിന്റെ കോഡചെയ്ത JSON ആയി നൽകപ്പെടുന്നു, ഇതിൽ പ്രോട്ടോക്കോൾ വിവരങ്ങളും അടങ്ങിയിരിക്കുന്നു. <ph name="LINK_START"/>കൂടുതൽ അറിയുക<ph name="LINK_END"/>.</translation>
 <translation id="7657130382217527063">ഉണ്ട്: സ്വകാര്യ കീ ഒരു ഹൈക്സിന്റെ കോഡ ചെയ്ത JSON ആയി നല്കണം, ഇതിൽ സ്വകാര്യ കീ പ്രോട്ടോക്കോൾ വിവരം അടങ്ങിയിരിക്കണം. <ph name="LINK_START"/>കൂടുതൽ അറിയുക<ph name="LINK_END"/>.</translation>
 <translation id="4482913669726886926">നോട്ട്: <ph name="FORMAT"/> വികസിപ്പിച്ച കീകൾ മാത്രം പിന്തുണയ്ക്കുന്നു.</translation>
+<translation id="6457746820359933716">Polkadot.js അല്ലെങ്കിൽ അനുയോജ്യമായ വാലറ്റുകളിൽ നിന്ന് എക്സ്പോർട്ട് ചെയ്ത JSON ഫയൽ ഉപയോഗിച്ച് ഇമ്പോർട്ട് ചെയ്യുക. എക്സ്പോർട്ട് എൻക്രിപ്റ്റ് ചെയ്യാൻ ഉപയോഗിച്ച പാസ്‌വേഡ് നൽകുക.</translation>
+<translation id="9133762451347918196">ടെസ്റ്റ്നെറ്റ് അക്കൗണ്ടുകൾ</translation>
 <translation id="42126664696688958">എക്‌സ്‌പോർട്ടുചെയ്യുക</translation>
 <translation id="1366855498335432549">നിക്ഷേപം</translation>
 <translation id="790104325876206743">അക്കൗണ്ട് ക്രമീകരണം</translation>
+<translation id="8856844353253421399">അവസാനമായി പുതുക്കിയത് <ph name="TIME_AGO"/> മിനിറ്റ് മുമ്പ്</translation>
 <translation id="6322030314101903925">ലഭ്യമായ ആസ്തികളില്ല</translation>
 <translation id="836614343069504000">ആരംഭിക്കാൻ ടോക്കണുകൾ നിക്ഷേപിക്കുകയോ വാങ്ങുകയോ ചെയ്യുക. നിങ്ങൾക്ക് ഇംപോർട്ട് ചെയ്ത അക്കൗണ്ടിൽ നിന്നും ടോക്കൺ കാണാൻ കഴിയുന്നില്ലെങ്കിൽ, ഫിൽറ്ററുകളും പ്രദർശന ക്രമീകരണങ്ങളും പരിശോധിക്കുക. അജ്ഞാത ടോക്കൺകൾ കസ്റ്റം ആസറ്റുകളായി ചേർക്കേണ്ടി വരാം.</translation>
 <translation id="2902856457593699108">കീ കാണിക്കുക</translation>
 <translation id="8033497299373164724">കീ മറയ്ക്കുക</translation>
+<translation id="7514365320538308">ഡൌണ്‍ലോഡ്</translation>
+<translation id="4505811804838254812">നിങ്ങളുടെ അക്കൗണ്ട് എക്സ്പോർട്ട് ഫയൽ എൻക്രിപ്ট് ചെയ്യാൻ പാസ്‌വേഡ് നൽകുക.</translation>
+<translation id="4664684820522660564">എൻക്രിപ്ഷൻ പാസ്‌വേഡ് നൽകുക</translation>
+<translation id="6873030689896652259">എൻക്രിപ്ഷൻ പാസ്‌വേഡ് സ്ഥിരീകരിക്കുക</translation>
+<translation id="5148285448107770349">പാസ്‌വേഡ് കുറഞ്ഞത് 8 അക്കങ്ങൾ വേണ്ട</translation>
 <translation id="2702143907607790516">അക്കൗണ്ട് പേര് അപ്‌ഡേറ്റ് ചെയ്യുന്നതിൽ പരാജയപ്പെട്ടു, വീണ്ടും ശ്രമിക്കുക.</translation>
 <translation id="3318280255740629162">25%</translation>
 <translation id="2636487255623744079">50%</translation>
@@ -1055,9 +1082,6 @@ other {<ph name="EXCHANGE_NAME"/> + {SWAP_EXCHANGE_STEPS} ഘട്ടങ്ങ�
 <translation id="1506421160138798546">ഇസ്റ്റിമേറ്റ്</translation>
 <translation id="59223531494896848">പരിധി</translation>
 <translation id="8569380433211549748">വില</translation>
-<translation id="2490428413101944234">ടെസ്റ്റ് ഫോസറ്റ്</translation>
-<translation id="3352959425838279177">ഒരു ഫോസറ്റിൽ നിന്ന് ഈത്തർ നേടുക <ph name="SELECTED_NETWORK"/></translation>
-<translation id="6449626816252815844">മാറ്റം മുന്നോട്ടുവയ്ക്കുന്നതിനുള്ള രീതി തിരഞ്ഞെടുക്കുക</translation>
 <translation id="8009571545960303544">നിങ്ങളുടെ ഒപ്പു ആവശ്യപ്പെട്ടിരിക്കുന്നു</translation>
 <translation id="5294062982587710720">സൈൻ ചെയ്താൽ എന്താണ് സംഭവിക്കുക എന്ന് ബ്രേവ് ഉറപ്പുവരുത്താൻ കഴിയില്ല. ഒരു സിഗ്നേച്ചർ നിങ്ങളുടെ അക്കൗണ്ടിൽ കുടിച്ചമക്കുകയോ, എന്നിങ്ങനെ ഒരു അപകടക്രമം തന്നെയാവാം.</translation>
 <translation id="3474375934783434676">താങ്കളുടെ സ്വന്തം അപകടത്തിൽ ഒപ്പുവയ്ക്കുക</translation>
@@ -1065,6 +1089,7 @@ other {<ph name="EXCHANGE_NAME"/> + {SWAP_EXCHANGE_STEPS} ഘട്ടങ്ങ�
 <translation id="3586931643579894722">വിശദാംശങ്ങൾ മറയ്‌ക്കുക‍‌</translation>
 <translation id="7702907602086592255">ഡൊമെയ്‌ൻ</translation>
 <translation id="3586752056660754651">സൈൻ ചെയ്യുക</translation>
+<translation id="4217653732094303705">പബ്ലിക്ക് എന്‍ക്രിപ്ഷന്‍ കീ</translation>
 <translation id="3484981968509595506">ഒരു DApp നിങ്ങളുടെ പൊതു എൻക്രിപ്ഷൻ കീ ആവശ്യപ്പെടുന്നു</translation>
 <translation id="2300240008330189182"><ph name="URL"/> നിങ്ങളുടെ_wallet സ്ഥാപിക്കുക, ജനപ്രിയ_MAIL തിരിച്ചടവ്_key keybase ഹെഡ് കമ്മ്യൂണിറ്റി &amp; CONTEXT സ്ഥലത്തെ വിവരിക്കുന്ന URL മാറ്റിപിരിച്ചുവിടുമെന്ന് ആവശ്യപ്പെടുന്നു. നിങ്ങൾ അത് നൽകിയാൽ, സൈറ്റി ൽ അവർക്ക് നിങ്ങളെ_തന്നെ സന്ദേശങ്ങൾ എൻക്രിപ്റ്റ് ചെയ്തു നൽകാനാകും.</translation>
 <translation id="3340247553212049934">നല്‍കുക</translation>
@@ -1146,10 +1171,10 @@ other {<ph name="EXCHANGE_NAME"/> + {SWAP_EXCHANGE_STEPS} ഘട്ടങ്ങ�
 <translation id="4324239559624557455">24 മണിക്കൂർ</translation>
 <translation id="9139452553033760558">1 ആഴ്ച</translation>
 <translation id="1658834457013045127">എന്നേക്കേറ്റ</translation>
-<translation id="6344138931392227467"><ph name="DEVICE_NAME"/> ബന്ധിപ്പിച്ചു</translation>
-<translation id="7051244143160304048"><ph name="DEVICE_NAME"/> ബന്ധം വിച്ഛേദിച്ചിരിക്കുന്നു</translation>
-<translation id="5317781812114905957">നിർദ്ദേശങ്ങൾ</translation>
-<translation id="1178198982208000092">നിങ്ങളുടെ <ph name="DEVICE_NAME"/> ബന്ധിപ്പിക്കുക</translation>
+<translation id="5571630233760536706"><ph name="DEVICE_NAME"/> കണക്റ്റ് ചെയ്തിരിക്കുന്നു</translation>
+<translation id="7058480232601314508"><ph name="DEVICE_NAME"/> ബന്ധം വിച്ഛേദിച്ചിരിക്കുന്നു</translation>
+<translation id="434328838837168401">നിർദ്ദേശങ്ങൾ കാണുക</translation>
+<translation id="6739517232898494646">നിരന്തരം കൂടാൻ നിങ്ങളുടെ <ph name="DEVICE_NAME"/> കണക്റ്റ് ചെയ്യുക</translation>
 <translation id="6941881257520473899">ഹാർഡ്‌വെയർ വാലറ്റ് ഉപകരണത്തിൽ സ്ഥിരീകരണം ആവശ്യമാണ്.</translation>
 <translation id="2288190100157580461">ഹാർഡ്‌വെയർ വാലറ്റ് <ph name="NETWORK"/> ആപ്പ് <ph name="DEVICE_NAME"/> ൽ തുറക്കേണ്ടതുണ്ട്</translation>
 <translation id="8687869982094542529">അയച്ചു</translation>
@@ -1211,12 +1236,12 @@ other {<ph name="EXCHANGE_NAME"/> + {SWAP_EXCHANGE_STEPS} ഘട്ടങ്ങ�
 <translation id="4932382283590063268">സ്വീകരിക്കുന്ന വിലാസം നിങ്ങളുടെ സ്വന്തം വിലാസമാണ്.</translation>
 <translation id="3124753063207986114">സ്വീകരിക്കുന്ന വിലാസം ടോക്കൺ കമ്മിഷൻ വിലാസമാണ്.</translation>
 <translation id="7029817408221097939">അസാധുവായ യൂണിഫൈഡ് വിലാസം</translation>
-<translation id="6370376419663123629">വിലാസം ശരിയായതായി തോന്നുന്നില്ല</translation>
-<translation id="3767148796886402380">അത് ശരിയായ വിലാസമാക്കുന്നതിന് നിങ്ങളുടെ വിലാസം പേർക്കണ്‍ വീക്ഷിക്കുക (ഉദാ. കുറുക്പായന്ന ചെറുകഥകള്‍ അല്ലെങ്കില്‍ വലിയകഥകള്‍).</translation>
+<translation id="5749543778008369411">വിലാസത്തിൽ ചെക്ക്‌സം കാണുന്നില്ല</translation>
+<translation id="8225310967627152630">ഈ വിലാസത്തിന്റെ സാധുത പരിശോധിക്കാൻ കഴിയില്ല. ഫണ്ടുകളുടെ സാധ്യതയുള്ള നഷ്ടം ഒഴിവാക്കാൻ, അയയ്ക്കുന്നതിന് മുമ്പ് വിലാസം ശ്രദ്ധയോടെ പരിശോധിക്കുക.</translation>
+<translation id="5139218857087774333">വിലാസം ശരിയായി കാണപ്പെടുന്നില്ല (അസാധുവായ ചെക്ക്‌സം)</translation>
+<translation id="6551446819927864899">ഈ വിലാസത്തിൽ അക്ഷരത്തിന്റെ പ്രയോഗ പിശകുണ്ടായിരിക്കാം. വിലാസം പരിശോധിച്ച് വീണ്ടും നൽകുക.</translation>
 <translation id="2585599787090762065">അത് എങ്ങനെ പരിഹരിക്കാം?</translation>
 <translation id="5517732667776806421">ചെക്ക്‌സം വിവരങ്ങൾ നഷ്ടമാണ്</translation>
-<translation id="2975056993833847787">ഈ വിലാസം സ്ഥിരീകരിക്കാനാവില്ല (ചെക്ക്‌സം നഷ്ടം). മുന്നോട്ടു പോകോ?</translation>
-<translation id="6320252966164556855">വിലാസം സ്ഥിരീകരണ (ചെക്ക്‌സം അസാധു) വിജയിച്ചില്ല. ദയവായി വീണ്ടും ശ്രമിക്കുക, ചെറുകഥകൾ വലിയകഥകളായി മാറ്റുക.</translation>
 <translation id="4667144295226514387">അഭാവം േക്കാഴുന്നതിനായി നിശ്ചിതരും ഗ്യാസ് പരിധി വിവരങ്ങൾ</translation>
 <translation id="2021522108838444624">രൂപത്തിലുള്ള തുക 0 ല് വലുതായിരിക്കണം</translation>
 <translation id="8464365289405373974">വിലാസം ആവശ്യമാണ്</translation>
@@ -1242,6 +1267,8 @@ other {<ph name="EXCHANGE_NAME"/> + {SWAP_EXCHANGE_STEPS} ഘട്ടങ്ങ�
 <translation id="471055802670233033">നിങ്ങൾ ചെലവാക്കുന്നു</translation>
 <translation id="7916618590403748182">നിങ്ങൾക്ക് ലഭിക്കും</translation>
 <translation id="8328657208304368165">ഓർഡർ സ്ഥിരീകരിക്കുക</translation>
+<translation id="3784821115971261512">പ്രോഗ്രാം വിലാസം</translation>
+<translation id="6302865118026274740">ഡെപോസിറ്റ് വിലാസം</translation>
 <translation id="8220255674527598378">സൊളാന സ്വാപ്പ്</translation>
 <translation id="5071303414930953888">അക്കൗണ്ട് <ph name="ACCOUNT_NUMBER"/></translation>
 <translation id="2330177808960134000">വാലറ്റ് ആദ്യം അൺലോക്ക് ചെയ്യണം</translation>
@@ -1301,9 +1328,7 @@ other {<ph name="EXCHANGE_NAME"/> + {SWAP_EXCHANGE_STEPS} ഘട്ടങ്ങ�
 <translation id="4312994183947987913">Buy/Deposit</translation>
 <translation id="5133421763709317473">No assets matching search or filter found</translation>
 <translation id="6423985584914773314">Not a valid FIL address</translation>
-<translation id="5522073372365069684">Buy with Ramp</translation>
 <translation id="6153197326949684688">Sell with <ph name="OFFRAMP_PROVIDER"/></translation>
-<translation id="3301984548406568819">Financial and transaction data is processed by our onramp partners. Brave does not collect or have access to such data.</translation>
 <translation id="5795821518596541838">Transactions partner</translation>
 <translation id="1916136859742693273">Brave Wallet uses Meld.io to help aggregate and surface various crypto providers for your region. We will share information with Meld.io to complete the transaction, including your wallet address and country code. For more information please read Meld’s terms of use.</translation>
 <translation id="245827814248186739">I have read and agree to the <ph name="LINK_BEFORE"/>Meld's Terms of use<ph name="LINK_AFTER"/></translation>
@@ -1324,17 +1349,8 @@ other {<ph name="EXCHANGE_NAME"/> + {SWAP_EXCHANGE_STEPS} ഘട്ടങ്ങ�
 <translation id="4196022627437957774">നിങ്ങളെ കുറിച്ച് അറിയിക്കാൻ ഒരു <ph name="ACCOUNT_TYPE"/> അക്കൗണ്ട് സൃഷ്ടിക്കണമോ?</translation>
 <translation id="5982914754413312620"><ph name="TOKEN_SYMBOL"/> ലഭിക്കാൻ <ph name="ACCOUNT_TYPE"/> അക്കൗണ്ട് ആവശ്യമാണ്.</translation>
 <translation id="3067168166931605141">അക്കൗണ്ട് പേര്</translation>
-<translation id="6534275647567011533">Transak ഉപയോഗിച്ച് വാങ്ങുക</translation>
-<translation id="5973390321030037823">Link ഉപയോഗിച്ച് വാങ്ങുക</translation>
-<translation id="1932640759496708012">Coinbase Pay ഉപയോഗിച്ച് വാങ്ങുക</translation>
-<translation id="8725252491405767337">Ramp.Network</translation>
-<translation id="503018546142690471">Transak</translation>
-<translation id="7295150312737713113">Link by Stripe</translation>
-<translation id="7191335763519723663">Coinbase Pay</translation>
-<translation id="7667423728712601865">Visa അല്ലെങ്കിൽ Mastercard ഉപയോഗിച്ച് ക്രിപ്റ്റോ വാങ്ങുക.</translation>
-<translation id="3101839349578102016">നിങ്ങളുടെ ബാങ്ക് അക്കൗണ്ട് ഉപയോഗിച്ച് ഉടൻ വാങ്ങുക. കുറഞ്ഞ ഫീസ്.</translation>
-<translation id="8280898387224328221">ക്രെഡിറ്റ്, ഡെബിറ്റ്, ബാങ്ക് അക്കൗണ്ട് ഉപയോഗിച്ച് പേയ്‌മെന്റ് ചെയ്യുക</translation>
-<translation id="2218174283683424104">ക്രിപ്റ്റോയിൽ ഏറ്റവും വിശ്വസനീയമായ പേയർ ഉപയോഗിച്ച് വാങ്ങുക.</translation>
+<translation id="1213870770696612739">കുറഞ്ഞ തുക: <ph name="AMOUNT"/></translation>
+<translation id="3041074161036535192">പരമാവധി തുക: <ph name="AMOUNT"/></translation>
 <translation id="8528916244724490964">എല്ലാ നെറ്റ്വറുക്കളും</translation>
 <translation id="7721139939763655123">കുറഞ്ഞത് മുതൽ ഉയർന്നതുവരെ</translation>
 <translation id="5458608274117818139">ഉയർന്നത് മുതൽ കുറഞ്ഞതുവരെ</translation>
@@ -1379,8 +1395,13 @@ other {<ph name="EXCHANGE_NAME"/> + {SWAP_EXCHANGE_STEPS} ഘട്ടങ്ങ�
 <translation id="7694836973509310467">ബ്രിഡ്ജ്</translation>
 <translation id="8419958386475786929"><ph name="SWAPPING_OR_BRIDGING"/> <ph name="NETWORK"/> ൽ</translation>
 <translation id="7903225589949400974"><ph name="SWAP_OR_BRIDGE"/> <ph name="NETWORK"/> ൽ ശ്രമിച്ചത് ഒരു പിഴവാണെന്ന് കണ്ടെത്തി</translation>
+<translation id="7220786058474068424">പ്രോസസ്സ് ചെയ്യുന്നു</translation>
+<translation id="3248185426436836442">അപൂർത്തിയായ</translation>
+<translation id="5503843345634715425">പണം തിരികെ നൽകി</translation>
 <translation id="1778601041100951971"><ph name="AMOUNT"/> ഷീൽഡിംഗ്</translation>
+<translation id="6439110433198887239"><ph name="AMOUNT"/> അൺഷീൽഡ് ചെയ്യുന്നു</translation>
 <translation id="5549369333299694936"><ph name="AMOUNT"/> ഷീൽഡ് ചെയ്തു</translation>
+<translation id="3860973324426281816"><ph name="AMOUNT"/> അൺഷീൽഡ് ചെയ്തു</translation>
 <translation id="6622332794280225311">{PENDING_TRANSACTIONS, plural,
 =1 {{PENDING_TRANSACTIONS} കൂടുതൽ ഇടപാട് കാത്തിരിക്കുന്നു.}
 other {{PENDING_TRANSACTIONS} കൂടുതൽ ഇടപാടുകൾ‌ കാത്തിരിക്കുന്നു.}
@@ -1405,6 +1426,7 @@ other {{PENDING_TRANSACTIONS} കൂടുതൽ ഇടപാടുകൾ‌ ക
 <translation id="5601436886921227795">Dapp ഇടപഴകൽ</translation>
 <translation id="9104177294757104789"><ph name="VALUE"/> അയയ്‌ക്കുക</translation>
 <translation id="4048336522751528394"><ph name="MAKER"/> to <ph name="TAKER"/> മാറ്റുക</translation>
+<translation id="5140590056890937774"><ph name="SOURCE"/> <ph name="DESTINATION"/> ലേക്ക് ബ്രിഡ്ജിംഗ്</translation>
 <translation id="1748114617341025015">അംഗസംബന്തം ട്രാൻസാക്ഷൻ അക്കൗണ്ട് ക്രിയേറ്റ് ചെയ്യുന്നു</translation>
 <translation id="4418115887224983240">അംഗസംബന്തം ട്രാൻസാക്ഷൻ അക്കൗണ്ട് ക്രിയേറ്റ് ചെയ്യുന്നത് പരാജയപ്പെട്ടു</translation>
 <translation id="7165697599360786670">അംഗസംബന്തം ട്രാൻസാക്ഷൻ അക്കൗണ്ട് ക്രിയേറ്റ് ചെയ്തു</translation>
@@ -1575,8 +1597,6 @@ other {{PENDING_TRANSACTIONS} കൂടുതൽ ഇടപാടുകൾ‌ ക
 <translation id="1422451606553326863">ക്രിപ്ടോ വാങ്ങുക</translation>
 <translation id="3887541341068007345">വാലറ്റ് എക്സ്റ്റൻഷനുകൾ പരിശോധിക്കുന്നു...</translation>
 <translation id="8407091560429310499">ഒരു ആസ്തി തിരഞ്ഞെടുക്കുക</translation>
-<translation id="756590380936155533">നിങ്ങളുടെ <ph name="ASSET_TICKER"/> വാങ്ങൽ പൂർത്തിയാക്കാൻ, ഞങ്ങളുടെ പങ്കാളികളിൽ ഒരാളினെയെങ്കിലും തിരഞ്ഞെടുക്കുക</translation>
-<translation id="7880860489474966219">പൂർത്തിയാകുമ്പോൾ, നിങ്ങളുടെ ഫണ്ടുകൾ നിങ്ങളുടെ Brave വാലറ്റിലേക്ക് മാറ്റി നൽകും</translation>
 <translation id="6182661078713714878">ക്രിപ്ടോ നിക്ഷേപിക്കുക</translation>
 <translation id="3683305208314702347"><ph name="VALUE"/> നിക്ഷേപിക്കുക</translation>
 <translation id="5768739294929936862">Solana അല്ലെങ്കിൽ SPL ടോക്കണുകൾ നിക്ഷേപിക്കുക</translation>
@@ -1633,12 +1653,16 @@ other {{PENDING_TRANSACTIONS} കൂടുതൽ ഇടപാടുകൾ‌ ക
 <translation id="3356580495013324916">നിങ്ങളുടെ Brave Wallet പാസ്‌വേഡ് ബ്രാം ചെയ്യുക</translation>
 <translation id="7545441766078366279"><ph name="TOKEN"/> അംഗീകരിക്കുക</translation>
 <translation id="3115303896544539834">തികഞ്ഞ <ph name="TOKEN"/> ബാലൻസ്</translation>
+<translation id="6612125470074657311">തുക വളരെ കുറവാണ്</translation>
+<translation id="5838312420826727653">പിന്തുണയില്ലാത്ത ടോക്കൻ(കൾ)</translation>
+<translation id="4930106154893104117">അസാധുവായ അഭ്യർത്ഥന</translation>
 <translation id="3453833142586986467">ടോക്കൺ തിരഞ്ഞെടുക്കുക</translation>
 <translation id="4937657825850660613">പകുതി</translation>
 <translation id="7639814793732182496">മാക്‌സ്</translation>
 <translation id="6584782231358487640">ഒരു തുക നൽകുക</translation>
 <translation id="477281933640372562">കുറിപ്പ് എടുക്കുന്നു</translation>
 <translation id="5450317966495183014">ലഭിക്കുക (അംഗീകാരം)</translation>
+<translation id="387870937508841726">സ്വീകരിക്കുക (കുറഞ്ഞത്)</translation>
 <translation id="8747614139273050577">ടോക്കൺ നിന്ന്</translation>
 <translation id="1726158192333401896">ടോക്കൺ വരെ</translation>
 <translation id="1817370679212109974"><ph name="COUNTDOWN"/> ൽ പുതിയ ഉദ്ധരണി</translation>
@@ -1749,7 +1773,6 @@ other {{PENDING_TRANSACTIONS} കൂടുതൽ ഇടപാടുകൾ‌ ക
 <translation id="2410455471299328417">ഈ സേവനം <ph name="BOLD_BEFORE"/>Blowfish.xyz<ph name="BOLD_AFTER"/> എന്നവരുടെ സേവനം ഉപയോഗിച്ച് നൽകപ്പെടുന്നു. അവരുടെ <ph name="TERMS_LINK_BEFORE"/>Terms of Service<ph name="TERMS_LINK_AFTER"/> and <ph name="PRIVACY_POLICY_LINK_BEFORE"/>Privacy Policy<ph name="PRIVACY_POLICY_LINK_AFTER"/> പ്രയോഗം സബ്ജന്റ് ആണ്.</translation>
 <translation id="8688672835843460752">ലഭ്യമാണ്</translation>
 <translation id="5296640085393149413">നിങ്ങൾക്ക് ഉപയോഗിക്കാൻ ലഭ്യമായ ഫണ്ടുകൾ.</translation>
-<translation id="3248185426436836442">അപൂർത്തിയായ</translation>
 <translation id="2515906149804238711">നിങ്ങളുടെ വാലറ്റിൽ ഒരു മാറ്റം അപൂർത്തിയായിരിക്കുന്നു.</translation>
 <translation id="7700365440186054030">ലഭ്യമായ ഫണ്ടുകളും ഇതുവരെ സ്ഥിരീകരിക്കാത്ത ഇടപാടുകളും.</translation>
 <translation id="4118601537508887039">ചില ബാലൻസുകൾ ലഭ്യമല്ല</translation>
@@ -1815,10 +1838,15 @@ other {{PENDING_TRANSACTIONS} കൂടുതൽ ഇടപാടുകൾ‌ ക
 <translation id="7747318989577709780">അക്കൗണ്ടിനായി സമന്വയിപ്പിക്കുന്നു</translation>
 <translation id="9086302186042011942">സമന്വയിപ്പിക്കുന്നു</translation>
 <translation id="99991973626409495">ഷീൽഡ് റിവ്യു ചെയ്യുക</translation>
+<translation id="6779429520470417361">അൺഷീൽഡ് റിവ്യൂ ചെയ്യുക</translation>
 <translation id="3114681061018999547">ഷീൽഡിംഗ്</translation>
+<translation id="1564172583156967455">അൺഷീൽഡിംഗ്</translation>
 <translation id="8897189056319316783">ZEC ഒരു ഷീൽഡ്</translation>
+<translation id="508249542337194541">ZEC അൺഷീൽഡ്</translation>
 <translation id="3382275793825152362">ഫണ്ട് തട്ടിക്കൂടൽ</translation>
+<translation id="617149752238892649">അൺഷീൽഡ് ഫണ്ടുകൾ</translation>
 <translation id="8631765320256788981">നിങ്ങളുടെ ഫണ്ട് തട്ടിക്കൂടൽ.</translation>
+<translation id="3860364671495430495">നിങ്ങളുടെ ഷീൽഡഡ് അക്കൗണ്ടിൽ നിന്ന് ട്രാൻസ്‌പാരന്റ് അക്കൗണ്ടിലേക്കാണ് ഫണ്ടുകൾ അയയ്‌ക്കുന്നത്.</translation>
 <translation id="7144878232160441200">വീണ്ടും ശ്രമിക്കുക</translation>
 <translation id="9094621390791852268">ഇടപാട് പ്രിവ്യൂ പരാജയപ്പെട്ടു.</translation>
 <translation id="4982713341035600933">അനുമാനിത ബലാൻസ് മാറ്റം</translation>
@@ -1867,6 +1895,7 @@ other {{PENDING_TRANSACTIONS} കൂടുതൽ ഇടപാടുകൾ‌ ക
 <translation id="4150336849480030462">സംബന്ധിച്ച ടോക്കൺ അക്കൗണ്ട് സൃഷ്ടിക്കലോടുകൂടിയ SPL ടോക്കൺ ട്രാൻസ്ഫർ</translation>
 <translation id="2244921323472112851">നീ സംഗീതമുള്ള താളുകൾ അന്വേഷിക്കുന്നതിന് നടപ്പിൽ അപൂർവമാണിപ്പോൾ.</translation>
 <translation id="6277237872689140644">അതായിട്ട് മാറിയിരിക്കാം അല്ലെങ്കിൽ URLയിലെ ഒരു പിശകുകളായിരിക്കാം.</translation>
+<translation id="1788572014530152502">നിങ്ങളുടെ ഇടപാടി പ്രോസസ്സ് ചെയ്യുന്നതിൽ ഒരു പിശക് സംഭവിച്ചു. പല സന്ദർഭങ്ങളിൽ, നെറ്റ്‌വർക്ക് ഫീസ് കവർ ചെയ്യാൻ <ph name="SYMBOL"/> പര്യാപ്തമല്ലെന്ന് ഇത് അർത്ഥമാക്കുന്നു. പകരം ചെറിയ തുക 시도്yrya.</translation>
 <translation id="2737084171727561244">പോർട്ട്ഫോളിയോയിലേക്ക് പോവുക</translation>
 <translation id="3499452861061048987">ടോക്കൺ ചേർക്കുക</translation>
 <translation id="5046066249040287308">Brave വാലറ്റ് യൂട്ടിലിറ്റി സർവീസ്</translation>
@@ -2095,6 +2124,8 @@ other {{PENDING_TRANSACTIONS} കൂടുതൽ ഇടപാടുകൾ‌ ക
 <translation id="4292565651642921086">അടുത്ത ടാബ് ഗ്രൂപ്പിൽ ശ്രദ്ധ കേന്ദ്രീകരിക്കുക</translation>
 <translation id="874783686573493196">മുമ്പിലത്തെ ടാബ് ഗ്രൂപ്പിൽ ശ്രദ്ധ കേന്രട് ചെയ്യുക</translation>
 <translation id="9169594135889675189">ടാബ് ഗ്രൂപ്പിൽ പുതിയ ടാബ് ചേർക്കുക</translation>
+<translation id="1722567105086139392">ലിങ്ക്</translation>
+<translation id="4729794914864902904">അൺലിങ്ക്</translation>
 <translation id="1926106318101432555">ബുക്ക്‌മാർക്ക് തുറക്കുക...</translation>
 <translation id="6118819645013156507">വിൻഡോടെ മാറ്റുക...</translation>
 <translation id="1623204575967809688">നിലവിലുള്ള വിൻഡൊ മറ്റൊരൊട്ടിൽ ഒന്നിപ്പിക്കുക...</translation>
@@ -2161,6 +2192,7 @@ other {{PENDING_TRANSACTIONS} കൂടുതൽ ഇടപാടുകൾ‌ ക
 <translation id="4348006373172097089">{PAGE_COUNT, plural, =1 {ഈ പേജിന്റെ ഉള്ളടക്കത്തെക്കുറിച്ച് ഒരു ചോദ്യമുണ്ടാക്കുക} other {ഈ പേജുകളുടെ ഉള്ളടക്കത്തെക്കുറിച്ച് ഒരു ചോദ്യമുണ്ടാക്കുക}}</translation>
 <translation id="6961721183181597848">ഇന്ന് നിങ്ങളെ എങ്ങനെ സഹായിക്കാം?</translation>
 <translation id="2966135729673253768">ഫോളോ അപ് അല്ലോ</translation>
+<translation id="5923170497201832190">ടാബ് അടിയിൽ സ്ക്രോൾ ചെയ്യുക</translation>
 <translation id="6219262425964000211">ഫയലുകൾ ഇവിടെ ഡ്രോപ് ചെയ്യുക</translation>
 <translation id="4313763911013851687">സംഭാഷണത്തിൽ ചേർക്കാൻ ഏതെങ്കിലും ഫയലുകൾ ഇവിടെ ഡ്രോപ് ചെയ്യുക</translation>
 <translation id="4524675003624341892">ചോദ്യങ്ങള്‍ നിര്‍ദ്ദേശിക്കുക...</translation>
@@ -2178,26 +2210,26 @@ other {{PENDING_TRANSACTIONS} കൂടുതൽ ഇടപാടുകൾ‌ ക
 <translation id="8151638057146502721">കോംഫിഗർ ചെയ്യുക</translation>
 <translation id="999273441077650169">ആവശ്യമുണ്ടാകുന്ന മികച്ച മാതൃക ഉപയോഗിക്കുന്നതിന് മോഡൽ ഡൈനാമിക്കായി മാറുന്നു.<ph name="LINK_BEFORE"/>കൂടുതൽ അറിയുക<ph name="LINK_AFTER"/></translation>
 <translation id="1238020084128916796">ഹായ്, ഞാൻ ലിയോ. ഞാൻ ഒരു എഐ അസിസ്റ്റന്റാണ് കമ്പനി ബ്രേവിന്. ഞാൻ_META_ എന്ന മോഡൽ ഉപയോഗിച്ച് മെടാദ്വാര കൃതമായ ട്രേക്കിങ്ങ് വേണ്ടിയാണ് പ്രവർത്തിക്കുന്നത്. ലൊലമ മോഡലിന് ബ്രേവിന്റെ സുരക്ഷിതമായ ഇൻഫ്രാസ്ട്രക്ഷർ പ്രയോഗം ആണ്.<ph name="LINK_BEFORE"/>കൂടുതൽ അറിയുക<ph name="LINK_AFTER"/></translation>
-<translation id="7127671672828944579">ഹായ്, ഞാൻ ലിയോ. ഞാൻ ഒരു എഐ അസിസ്റ്റന്റാണ് കമ്പനി ബ്രേവിന്. ഞാൻ Qwen 14B എന്ന മോഡൽ ഉപയോഗിച്ച് അലിയബാബാ ക്ലൗഡ് നിർമ്മിച്ച മോഡലാണ് ഉപയോഗിക്കുന്നത്. Qwen മോഡലാണ് ബ്രേവിന്റെ സുരക്ഷിതമായ ഇൻഫ്രാസ്ട്രക്ഷർ ഉപയോഗിച്ച് പ്രവർത്തിക്കുന്നത്.<ph name="LINK_BEFORE"/>കൂടുതൽ അറിയുക<ph name="LINK_AFTER"/></translation>
-<translation id="2328524194917949829">ഹായ്, ഞാൻ ലിയോ. ഞാൻ ഒരു എഐ അസിസ്റ്റന്റാണ് കമ്പനി ബ്രേവിന്. ഞാൻ ഗൂഗിൾ ഡീപ്‌മൈൻഡ് നിർമ്മിച്ച ഗെമ്മ 3 12B എന്ന മോഡൽ ഉപയോഗിച്ച് പ്രവർത്തിക്കുന്നു. ഗെമ്മ മോഡലിന് ബ്രേവിന്റെ സുരക്ഷിതമായ ഇൻഫ്രാസ്ട്രക്ഷർ പ്രയോഗം ആണ്.<ph name="LINK_BEFORE"/>കൂടുതൽ അറിയുക<ph name="LINK_AFTER"/></translation>
-<translation id="634682910381645550">ഹായ്, ഞാൻ ലിയോ. ഞാൻ ഒരു എഐ അസിസ്റ്റന്റാണ് കമ്പനി ബ്രേവിന്. ഞാൻ ഡീപ്സീക് R1 മോഡൽ ഉപയോഗിച്ച് ഡീപ്സീക് നിർമ്മിച്ച മോഡൽ ആണ്. ഡീപ്സീക് R1 കൂടുതൽ സങ്കീർണം വ്യാഖ്യാനം ചെയ്യാൻ പ്രയോഗിക്കുന്നു. ഡീപ്സീക് R1 മോഡലിന് ബ്രേവിന്റെ സുരക്ഷിതമായ ഇൻഫ്രാസ്ട്രക്ഷർ പ്രയോഗം ആണ്.<ph name="LINK_BEFORE"/>കൂടുതൽ അറിയുക<ph name="LINK_AFTER"/></translation>
-<translation id="1021134081694325196">ഹായ്, ഞാൻ ലിയോ. ഞാൻ ഒരു എഐ അസിസ്റ്റന്റാണ് കമ്പനി ബ്രേവിന്. ഞാൻ DeepSeek V3.1 എന്ന മോഡൽ ഉപയോഗിച്ച് DeepSeek നിർമ്മിച്ച മോഡലാണ് ഉപയോഗിക്കുന്നത്. DeepSeek V3.1 മോഡലാണ് ബ്രേവിന്റെ സുരക്ഷിതമായ ഇൻഫ്രാസ്ട്രക്ഷർ ഉപയോഗിച്ച് പ്രവർത്തിക്കുന്നത്.<ph name="LINK_BEFORE"/>കൂടുതൽ അറിയുക<ph name="LINK_AFTER"/></translation>
+<translation id="3852808100039989429">ഹായ്, ഞാൻ ലിയോ. ഞാൻ ഒരു എഐ അസിസ്റ്റന്റാണ് കമ്പനി ബ്രേവിന്. ഞാൻ Qwen VL 30B എന്ന മോഡൽ ഉപയോഗിച്ച് അലിയബാബാ ക്ലൗഡ് നിർമ്മിച്ച മോഡലാണ് ഉപയോഗിക്കുന്നത്. Qwen മോഡലാണ് ബ്രേവിന്റെ സുരക്ഷിതമായ ഇൻഫ്രാസ്ട്രക്ഷർ ഉപയോഗിച്ച് പ്രവർത്തിക്കുന്നത്.<ph name="LINK_BEFORE"/>കൂടുതൽ അറിയുക<ph name="LINK_AFTER"/></translation>
+<translation id="3812564134126884433">ഹായ്, ഞാൻ ലിയോ. ഞാൻ ഒരു എഐ അസിസ്റ്റന്റാണ് കമ്പനി ബ്രേവിന്. ഞാൻ GLM-5 എന്ന മോഡൽ ഉപയോഗിക്കുന്ന Zhipu AI നിർമ്മിച്ച മോഡലാണ്. GLM-5 മോഡലാണ് NEAR-ന്റെ സുരക്ഷിതമായ ഇൻഫ്രാസ്ട്രക്ഷർ ഉപയോഗിച്ച് പ്രവർത്തിക്കുന്നത്.<ph name="LINK_BEFORE"/>കൂടുതൽ അറിയുക<ph name="LINK_AFTER"/></translation>
 <translation id="8932568551552504373">ഹായ്, ഞാൻ ലിയോ ആണ്. ഞാൻ ബ്രേവിന്റെ ഒരു AI അസിസ്റ്റന്റാണ്. സംഭാഷണ, ടെക്സ്റ്റ് പ്രോസസ്സിംഗ് ജോലികൾക്ക് ശക്തി പകരാൻ ആന്ത്രോപിക് സൃഷ്ടിച്ച ഒരു മോഡലായ ക്ലോഡ് ഇൻസ്റ്റന്റാണ് എനിക്ക് കരുത്ത് പകരുന്നത്. ഞങ്ങളുടെ സ്വന്തം സുരക്ഷിത ഇൻഫ്രാസ്ട്രക്ചറിലൂടെയാണ് ക്ലോഡ് ഇൻസ്റ്റന്റ് ബ്രേവ് ഹോസ്റ്റ് ചെയ്യുന്നത്.<ph name="LINK_BEFORE"/>കൂടുതലറിയുക<ph name="LINK_AFTER"/></translation>
 <translation id="3789772321824682783">ഹായ്, ഞാൻ ലിയോ. ഞാൻ ഒരു എഐ അസിസ്റ്റന്റാണ് കമ്പനി ബ്രേവിന്. ഞാൻ ക്ലോഡ് ഹൈക്കു എന്ന മോഡൽ ഉപയോഗിച്ച് ആന്റ്രോപിക് നിർമ്മിച്ച മോഡലാണ്. ക്ലോഡ് ഹൈക്കു മോഡലിന് ബ്രേവിന്റെ സുരക്ഷിതമായ ഇൻഫ്രാസ്ട്രക്ഷർ പ്രയോഗം ആണ്.<ph name="LINK_BEFORE"/>കൂടുതൽ അറിയുക<ph name="LINK_AFTER"/></translation>
 <translation id="1778885220602472158">ഹായ്, ഞാൻ ലിയോ. ഞാൻ ഒരു എഐ അസിസ്റ്റന്റാണ് കമ്പനി ബ്രേവിന്. ഞാൻ ക്ലോഡ് സോണ്ണറ്റ് എന്ന മോഡൽ ഉപയോഗിച്ച് ആന്റ്രോപിക് നിർമ്മിച്ച മോഡലാണ്. ക്ലോഡ് സോണ്ണറ്റ് മോഡലിന് ബ്രേവിന്റെ സുരക്ഷിതമായ ഇൻഫ്രാസ്ട്രക്ഷർ പ്രയോഗം ആണ്.<ph name="LINK_BEFORE"/>കൂടുതൽ അറിയുക<ph name="LINK_AFTER"/></translation>
-<translation id="1058830842518828124">ഹായ്, ഞാൻ ലിയോ. ഞാൻ ഒരു എഐ അസിസ്റ്റന്റാണ് കമ്പനി ബ്രേവിന്. ഞാൻ Llama 4 Scout എന്ന മോഡൽ ഉപയോഗിച്ച് Meta നിർമ്മിച്ച മോഡലാണ്. Llama 4 Scout മോഡലിന് ബ്രേവിന്റെ സുരക്ഷിതമായ ഇൻഫ്രാസ്ട്രക്ഷർ പ്രയോഗം ആണ്.<ph name="LINK_BEFORE"/>കൂടുതൽ അറിയുക<ph name="LINK_AFTER"/></translation>
 <translation id="6277330815126859513">ഹായ്, ഞാൻ ലിയോ. ഞാൻ ഒരു എഐ അസിസ്റ്റന്റാണ് കമ്പനി ബ്രേവിന്. ഞാൻ Llama 4 Maverick എന്ന മോഡൽ ഉപയോഗിച്ച് Meta നിർമ്മിച്ച മോഡലാണ്. Llama 4 Maverick മോഡലിന് ബ്രേവിന്റെ സുരക്ഷിതമായ ഇൻഫ്രാസ്ട്രക്ഷർ പ്രയോഗം ആണ്.<ph name="LINK_BEFORE"/>കൂടുതൽ അറിയുക<ph name="LINK_AFTER"/></translation>
 <translation id="5833148755396048122">ഹായ്, ഞാൻ ലിയോ. ഞാൻ ഒരു എഐ അസിസ്റ്റന്റാണ് കമ്പനി ബ്രേവിന്. ഞാൻ GPT OSS 20B എന്ന മോഡൽ ഉപയോഗിക്കുന്ന OpenAI നിർമ്മിച്ച മോഡലാണ്. GPT OSS 20B മോഡലാണ് ബ്രേവിന്റെ സുരക്ഷിതമായ ഇൻഫ്രാസ്ട്രക്ഷർ ഉപയോഗിച്ച് പ്രവർത്തിക്കുന്നത്.<ph name="LINK_BEFORE"/>കൂടുതൽ അറിയുക<ph name="LINK_AFTER"/></translation>
 <translation id="5414593137581221307">ഹായ്, ഞാൻ ലിയോ. ഞാൻ ഒരു എഐ അസിസ്റ്റന്റാണ് കമ്പനി 브േവിന്. ഞാൻ GPT OSS 120B എന്ന മോഡൽ ഉപയോഗിക്കുന്ന OpenAI നിർമ്മിച്ച മോഡലാണ്. GPT OSS 120B മോഡലാണ് ബ്രേവിന്റെ സുരക്ഷിതമായ ഇൻഫ്രാസ്ട്രക്ഷർ ഉപയോഗിച്ച് പ്രവർത്തിക്കുന്നത്.<ph name="LINK_BEFORE"/>കൂടുതൽ അറിയുക<ph name="LINK_AFTER"/></translation>
 <translation id="5037359072717016032">ഹായ്, ഞാൻ ലിയോ. ഞാൻ ഒരു എഐ അസിസ്റ്റന്റാണ് കമ്പനി ബ്രേവിന്. ഞാൻ Mistral Large എന്ന മോഡൽ ഉപയോഗിക്കുന്ന Mistral നിർമ്മിച്ച മോഡലാണ്. Mistral Large മോഡലാണ് ബ്രേവിന്റെ സുരക്ഷിതമായ ഇൻഫ്രാസ്ട്രക്ഷർ ഉപയോഗിച്ച് പ്രവർത്തിക്കുന്നത്.<ph name="LINK_BEFORE"/>കൂടുതൽ അറിയുക<ph name="LINK_AFTER"/></translation>
-<translation id="8947618429500471804">ഹായ്, ഞാൻ ലിയോ. ഞാൻ ഒരു എഐ അസിസ്റ്റന്റാണ് കമ്പനി ബ്രേവിന്. ഞാൻ Pixtral Large എന്ന മോഡൽ ഉപയോഗിക്കുന്ന Mistral നിർമ്മിച്ച മോഡലാണ്. Pixtral Large മോഡലാണ് ബ്രേവിന്റെ സുരക്ഷിതമായ ഇൻഫ്രാസ്ട്രക്ഷർ ഉപയോഗിച്ച് പ്രവർത്തിക്കുന്നത്.<ph name="LINK_BEFORE"/>കൂടുതൽ അറിയുക<ph name="LINK_AFTER"/></translation>
 <translation id="4026902371301997261">ഹായ്, ഞാൻ ലിയോ. ഞാൻ ഒരു എഐ അസിസ്റ്റന്റാണ് കമ്പനി ബ്രേവിന്. ഞാൻ Qwen 3 235B എന്ന മോഡൽ ഉപയോഗിച്ച് അലിയബാബാ ക്ലൗഡ് നിർമ്മിച്ച മോഡലാണ്. Qwen 3 235B മോഡലാണ് ബ്രേവിന്റെ സുരക്ഷിതമായ ഇൻഫ്രാസ്ട്രക്ഷർ ഉപയോഗിച്ച് പ്രവർത്തിക്കുന്നത്.<ph name="LINK_BEFORE"/>കൂടുതൽ അറിയുക<ph name="LINK_AFTER"/></translation>
-<translation id="768541432895104346">ഹായ്, ഞാൻ ലിയോ. ഞാൻ ഒരു എഐ അസിസ്റ്റന്റാണ് കമ്പനി ബ്രേവിന്. ഞാൻ Deepseek V3.1 എന്ന മോഡൽ ഉപയോഗിച്ച് Deepseek നിർമ്മിച്ച മോഡലാണ്. Deepseek V3.1 മോഡലാണ് ബ്രേവിന്റെ സുരക്ഷിതമായ ഇൻഫ്രാസ്ട്രക്ഷർ ഉപയോഗിച്ച് പ്രവർത്തിക്കുന്നത്.<ph name="LINK_BEFORE"/>കൂടുതൽ അറിയുക<ph name="LINK_AFTER"/></translation>
+<translation id="8720758690351028307">ഹായ്, ഞാൻ ലിയോ. ഞാൻ ഒരു എഐ അസിസ്റ്റന്റാണ് കമ്പനി ബ്രേവിന്. ഞാൻ Deepseek V3.2 എന്ന മോഡൽ ഉപയോഗിച്ച് Deepseek നിർമ്മിച്ച മോഡലാണ്. Deepseek V3.2 മോഡലാണ് ബ്രേവിന്റെ സുരക്ഷിതമായ ഇൻഫ്രാസ്ട്രക്ഷർ ഉപയോഗിച്ച് പ്രവർത്തിക്കുന്നത്.<ph name="LINK_BEFORE"/>കൂടുതൽ അറിയുക<ph name="LINK_AFTER"/></translation>
 <translation id="3767678495358551728">ഹായ്, ഞാൻ ലിയോ. ഞാൻ ഒരു എഐ അസിസ്റ്റന്റാണ് കമ്പനി ബ്രേവിന്. ഞാൻ Qwen 3 Coder 480B എന്ന മോഡൽ ഉപയോഗിച്ച് അലിയബാബാ ക്ലൗഡ് നിർമ്മിച്ചതാണ്. Qwen 3 Coder 480B മോഡലാണ് ബ്രേവിന്റെ സുരക്ഷിതമായ ഇൻഫ്രാസ്ട്രക്ഷർ ഉപയോഗിച്ച് പ്രവർത്തിക്കുന്നത്.<ph name="LINK_BEFORE"/>കൂടുതൽ അറിയുക<ph name="LINK_AFTER"/></translation>
 <translation id="3369866806475938617">ഹായ്, ഞാൻ ലിയോ. ഞാൻ ഒരു എഐ അസിസ്റ്റന്റാണ് കമ്പനി ബ്രേവിന്. ഞാൻ Claude Opus എന്ന മോഡൽ ഉപയോഗിച്ച് ആന്റ്രോപിക് നിർമ്മിച്ച മോഡലാണ്. Claude Opus മോഡലിന് ബ്രേവിന്റെ സുരക്ഷിതമായ ഇൻഫ്രാസ്ട്രക്ഷർ പ്രയോഗം ആണ്.<ph name="LINK_BEFORE"/>കൂടുതൽ അറിയുക<ph name="LINK_AFTER"/></translation>
+<translation id="7238858567393403597">ഹായ്, ഞാൻ ലിയോ. ഞാൻ ഒരു എഐ അസിസ്റ്റന്റാണ് കമ്പനി ബ്രേവിന്. ഞാൻ GLM-4-7-Flash എന്ന മോഡൽ ഉപയോഗിക്കുന്ന Zhipu AI നിർമ്മിച്ച മോഡലാണ്. GLM-4-7-Flash മോഡലാണ് ബ്രേവിന്റെ സുരക്ഷിതമായ ഇൻഫ്രാസ്ട്രക്ഷർ ഉപയോഗിച്ച് പ്രവർത്തിക്കുന്നത്.<ph name="LINK_BEFORE"/>കൂടുതൽ അറിയുക<ph name="LINK_AFTER"/></translation>
+<translation id="6983410749026920122">ഹായ്, ഞാൻ ലിയോ. ഞാൻ ഒരു എഐ അസിസ്റ്റന്റാണ് കമ്പനി ബ്രേവിന്. ഞാൻ Kimi K2.5 എന്ന മോഡൽ ഉപയോഗിക്കുന്ന Moonshot AI നിർമ്മിച്ച മോഡലാണ്. Kimi K2.5 മോഡലാണ് ബ്രേവിന്റെ സുരക്ഷിതമായ ഇൻഫ്രാസ്ട്രക്ഷർ ഉപയോഗിച്ച് പ്രവർത്തിക്കുന്നത്.<ph name="LINK_BEFORE"/>കൂടുതൽ അറിയുക<ph name="LINK_AFTER"/></translation>
+<translation id="2965634373697869601">ഹായ്, ഞാൻ ലിയോ. ഞാൻ ഒരു എഐ അസിസ്റ്റന്റാണ് കമ്പനി ബ്രേവിന്. ഞാൻ Brave Ocelot എന്ന മോഡൽ ഉപയോഗിക്കുന്ന Brave നിർമ്മിച്ച മോഡലാണ്. Brave Ocelot മോഡലാണ് ബ്രേവിന്റെ സുരക്ഷിതമായ ഇൻഫ്രാസ്ട്രക്ഷർ ഉപയോഗിച്ച് പ്രവർത്തിക്കുന്നത്.<ph name="LINK_BEFORE"/>കൂടുതൽ അറിയുക<ph name="LINK_AFTER"/></translation>
 <translation id="963346402440669081">പ്രീമിയം</translation>
 <translation id="5807427080183870259">പ്രാദേശിക</translation>
 <translation id="830868413617744215">ബീറ്റ</translation>
+<translation id="4773408460773097271">ഒല്ലാമ</translation>
 <translation id="631371844654031449">ശുപാര്ശ കൃത്രിമ മാതൃകകൾ</translation>
 <translation id="6568044140836233369">എല്ലാ കൃത്രിമ മാതൃകകളും കാണിക്കുക</translation>
 <translation id="6187065185557150870">ചാറ്റ്</translation>
@@ -2231,6 +2263,7 @@ other {{PENDING_TRANSACTIONS} കൂടുതൽ ഇടപാടുകൾ‌ ക
 <translation id="9109355817507033196">ഉത്തരം ഇഷ്ടപ്പെടില്ല</translation>
 <translation id="4049425842478222936">ഉത്തരം ഇഷ്ടപ്പെട്ടു</translation>
 <translation id="6393149565874086128">പ്രതികരണം നൽകുക</translation>
+<translation id="4621961534325272682">സംഭാഷണം ക്ലിപ്പ്ബോർഡിലേക്ക് പകർത്തി</translation>
 <translation id="3521125531016408657">ഉത്തരം ഇഷ്ടപ്പെടുക</translation>
 <translation id="8202517001427388906">ഉത്തരം ഇഷ്ടപ്പെടില്ല</translation>
 <translation id="1379399209929302811">Brave AI പ്രാതികരണം നൽകുക</translation>
@@ -2275,6 +2308,8 @@ other {{PENDING_TRANSACTIONS} കൂടുതൽ ഇടപാടുകൾ‌ ക
 <translation id="6495402307502950726">സംഭാഷണം ഒഴിവാക്കുക</translation>
 <translation id="903201991022343217">ഒരു പുതിയ സംഭാഷണം ആരംഭിക്കുക</translation>
 <translation id="8171760814579050200">സംഭാഷണം പുനര്‍നാമകരണം ചെയ്യുക</translation>
+<translation id="402386227879573975">മുഴുവൻ സംഭാഷണം പകർത്തുക</translation>
+<translation id="5397794290049113714">നിങ്ങൾ</translation>
 <translation id="7754678742055438573">സംഭാഷണം ഇല്ലാതാക്കുക</translation>
 <translation id="1946267518364740045">കാരണം നിർദേശിക്കുന്നു...</translation>
 <translation id="4198859185714743678">വിവരണം പൂർത്തിയായി</translation>
@@ -2286,7 +2321,8 @@ other {{PENDING_TRANSACTIONS} കൂടുതൽ ഇടപാടുകൾ‌ ക
 <translation id="1243966363662220847">പ്രതികരണ ഫീഡ്ബാക്ക്</translation>
 <translation id="7417895556119762861">ഉത്തരം ഇഷ്ടപ്പെടുകയോ ഇഷ്ടപ്പെടാതിരിക്കാൻ ബട്ടൺ അമർത്തി Brave - ന് ഫീഡ്ബാക്ക് നൽകാനാകും. വാചകങ്ങൾ Brave സന്ദേശവും കൂടി Brave കണംഭാഗമായ model , ലാംഗ്വേജ് ഹെൽപ്പ് പ്രൈവസി മൊഡൽ ലഭ്യമാണ്. <ph name="LINK_BEFORE"/>കൂടുതൽ അറിയുക<ph name="LINK_AFTER"/></translation>
 <translation id="7494736170250048402">Leo-യിലേക്ക് സന്ദേശം അയക്കുക</translation>
-<translation id="4084869091337186002">ലിയോ എഐ കൺറെൻറ് ഏജന്റ് ഈ പ്രൊഫൈലിൽ എല്ലായ്പ്പോഴും സജീവമാണ്</translation>
+<translation id="6222803935921999130">Open AI ബ്രൗസിംഗ് പ്രൊഫൈൽ വിൻഡോ</translation>
+<translation id="1530903352777607099">AI ബ്രൗസിംഗ് ഈ പ്രൊഫൈലിൽ എല്ലായ്പ്പോഴും സജീവമാണ്</translation>
 <translation id="8650874793377330048">മറുപടി നിര്‍ത്തുക</translation>
 <translation id="8712637175834984815">വിജയകരം</translation>
 <translation id="1093419424466417703">ഈ വെബ് പേജ് വളരെ ദൈര്‍ഘ്യമേറിയതാണ്. സംഭാഷണത്തില്‍ ചില സമ്മര്‍ഭുകള്‍ നഷ്ടപ്പെട്ടേക്കാം. ധൈര്യപ്പെടാത്തതിനെത്തുടര്‍ന്ന് Leപ്രാരംഭ ശ്രമത്തില്‍ പേജിന്റെ ഉള്ളടക്കത്തിന്റെ <ph name="PERCENTAGE"/>. സമയകംχος.</translation>
@@ -2309,9 +2345,7 @@ other {{PENDING_TRANSACTIONS} കൂടുതൽ ഇടപാടുകൾ‌ ക
 <translation id="1602382615168212961">സംഭാഷണത്തിന് കൂടുതൽ സ്വഭാവം നൽകാൻ നിങ്ങളുടെ ബുക്ക്‌മാര്‍ക്കുകളിലെ ടാബുകളിൽ നിന്നുള്ള പേജ് ഉള്ളടക്കം ലിയോയ്ക്ക് അയയ്ക്കുക.</translation>
 <translation id="4808122506413075135">സംഭാഷണത്തിന് കൂടുതൽ വഴികാട്ടിയുള്ള സ്വഭാവം നൽകാൻ നിങ്ങളുടെ ബ്രൗസർ ചരിത്രത്തിൽ നിന്നുള്ള പേജ് ഉള്ളടക്കം ലിയോയ്ക്ക് അയയ്ക്കുക.</translation>
 <translation id="220541218939267992">നിങ്ങളുടെ സന്ദേശങ്ങൾക്കൊപ്പം പേജ് ഉള്ളടക്കങ്ങളും ലിയോയ്ക്ക് അയയ്ക്കപ്പെടും.</translation>
-<translation id="8164365899016970783">ടാബും ബുക്ക്‌മാര്‍ക്കിലെ ഉള്ളടക്കവും ചേർക്കുക. ഈ ഉള്ളടക്കം നിങ്ങളുടെ സന്ദേശങ്ങളോടൊപ്പം ലിയോയ്ക്ക് അയയ്ക്കും.</translation>
-<translation id="6237410387937453423">തെരിവിനോട് യോജിക്കുന്ന അറ്റാച്ച്മെന്റുകളൊന്നുമില്ല</translation>
-<translation id="8076492880354921740">ടാബുകള്‍‌</translation>
+<translation id="2152389270152475874">സന്ദർഭത്തിനായി ടാബുകൾ, ബുക്ക്‌മാർക്കുകൾ അല്ലെങ്കിൽ ഹിസ്റ്ററി ചേർക്കുക. തിരഞ്ഞെടുക്കപ്പെട്ട ഉള്ളടക്കങ്ങൾ ലിയോയ്ക്ക് നിങ്ങളുടെ സന്ദേശങ്ങളോടൊപ്പം അയയ്ക്കും.</translation>
 <translation id="2315654674554095762">ഇനി ലിയോ നിങ്ങളുടെ സംഭാഷണങ്ങൾ വർക്കുവേണ്ടി സൂക്ഷിക്കും, ഏത് സമയത്തും വീണ്ടും സന്ദർശിക്കുക. ഇവ നിങ്ങളുടെ ഉപകരണത്തിൽ എൻക്രിപ്റ്റ് ചെയ്യപ്പെട്ട നിലയിലാണ് സൂക്ഷിക്കുന്നു, നിങ്ങൾക്ക് ഇവ എത്രമാത്രം വേണെങ്കിലും ഇല്ലായാമാക്കാം.</translation>
 <translation id="7821251979960635244">നിങ്ങൾ ഒരിക്കൽ ഒരു സംഭാഷണം ആരംഭിച്ചാൽ, നിങ്ങളുടെ സംഭാഷണ ചരിത്രം ഇവിടെ ദൃശ്യമാകുമെന്ന് പ്രതീക്ഷിക്കുന്നു.</translation>
 <translation id="887511360213807449">ചരിത്രം പ്രവർത്തനരഹിതമായി</translation>
@@ -2320,10 +2354,12 @@ other {{PENDING_TRANSACTIONS} കൂടുതൽ ഇടപാടുകൾ‌ ക
 <translation id="3185367320601718531">സംഭാഷണം, ടെക്സ്റ്റ് സൃഷ്ടിക്കല്‍</translation>
 <translation id="2793458212460902934">ശീഘ്രം • തിരയുക • ഉപകരണങ്ങൾ</translation>
 <translation id="8506027496671575183">തിരയുക • ദൃഷ്ടി • ഉപകരണങ്ങൾ</translation>
-<translation id="3213834013136637671">തിരയുക • ദൃഷ്ടി</translation>
-<translation id="7697693533305615127">തിരയുക • ചിന്തനം</translation>
-<translation id="7465032796278724624">NEAR AI TEE ഉപയോഗിച്ച് പരിശോധനയായ പ്രൈവസി</translation>
+<translation id="3184606955650139158">വേഗം • തിരയുക • വിഷൻ</translation>
+<translation id="7465032796278724624">NEAR AI TEE ഉപയോഗിച്ച് സ്ഥിരീകരിക്കാവുന്നത് ബ്യക്തിഗത</translation>
 <translation id="8782867266498869301">ആവശ്യമുണ്ടാകുന്ന മികച്ച മാതൃക ഉപയോഗിക്കുന്നതിന് മോഡലുകളും ഡൈനാമിക്കായി മാറുന്നു</translation>
+<translation id="3213834013136637671">തിരയുക • ദൃഷ്ടി</translation>
+<translation id="5276681919620506371">തിരയുക • ഉപകരണങ്ങൾ</translation>
+<translation id="7434375176361995333">സംഗ്രഹം • ശീഘ്രം</translation>
 <translation id="3965507912994218570">Leo ക്രമീകരണങ്ങള്‍</translation>
 <translation id="3754337604877048671">Leo AI-യെ അവതരിപ്പിക്കുന്നു</translation>
 <translation id="5295261408976371809">നിങ്ങളുടെ <ph name="TEXT_BEFORE"/>സ്വകാര്യ<ph name="TEXT_AFTER"/> AI അസിസ്റ്റന്റിന്റെ ബ്രൗസറില്‍ തന്നെ ഉൾക്കൊടുക്കപ്പെട്ട രൂപം.</translation>
@@ -2379,6 +2415,8 @@ other {{PENDING_TRANSACTIONS} കൂടുതൽ ഇടപാടുകൾ‌ ക
 <translation id="4572010449071015143">പുതിയ സംവാദം ആരംഭിക്കുക</translation>
 <translation id="345901077335355561">ആക്റ്റീവ് സംഭാഷണത്തിലേക്ക് തിരിച്ചു പോകുക</translation>
 <translation id="6287023598025162715">പുതിയ സംവാദം</translation>
+<translation id="7230502562132448519">സംഭാഷണങ്ങൾ ഫിൽട്ടർ ചെയ്യുക</translation>
+<translation id="821070843380699990">ദയവായി മറ്റൊരു ക്വറി ശ്രമിക്കുക</translation>
 <translation id="7097822247923237815">താൽക്കാലിക ചാറ്റ്</translation>
 <translation id="7481750859362986254">ഈ ചാറ്റ് നിങ്ങളുടെ ചരിത്രത്തിൽ സംരക്ഷിക്കപ്പെടുകയോ ലിയോയുടെ ഇഷ്ടാനുസൃതമാക്കിയതോ ഓർമകളോ ഉപയോഗിക്കുകയോ ചെയ്യില്ല.</translation>
 <translation id="4238305333951712482">മെമ്മറി അപ്ഡേറ്റ് ചെയ്തു: <ph name="MEMORY_CONTENT"/></translation>
@@ -2401,27 +2439,46 @@ other {{PENDING_TRANSACTIONS} കൂടുതൽ ഇടപാടുകൾ‌ ക
 <translation id="4798146464408730445">നൈപുണ്യങ്ങൾ കണ്ടെത്തിയില്ല. "പുതിയത്" എന്ന ബട്ടണിൽ ക്ലിക്ക് ചെയ്ത് പുതിയത് സൃഷ്ടിക്കുക.</translation>
 <translation id="271033894570825754">പുതിയത്</translation>
 <translation id="8266605059880650542">പേജിനെക്കുറിച്ച് പിന്നീട് ഉപയോഗിക്കാൻ കുറിച്ച് വെക്കുന്നു</translation>
-<translation id="7049849063044248805">ഏജന്റ് മോഡ് ടൂൾ പിന്തുണയുള്ള മോഡലുകളുമായി പ്രവർത്തിക്കുന്നു. അനുയോജ്യമല്ലാത്ത മോഡലുകൾ ഈ പട്ടികയിൽ നിന്നും മറച്ചിരിക്കുന്നു.</translation>
+<translation id="5103625298494362646">ഏജന്റ് മോഡ് ടൂൾ പിന്തുണയുള്ള മോഡലുകളുമായി പ്രവർത്തിക്കുന്നു. അനുയോജ്യമല്ലാത്ത മോഡലുകൾ ഈ പട്ടികയിൽ നിന്ന് മറച്ചിരിക്കുന്നു.</translation>
 <translation id="3397808797783614750">നിങ്ങളെ വേണ്ടി ഓട്ടോമാറ്റിക്കായി ബ്രൗസ് ചെയ്യുന്നതിനായി എഐ പ്രാപ്തമാക്കുന്നത് നിങ്ങളുടെ സ്വകാര്യതയ്ക്കും സാമ്പത്തികത്തിനും ഓൺലൈൻ സമ്പർക്കത്തിനും അപകടവും അനാവശ്യമായ ഫലങ്ങളും ഉണ്ടാക്കാം. <ph name="LINK_BEFORE"/>കൂടുതൽ അറിയുക<ph name="LINK_AFTER"/></translation>
 <translation id="4522025297473237294">സുരക്ഷാ മുന്നറിയിപ്പ്</translation>
 <translation id="6077070599873946984">Brave AI ന് നിങ്ങളുടെ അനുമതി വേണമെന്നുണ്ട്: <ph name="TOOL_LABEL"/></translation>
 <translation id="4163837693685963037">നിങ്ങളുടെ അഭ്യർത്ഥനയ്‌ക്ക് അനുയോജ്യമല്ലെന്ന സംശയമുള്ള പ്രവർത്തനം കണ്ടെത്തിയിരിക്കുന്നു:</translation>
 <translation id="3927932062596804919">നിഷേധിക്കുക</translation>
 <translation id="4569155249847375786">സ്ഥിരീകരിച്ചു</translation>
-<translation id="3240988198391588806">ഏജന്റ് മോഡ്</translation>
-<translation id="538066983058750776">Leo പ്രൊഫൈലിനെക്കുറിച്ച്</translation>
-<translation id="1577570612997320961">നിങ്ങളുടെ ഡാറ്റ സംരക്ഷിക്കാൻ, ഈ ഐസോളേറ്റുചെയ്‌ത Brave പ്രൊഫൈൽ നിങ്ങളുടെ പ്രധാന ബ്രൗസിംഗ് പ്രൊഫൈലിലേക്കുള്ള AI ആക്സസിന് നിയന്ത്രണമേർപ്പെടുത്തുന്നു. Leo AI ന് സൈറ്റുകൾ സന്ദർശിക്കാനായി കൂടിയ അനുമതികൾ ലഭ്യമാണ്, അതിനാൽ പ്രവർത്തനക്ഷമത വർദ്ധിപ്പിക്കാൻ നിങ്ങൾക്ക് ടാസ്ക്കുകൾ നൽകി ബ്രൗസിങ്ങ് നീക്കം ചെയ്യാവുന്നതാണ്.</translation>
+<translation id="8200772114523450471">തിരിച്ചുപിടിക്കുക</translation>
+<translation id="7607002721634913082">അല്‍പനിര്‍ത്തി</translation>
+<translation id="4773299976671772492">നിര്‍ത്തി</translation>
+<translation id="6946722113367118030">ചിന്തിക്കുന്നു</translation>
+<translation id="2113810663179257944">കോഡ് പ്രവർത്തനം</translation>
+<translation id="6338250692384725496">നിങ്ങളുടെ ചോദ്യത്തിന് സഹായിക്കാൻ സാൻഡ്‌ബോക്സിൽ കോഡ് എക്സിക്യൂട്ട് ചെയ്തു</translation>
+<translation id="4379566111233326721">കോഡ്:</translation>
+<translation id="3542130965673205258">ഔട്ട്പുട്ട്:</translation>
+<translation id="5382076391290708074">നിങ്ങളുടെ ടാബുകൾ ചലിപ്പിക്കുന്നു</translation>
+<translation id="3862123464576147769">ഇത് അനുവദിക്കുന്നത് നിങ്ങളുടെ എല്ലാ ടാബുകൾ‍ന്റെയും ടാബ് ഗ്രൂപ്പുകളുടെയും <ph name="URL_FORMAT_START"/>URL<ph name="URL_FORMAT_END"/> കൂടാതെ <ph name="TITLE_FORMAT_START"/>ശീർഷകം<ph name="TITLE_FORMAT_END"/> Brave AI-യിലേക്ക് അയയ്ക്കും, കൂടാതെ Brave AI-യിൽ അവയെ ചലിപ്പിക്കാൻ അനുവദിക്കും. ഈ അനുമതി ഈ സംഭാഷണത്തിന് മാത്രം ബാധകമാണ്.</translation>
+<translation id="396165714586708444">ആഴമേറിയ ഗവേഷണം</translation>
+<translation id="577747221882855891">തിരയുന്നു: "<ph name="QUERY"/>"</translation>
+<translation id="5061713007774798338">"<ph name="QUERY"/>"ന് <ph name="COUNT"/> ഉറവിടങ്ങൾ വിശകലനം ചെയ്യുന്നു</translation>
+<translation id="1202264349398113062">"<ph name="QUERY"/>"ന് <ph name="COUNT"/> പുതിയ URL-കൾ പ്രോസസ്സ് ചെയ്യുന്നു</translation>
+<translation id="6189479600023022289">"<ph name="QUERY"/>"ന് <ph name="COUNT"/> URL-കൾ കണ്ടെത്തി</translation>
+<translation id="5150674341374247355"><ph name="FETCHED"/>/<ph name="TOTAL"/> URL-കൾ ഫെച്ച് ചെയ്യുന്നു</translation>
+<translation id="1075606740174445363">"<ph name="QUERY"/>"ന് <ph name="COUNT"/> URL-കൾ വിശകലനം ചെയ്തു</translation>
+<translation id="6220878652174655112"><ph name="COUNT"/> ക്വറികൾ തിരയുന്നു</translation>
+<translation id="3571450204565012512"><ph name="QUERY_COUNT"/> തിരയലുകളിൽ നിന്ന് <ph name="URL_COUNT"/> URL-കൾ വിശകലനം ചെയ്തു</translation>
+<translation id="5733200563889491347">വിവരണം പൂർത്തിയായി</translation>
+<translation id="9164915383881032549"><ph name="MINUTES"/>മി <ph name="SECONDS"/>സെ</translation>
+<translation id="6219719719991016422"><ph name="SECONDS"/>സെ</translation>
+<translation id="5067194014665306881">ഗവേഷണ പിശക്: <ph name="ERROR"/></translation>
+<translation id="3428245742224818842">AI ബ്രൗസിംഗ്</translation>
+<translation id="2854657728271352435">AI ബ്രൗസിംഗ് പ്രൊഫൈലിനെക്കുറിച്ച്</translation>
+<translation id="2301685062527585986">നിങ്ങളുടെ ഡാറ്റയെ സംരക്ഷിക്കുന്നതിന്, ഈ ഒറ്റപ്പെട്ട AI ബ്രൗസിംഗ് പ്രൊഫൈൽ, നിങ്ങളുടെ മുഖ്യ ബ്രൗസിംഗ് പ്രൊഫൈലിൽ AI ഏജന്റിന് ആക്സസ് ലഭിക്കാതിരിക്കാൻ ഉറപ്പുവരുത്തുന്നു. ആവശ്യമായ അനുവദനങ്ങളോടൊപ്പം സൈറ്റുകൾ സന്ദർശിക്കുകയും ഇടപെടുകയും ചെയ്യുന്നതാണ് ഏകമായി അനുവദിക്കുന്നത്. നിങ്ങൾക്ക് ഇതിനടയിൽ ജോലി നൽകിയും അത് ബ്രൗസ് ചെയ്യാൻ അനുവദിച്ചും ഉൽപ്പാദകത്വം വർധിപ്പിക്കാം.</translation>
 <translation id="648116453147783450">നിങ്ങളുടെ ഡാറ്റയും സെഷനുകളും</translation>
-<translation id="3906161204878017619">നീங்கள் ഈ പ്രൊഫൈൽ ഉപയോഗിച്ച് ഒരു വെബ്‌സൈറ്റിൽ ലോഗിൻ ചെയ്താൽ, അതിനുള്ളിൽ ആ സൈറ്റ് തുറന്നിട്ടുണ്ടെങ്കിൽ അല്ലെങ്കിൽ നിങ്ങൾ അത് ചെയ്യാൻ ആവശ്യപ്പെട്ടാൽ Leo അതിലെ വിവരങ്ങൾ കാണാൻ കഴിയും.</translation>
+<translation id="4879348540868082026">നീங்கள் ഈ പ്രൊഫൈൽ ഉപയോഗിച്ച് ഒരു വെബ്‌സൈറ്റിൽ ലോഗിൻ ചെയ്താൽ, അതിനുള്ളിൽ ആ സൈറ്റ് തുറന്നിട്ടുണ്ടെങ്കിൽ അല്ലെങ്കിൽ നിങ്ങൾ അത് ചെയ്യാൻ ആവശ്യപ്പെട്ടാൽ Leo അതിലെ വിവരങ്ങൾ കാണാൻ കഴിയുകയും ചെയ്യും.</translation>
 <translation id="5583803492921648196">മടങ്ങി മാറ്റുന്നു</translation>
-<translation id="8068929004144221259">നിങ്ങളുടെ പൊതുവായ പ്രൊഫൈലിലേക്ക് പ്രമുഖ മെനുവിലോ നിങ്ങളുടെ ടൂൾബാറിലെ Leo അവതാറിലോ നിന്നും ഏത് സമയത്തും മടങ്ങി മാറ്റാനാകും. ഏജന്റ് മോഡ് ഈ പ്രൊഫൈലിലാണ് എപ്പാഴും തുറക്കുന്നത്.</translation>
+<translation id="864117099189791993">നിങ്ങൾ പ്രധാന മെനുവിലോ ടൂൾബാറിലെ പ്രൊഫൈൽ മെനുവിലോ നിന്ന് ഏതെങ്കിലും സമയത്തും നിങ്ങളുടെ സാധാരണ പ്രൊഫൈലിലേക്ക് തിരിച്ചുപോകാം. AI ബ്രൗസിംഗ് എപ്പാഴും AI ബ്രൗസിംഗ് പ്രൊഫൈലിലാണ് തുറക്കുന്നത്.</translation>
 <translation id="3486480638399578250">താങ്കളുടെ വ്യക്തിപരമായ ഇമെയിൽ വിലാസം സ്വകാര്യമായി സൂക്ഷിക്കുക</translation>
 <translation id="7765422154906712751">നിങ്ങളുടെ Brave അക്കൗണ്ട് ഇമെയിലിലേക്ക് ഫോർവേഡ് ചെയ്യാൻ കഴിവുള്ള, നിശ്ചിതസമയത്തു ഇല്ലാതാക്കാവുന്ന, തനതായ, അനിയന്ത്രിത വിലാസങ്ങൾ സൃഷ്ടിക്കുക. നിങ്ങളുടെ യഥാർത്ഥ ഇമെയിൽ വിലാസം പരസ്യഫലമേറിയമായി ഉപയോഗിക്കപ്പെടാതെയുമാണ് സുരക്ഷിതമാക്കുന്നത്.</translation>
-<translation id="5222676887888702881">സൈൻ ഔട്ട്</translation>
-<translation id="8090292425230843109">ഇമെയിൽ അലിയാസുകളിൽ നിന്ന് സൈൻ ഔട്ട് ചെയ്യുക</translation>
-<translation id="8471990782451394141">Brave അക്കൗണ്ടിലേക്ക് ബന്ധിപ്പിക്കുന്നു...</translation>
 <translation id="71316462802471551">ഇമെയിൽ അലയാസുകൾ</translation>
-<translation id="5713644099811900409">Brave അക്കൗണ്ട്</translation>
 <translation id="6002159997868894136">അലിയാസ് പകർത്താൻ ക്ലിക്കുചെയ്യുക</translation>
 <translation id="8105770564756958406"><ph name="DOMAINS"/> ഉപയോഗിച്ച്</translation>
 <translation id="5006956315579221642">സുരക്ഷിത ഇൻബോക്സിനെ സംരക്ഷിക്കാൻ നിങ്ങളുടെ യഥാർത്ഥ ഇമെയിൽ വിലാസം സംരക്ഷിക്കുന്ന 5 സൗജന്യ ഇമെയിൽ അലിയാസുകൾ സൃഷ്ടികൂടി ചെയ്യുക.</translation>
@@ -2445,8 +2502,8 @@ other {{PENDING_TRANSACTIONS} കൂടുതൽ ഇടപാടുകൾ‌ ക
 <translation id="646524615209870492"><ph name="ALIAS"/> യൂസുഫ്, അലിയാസ് എന്ന നിലയിൽ നീക്കം ചെയ്യുക നിങ്ങളുടെ ഇമെയിലുകൾ സ്വീകരിക്കാനുള്ള കഴിവിന് നഷ്ടമാകും.</translation>
 <translation id="8133100642915054515">അലിയാസ് ഇല്ലാതാക്കുന്നതിൽ പിശക് . നിങ്ങളുടെ ഇന്റർനെറ്റ് കണക്ഷൻ പരിശോധിച്ച് വീണ്ടും ശ്രമിക്കുക.</translation>
 <translation id="8465742443901727718">ഈ നടപടി പരിഷ്കരിക്കാനാകില്ല. നിങ്ങൾ തുട prosചിയ്ക്കും in ?</translation>
-<translation id="8662104432574824754">തുടങ്ങുവാൻ, സൈ൨ ഇൻ ചെയ്യുകയോ Brave അക്കൗന്റ് സൃഷ്ടിക്കുകയോ ചെയ്യുക</translation>
-<translation id="8069030342700068465">സുരക്ഷിത ലോഗിൻ ലിങ്ക് ലഭിക്കാൻ നിങ്ങളുടെ ഇമെയിൽ വിലാസം നൽകുക. ഈ ലിങ്ക് ക്ലിക്കുചെയ്താൽ Brave Account നിർമ്മിക്കുകയോ ആക്സസ് ചെയ്യുകയോ ചെയ്യാം, അതിനുശേഷം സൗജന്യ ഇമെയിൽ അലിയാസുകൾ സേവനം ഉപയോഗിക്കാൻ കഴിയും.</translation>
+<translation id="9162685486229945876">സൈൻ ഇൻ ചെയ്യുകയോ Brave അക്കൗണ്ട് സൃഷ്ടിക്കുകയോ ചെയ്യുക</translation>
+<translation id="1335007417599138852">ഒരു Brave അക്കൗണ്ട് നിങ്ങളെ ചില Brave ഉൽപ്പന്നങ്ങളിലേക്ക് ആക്സസ് ചെയ്യാനും നിങ്ങളുടെ എല്ലാ ഡിവൈസുകളിലും എളുപ്പത്തിൽ നിങ്ങളുടെ വിവരങ്ങൾ സിങ്ക് ചെയ്യാനും സഹായിക്കും.</translation>
 <translation id="2133391407495495735">ലോഗിൻ ലിങ്ക് നേടുക</translation>
 <translation id="2650906829817220223">അധികാരം ആവശ്യപ്പെടുന്നതിലെ പിശക് . നിങ്ങളുടെ ഇന്റർനെറ്റ് കണക്ഷൻ പരിശോധിച്ച് വീണ്ടും ശ്രമിക്കുക.</translation>
 <translation id="3699624789011381381">ഇമെയിൽ വിലാസം</translation>
@@ -2476,11 +2533,14 @@ other {{PENDING_TRANSACTIONS} കൂടുതൽ ഇടപാടുകൾ‌ ക
 <translation id="7847477075635510673">വാർത്ത മറയ്ക്കൂ</translation>
 <translation id="9173319813356700250">വാർത്തകൾ</translation>
 <translation id="6543799171249004861">ഫോട്ടോ - <ph name="AUTHOR"/></translation>
+<translation id="2361906291514218784">Leo AI</translation>
 <translation id="466214682712474574">താങ്കളുടെ <ph name="PROVIDER"/> അക്കൗണ്ടിൽ പ്രവേശിച്ച്, താങ്കളുടെ ബാലൻസ് കാണുക</translation>
 <translation id="8332875111286275890">താങ്കളുടെ ബാലൻസ് കാണാൻ പ്രവേശിക്കുക</translation>
 <translation id="5430001801813715388">Rewards</translation>
-<translation id="5966055668402779222">Brave Search-നോട് ചോദിക്കുക</translation>
+<translation id="988042349921505128">തിരയുക കൂടാതെ AI</translation>
+<translation id="2430295257226173518">എന്തിനെയും ചോദിക്കുക, എന്തിനെയും കണ്ടെത്തുക...</translation>
 <translation id="167018310108390163">പുതിയ ടാബ് പേജ് ഇഷ്‌ടാനുസരണമാക്കുക</translation>
+<translation id="3500134717967948757">പുതിയ ടാബുകളിൽ Leo AI വിജറ്റ് കാണിക്കുക</translation>
 <translation id="6851426306697017546">ഘടികാരം കാണിക്കുക</translation>
 <translation id="4844370919312937270">പുതിയ ടാബുകളിൽ സെർച്ച് വിഡ്ഡ്ജറ്റ് കാണിക്കുക</translation>
 <translation id="7328310113820087094"><ph name="LINK_BEGIN"/>Brave Rewards<ph name="LINK_END"/> ഉപയോഗിച്ച്, പുതിയ ടാബ് പേജ് പരസ്യങ്ങൾ കാണുന്നതിന് നിങ്ങൾക്ക് നേടാൻ കഴിയും.</translation>
@@ -2509,25 +2569,35 @@ other {{PENDING_TRANSACTIONS} കൂടുതൽ ഇടപാടുകൾ‌ ക
 <translation id="8458987127502506209">Brave Shields പ്രాప్తമാക്കുക</translation>
 <translation id="8443488493738411048"><ph name="STATUS_BEFORE"/>Shields are UP<ph name="STATUS_AFTER"/> for this site</translation>
 <translation id="2458631245058451506"><ph name="STATUS_BEFORE"/>Shields are DOWN<ph name="STATUS_AFTER"/> for this site</translation>
+<translation id="8426214145426269584">ഈ സൈറ്റിന് Shields <ph name="UP_BEFORE"/>അപ്പ്<ph name="UP_AFTER"/></translation>
+<translation id="3325367578778625743">ഈ സൈറ്റിന് Shields <ph name="DOWN_BEFORE"/>ഡൗൺ<ph name="DOWN_AFTER"/></translation>
 <translation id="4724752924364329714">ഈ സൈറ്റ് തകരാറിലായി തോന്നുന്നു എങ്കിൽ, Shields ഓഫാക്കാൻ ശ്രമിക്കുക.</translation>
 <translation id="3992385019509961907"><ph name="NOTE_BEFORE"/>കുറിപ്പ്: ഇത് Brave-ന്റെ സ്വകാര്യത സംരക്ഷണം കുറയ്ക്കും.<ph name="NOTE_AFTER"/></translation>
+<translation id="4329860807937715445">ഇത് ബ്രേവിന്റെ സ്വകാര്യതാ സുരക്ഷ കുറയ്ക്കുന്നു. <ph name="LINK_BEFORE"/>കൂടുതൽ അറിയുക<ph name="LINK_AFTER"/></translation>
+<translation id="3889333301730272023"><ph name="BLOCK_COUNT"/> ട്രാക്കുകൾ, പരസ്യങ്ങൾ, കൂടുതൽ തടഞ്ഞു.</translation>
+<translation id="2275121279487164685">ട്രാക്കുകൾ ഓ പരസ്യങ്ങൾ</translation>
+<translation id="4968268657895673116">ഈ സൈറ്റ് Shields പൂർണ്ണമായി കെട്ടിയെടുക്കാതെ ശരിയായി പ്രവർത്തിക്കുന്നില്ലെങ്കിലോ?</translation>
+<translation id="5412004902081180614">റിപ്പോർട്ട് ചെയ്യുക</translation>
 <translation id="3620004479054499575">ഈ സൈറ്റുമായി നിങ്ങളുടെതിൽ പ്രശ്‌നങ്ങളുണ്ടോ?</translation>
 <translation id="9176447766421988172">വെബ്സൈറ്റ് അനുയോജ്യത വർദ്ധിപ്പിക്കാൻ വേണ്ടി ഒരു പരീക്ഷണം നടത്തുകയാണ്, ഇത് പരസ്യങ്ങൾ തടയൽ മാത്രം സജീവമാക്കുന്ന രീതിയിലാണ്. മുന്നറിയിപ്പ്: എല്ലാ സ്വകാര്യതാ സംരക്ഷണങ്ങളും നീക്കംചെയ്യപ്പെടും. നിങ്ങൾ ഇത് പരീക്ഷിക്കാൻ ആഗ്രഹിക്കുന്നുണ്ടോ? <ph name="LINK_BEFORE"/>കൂടുതല് തിരിഞ്ഞു നോക്കുക<ph name="LINK_AFTER"/>.</translation>
 <translation id="5372101283158221516">Brave-ന്റെ സ്വകാര്യതാ സംരക്ഷണങ്ങൾ കൊണ്ടു തകരാറിലായ വ്യക്തിഗത വെബ്സൈറ്റുകൾക്ക്, നിങ്ങൾക്ക് Shields താഴേക്ക് സജ്ജമാക്കാൻ സാധിക്കും.</translation>
-<translation id="1836572675775891780">പരസ്യ തടയൽ മാത്രം മോഡ് സജ്ജമാക്കുക</translation>
+<translation id="2850777974644218370">പരസ്യ തടയൽ മാത്രം മോഡ് സജ്ജമാക്കുക</translation>
 <translation id="6623668214089604469">സൈറ്റ് ഇപ്പോൾ ശരിയായി പ്രവർത്തിക്കുന്നുണ്ടോ?</translation>
 <translation id="8978860854770042258">ഈ സൈറ്റ് ഇപ്പോഴും തകരാറിലാണെങ്കിൽ, ഒരു റിപ്പോർട്ട് സമർശിക്കണമെന്ന് പരിഗണിക്കുക.</translation>
 <translation id="4677356505199464553">ശരിയാണ്</translation>
 <translation id="1992750560347846445">സൈറ്റ് റിപ്പോർട്ട് ചെയ്യുക</translation>
-<translation id="2887186586339544116">പരസ്യ തടയൽ മാത്രം മോഡ് സജീവമാക്കി</translation>
-<translation id="673665019618844072">നിങ്ങൾ ഇപ്പോൾ പരസ്യ തടയൽ മാത്രം മോഡ് ഉപയോഗിക്കുന്നു. ഈ മോഡ് പരസ്യ തടയൽ സംരക്ഷണമെത്രയും മാത്രമേ നൽകൂ. നിങ്ങൾ വീണ്ടും പൂർണ്ണമായ Shields മോഡിലേക്ക് തിരിച്ചുപോകാൻ ആഗ്രഹിക്കുന്നുവെങ്കിൽ, ഈ മോഡ് ക്രമീകരണങ്ങളിൽ നിന്ന് നീക്കംചെയ്യുക.</translation>
+<translation id="2863270180245144869">പരസ്യ തടയൽ മാത്രം മോഡ് സജീവമാക്കി</translation>
+<translation id="3773808439655997805">നിങ്ങൾ ഇപ്പോൾ പരസ്യ തടയൽ മാത്രം മോഡ് ഉപയോഗിക്കുന്നു. ഈ മോഡ് പരസ്യ തടയൽ സംരക്ഷണമെത്രയും മാത്രമേ നൽകൂ (Shields മുകളിലാണെങ്കിൽ). നിങ്ങൾ വീണ്ടും പൂർണ്ണമായ Shields മോഡിലേക്ക് തിരിച്ചുപോകാൻ ആഗ്രഹിക്കുന്നുവെങ്കിൽ, ഈ മോഡ് ക്രമീകരണങ്ങളിൽ നിന്ന് നീക്കംചെയ്യുക.</translation>
 <translation id="4820891023903368625">പരസ്യങ്ങൾ തടയപ്പെട്ടിരിക്കുന്നു <ph name="LINK_BEFORE"/>കൂടുതലറിയുക<ph name="LINK_AFTER"/></translation>
 <translation id="8377155647357436161">ട്രാക്കുകൾ, പരസ്യങ്ങൾ, കൂടുതൽ തടഞ്ഞു <ph name="LINK_BEFORE"/>കൂടുതല് അറിയുക<ph name="LINK_AFTER"/></translation>
 <translation id="7604553853176833536">Brave Shields നൽകാതെ <ph name="LINK_BEFORE"/>കൂടുതല് അറിയുക<ph name="LINK_AFTER"/></translation>
 <translation id="650318023204990401">ഉയർന്ന നിയന്ത്രണങ്ങൾ</translation>
+<translation id="7939062555109487992">ഉയർന്ന നിയന്ത്രണങ്ങൾ</translation>
 <translation id="5799940914270080805">ഈ ക്രമീകരണങ്ങൾ മാറ്റുന്നത് സൈറ്റുകൾ തകരാറാകാൻ സാധ്യതയുണ്ട്.</translation>
 <translation id="9204041448536398473">ആഗോള ഷീൽഡ് ക്രമീകരണങ്ങൾ</translation>
 <translation id="2108334320919763866">ആഗോള ഡിഫോൾറ്റുകൾ</translation>
+<translation id="1896472873031845605">ആഗോള ക്രമീകരണങ്ങൾ</translation>
+<translation id="8324318899000695659">ലഘുഭാഗം ഉപാദാനങ്ങൾ</translation>
 <translation id="7205939464631857223">എല്ലാ തടഞ്ഞ ഘടകങ്ങളും മുകളിലോട്ടു</translation>
 <translation id="3440043456924990296">സംഘടനയാൽ പ്രയോജനപ്പെടുത്തുന്ന ക്രമീകരണങ്ങൾ</translation>
 <translation id="7053983685419859001">തടയുക</translation>
@@ -2553,6 +2623,8 @@ other {{PENDING_TRANSACTIONS} കൂടുതൽ ഇടപാടുകൾ‌ ക
 <translation id="6975864539539353406">ഒരു സൈറ്റ് നിങ്ങൾ അടയ്ക്കുമ്പോൾ കുക്കികളും മറ്റ് സൈറ്റ് ഡാറ്റയും മായ്ക്കുന്നു</translation>
 <translation id="6486971767955110687">ഭാവിയിലുള്ള തകരാറായ സൈറ്റുകളുടെ റിപ്പോർട്ടുകൾക്കായി കോൺടാക്റ്റ് വിവരങ്ങൾ സംഭരിക്കുക.</translation>
 <translation id="4085787265464238844">നിങ്ങൾ കോൺടാക്റ്റ് വിവരങ്ങൾ ശേഖരിക്കുകയാണെങ്കിൽ, അത് ഭാവിയിലെ റിപ്പോർട്ടുകൾക്കായി മാവരിക്ക് സൂക്ഷിക്കാം.</translation>
+<translation id="7740929262043547697">പ്രൈവറ്റ് വിൻഡോകളിൽ ഘടക തടയൽ അനുവദിക്കുക</translation>
+<translation id="1260864846935682371">പ്രൈവറ്റ് വിൻഡോകളിൽ Shields ഘടക തടയൽ സവിശേഷത സജ്ജമാക്കുന്നു. പ്രൈവറ്റ് വിൻഡോകളിൽ തടയുന്ന ഘടകങ്ങൾ പൊതു വിൻഡോകളിലും തടയപ്പെടും.</translation>
 <translation id="6883611015375728278">എല്ലാ കുക്കികളും തടയുക</translation>
 <translation id="5657156137487675418">എല്ലാ കുക്കികളും അനുവദിക്കൂ</translation>
 <translation id="8366221601425141146">ഫിംഗർപ്രിന്റിംഗ് തടഞ്ഞു</translation>
@@ -2565,9 +2637,11 @@ other {{PENDING_TRANSACTIONS} കൂടുതൽ ഇടപാടുകൾ‌ ക
 <translation id="3795015906457257780">Braveന്റെ സ്വകാര്യത സംരക്ഷണങ്ങൾ ഇല്ലാതെ നിങ്ങൾ ഈ സൈറ്റ് കാണുകയാണ്.</translation>
 <translation id="7194012750329511146">Brave Shields
 <ph name="NUMBER"/> ട്രാക്കറുകളും പരസ്യങ്ങളും കൂടുതൽ ബ്ലോക്ക് ചെയ്‌തിരിക്കുന്നു</translation>
+<translation id="2900068182947574679">സ്ക്രിപ്റ്റുകൾ</translation>
 <translation id="4292121526390005808">സ്ക്രിപ്റ്റുകൾ ബ്ലോക്ക് ചെയ്‌തു</translation>
 <translation id="5046271170844958713">അനുമതിയുള്ള സ്ക്രിപ്റ്റുകൾ</translation>
 <translation id="199862531047218413">ആന്റി-ഫിംഗർപ്രിന്റിംഗ് സംരക്ഷണം പ്രയോഗിച്ചു</translation>
+<translation id="896105002981074545">ഫിംഗർപ്രിന്റിംഗ് സുരക്ഷ</translation>
 <translation id="5032505924781383272">പ്രയോഗിച്ച സംരക്ഷണങ്ങൾ ഈ വെബ്പേജ് നിങ്ങളുടെ ബ്രൗസറിനെ ഫിംഗർപ്രിന്റ് ചെയ്യാൻ ശ്രമിക്കുന്നു എന്നതു നിർബന്ധമായോ പ്രതിബന്ധമായോ കാണണമെന്ന് സൂചിപ്പിക്കില്ല.</translation>
 <translation id="1905384713982899903">ഫിംഗർപ്രിന്റുകൾ ബ്ലോക്ക് ചെയ്‌തു</translation>
 <translation id="314364527871618241">അനുമതിയായ ഫിംഗർപ്രിന്റുകൾ</translation>
@@ -2575,6 +2649,9 @@ other {{PENDING_TRANSACTIONS} കൂടുതൽ ഇടപാടുകൾ‌ ക
 <translation id="7630425922041907505">{BLOCKED_COUNT, plural, =1 {<ph name="SITE_URL"/> സൈറ്റിൽ 1 ട്രാക്കർ Brave Shields തടഞ്ഞു} other {<ph name="SITE_URL"/> സൈറ്റിൽ {BLOCKED_COUNT} ട്രാക്കറുകൾ Brave Shields തടഞ്ഞു}}</translation>
 <translation id="2540598191934725677">Brave Shields കാണാൻ Brave ഐക്കണിൽ ക്ലിക്ക് ചെയ്യുക.</translation>
 <translation id="542789539047208469">സൈറ്റ് വിവരം</translation>
+<translation id="7586067492365979844">Brave Shields എന്നതിന് ഒരു പുതിയ വീട് ഉണ്ട്. ഇത് ഈ സമയത്ത് സൈറ്റ് വിവരങ്ങളുമായി സംയോജിപ്പിക്കുന്നു.</translation>
+<translation id="9114542678887529043">Brave Shields എന്നതിന് ഒരു പുതിയ വീട് ഉണ്ട്. വിലാസ ബാറിൽ സൈറ്റ് ഐക്കണ് ക്ലിക്ക് ചെയ്ത് ആക്സസ് ചെയ്യുക.</translation>
+<translation id="4242533952199664413">ക്രമീകരണം തുറക്കുക</translation>
 <translation id="6294662480095808915">സ്വീകാര്യത. സ്ഥിരതയോടെ.</translation>
 <translation id="4366423156486478559">നിങ്ങൾ ക്ലിക്ക് ചെയ്യുന്ന എല്ലാ ലിങ്കിലും Brave സംരക്ഷണം ലഭിക്കുന്നു. Brave നെ ഡിഫോൾട്ട് ആക്കി ബ്രൗസ് ചെയ്യുക. സ്വകാര്യമായി.</translation>
 <translation id="3830912418080848377">ക്രമീകരണങ്ങൾ ഇറക്കുമതിചെയ്യുക</translation>
@@ -2586,6 +2663,7 @@ other {{PENDING_TRANSACTIONS} കൂടുതൽ ഇടപാടുകൾ‌ ക
 <translation id="2273851479262317744">Brave നെ ഡിഫോൾട്ട് ബ്രൗസർ ആക്കുക</translation>
 <translation id="5037676449506322593">എല്ലാം തിരഞ്ഞെടുക്കുക</translation>
 <translation id="5148943178722443958">Brave കൂടുതൽ മെച്ചപ്പെടുത്താന്‍ കൈയേകുക.</translation>
+<translation id="479535542793009168">സ്ഥിരത &amp; നിദാനങ്ങൾ</translation>
 <translation id="1097073572755862978">ഒരു തകരാർ സ്നാളാവുമ്പോൾ അല്ലെങ്കിൽ ഫ്രീസ് ചെയ്‌താൽ ഡയഗ്നോസ്റ്റിക് റിപ്പോർട്ട് അയയ്‌ക്കുക. <ph name="LINK_BEFORE"/>കൂടുതൽ അറിയുക.<ph name="LINK_AFTER"/></translation>
 <translation id="6629244688368006959">Brave ഉപയോക്താക്കൾ ഉപയോഗിക്കുന്ന ഫീച്ചറുകളെക്കുറിച്ചുള്ള സ്വകാര്യമായയും അനാമതിയുമായ ഉൽപ്പന്ന അവലോകനങ്ങൾ പങ്കിടുക. <ph name="LINK_BEFORE"/>കൂടുതൽ അറിയുക.<ph name="LINK_AFTER"/></translation>
 <translation id="7415454883318062233">ക്രമീകരണം പൂർത്തിയായി</translation>
@@ -2602,14 +2680,15 @@ other {{PENDING_TRANSACTIONS} കൂടുതൽ ഇടപാടുകൾ‌ ക
 <translation id="6764845498618413165">കൂടുതലറിയുക.</translation>
 <translation id="7818938154803162778">ശരി, ഞാന്‍ സഹായിക്കും</translation>
 <translation id="7207456302801184289">Brave-ലേക്ക് സ്വാഗതം</translation>
-<translation id="293854220404217065">മിഡ്നൈറ് തീം</translation>
+<translation id="4988030440045495002">അതീവ ഇളം നിറം പ്രമേയം</translation>
 <translation id="2422927186524098759">സൈഡ്ബാർ</translation>
-<translation id="2361906291514218784">Leo AI</translation>
 <translation id="7705524343798198388">VPN</translation>
 <translation id="8000020256436988724">ടൂള്പാർ</translation>
 <translation id="6225572914528673855">വിലാസ ബാർ</translation>
 <translation id="6821966107067356137">RSS ഫീഡുകൾ ചേർക്കൂ</translation>
+<translation id="2478076885740497414">ആപ്പ് ഇൻസ്റ്റാൾ ചെയ്യുക</translation>
 <translation id="8293206222192510085">ബുക്ക്‌മാർക്ക് ചേർക്കുക</translation>
+<translation id="1010029336854254368">ഷെയർ മെനു</translation>
 <translation id="7758460733045216901">ബുക്ക്മാർക്ക് പാനൽ</translation>
 <translation id="958268166261124668">Brave VPN: ജോഡിചേർന്നിരിക്കുന്നു</translation>
 <translation id="6021669293402055982">Brave VPN: വിച്ഛേദിച്ചു</translation>
@@ -2700,4 +2779,19 @@ other {{PENDING_TRANSACTIONS} കൂടുതൽ ഇടപാടുകൾ‌ ക
 <translation id="1602850501393095406">പ്രധാനപ്പെടുത്തിയതിനെ ഹൈലൈറ്റ് ചെയ്യാന് ↑ അമര്ത്തുക</translation>
 <translation id="8367705492654390392">ഏതും ചോദിയ്ക്കുക</translation>
 <translation id="8525248723479742219">പിന്നീട് പ്ലേ ചെയ്യുക</translation>
+<translation id="2935698011275148880">Brave ഉറവിടം</translation>
+<translation id="3983844925615091103">Brave ഉറവിടത്തിലേക്ക് സ്വാഗതം. തുടരാൻ, ദയവായി Brave ഉറവിട വാങ്ങലോ പുനഃസ്ഥാപിതം നിങ്ങളുടെ Brave ഉറവിട വാങ്ങൽ.</translation>
+<translation id="4801175670604644729">ഈ ബ്രൗസർ ഉപയോഗിക്കാൻ നിങ്ങൾക്ക് സജീവമായ Brave ഉറവിട വാങ്ങൽ ആവശ്യമാണ്.</translation>
+<translation id="4144294274624829008">Brave ഉറവിട വാങ്ങൽ പുനഃസ്ഥാപിതം ചെയ്യുക</translation>
+<translation id="6080178356113101120">Brave ഉറവിട വാങ്ങുക</translation>
+<translation id="1009496146858538651">വാങ്ങൽ പുനഃസ്ഥാപിതം ചെയ്യുക</translation>
+<translation id="3461564061600681423">നിങ്ങളുടെ Brave ഉറവിട വാങ്ങൽ സജ്ജമാക്കാൻ നിങ്ങളുടെ വാങ്ങൽ ഐഡി നൽകുക.</translation>
+<translation id="2036379724374431790">വാങ്ങൽ ഐഡി</translation>
+<translation id="4348430971280118761">നിങ്ങളുടെ വാങ്ങൽ ഐഡി നൽകുക</translation>
+<translation id="7451866456310404779">വാങ്ങൽ ഐഡി സ്ഥിരീകരിക്കുക</translation>
+<translation id="8853195592604941919">സ്ഥിരീകരിക്കുന്നു… ഇത് ഒരു മിനിറ്റ് എടുത്തേക്കാം.</translation>
+<translation id="4633706444004110760">Brave ഉറവിട ഇൻസ്റ്റാൾ ചെയ്യിക്കുന്നതിനായി നന്ദി, Brave എന്ന ബ്രൗസറിന്റെ ഒരു പതിപ്പ് ഉപയോക്താവുകൾക്ക് Brave ബിസിനെസ്സ് ഉപയോഗിക്കുന്നതിനോ സ്വതന്ത്ര പ്രധാനങ്ങൾ പരിപാലിക്കാത്തവരെ, എന്നാൽ എത്ര ഗോപ്യതാ Brave മാത്രം നൽകുന്നുക്കാണ് തേടുന്നത്. Origin ഉപയോക്താവുകൾ നിരന്തരം Brave നെ നേട്ടം നേടും വ്യവസായ നേതൃത്വ ഗോപ്യതാ, adblock, കൂടാൻ വേഗത വഴി Shields, പുലർപ്പോലും പതിവ് സോഫ്റ്റ്‌വെയർ അപ്‌ഡേറ്റുകൾ, Chromium patches, കൂടാൻ സുരക്ഷാ കൂടാൻ ഗോപ്യതാ മെച്ചപ്പെടലുകൾ. Origin കാര്യമായ കൂടാൻ ഫീച്ചർ ബ്രൗസർ നീക്കം ചെയ്യും.</translation>
+<translation id="5816720995022674532">Linux ഉപകരണങ്ങളിൽ Origin സ്വതന്ത്രമായി ഉപയോഗിക്കാൻ ആണ്, ഇനിയും <ph name="BEGIN_LINK"/>വാങ്ങുന്നതിന് ലഭ്യം<ph name="END_LINK"/> നിങ്ങൾ ചാഹിച്ചാൽ Brave ബിസിനെസ്സ് സന്ദർഭിക്കാൻ. വാങ്ങുന്നത് കൂടാൻ Origin Android, iOS, macOS, കൂടാൻ Windows ഉപകരണങ്ങൾ ഉപയോഗിക്കാൻ കഴിവ് അൺലോക്ക് ചെയ്യും.</translation>
+<translation id="3065220545261045367">Origin വാങ്ങിക്കുന്നതിലൂടെ Brave സമർത്ഥിക്കുക</translation>
+<translation id="2069499076031488636">Linux-ൽ Origin-ൽ ഇനിപ്പോൾ സ്വതന്ത്രമായി പ്രതികൂലത</translation>
 </translationbundle>

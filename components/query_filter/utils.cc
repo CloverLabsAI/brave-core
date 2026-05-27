@@ -10,7 +10,6 @@
 #include <string_view>
 #include <vector>
 
-#include "base/containers/contains.h"
 #include "base/containers/fixed_flat_map.h"
 #include "base/containers/fixed_flat_set.h"
 #include "base/strings/string_split.h"
@@ -39,8 +38,6 @@ static constexpr auto kSimpleQueryStringTrackers =
             "_gl",
             // https://github.com/brave/brave-browser/issues/9019
             "_hsenc",
-            // https://github.com/brave/brave-browser/issues/34578
-            "_kx",
             // https://github.com/brave/brave-browser/issues/11579
             "_openstat",
             // https://github.com/brave/brave-browser/issues/32488
@@ -100,6 +97,9 @@ static constexpr auto kSimpleQueryStringTrackers =
             "sc_customer",
             "sc_eh",
             "sc_uid",
+            // https://github.com/brave/brave-browser/issues/53345
+            "sfmc_activityid",
+            "sfmc_id",
             // https://github.com/brave/brave-browser/issues/48228
             "sms_click",
             "sms_source",
@@ -180,7 +180,7 @@ bool IsScopedTracker(
     std::string_view param_name,
     std::string_view spec,
     const std::map<std::string_view, std::vector<std::string_view>>& trackers) {
-  if (!base::Contains(trackers, param_name)) {
+  if (!trackers.contains(param_name)) {
     return false;
   }
 

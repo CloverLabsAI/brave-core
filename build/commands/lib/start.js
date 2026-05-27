@@ -3,10 +3,11 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 
-const path = require('path')
-const fs = require('fs-extra')
-const config = require('../lib/config')
-const util = require('../lib/util')
+import assert from 'node:assert'
+import path from 'node:path'
+import fs from 'fs-extra'
+import config from './config.js'
+import util from './util.js'
 
 const start = (
   passthroughArgs,
@@ -87,6 +88,7 @@ const start = (
   let userDataDir
   if (options.user_data_dir_name) {
     if (process.platform === 'darwin') {
+      assert(process.env.HOME, 'HOME not set')
       userDataDir = path.join(
         process.env.HOME,
         'Library',
@@ -95,12 +97,14 @@ const start = (
         options.user_data_dir_name,
       )
     } else if (process.platform === 'win32') {
+      assert(process.env.LocalAppData, 'LocalAppData not set')
       userDataDir = path.join(
         process.env.LocalAppData,
         'BraveSoftware',
         options.user_data_dir_name,
       )
     } else {
+      assert(process.env.HOME, 'HOME not set')
       userDataDir = path.join(
         process.env.HOME,
         '.config',
@@ -134,4 +138,4 @@ const start = (
   util.run(outputPath, braveArgs, cmdOptions)
 }
 
-module.exports = start
+export default start

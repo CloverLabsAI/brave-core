@@ -19,6 +19,7 @@
 <translation id="1544192797660353713">ארנק</translation>
 <translation id="2361906291514218784">Leo המבוסס בינה מלאכותית</translation>
 <translation id="8275068909952022340">עוד…</translation>
+<translation id="71316462802471551">מיילים בדויים</translation>
 <translation id="1990886731975529483">התקינו והפעילו את Google Widevine</translation>
 <translation id="8926389886865778422">אל תשאל שוב</translation>
 <translation id="4900351245762303149">התקינו את Google Widevine</translation>
@@ -130,17 +131,12 @@
 <translation id="8184318863960255706">מידע נוסף</translation>
 <translation id="780301667611848630">לא תודה</translation>
 <translation id="1162706247109707219">על ידי לחיצה על אישור, אתה מאשר שההתקנה שלך של Brave לא תקבל תיקוני אבטחה קריטיים עד שתעדכן ל-Windows 10 ואילך. אזהרה זו לא תופיע שוב.</translation>
-<translation id="9164786361657554526">על ידי לחיצה על אישור, אתה מאשר שההתקנה שלך של Brave לא תקבל תיקוני אבטחה קריטיים עד שתעדכן ל-macOS 10.15 ואילך. אזהרה זו לא תופיע שוב.</translation>
-<translation id="2770465223704140727">הסר מהרשימה</translation>
+<translation id="2971591422768125177">על ידי לחיצה על אישור, אתה מאשר שההתקנה שלך של Brave לא תקבל תיקוני אבטחה קריטיים עד שתעדכן ל-macOS 10.15 ואילך. אזהרה זו לא תופיע שוב.</translation>
 <translation id="6020553119523541665">הלשונית הזאת פעילה בחלון אחר</translation>
 <translation id="4987392683074136770">הקשה על לשונית זו תביא את תוכנו לחלון זה</translation>
 <translation id="8355523213948477234">כפתור תפריט לתצוגה חצויה</translation>
 <translation id="6040143037577758943">סגירה</translation>
 <translation id="6665472986740899785">התראת Brave Ad</translation>
-<translation id="5582087890067572966">🎉 עכשיו אתה מרוויח!</translation>
-<translation id="4364336119478610380">אתה מרוויח בכל פעם שמופיעה התראה כזו על המסך שלך. אתה לא צריך ללחוץ כדי להרוויח.</translation>
-<translation id="5893017172751072752">אתה מרוויח כאשר מופיעה התראה של Brave Ads</translation>
-<translation id="3447730462826640312">אתה לא צריך ללחוץ כדי להרוויח, אבל לחץ אם אתה מעוניין!</translation>
 <translation id="5253166205743627564">תודה על תמיכתך בחיפוש Brave באמצעות לחיצה על מודעה פרטית. שלא כמו חברות ביג טק, אנחנו מודדים ביצועי מודעות באופן אנונימי כדי לשמור על הפרטיות שלך.</translation>
 <translation id="8748471354357836070">למידע נוסף / אפשרויות ביטול</translation>
 <translation id="5927196110206824867">תמונות רקע ממומנות תומכות במשימה של Brave לבנות רשת אינטרנט עצמאית ששמה את המשתמש בעדיפות ראשונה. ושלא כמו חברות ביג טק, אנחנו מודדים את ביצועי המודעות באופן אנונימי כדי לשמור על הפרטיות שלך.</translation>
@@ -204,7 +200,6 @@
 <translation id="253980346046488815">סגור כרטיסיות כפולות</translation>
 <translation id="8670218546624422041">פתיחה בקונטיינר</translation>
 <translation id="8638526693050780542">ניהול קונטיינרים</translation>
-<translation id="7302999361397024774">שינוי שם הכרטיסייה</translation>
 <translation id="2336228925368920074">צור סימניה לכל הכרטיסיות...</translation>
 <translation id="2523967823495420116">השתמשו בכרטיסיות אנכיות</translation>
 <translation id="3785071023202624850">{NUM_TABS,plural, =1{השתקת הכרטיסייה}two{השתקת הכרטיסיות}many{השתקת הכרטיסיות}other{השתקת הכרטיסיות}}</translation>
@@ -215,7 +210,6 @@
 <translation id="2703180365855369896">סגור כרטיסיות כפולות</translation>
 <translation id="1987871867023021397">פתיחה בקונטיינר</translation>
 <translation id="6745991613881384719">ניהול קונטיינרים</translation>
-<translation id="3917844427669888979">שינוי שם הכרטיסייה</translation>
 <translation id="3704707436873245822">העתקת טקסט מתוך תמונה</translation>
 <translation id="5268098808165185458">מעתיק טקסט מתוך תמונה...</translation>
 <translation id="4046485130884276245">הועתק טקסט מתוך תמונה</translation>
@@ -223,6 +217,8 @@
 <translation id="3960619311638643872">Brave VPN</translation>
 <translation id="2506438154311626334">השתמש בפרוטוקול WireGuard ב-Brave VPN</translation>
 <translation id="8519170191215826548">לא ניתן לשנות הגדרה זו בזמן ש-Brave VPN מחובר</translation>
+<translation id="1177917174080821247">הצג את סמל מגש VPN</translation>
+<translation id="3747459938663420752">כאשר האפשרות מופעלת, סרגל המשימות של Windows יציג את הסמל של VPN של Brave.</translation>
 <translation id="4235920711083356755">הצג את לחצן VPN</translation>
 <translation id="4070612712151038707">מציג את לחצן VPN בסרגל הכלים</translation>
 <translation id="7705524343798198388">VPN</translation>
@@ -234,7 +230,6 @@
 <translation id="8030169304546394654">מנותק</translation>
 <translation id="1863950594388384201">הצג את לחצן VPN בסרגל הכלים</translation>
 <translation id="5187139277471084437">הסתר את לחצן VPN בסרגל הכלים</translation>
-<translation id="1177917174080821247">הצג את סמל מגש VPN</translation>
 <translation id="8041089156583427627">שליחת משוב</translation>
 <translation id="4049186905514157504">ניהול התוכנית שלי</translation>
 <translation id="7570585565843385325">הצג את לחצן VPN בסרגל הכלים</translation>
@@ -323,6 +318,8 @@
 <translation id="8813509417421129632">דף שמוטמע ב-<ph name="SITE"/> מעוניין להישמר</translation>
 <translation id="7700010743463174379">נעשה ניסיון לשמור דף זה</translation>
 <translation id="6774238875569752630">נעשה ניסיון לשמור דף המוטמע בדף זה</translation>
+<translation id="1383876407941801731">חיפוש</translation>
+<translation id="5496587651328244253">ארגן</translation>
 <translation id="1233913566967531780">מיקוד כרטיסיות</translation>
 <translation id="4034992002364254340">לאסוף את כל הכרטיסיות הקשורות לחלון חדש</translation>
 <translation id="8012125596344613514">הצעות לנושאים</translation>
@@ -335,11 +332,14 @@
 <translation id="7557539689487606886">לעבור לפרימיום</translation>
 <translation id="1035309871698658326">כשהוא מופעל, זה ישלח אוטומטית את הכותרות ואת המקור של כל הכרטיסיות הלא-פרטיות אל Leo למטרת סיווג.</translation>
 <translation id="3435896845095436175">הפעל</translation>
+<translation id="9031526219709160683">Brave יכול לעזור לך לייעל את הגדרות הפרטיות של האתר הזה. האם אתה רוצה לעיין בהצעות של Brave?</translation>
+<translation id="5739953050957336013">הצעות חיפוש</translation>
 <translation id="9082792303833649978">ההגדרה הזאת מנוהלת על ידי מנהל המערכת שלך או על ידי מדיניות אחרת של Brave.</translation>
 <translation id="1940221956626514677">התאמה אישית של סרגל הכלים</translation>
 <translation id="6501807887341963552">נושא וצבעים</translation>
 <translation id="6724227215236550330">סיסמאות שמורות יופיעו כאן. כדי לייבא סיסמאות אל <ph name="BRAND"/> במכשיר זה, <ph name="BEGIN_LINK"/> יש לבחור קובץ CSV<ph name="END_LINK"/></translation>
 <translation id="3575561030014162610">כדי לייבא סיסמאות אל <ph name="BRAND"/> במכשיר זה, יש לבחור קובץ CSV</translation>
+<translation id="8570228839666486945">AI על ההתקן</translation>
 <translation id="9156965752763025780">‏השינויים שביצעת ייכנסו לתוקף בפעם הבאה שתפעיל מחדש את Brave‏.</translation>
 <translation id="7179921470347911571">הפעלה מחדש כעת</translation>
 <translation id="1426410128494586442">כן</translation>
@@ -380,6 +380,7 @@
 <translation id="5860254591544742609">הצגת שורת הכותרת</translation>
 <translation id="4691131445504068802">הסתר לחלוטין כאשר ממוזער</translation>
 <translation id="6763346436728173884">הסתר תמיד את כפתור סגירת הלשונית</translation>
+<translation id="8082625757059443808">אפשר סגירת לשוניות בלחיצה על הכפתור האמצעי של העכבר</translation>
 <translation id="4909269867860362936">הרחבה אוטומטית כאשר מרחפים כאשר ממוזער</translation>
 <translation id="3367129510799209147">מצב ריחוף בכרטיסייה</translation>
 <translation id="8925055964134259461">הרחב לשוניות אנכיות באופן עצמאי בכל חלון</translation>
@@ -389,8 +390,15 @@
 <translation id="2113977810652731515">כרטיס</translation>
 <translation id="4096343215397759358">כרטיס עם תצוגה מקדימה</translation>
 <translation id="5297085818601043899">טיפים לכלי עבודה</translation>
+<translation id="1033676453210290920">רוחב הכרטיסייה המינימלי</translation>
+<translation id="562967218762447012">מינימום (ברירת מחדל)</translation>
+<translation id="574392208103952083">בינוני</translation>
+<translation id="4209092469652827314">גדול</translation>
+<translation id="2658845370685508484">רוחב מלא</translation>
+<translation id="1215972473274650670">השתמש בפס הכרטיסיות הרחוק</translation>
 <translation id="5219886318310413094">הראה את הלשונות הצמודות בכל החלונות</translation>
 <translation id="2396127686705429331">הצג כפתור סימניות</translation>
+<translation id="443318149139185498">השתמש בלוגו קו מתאר בכפתור התפריט הראשי</translation>
 <translation id="2814998458708016836">השתמש בשורת כתובת רחבה</translation>
 <translation id="4749586705247636385">הצג פינות מעוגלות באזורי התוכן העיקריים</translation>
 <translation id="4109670531935487117">להציג הצעות השלמה אוטומטית בשורת הכתובת</translation>
@@ -511,16 +519,20 @@
 <translation id="1199170151481311646">ניתוח נתונים תוך שמירה על פרטיות</translation>
 <translation id="5990642573624858459">דיווח סטטיסטי</translation>
 <translation id="2441719842399509963">אפס להגדרות ברירת מחדל</translation>
+<translation id="4530494379350999373">מקור</translation>
+<translation id="2964215604640804042">Brave Origin היא גרסה בתשלום של הדפדפן למשתמשים שלא זקוקים לכל התכונות התומכות ב-Brave כעסק, אך עדיין רוצים את הפרטיות שרק Brave מציעה. משתמשי Brave Origin ימשיכו ליהנות מהפרטיות המובילה בתעשייה, חסימת מודעות ומהירות שלנו (דרך מגיני Brave), כמו גם עדכוני תוכנה רגילים, תיקוני Chromium ושיפורי אבטחה ופרטיות. הם גם יוכלו לבטל את הפיצ'רים כמו AI, Rewards, ארנק, VPN, Web3 דומיינים ועוד.</translation>
+<translation id="9130916892338379417">Brave Origin זמין דרך רכישה חד-פעמית. בנייד (Android ו-iOS) ועל שולחן העבודה, ניתן לרכוש את Origin כשדרוג לגרסת ההוצאה הקיימת שלך. בשולחן העבודה, Origin זמין גם כאפליקציה עצמאית נפרדת. משתמשי Origin יראו לוח בקרה חדש בתפריט ההגדרות. תכונות קיימות - כמו כל תכונה חדשה שנשלח בעתיד - יופיעו כאן, ויהיו מושבתות כברירת מחדל.</translation>
+<translation id="7984508421152399880">קנה עכשיו</translation>
 <translation id="5567412479632285879">Brave Rewards מושבתים</translation>
 <translation id="413570371620795359">פתח לוח תגמולים כדי לאפשר ולהתחיל לעבוד</translation>
 <translation id="1051600834033686945">פתח את הגדרות Brave Rewards המלאות</translation>
 <translation id="8826461509529116322">הצג את לחצן Brave Rewards</translation>
-<translation id="3328713589982547433">מצב חסימת מודעות בלבד</translation>
-<translation id="1574253307550419595">השתמש במצב חסימת מודעות בלבד</translation>
-<translation id="738717058053657696">מצב חסימת מודעות בלבד שומר על כללי חסימת המודעות הבסיסיים של Brave Shields. אזהרה: מסיר את כל הגנות הפרטיות. שימו לב שבאתרים בודדים שנפגעים מהגנות הפרטיות של Brave, תוכלו להגדיר את Shields למצב DOWN. זהו מצב ניסיוני. <ph name="BEGIN_LINK"/>למידע נוסף<ph name="END_LINK"/></translation>
+<translation id="4859866966646365361">מצב חסימת מודעות בלבד</translation>
+<translation id="4146834954839563870">השתמש במצב חסימת מודעות בלבד</translation>
+<translation id="420732343671200734">מצב חסימת מודעות בלבד שומר על כללי חסימת המודעות הבסיסיים של מגיני Brave. אזהרה: מסיר את כל הגנות הפרטיות. שימו לב שבאתרים בודדים שנפגעים מהגנות הפרטיות של Brave, תוכלו להגדיר את המגנים למצב DOWN. זהו מצב ניסיוני. <ph name="BEGIN_LINK"/>למידע נוסף<ph name="END_LINK"/></translation>
 <translation id="3055675200351793825">אפשרויות המגנים מושבתות כרגע.</translation>
-<translation id="516439939408671102">מצב חסימת מודעות בלבד שומר על כללי חסימת המודעות הבסיסיים של Brave Shields ומבטל את הגנות הפרטיות. אם ברצונך להפעיל את Shields הסטנדרטי, אנא השבת מצב זה.</translation>
-<translation id="177233004755519660">כבה את מצב חסימת פרסומות בלבד</translation>
+<translation id="2687830906359353344">מצב חסימת מודעות בלבד שומר על כללי חסימת המודעות הבסיסיים של מגיני Brave ומבטל את הגנות הפרטיות. אם ברצונך להפעיל את המגנים הסטנדרטיים, אנא השבת מצב זה.</translation>
+<translation id="3809423899581611047">כבה את מצב חסימת פרסומות בלבד</translation>
 <translation id="9185018653595759199">חסימת רשתות חברתיות</translation>
 <translation id="863171915776379000">התר/י התחברויות לפייסבוק ופוסטים מוטבעים</translation>
 <translation id="7791141927430186653">אפשר ציוצים מוטבעים של X (לשעבר Twitter)</translation>
@@ -540,7 +552,7 @@
 <translation id="509873765238158442">חסימת Microsoft Recall</translation>
 <translation id="4763421121695677716">חסימה של הפיצ׳ר Recall במחשבי Microsoft Windows כך שהוא לא יצלם צילומי מסך אוטומטית בכרטיסיות פתוחות של Brave.</translation>
 <translation id="1968895725257436430">איסוף נתונים</translation>
-<translation id="4846154056248462491">ביציאה</translation>
+<translation id="1700052872056357670">נקה נתונים ביציאה</translation>
 <translation id="216468847346280584">מחק נתוני Brave מודעות...</translation>
 <translation id="2808630562319398131">אפס נתוני Brave Rewards...</translation>
 <translation id="6438096877646138757">אתרים שמנקים קובצי עוגיות כאשר הם נסגרים</translation>
@@ -553,7 +565,6 @@
 <translation id="5747552184818312860">מועד תפוגה</translation>
 <translation id="3858860766373142691">שם</translation>
 <translation id="361106536627977100">‏נתוני Flash</translation>
-<translation id="4530494379350999373">מקור</translation>
 <translation id="8195027750202970175">גודל בדיסק</translation>
 <translation id="9116465289595958864">שינוי אחרון</translation>
 <translation id="4590324241397107707">אחסון מסדי נתונים</translation>
@@ -586,11 +597,6 @@
 <translation id="2903783737778379345">אל תאפשר כניסה של Google מדור קודם באמצעות קובצי Cookie של צד שלישי</translation>
 <translation id="2570833232754279153">אסור להשתמש בקובצי Cookie של צד שלישי לצורך כניסה מדור קודם של Google</translation>
 <translation id="6880817299303842099">מותר להשתמש בקובצי Cookie של צד שלישי לצורך כניסה מדור קודם של Google</translation>
-<translation id="2136412236435693622">גישה ל-Localhost</translation>
-<translation id="4172219483893066798">אתרים יכולים לבקש גישה למשאבי localhost</translation>
-<translation id="7181706637590665047">אל תאפשר גישה למשאבי localhost</translation>
-<translation id="1336116824874668514">לא מורשה לגשת למשאבי localhost</translation>
-<translation id="1485435696620658073">מורשה לגשת למשאבי localhost</translation>
 <translation id="5794692721727586076">צ'אט עם Leo AI</translation>
 <translation id="8115153008662981040">אתרים יכולים לבקש לפתוח את הצ'אט עם Leo AI</translation>
 <translation id="1145070115730668595">אל תאפשר לאתר לפתוח את הצ'אט עם Leo AI</translation>
@@ -663,8 +669,6 @@
 <translation id="7029809446516969842">סיסמאות</translation>
 <translation id="6011308810877101166">שיפור הצעות חיפוש</translation>
 <translation id="2332576387809612040">כשהאפשרות מופעלת, Brave שולח את מה שהקלדת בסרל הכתובת או תיבת החיפוש למנוע חיפוש ברירת המחדל שלך כדי קבל תוצאות טובות יותר. כשהאפשרות כבויה, Brave מציג רק הצעות שנוצרו במכשיר שלך. האפשרות כבויה תמיד עבור חלונות פרטיים.</translation>
-<translation id="6285118765755298263">תצרו אינדקס למנועי חיפוש אחרים</translation>
-<translation id="5526883767168905185">כולל אינדקס באופן אוטומטי לאתרי אינטרנט העוקבים אחר מפרט OpenSearch</translation>
 <translation id="5522403133543437426">מנוע חיפוש בשימוש בשורת הכתובת.</translation>
 <translation id="280472502078788655">מנוע חיפוש בשימוש בשורת הכתובת עבור חלונות פרטיים.</translation>
 <translation id="7232120595886556478">חלון רגיל</translation>
@@ -795,6 +799,7 @@
 <translation id="1529674267267221673">ליאו יוצג בתפריט הקונטקסט כשתלחץ על הלחצן הימני של העכבר באתר האינטרנט. הפעולה תשלח קונטקסט מדף האינטרנט הנוכחי אל ליאו.</translation>
 <translation id="5226020406479918122">מצב מיקוד כרטיסיות</translation>
 <translation id="3705539672403311123">אפשר להפעיל את ארגון הכרטיסיות בדף ׳חיפוש כרטיסיות׳. כשהוא מופעל, זה ישלח אוטומטית את הכותרות ואת המקור של כל הכרטיסיות הלא-פרטיות אל Leo למטרת סיווג. <ph name="BEGIN_LINK"/>למידע נוסף<ph name="END_LINK"/></translation>
+<translation id="9049433973274198706">מודל ברירת מחדל להתמקדות בכרטיסייה</translation>
 <translation id="8172263161008556851">הצג הצעות מוצעות בשיחה</translation>
 <translation id="5781842473834867765">לאחסן את היסטוריית השיחות שלי</translation>
 <translation id="1082960401708055995">השבתת אחסון שיחות ימחק לצמיתות את כל השיחות הקודמות שאוחסנו. הפעולה הזו לא ניתנת לביטול.</translation>
@@ -818,6 +823,8 @@
 <translation id="6374563306438145841">מפתח API</translation>
 <translation id="3295756655687327124">תמיכה בעיבוד ויזואלי</translation>
 <translation id="1415432774589088566">אם המודל הזה מקבל תמונה כקלט, למשל llama 3.2b vision</translation>
+<translation id="5718897035062884425">תמיכת כלים</translation>
+<translation id="2120046556683363911">אם דגם זה תומך בקריאה לפונקציות / שימוש בכלים</translation>
 <translation id="8008271349880309090">שם המודל כפי שהוא יופיע בתפריט לבחירת מודל</translation>
 <translation id="1355326130503900056">שם הדגם כפי שהוא אמור להופיע בבקשה למסגרת השירות, למשל, phi-3 (שים לב שאם השם לא תואם בדיוק למה שמצופה על ידי מסגרת השירות, השילוב לא יפעל)</translation>
 <translation id="3213787232304349732">כתובת ה-URL שבה נמצאת מסגרת השירות שלכם מאזינה לבקשות. אם אינך בטוח, יש לבדוק את מסמכי מסגרת השירות. למשל עבור Ollama, הכתובת תמיד תהיה http://localhost:11434/v1/chat/completions</translation>
@@ -870,6 +877,8 @@
 <translation id="7311244614769792472">לא נמצאו תוצאות</translation>
 <translation id="1838374766361614909">ניקוי חיפוש</translation>
 <translation id="5126255551970171328">חפש זיכרון</translation>
+<translation id="7402116145895962069">סנכרן את המודלים המקומיים של Ollama</translation>
+<translation id="4835154437390745810">מנוהל על ידי Ollama</translation>
 <translation id="5985516785067818307">משתתפ/ת בסקר</translation>
 <translation id="8347743943525229984">הפעלת סקרי Brave</translation>
 <translation id="3204080538332044581">מאפשר ל-Brave להציג לינקים לסקרים פרטיים בדף הכרטיסייה החדשה. סקרים עוזרים לנו לבנות פיצ׳רים טובים יותר ולמדוד את היעילות של קמפיינים פרסומיים בדפדפן. <ph name="BEGIN_LINK"/>למידע נוסף<ph name="END_LINK"/></translation>

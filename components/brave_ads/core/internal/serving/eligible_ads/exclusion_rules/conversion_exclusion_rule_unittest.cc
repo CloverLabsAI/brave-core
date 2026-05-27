@@ -11,7 +11,7 @@
 #include "brave/components/brave_ads/core/internal/common/test/time_test_util.h"
 #include "brave/components/brave_ads/core/internal/creatives/creative_ad_info.h"
 #include "brave/components/brave_ads/core/internal/serving/eligible_ads/exclusion_rules/exclusion_rule_feature.h"
-#include "brave/components/brave_ads/core/internal/user_engagement/ad_events/ad_event_builder_test_util.h"
+#include "brave/components/brave_ads/core/internal/user_engagement/ad_events/test/ad_event_builder_test_util.h"
 #include "brave/components/brave_ads/core/mojom/brave_ads.mojom.h"
 
 // npm run test -- brave_unit_tests --filter=BraveAds*
@@ -50,7 +50,7 @@ TEST_F(BraveAdsConversionExclusionRuleTest,
   const AdEventInfo ad_event = test::BuildAdEvent(
       creative_ad, mojom::AdType::kNotificationAd,
       mojom::ConfirmationType::kConversion,
-      /*created_at=*/test::Now(), /*should_generate_random_uuids=*/false);
+      /*created_at=*/test::Now(), /*use_random_uuids=*/false);
   ad_events.push_back(ad_event);
 
   const ConversionExclusionRule exclusion_rule(ad_events);
@@ -74,7 +74,7 @@ TEST_F(BraveAdsConversionExclusionRuleTest,
   const AdEventInfo ad_event = test::BuildAdEvent(
       creative_ad, mojom::AdType::kNotificationAd,
       mojom::ConfirmationType::kConversion,
-      /*created_at=*/test::Now(), /*should_generate_random_uuids=*/false);
+      /*created_at=*/test::Now(), /*use_random_uuids=*/false);
   ad_events.push_back(ad_event);
   ad_events.push_back(ad_event);
   ad_events.push_back(ad_event);
@@ -100,7 +100,7 @@ TEST_F(BraveAdsConversionExclusionRuleTest,
   const AdEventInfo ad_event = test::BuildAdEvent(
       creative_ad, mojom::AdType::kNotificationAd,
       mojom::ConfirmationType::kConversion,
-      /*created_at=*/test::Now(), /*should_generate_random_uuids=*/false);
+      /*created_at=*/test::Now(), /*use_random_uuids=*/false);
   for (size_t i = 0;
        i < kShouldExcludeAdIfCreativeSetExceedsConversionCap.Get() - 1; ++i) {
     ad_events.push_back(ad_event);
@@ -127,7 +127,7 @@ TEST_F(BraveAdsConversionExclusionRuleTest,
   const AdEventInfo ad_event = test::BuildAdEvent(
       creative_ad, mojom::AdType::kNotificationAd,
       mojom::ConfirmationType::kConversion,
-      /*created_at=*/test::Now(), /*should_generate_random_uuids=*/false);
+      /*created_at=*/test::Now(), /*use_random_uuids=*/false);
   for (size_t i = 0;
        i < kShouldExcludeAdIfCreativeSetExceedsConversionCap.Get(); ++i) {
     ad_events.push_back(ad_event);
@@ -157,7 +157,7 @@ TEST_F(BraveAdsConversionExclusionRuleTest,
   const AdEventInfo ad_event = test::BuildAdEvent(
       creative_ad_2, mojom::AdType::kNotificationAd,
       mojom::ConfirmationType::kConversion,
-      /*created_at=*/test::Now(), /*should_generate_random_uuids=*/false);
+      /*created_at=*/test::Now(), /*use_random_uuids=*/false);
   ad_events.push_back(ad_event);
 
   const ConversionExclusionRule exclusion_rule(ad_events);

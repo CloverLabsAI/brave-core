@@ -158,7 +158,7 @@ BraveShieldsActionView::GetImageSource() {
   std::unique_ptr<IconWithBadgeImageSource> image_source(
       new brave::BraveIconWithBadgeImageSource(
           preferred_size, std::move(get_color_provider_callback),
-          GetLayoutConstant(LOCATION_BAR_TRAILING_ICON_SIZE),
+          GetLayoutConstant(LayoutConstant::kLocationBarTrailingIconSize),
           kBraveActionLeftMarginExtra));
   std::unique_ptr<IconWithBadgeImageSource::Badge> badge;
   bool is_enabled = false;
@@ -200,7 +200,7 @@ gfx::ImageSkia BraveShieldsActionView::GetIconImage(bool is_enabled) {
                                   : IDR_BRAVE_SHIELDS_ICON_64_DISABLED)
           .AsBitmap();
   float scale = static_cast<float>(bitmap.width()) /
-                GetLayoutConstant(LOCATION_BAR_TRAILING_ICON_SIZE);
+                GetLayoutConstant(LayoutConstant::kLocationBarTrailingIconSize);
   image.AddRepresentation(gfx::ImageSkiaRep(bitmap, scale));
   return image;
 }
@@ -261,8 +261,7 @@ bool BraveShieldsActionView::ShouldShowBubble(
 
   if (url.SchemeIs(url::kAboutScheme) || url.SchemeIs(url::kBlobScheme) ||
       url.SchemeIs(url::kDataScheme) || url.SchemeIs(url::kFileSystemScheme) ||
-      url.SchemeIs(kMagnetScheme) || url.SchemeIs(kBraveUIScheme) ||
-      url.SchemeIs(content::kChromeUIScheme) ||
+      url.SchemeIs(kMagnetScheme) || url.SchemeIs(content::kChromeUIScheme) ||
       url.SchemeIs(extensions::kExtensionScheme)) {
     // Do not show bubble if it's a local scheme
     return false;

@@ -26,8 +26,9 @@ import com.wireguard.crypto.KeyPair;
 
 import org.chromium.base.BraveFeatureList;
 import org.chromium.base.Log;
-import org.chromium.base.supplier.ObservableSupplier;
-import org.chromium.base.supplier.ObservableSupplierImpl;
+import org.chromium.base.supplier.MonotonicObservableSupplier;
+import org.chromium.base.supplier.ObservableSuppliers;
+import org.chromium.base.supplier.SettableMonotonicObservableSupplier;
 import org.chromium.base.task.PostTask;
 import org.chromium.base.task.TaskTraits;
 import org.chromium.chrome.R;
@@ -53,6 +54,8 @@ import org.chromium.chrome.browser.vpn.wireguard.WireguardConfigUtils;
 import org.chromium.components.browser_ui.settings.ChromeBasePreference;
 import org.chromium.components.browser_ui.settings.ChromeSwitchPreference;
 import org.chromium.components.browser_ui.settings.SettingsUtils;
+import org.chromium.components.browser_ui.settings.search.BaseSearchIndexProvider;
+import org.chromium.components.browser_ui.settings.search.SettingsIndexData;
 import org.chromium.ui.widget.Toast;
 
 import java.text.SimpleDateFormat;
@@ -87,7 +90,8 @@ public class BraveVpnPreferences extends BravePreferenceFragment implements Brav
     private ChromeBasePreference mSubscriptionExpires;
     private ChromeBasePreference mLinkSubscriptionPreference;
     private BraveVpnPrefModel mBraveVpnPrefModel;
-    private final ObservableSupplierImpl<String> mPageTitle = new ObservableSupplierImpl<>();
+    private final SettableMonotonicObservableSupplier<String> mPageTitle =
+            ObservableSuppliers.createMonotonic();
 
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
@@ -220,10 +224,13 @@ public class BraveVpnPreferences extends BravePreferenceFragment implements Brav
                 (PreferenceCategory) findPreference(PREF_BRAVE_VPN_SUBSCRIPTION_SECTION);
         preferenceCategory.addPreference(mLinkSubscriptionPreference);
         preferenceCategory.setVisible(!BraveVpnNativeWorker.getInstance().isPurchasedUser());
+
+        findPreference(PREF_SERVER_CHANGE_LOCATION)
+                .setVisible(BraveVpnPrefUtils.isSubscriptionPurchase());
     }
 
     @Override
-    public ObservableSupplier<String> getPageTitle() {
+    public MonotonicObservableSupplier<String> getPageTitle() {
         return mPageTitle;
     }
 
@@ -327,6 +334,7 @@ public class BraveVpnPreferences extends BravePreferenceFragment implements Brav
                                                     .setEnabled(
                                                             BraveVpnPrefUtils
                                                                     .isSubscriptionPurchase());
+                                            notifyPreferencesUpdated();
                                         }
                                     });
                 }
@@ -559,4 +567,16 @@ public class BraveVpnPreferences extends BravePreferenceFragment implements Brav
         BraveVpnUtils.dismissProgressDialog();
         super.onDestroy();
     }
+
+    public static final BaseSearchIndexProvider SEARCH_INDEX_DATA_PROVIDER =
+            new BaseSearchIndexProvider(
+                    BraveVpnPreferences.class.getName(), R.xml.brave_vpn_preferences) {
+
+                @Override
+                public void updateDynamicPreferences(Context context, SettingsIndexData indexData) {
+                    // server_change_location uses a custom layout with no title.
+                    indexData.removeEntryForKey(
+                            BraveVpnPreferences.class.getName(), PREF_SERVER_CHANGE_LOCATION);
+                }
+            };
 }

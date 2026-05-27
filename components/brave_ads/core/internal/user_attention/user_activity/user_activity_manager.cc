@@ -38,10 +38,11 @@ void LogEvent(UserActivityEventType event_type) {
       UserActivityManager::GetInstance().GetHistoryForTimeWindow(
           kUserActivityTimeWindow.Get());
 
-  BLOG(6, "Triggered event: " << base::HexEncode(&event_type, sizeof(int8_t))
-                              << " (" << GetUserActivityScore(triggers, events)
-                              << ":" << kUserActivityThreshold.Get() << ":"
-                              << kUserActivityTimeWindow.Get() << ")");
+  BLOG(6, "Triggered event: "
+              << base::HexEncode(base::byte_span_from_ref(event_type)) << " ("
+              << GetUserActivityScore(triggers, events) << ":"
+              << kUserActivityThreshold.Get() << ":"
+              << kUserActivityTimeWindow.Get() << ")");
 }
 
 }  // namespace
@@ -98,44 +99,40 @@ UserActivityEventList UserActivityManager::GetHistoryForTimeWindow(
 ///////////////////////////////////////////////////////////////////////////////
 
 void UserActivityManager::RecordEventForPageTransition(
-    PageTransitionType type) {
-  if (IsNewNavigation(type)) {
+    ui::PageTransition page_transition) {
+  if (ui::PageTransitionIsNewNavigation(page_transition)) {
     RecordEvent(UserActivityEventType::kNewNavigation);
   }
 
-  if (DidUseBackOrFowardButtonToTriggerNavigation(type)) {
+  if ((page_transition & ui::PAGE_TRANSITION_FORWARD_BACK) != 0) {
     RecordEvent(UserActivityEventType::kClickedBackOrForwardNavigationButtons);
   }
 
-  if (DidUseAddressBarToTriggerNavigation(type)) {
+  if ((page_transition & ui::PAGE_TRANSITION_FROM_ADDRESS_BAR) != 0) {
     RecordEvent(UserActivityEventType::kUsedAddressBar);
   }
 
-  if (DidNavigateToHomePage(type)) {
+  if ((page_transition & ui::PAGE_TRANSITION_HOME_PAGE) != 0) {
     RecordEvent(UserActivityEventType::kClickedHomePageButton);
   }
 
-  if (DidTransitionFromExternalApplication(type)) {
+  if ((page_transition & ui::PAGE_TRANSITION_FROM_API) != 0) {
     RecordEvent(UserActivityEventType::kOpenedLinkFromExternalApplication);
   }
 
-  std::optional<UserActivityEventType> event_type =
-      ToUserActivityEventType(type);
-  if (!event_type) {
-    return;
+  if (std::optional<UserActivityEventType> event_type =
+          ToUserActivityEventType(page_transition)) {
+    RecordEvent(*event_type);
   }
-
-  RecordEvent(*event_type);
 }
 
 void UserActivityManager::OnNotifyDidInitializeAds() {
   RecordEvent(UserActivityEventType::kInitializedAds);
 }
 
-void UserActivityManager::OnNotifyUserGestureEventTriggered(int32_t type) {
-  const auto page_transition_type = static_cast<PageTransitionType>(type);
-
-  RecordEventForPageTransition(page_transition_type);
+void UserActivityManager::OnNotifyUserGestureEventTriggered(
+    ui::PageTransition page_transition) {
+  RecordEventForPageTransition(page_transition);
 }
 
 void UserActivityManager::OnBrowserDidBecomeActive() {

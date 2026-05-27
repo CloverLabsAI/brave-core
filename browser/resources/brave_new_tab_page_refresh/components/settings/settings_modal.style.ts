@@ -33,7 +33,7 @@ export const style = scoped.css`
   section {
     flex: 1 1 auto;
     padding: 16px;
-    height: 380px;
+    height: 400px;
     overflow: auto;
     overscroll-behavior: contain;
     scrollbar-width: thin;
@@ -60,19 +60,32 @@ style.passthrough.css`
     padding: 6px;
   }
 
+
+  .control-row,
+  .toggle-row {
+    padding: 24px;
+    border-bottom: solid 1px ${color.divider.subtle};
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
   .control-row {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 24px;
-    border-bottom: solid 1px ${color.divider.subtle};
 
     label {
       flex: 1 1 auto;
     }
+  }
 
-    &:last-child {
-      border-bottom: none;
+  .toggle-row {
+    --leo-toggle-label-flex-direction: row-reverse;
+
+    .label {
+      flex: 1 1 auto;
     }
   }
 `

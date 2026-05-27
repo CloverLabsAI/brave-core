@@ -1,5 +1,5 @@
 diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_session_description.cc b/third_party/blink/renderer/modules/peerconnection/rtc_session_description.cc
-index 1b06d623144c3bc6cc85eaa6a6b18ddd2bd55b91..4dc40738ae6ff42d246c2639faf2d01f5d758b3e 100644
+index 1b06d623144c3bc6cc85eaa6a6b18ddd2bd55b91..5c649bd8cfc7ad81b1c1fc234e766139b43822ac 100644
 --- a/third_party/blink/renderer/modules/peerconnection/rtc_session_description.cc
 +++ b/third_party/blink/renderer/modules/peerconnection/rtc_session_description.cc
 @@ -31,6 +31,9 @@
@@ -56,9 +56,9 @@ index 1b06d623144c3bc6cc85eaa6a6b18ddd2bd55b91..4dc40738ae6ff42d246c2639faf2d01f
 +  // Mask connection lines: c=IN IP4/IP6 <anything> -> c=IN IP4 <mask_ipv4>
 +  // Simple and direct: find "c=IN" and replace entire line
 +  pos = 0;
-+  while ((pos = result.Find("c=IN ", pos)) != kNotFound) {
-+    wtf_size_t line_end = result.Find("\n", pos);
-+    if (line_end == kNotFound) line_end = result.Find("\r", pos);
++  while ((pos = result.find("c=IN ", pos)) != kNotFound) {
++    wtf_size_t line_end = result.find("\n", pos);
++    if (line_end == kNotFound) line_end = result.find("\r", pos);
 +    if (line_end == kNotFound) line_end = result.length();
 +
 +    String before = result.Substring(0, pos);
@@ -70,17 +70,17 @@ index 1b06d623144c3bc6cc85eaa6a6b18ddd2bd55b91..4dc40738ae6ff42d246c2639faf2d01f
 +
 +  // Mask origin lines: o=... IN IP4/IP6 <anything> -> o=... IN IP4 <mask_ipv4>
 +  pos = 0;
-+  while ((pos = result.Find("o=", pos)) != kNotFound) {
-+    wtf_size_t line_end = result.Find("\n", pos);
-+    if (line_end == kNotFound) line_end = result.Find("\r", pos);
++  while ((pos = result.find("o=", pos)) != kNotFound) {
++    wtf_size_t line_end = result.find("\n", pos);
++    if (line_end == kNotFound) line_end = result.find("\r", pos);
 +    if (line_end == kNotFound) line_end = result.length();
 +
 +    String origin_line = result.Substring(pos, line_end - pos);
 +
 +    // Check if line contains IN IP4 or IN IP6
-+    if (origin_line.Contains(" IN IP4 ") || origin_line.Contains(" IN IP6 ")) {
++    if (origin_line.contains(" IN IP4 ") || origin_line.contains(" IN IP6 ")) {
 +      // Find where " IN IP" starts
-+      wtf_size_t in_ip_pos = origin_line.Find(" IN IP");
++      wtf_size_t in_ip_pos = origin_line.find(" IN IP");
 +      if (in_ip_pos != kNotFound) {
 +        // Replace from " IN IP" onwards with " IN IP4 <mask_ipv4>"
 +        String origin_prefix = origin_line.Substring(0, in_ip_pos);
@@ -100,14 +100,14 @@ index 1b06d623144c3bc6cc85eaa6a6b18ddd2bd55b91..4dc40738ae6ff42d246c2639faf2d01f
 +  // Mask IP addresses in candidate lines
 +  // Format: a=candidate:... udp ... <IP> <port> typ ... [raddr <IP>] [rport <port>]
 +  pos = 0;
-+  while ((pos = result.Find("a=candidate:", pos)) != kNotFound) {
-+    wtf_size_t line_end = result.Find("\n", pos);
-+    if (line_end == kNotFound) line_end = result.Find("\r", pos);
++  while ((pos = result.find("a=candidate:", pos)) != kNotFound) {
++    wtf_size_t line_end = result.find("\n", pos);
++    if (line_end == kNotFound) line_end = result.find("\r", pos);
 +    if (line_end == kNotFound) line_end = result.length();
 +
 +    String candidate_line = result.Substring(pos, line_end - pos);
 +    Vector<String> parts;
-+    candidate_line.Split(' ', parts);
++    parts = candidate_line.Split(' ');
 +
 +    // The IP address is at index 4 in the candidate line
 +    // a=candidate:<foundation> <component> <protocol> <priority> <IP> <port> ...
@@ -115,9 +115,9 @@ index 1b06d623144c3bc6cc85eaa6a6b18ddd2bd55b91..4dc40738ae6ff42d246c2639faf2d01f
 +    if (parts.size() >= 6) {
 +      String original_ip = parts[4];
 +      // Don't mask if already mDNS (.local)
-+      if (!original_ip.EndsWith(".local")) {
++      if (!original_ip.ends_with(".local")) {
 +        // Determine if IPv4 or IPv6
-+        if (original_ip.Contains(":")) {
++        if (original_ip.contains(":")) {
 +          parts[4] = mask_ipv6;  // IPv6
 +        } else {
 +          parts[4] = mask_ipv4;  // IPv4
@@ -131,8 +131,8 @@ index 1b06d623144c3bc6cc85eaa6a6b18ddd2bd55b91..4dc40738ae6ff42d246c2639faf2d01f
 +    for (wtf_size_t i = 0; i < parts.size(); i++) {
 +      if (parts[i] == "raddr" && i + 1 < parts.size()) {
 +        String raddr_ip = parts[i + 1];
-+        if (!raddr_ip.EndsWith(".local")) {
-+          if (raddr_ip.Contains(":")) {
++        if (!raddr_ip.ends_with(".local")) {
++          if (raddr_ip.contains(":")) {
 +            parts[i + 1] = mask_ipv6;  // IPv6
 +          } else {
 +            parts[i + 1] = mask_ipv4;  // IPv4

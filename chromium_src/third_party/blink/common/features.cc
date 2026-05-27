@@ -26,7 +26,7 @@ OVERRIDE_FEATURE_DEFAULT_STATES({{
     {kFledgeConsiderKAnonymity, base::FEATURE_DISABLED_BY_DEFAULT},
     {kFledgeEnforceKAnonymity, base::FEATURE_DISABLED_BY_DEFAULT},
     {kParakeet, base::FEATURE_DISABLED_BY_DEFAULT},
-    {kPermissionElement, base::FEATURE_DISABLED_BY_DEFAULT},
+    {kPreloadingEagerViewportHeuristics, base::FEATURE_DISABLED_BY_DEFAULT},
     {kPrerender2, base::FEATURE_DISABLED_BY_DEFAULT},
     {kPrivateAggregationApi, base::FEATURE_DISABLED_BY_DEFAULT},
     // This feature uses shared memory to reduce IPCs to access cookies, but
@@ -54,7 +54,12 @@ BASE_FEATURE(kRestrictWebSocketsPool,
 
 // Enables protection against fingerprinting on screen dimensions.
 BASE_FEATURE(kBraveBlockScreenFingerprinting,
-             base::FEATURE_DISABLED_BY_DEFAULT);
+#if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
+             base::FEATURE_ENABLED_BY_DEFAULT
+#else
+             base::FEATURE_DISABLED_BY_DEFAULT
+#endif
+);
 
 // Enables protection against fingerprinting via high-resolution time stamps.
 BASE_FEATURE(kBraveRoundTimeStamps,

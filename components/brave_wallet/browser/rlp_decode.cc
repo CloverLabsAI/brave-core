@@ -7,6 +7,8 @@
 
 #include <utility>
 
+#include "base/values.h"
+
 namespace {
 
 // Decodes an integer
@@ -141,7 +143,7 @@ bool RLPDecodeInternal(const std::string& s,
     std::string str = s.substr(*offset, *data_len);
     *output = base::Value(str);
   } else if (output->is_list()) {
-    base::Value::List list;
+    base::ListValue list;
     if (!IsWithinBounds(*offset, *data_len, length)) {
       return false;
     }

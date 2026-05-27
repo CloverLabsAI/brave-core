@@ -25,20 +25,9 @@ extension TabDataValues {
 }
 
 protocol TabMiscDelegate {
-  func showRequestRewardsPanel(_ tab: some TabState)
   func stopMediaPlayback(_ tab: some TabState)
   func showWalletNotification(_ tab: some TabState, origin: URLOrigin)
   func updateURLBarWalletButton()
-}
-
-struct RewardsTabChangeReportingState {
-  /// Set to true when the resulting page was restored from session state.
-  var wasRestored = false
-  /// Set to true when the resulting page navigation is not a reload or a
-  /// back/forward type.
-  var isNewNavigation = true
-  /// HTTP status code of the resulting page.
-  var httpStatusCode = -1
 }
 
 /// A broad container of assorted data that was previously stored in Tab
@@ -58,15 +47,13 @@ class TabBrowserData: NSObject, TabObserver {
     self.tab = tab
     _syncTab = tabGeneratorAPI?.createBraveSyncTab(isOffTheRecord: tab.isPrivate)
 
-    if let syncTab = _syncTab {
+    if !FeatureList.kUseProfileWebViewConfiguration.enabled, let syncTab = _syncTab {
       _faviconDriver = FaviconDriver(webState: syncTab.webState).then {
         $0.setMaximumFaviconImageSize(CGSize(width: 1024, height: 1024))
       }
     } else {
       _faviconDriver = nil
     }
-
-    nightMode = Preferences.General.nightModeEnabled.value
 
     super.init()
 
@@ -104,7 +91,6 @@ class TabBrowserData: NSObject, TabObserver {
     onScreenshotUpdated?()
   }
   var onScreenshotUpdated: (() -> Void)?
-  var rewardsEnabledCallback: ((Bool) -> Void)?
 
   var alertShownCount: Int = 0
   var blockAllAlerts: Bool = false
@@ -165,15 +151,8 @@ class TabBrowserData: NSObject, TabObserver {
   /// The page data is cleared when the user leaves the page (i.e. when the main frame url changes)
   @MainActor var currentPageData: PageData?
 
-  var isEditing = false
-
   var playlistItem: PlaylistInfo?
   var playlistItemState: PlaylistItemAddedState = .none
-  var translationState: TranslateURLBarButton.TranslateState = .unavailable
-
-  /// The rewards reporting state which is filled during a page navigation.
-  // It is reset to initial values when the page navigation is finished.
-  var rewardsReportingState = RewardsTabChangeReportingState()
 
   /// This is the request that was upgraded to HTTPS
   /// This allows us to rollback the upgrade when we encounter a 4xx+
@@ -221,6 +200,9 @@ class TabBrowserData: NSObject, TabObserver {
   lazy var contentBlocker = ContentBlockerHelper(tab: tab)
 
   var readerModeAvailableOrActive: Bool {
+    if FeatureList.kUseProfileWebViewConfiguration.enabled {
+      return tab?.readerMode?.state != .unavailable
+    }
     if let readerMode = getContentScript(name: ReaderModeScriptHandler.scriptName)
       as? ReaderModeScriptHandler
     {
@@ -228,9 +210,6 @@ class TabBrowserData: NSObject, TabObserver {
     }
     return false
   }
-
-  var webStateDebounceTimer: Timer?
-  var onPageReadyStateChanged: ((ReadyState.State) -> Void)?
 
   fileprivate let contentScriptManager = TabContentScriptManager()
   private var userScripts = Set<UserScriptManager.ScriptType>()
@@ -241,29 +220,6 @@ class TabBrowserData: NSObject, TabObserver {
   fileprivate var alertQueue = [JSAlertInfo]()
   weak var shownPromptAlert: UIAlertController?
 
-  var nightMode: Bool {
-    didSet {
-      var isNightModeEnabled = false
-
-      if let fetchedTabURL = tab?.fetchedURL, nightMode,
-        !DarkReaderScriptHandler.isNightModeBlockedURL(fetchedTabURL)
-      {
-        isNightModeEnabled = true
-      }
-
-      if let tab = tab {
-        if isNightModeEnabled {
-          DarkReaderScriptHandler.enable(for: tab)
-        } else {
-          DarkReaderScriptHandler.disable(for: tab)
-        }
-      }
-
-      self.setScript(script: .nightMode, enabled: isNightModeEnabled)
-    }
-  }
-
-  var translateHelper: BraveTranslateTabHelper?
   private(set) lazy var leoTabHelper = BraveLeoScriptTabHelper(tab: tab)
 
   /// Boolean tracking custom url-scheme alert presented
@@ -280,12 +236,6 @@ class TabBrowserData: NSObject, TabObserver {
     isExternalAppAlertSuppressed = false
     externalAppURLDomain = nil
   }
-
-  /// A helper property that handles native to Brave Search communication.
-  var braveSearchManager: BraveSearchManager?
-
-  /// A helper property that handles Brave Search Result Ads.
-  var braveSearchResultAdManager: BraveSearchResultAdManager?
 
   /// A list of domains that we want to proceed to anyways regardless of any ad-blocking
   var proceedAnywaysDomainList: Set<String> = []
@@ -392,7 +342,6 @@ class TabBrowserData: NSObject, TabObserver {
 
   func tabDidStartNavigation(_ tab: some TabState) {
     resetExternalAlertProperties()
-    nightMode = Preferences.General.nightModeEnabled.value
   }
 
   func tabDidChangeTitle(_ tab: some TabState) {
@@ -411,19 +360,16 @@ class TabBrowserData: NSObject, TabObserver {
     let scriptPreferences: [UserScriptManager.ScriptType: Bool] = [
       .cookieBlocking: Preferences.Privacy.blockAllCookies.value,
       .mediaBackgroundPlay: Preferences.General.mediaAutoBackgrounding.value,
-      .nightMode: Preferences.General.nightModeEnabled.value,
       .braveTranslate: Preferences.Translate.translateEnabled.value != false,
     ]
 
     userScripts = Set(scriptPreferences.filter({ $0.value }).map({ $0.key }))
     self.updateInjectedScripts()
-    nightMode = Preferences.General.nightModeEnabled.value
   }
 
   func tabWillDeleteWebView(_ tab: some TabState) {
     contentScriptManager.helpers.removeAll()
     contentScriptManager.uninstall(from: tab)
-    translateHelper = nil
   }
 
   func tabWillBeDestroyed(_ tab: some TabState) {
@@ -438,7 +384,7 @@ private class TabContentScriptManager: NSObject, WKScriptMessageHandlerWithReply
   func uninstall(from tab: some TabState) {
     helpers.forEach {
       let name = type(of: $0.value).messageHandlerName
-      tab.configuration.userContentController.removeScriptMessageHandler(forName: name)
+      tab.configuration?.userContentController.removeScriptMessageHandler(forName: name)
     }
   }
 
@@ -473,7 +419,7 @@ private class TabContentScriptManager: NSObject, WKScriptMessageHandlerWithReply
     // If this helper handles script messages, then get the handler name and register it. The Tab
     // receives all messages and then dispatches them to the right TabHelper.
     let scriptMessageHandlerName = type(of: helper).messageHandlerName
-    tab.configuration.userContentController.addScriptMessageHandler(
+    tab.configuration?.userContentController.addScriptMessageHandler(
       self,
       contentWorld: contentWorld,
       name: scriptMessageHandlerName
@@ -483,7 +429,7 @@ private class TabContentScriptManager: NSObject, WKScriptMessageHandlerWithReply
   func removeContentScript(name: String, forTab tab: some TabState, contentWorld: WKContentWorld) {
     if let helper = helpers[name] {
       let scriptMessageHandlerName = type(of: helper).messageHandlerName
-      tab.configuration.userContentController.removeScriptMessageHandler(
+      tab.configuration?.userContentController.removeScriptMessageHandler(
         forName: scriptMessageHandlerName,
         contentWorld: contentWorld
       )

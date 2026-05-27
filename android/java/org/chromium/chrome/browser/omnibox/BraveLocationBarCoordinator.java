@@ -13,18 +13,18 @@ import android.view.View;
 import android.view.View.OnLongClickListener;
 
 import org.chromium.base.Callback;
-import org.chromium.base.supplier.ObservableSupplier;
+import org.chromium.base.supplier.MonotonicObservableSupplier;
+import org.chromium.base.supplier.NullableObservableSupplier;
 import org.chromium.build.annotations.NullMarked;
 import org.chromium.build.annotations.Nullable;
 import org.chromium.chrome.browser.back_press.BackPressManager;
 import org.chromium.chrome.browser.browser_controls.BrowserControlsStateProvider;
 import org.chromium.chrome.browser.browser_controls.BrowserStateBrowserControlsVisibilityDelegate;
 import org.chromium.chrome.browser.lifecycle.ActivityLifecycleDispatcher;
-import org.chromium.chrome.browser.merchant_viewer.MerchantTrustSignalsCoordinator;
-import org.chromium.chrome.browser.multiwindow.MultiInstanceManager;
 import org.chromium.chrome.browser.omnibox.LocationBarMediator.OmniboxUma;
 import org.chromium.chrome.browser.omnibox.status.StatusCoordinator.PageInfoAction;
 import org.chromium.chrome.browser.omnibox.suggestions.OmniboxSuggestionsDropdownScrollListener;
+import org.chromium.chrome.browser.omnibox.suggestions.action.OmniboxActionDelegateImpl;
 import org.chromium.chrome.browser.omnibox.suggestions.basic.BasicSuggestionProcessor.BookmarkState;
 import org.chromium.chrome.browser.profiles.Profile;
 import org.chromium.chrome.browser.share.ShareDelegate;
@@ -33,9 +33,9 @@ import org.chromium.chrome.browser.tabmodel.IncognitoStateProvider;
 import org.chromium.chrome.browser.tabmodel.TabModelSelector;
 import org.chromium.chrome.browser.toolbar.bottom.BottomToolbarConfiguration;
 import org.chromium.chrome.browser.toolbar.menu_button.BraveMenuButtonCoordinator;
+import org.chromium.chrome.browser.ui.edge_to_edge.TopInsetProvider;
 import org.chromium.chrome.browser.ui.messages.snackbar.SnackbarManager;
 import org.chromium.components.browser_ui.accessibility.PageZoomManager;
-import org.chromium.components.omnibox.action.OmniboxActionDelegate;
 import org.chromium.ui.base.WindowAndroid;
 import org.chromium.ui.modaldialog.ModalDialogManager;
 
@@ -64,11 +64,11 @@ public class BraveLocationBarCoordinator extends LocationBarCoordinator {
     public BraveLocationBarCoordinator(
             View locationBarLayout,
             View autocompleteAnchorView,
-            ObservableSupplier<Profile> profileObservableSupplier,
+            MonotonicObservableSupplier<Profile> profileObservableSupplier,
             LocationBarDataProvider locationBarDataProvider,
             ActionMode.@Nullable Callback actionModeCallback,
             WindowAndroid windowAndroid,
-            Supplier<@Nullable Tab> activityTabSupplier,
+            NullableObservableSupplier<Tab> activityTabSupplier,
             Supplier<@Nullable ModalDialogManager> modalDialogManagerSupplier,
             @Nullable Supplier<ShareDelegate> shareDelegateSupplier,
             @Nullable IncognitoStateProvider incognitoStateProvider,
@@ -80,15 +80,14 @@ public class BraveLocationBarCoordinator extends LocationBarCoordinator {
             OmniboxUma omniboxUma,
             BookmarkState bookmarkState,
             BooleanSupplier isToolbarMicEnabledSupplier,
-            @Nullable Supplier<MerchantTrustSignalsCoordinator>
-                    merchantTrustSignalsCoordinatorSupplier,
-            OmniboxActionDelegate omniboxActionDelegate,
+            OmniboxActionDelegateImpl omniboxActionDelegate,
             @Nullable BrowserStateBrowserControlsVisibilityDelegate
                     browserControlsVisibilityDelegate,
             @Nullable BackPressManager backPressManager,
             @Nullable OmniboxSuggestionsDropdownScrollListener
                     omniboxSuggestionsDropdownScrollListener,
-            ObservableSupplier<TabModelSelector> tabModelSelectorSupplier,
+            MonotonicObservableSupplier<TabModelSelector> tabModelSelectorSupplier,
+            TopInsetProvider topInsetProvider,
             LocationBarEmbedder locationBarEmbedder,
             LocationBarEmbedderUiOverrides uiOverrides,
             @Nullable View baseChromeLayout,
@@ -98,9 +97,9 @@ public class BraveLocationBarCoordinator extends LocationBarCoordinator {
             boolean isToolbarPositionCustomizationEnabled,
             @Nullable PageZoomManager pageZoomManager,
             Function<Tab, @Nullable Bitmap> tabFaviconFunction,
-            @Nullable MultiInstanceManager multiInstanceManager,
             SnackbarManager snackbarManager,
-            View bottomContainerView) {
+            View bottomContainerView,
+            @Nullable OmniboxChipManager omniboxChipManager) {
         super(
                 locationBarLayout,
                 autocompleteAnchorView,
@@ -120,12 +119,12 @@ public class BraveLocationBarCoordinator extends LocationBarCoordinator {
                 omniboxUma,
                 bookmarkState,
                 isToolbarMicEnabledSupplier,
-                merchantTrustSignalsCoordinatorSupplier,
                 omniboxActionDelegate,
                 browserControlsVisibilityDelegate,
                 backPressManager,
                 omniboxSuggestionsDropdownScrollListener,
                 tabModelSelectorSupplier,
+                topInsetProvider,
                 locationBarEmbedder,
                 uiOverrides,
                 baseChromeLayout,
@@ -139,9 +138,9 @@ public class BraveLocationBarCoordinator extends LocationBarCoordinator {
                 isToolbarPositionCustomizationEnabled,
                 pageZoomManager,
                 tabFaviconFunction,
-                multiInstanceManager,
                 snackbarManager,
-                bottomContainerView);
+                bottomContainerView,
+                omniboxChipManager);
 
         if (mUrlBar != null) {
             ((UrlBar) mUrlBar).setSelectAllOnFocus(true);
@@ -167,5 +166,12 @@ public class BraveLocationBarCoordinator extends LocationBarCoordinator {
     private static boolean isBraveBottomControlsVisible() {
         return BottomToolbarConfiguration.isBraveBottomControlsEnabled()
                 && BraveMenuButtonCoordinator.isMenuFromBottom();
+    }
+
+    public @Nullable BraveLocationBarMediator getLocationBarMediator() {
+        if (mLocationBarMediator instanceof BraveLocationBarMediator) {
+            return (BraveLocationBarMediator) mLocationBarMediator;
+        }
+        return null;
     }
 }

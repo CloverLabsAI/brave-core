@@ -17,6 +17,7 @@
 #include "base/test/task_environment.h"
 #include "brave/components/brave_ads/core/public/ads_client/ads_client_notifier.h"
 #include "brave/components/brave_ads/core/public/ads_client/ads_client_notifier_interface.h"
+#include "ui/base/page_transition_types.h"
 
 class GURL;
 
@@ -60,9 +61,6 @@ class AdsClientNotifierForTesting : public AdsClientNotifierInterface {
   void NotifyTabTextContentDidChange(int32_t tab_id,
                                      const std::vector<GURL>& redirect_chain,
                                      const std::string& text) override;
-  void NotifyTabHtmlContentDidChange(int32_t tab_id,
-                                     const std::vector<GURL>& redirect_chain,
-                                     const std::string& html) override;
   void NotifyTabDidStartPlayingMedia(int32_t tab_id) override;
   void NotifyTabDidStopPlayingMedia(int32_t tab_id) override;
   void NotifyTabDidChange(int32_t tab_id,
@@ -72,7 +70,8 @@ class AdsClientNotifierForTesting : public AdsClientNotifierInterface {
                           bool is_visible) override;
   void NotifyTabDidLoad(int32_t tab_id, int http_status_code) override;
   void NotifyDidCloseTab(int32_t tab_id) override;
-  void NotifyUserGestureEventTriggered(int32_t page_transition_type) override;
+  void NotifyUserGestureEventTriggered(
+      ui::PageTransition page_transition) override;
   void NotifyUserDidBecomeIdle() override;
   void NotifyUserDidBecomeActive(base::TimeDelta idle_time,
                                  bool screen_was_locked) override;

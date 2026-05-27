@@ -37,7 +37,6 @@ std::unique_ptr<HDKey> ConstructAccountsRootKey(base::span<const uint8_t> seed,
   }
 }
 
-#if BUILDFLAG(ENABLE_ORCHARD)
 std::unique_ptr<HDKeyZip32> ConstructOrchardAccountsRootKey(
     base::span<const uint8_t> seed,
     bool testnet) {
@@ -52,21 +51,21 @@ std::unique_ptr<HDKeyZip32> ConstructOrchardAccountsRootKey(
   return orchard_key->DeriveHardenedChild(
       testnet ? kTestnetCoinType : static_cast<uint32_t>(mojom::CoinType::ZEC));
 }
-#endif
 
 }  // namespace
 
-ZCashKeyring::ZCashKeyring(base::span<const uint8_t> seed,
-                           mojom::KeyringId keyring_id)
-    : keyring_id_(keyring_id) {
+ZCashKeyring::ZCashKeyring(
+    base::span<const uint8_t> seed,
+    mojom::KeyringId keyring_id,
+    base::RepeatingCallback<bool(const std::string&)> is_address_allowed)
+    : Secp256k1HDKeyring(std::move(is_address_allowed)),
+      keyring_id_(keyring_id) {
   CHECK(IsZCashKeyring(keyring_id));
   accounts_root_ = ConstructAccountsRootKey(seed, IsTestnet());
 
-#if BUILDFLAG(ENABLE_ORCHARD)
   if (!seed.empty() && IsZCashShieldedTransactionsEnabled()) {
     orchard_accounts_root_ = ConstructOrchardAccountsRootKey(seed, IsTestnet());
   }
-#endif
 }
 
 ZCashKeyring::~ZCashKeyring() = default;
@@ -106,7 +105,6 @@ std::optional<std::vector<uint8_t>> ZCashKeyring::GetPubkeyHash(
   return base::ToVector(Hash160(hd_key_base->GetPublicKeyBytes()));
 }
 
-#if BUILDFLAG(ENABLE_ORCHARD)
 std::unique_ptr<HDKeyZip32> ZCashKeyring::DeriveOrchardAccount(
     uint32_t index) const {
   if (!orchard_accounts_root_) {
@@ -205,8 +203,6 @@ std::optional<OrchardSpendingKey> ZCashKeyring::GetOrchardSpendingKey(
 
   return esk->GetSpendingKey();
 }
-
-#endif
 
 std::unique_ptr<HDKey> ZCashKeyring::DeriveAccount(uint32_t index) const {
   // Mainnet - m/44'/133'/{index}'

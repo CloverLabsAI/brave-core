@@ -12,6 +12,10 @@
 
 :host {
   --toolbar-button-height: 20px;
+  --cr-theme-color-max-width: 80px;
+  --cr-grid-template-columns: repeat(auto-fill, minmax(64px, 80px));
+  --cr-grid-width-override: 100%;
+  --cr-grid-justify-content: center;
 }
 
 #container {
@@ -22,7 +26,7 @@
   height: 60px;
 }
 
-sp-heading h2[slot="heading"] {
+sp-heading h2[slot='heading'] {
   --leo-icon-color: var(--leo-gradient-icons-active);
 
   display: flex;
@@ -51,6 +55,20 @@ sp-heading h2[slot="heading"] {
   color: var(--leo-color-text-interactive);
   font: var(--leo-font-components-button-small);
   line-height: var(--leo-typography-line-height-button-small);
+}
+
+.sp-card {
+  max-width: none;
+}
+
+customize-chrome-appearance,
+customize-chrome-shortcuts,
+customize-chrome-cards,
+customize-chrome-categories,
+customize-chrome-themes,
+customize-chrome-wallpaper-search,
+customize-chrome-toolbar {
+  max-width: none;
 }
 
 #shortcuts {

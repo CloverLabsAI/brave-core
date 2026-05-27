@@ -10,7 +10,7 @@
 #include "base/test/values_test_util.h"
 #include "brave/components/brave_ads/core/internal/common/test/test_base.h"
 #include "brave/components/brave_ads/core/internal/common/test/time_test_util.h"
-#include "brave/components/brave_ads/core/internal/history/ad_history_test_util.h"
+#include "brave/components/brave_ads/core/internal/history/test/ad_history_test_util.h"
 #include "brave/components/brave_ads/core/mojom/brave_ads.mojom.h"
 #include "brave/components/brave_ads/core/public/history/ad_history_item_info.h"
 
@@ -102,10 +102,10 @@ TEST_F(BraveAdsAdHistoryValueUtilTest, AdHistoryToValue) {
       test::BuildAdHistory(mojom::AdType::kNotificationAd,
                            {mojom::ConfirmationType::kViewedImpression,
                             mojom::ConfirmationType::kClicked},
-                           /*should_generate_random_uuids=*/false);
+                           /*use_random_uuids=*/false);
 
   // Act
-  const base::Value::List list = AdHistoryToValue(ad_history);
+  const base::ListValue list = AdHistoryToValue(ad_history);
 
   // Assert
   EXPECT_EQ(base::test::ParseJsonList(kAdHistoryAsJson), list);

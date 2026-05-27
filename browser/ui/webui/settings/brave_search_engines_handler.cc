@@ -32,7 +32,7 @@ constexpr char kBraveSearchForTorKeyword[] =
 
 // Put yahoo at first place.
 void SortDefaultSearchEnginesListInJP(
-    base::Value::List& defaults,
+    base::ListValue& defaults,
     regional_capabilities::RegionalCapabilitiesService* regional_capabilities) {
   // Only apply this logic for JP locale
   regional_capabilities::CountryIdHolder country_id =
@@ -87,8 +87,8 @@ void BraveSearchEnginesHandler::RegisterMessages() {
           base::Unretained(this)));
 }
 
-void BraveSearchEnginesHandler::OnModelChanged() {
-  SearchEnginesHandler::OnModelChanged();
+void BraveSearchEnginesHandler::OnTemplateURLServiceChanged() {
+  SearchEnginesHandler::OnTemplateURLServiceChanged();
 
   brave::UpdateDefaultPrivateSearchProviderData(*profile_);
 
@@ -99,21 +99,21 @@ void BraveSearchEnginesHandler::OnModelChanged() {
 }
 
 void BraveSearchEnginesHandler::HandleGetPrivateSearchEnginesList(
-    const base::Value::List& args) {
+    const base::ListValue& args) {
   CHECK_EQ(1U, args.size());
   AllowJavascript();
   ResolveJavascriptCallback(args[0], GetPrivateSearchEnginesList());
 }
 
-base::Value::List BraveSearchEnginesHandler::GetPrivateSearchEnginesList() {
+base::ListValue BraveSearchEnginesHandler::GetPrivateSearchEnginesList() {
   // Construct list with normal profile's default list.
   // Normal and Private profile use same default list.
   int last_default_engine_index =
       list_controller_.table_model()->last_search_engine_index();
-  base::Value::List defaults;
+  base::ListValue defaults;
 
   for (int i = 0; i < last_default_engine_index; ++i) {
-    const TemplateURL* template_url = list_controller_.GetTemplateURL(i);
+    TemplateURL* template_url = list_controller_.GetTemplateURLForIndex(i);
     // Don't show two brave search entries from settings to prevent confusion.
     // Hide brave search for tor entry from settings UI. User doesn't need to
     // select brave search tor entry for private profile.
@@ -122,13 +122,10 @@ base::Value::List BraveSearchEnginesHandler::GetPrivateSearchEnginesList() {
       continue;
     }
 
-    const std::string& default_private_search_provider_guid =
-        profile_->GetPrefs()->GetString(
-            prefs::kSyncedDefaultPrivateSearchProviderGUID);
-    const bool is_default =
-        default_private_search_provider_guid == template_url->sync_guid();
-
-    base::Value::Dict dict = CreateDictionaryForEngine(i, is_default);
+    base::DictValue dict = CreateDictionaryForEngine(template_url);
+    const std::string& default_private_guid = profile_->GetPrefs()->GetString(
+        prefs::kSyncedDefaultPrivateSearchProviderGUID);
+    dict.Set("default", default_private_guid == template_url->sync_guid());
     defaults.Append(std::move(dict));
   }
 
@@ -138,7 +135,7 @@ base::Value::List BraveSearchEnginesHandler::GetPrivateSearchEnginesList() {
 }
 
 void BraveSearchEnginesHandler::HandleSetDefaultPrivateSearchEngine(
-    const base::Value::List& args) {
+    const base::ListValue& args) {
   CHECK_EQ(1U, args.size());
   int index = args[0].GetInt();
   if (index < 0 || static_cast<size_t>(index) >=
@@ -153,10 +150,10 @@ void BraveSearchEnginesHandler::HandleSetDefaultPrivateSearchEngine(
       prefs::kSyncedDefaultPrivateSearchProviderGUID,
       template_url->sync_guid());
 
-  OnModelChanged();
+  OnTemplateURLServiceChanged();
 }
 
-base::Value::Dict BraveSearchEnginesHandler::GetSearchEnginesList() {
+base::DictValue BraveSearchEnginesHandler::GetSearchEnginesList() {
   auto search_engines_info = SearchEnginesHandler::GetSearchEnginesList();
   // Don't show two brave search entries from settings to prevent confusion.
   // Hide brave search for tor entry from settings UI. User doesn't need to

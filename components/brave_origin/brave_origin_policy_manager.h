@@ -69,6 +69,11 @@ class BraveOriginPolicyManager {
   // Check if the singleton has been initialized
   bool IsInitialized() const;
 
+  // Set/get the purchase state. When the purchase state changes,
+  // observers are notified to refresh policies.
+  void SetPurchased(bool purchased);
+  bool IsPurchased() const;
+
   // Helper function to get policy info from policy definitions
   const BraveOriginPolicyInfo* GetPolicyInfo(std::string_view policy_key) const;
 
@@ -88,10 +93,11 @@ class BraveOriginPolicyManager {
   // Internal helper to get policy value with policy key and default value
   bool GetPolicyValueInternal(std::string_view policy_key,
                               bool default_value,
-                              const base::Value::Dict& policies_dict,
+                              const base::DictValue& policies_dict,
                               std::optional<std::string_view> profile_id) const;
 
   bool initialized_ = false;
+  bool is_purchased_ = false;
   BraveOriginPolicyMap browser_policy_definitions_;
   BraveOriginPolicyMap profile_policy_definitions_;
   raw_ptr<PrefService> local_state_ = nullptr;

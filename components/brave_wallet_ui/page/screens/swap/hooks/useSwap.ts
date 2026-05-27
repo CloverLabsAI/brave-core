@@ -14,7 +14,6 @@ import { SwapAndSendOptions } from '../../../../options/swap-and-send-options'
 import { useJupiter } from './useJupiter'
 import { useZeroEx } from './useZeroEx'
 import { useLifi } from './useLifi'
-import { useSquid } from './useSquid'
 import { useGate3 } from './useGate3'
 import { useDebouncedCallback } from './useDebouncedCallback'
 import {
@@ -55,9 +54,6 @@ import {
   getLiFiQuoteOptions,
   getLiFiFromAmount,
   getLiFiToAmount,
-  getSquidFromAmount,
-  getSquidToAmount,
-  getSquidQuoteOptions,
   getGate3FromAmount,
   getGate3ToAmount,
   getGate3QuoteOptions,
@@ -72,6 +68,7 @@ import {
   useGetSwapSupportedNetworksQuery,
   useGetTokenSpotPricesQuery,
   useGenerateSwapQuoteMutation,
+  useGetZCashAccountInfoQuery,
 } from '../../../../common/slices/api.slice'
 import { querySubscriptionOptions60s } from '../../../../common/slices/constants'
 import { AccountInfoEntity } from '../../../../common/slices/entities/account-info.entity'
@@ -105,17 +102,20 @@ const getTokenFromParam = (
   contractOrSymbol: string,
   network: BraveWallet.NetworkInfo,
   tokenList: BraveWallet.BlockchainToken[],
+  isShielded: boolean,
 ) => {
   return tokenList.find(
     (token) =>
       (token.chainId === network.chainId
         && token.coin === network.coin
         && token.contractAddress.toLowerCase()
-          === contractOrSymbol.toLowerCase())
+          === contractOrSymbol.toLowerCase()
+        && token.isShielded === isShielded)
       || (token.chainId === network.chainId
         && token.coin === network.coin
         && token.contractAddress === ''
-        && token.symbol.toLowerCase() === contractOrSymbol.toLowerCase()),
+        && token.symbol.toLowerCase() === contractOrSymbol.toLowerCase()
+        && token.isShielded === isShielded),
   )
 }
 
@@ -132,6 +132,43 @@ const getAssetBalance = (
     getBalance(fromAccount.accountId, token, tokenBalancesRegistry),
   )
 }
+
+// Coin types supported by each provider for swaps (same-chain)
+const swapProviderCoins = new Map<
+  BraveWallet.SwapProvider,
+  BraveWallet.CoinType[]
+>([
+  [BraveWallet.SwapProvider.kJupiter, [BraveWallet.CoinType.SOL]],
+  [BraveWallet.SwapProvider.kLiFi, [BraveWallet.CoinType.ETH]],
+  [BraveWallet.SwapProvider.kZeroEx, [BraveWallet.CoinType.ETH]],
+  [BraveWallet.SwapProvider.kSquid, [BraveWallet.CoinType.ETH]],
+  [
+    BraveWallet.SwapProvider.kNearIntents,
+    [BraveWallet.CoinType.ETH, BraveWallet.CoinType.SOL],
+  ],
+])
+
+// Coin types supported by each provider for bridges (cross-chain)
+const bridgeProviderCoins = new Map<
+  BraveWallet.SwapProvider,
+  BraveWallet.CoinType[]
+>([
+  [
+    BraveWallet.SwapProvider.kLiFi,
+    [BraveWallet.CoinType.ETH, BraveWallet.CoinType.SOL],
+  ],
+  [BraveWallet.SwapProvider.kSquid, [BraveWallet.CoinType.ETH]],
+  [
+    BraveWallet.SwapProvider.kNearIntents,
+    [
+      BraveWallet.CoinType.ETH,
+      BraveWallet.CoinType.SOL,
+      BraveWallet.CoinType.BTC,
+      BraveWallet.CoinType.ZEC,
+      BraveWallet.CoinType.ADA,
+    ],
+  ],
+])
 
 export const useSwap = () => {
   // routing
@@ -165,7 +202,15 @@ export const useSwap = () => {
     receiveAddress: fromAccountAddress,
     isFetchingAddress: isFetchingFromAccountAddress,
   } = useReceiveAddressQuery(fromAccount?.accountId)
-  const needsAddressResolution = useMemo(() => {
+  const { data: fromZCashAccountInfo } = useGetZCashAccountInfoQuery(
+    fromAccount?.accountId.coin === BraveWallet.CoinType.ZEC
+      ? fromAccount.accountId
+      : skipToken,
+  )
+  const { data: toZCashAccountInfo } = useGetZCashAccountInfoQuery(
+    toAccountId?.coin === BraveWallet.CoinType.ZEC ? toAccountId : skipToken,
+  )
+  const needsBaseAddressResolution = useMemo(() => {
     const needsToAddressResolution =
       toAccountId
       && !toAccountId.address
@@ -261,12 +306,29 @@ export const useSwap = () => {
       return
     }
 
+    const fromIsShielded = query.get('fromIsShielded') === 'true'
     return getTokenFromParam(
       fromContractOrSymbolFromParams,
       fromNetwork,
       fullTokenList,
+      fromIsShielded,
     )
-  }, [fullTokenList, fromContractOrSymbolFromParams, fromNetwork])
+  }, [fullTokenList, fromContractOrSymbolFromParams, fromNetwork, query])
+
+  const effectiveFromAccountAddress = useMemo(() => {
+    if (fromToken?.isShielded && fromZCashAccountInfo?.orchardAddress) {
+      return fromZCashAccountInfo.orchardAddress
+    }
+    return fromAccountAddress
+  }, [fromToken?.isShielded, fromZCashAccountInfo, fromAccountAddress])
+
+  const needsShieldedFromAddressResolution = useMemo(() => {
+    return (
+      fromToken?.isShielded
+      && fromAccount?.accountId.coin === BraveWallet.CoinType.ZEC
+      && !fromZCashAccountInfo?.orchardAddress
+    )
+  }, [fromToken?.isShielded, fromAccount, fromZCashAccountInfo])
 
   const toToken = useMemo(() => {
     const contractOrSymbol = query.get('toToken')
@@ -274,8 +336,41 @@ export const useSwap = () => {
       return
     }
 
-    return getTokenFromParam(contractOrSymbol, toNetwork, fullTokenList)
+    const toIsShielded = query.get('toIsShielded') === 'true'
+    return getTokenFromParam(
+      contractOrSymbol,
+      toNetwork,
+      fullTokenList,
+      toIsShielded,
+    )
   }, [fullTokenList, query, toNetwork])
+
+  const effectiveToAccountAddress = useMemo(() => {
+    if (toToken?.isShielded && toZCashAccountInfo?.orchardAddress) {
+      return toZCashAccountInfo.orchardAddress
+    }
+    return toAccountAddress
+  }, [toToken?.isShielded, toZCashAccountInfo, toAccountAddress])
+
+  const needsShieldedToAddressResolution = useMemo(() => {
+    return (
+      toToken?.isShielded
+      && toAccountId?.coin === BraveWallet.CoinType.ZEC
+      && !toZCashAccountInfo?.orchardAddress
+    )
+  }, [toToken?.isShielded, toAccountId, toZCashAccountInfo])
+
+  const needsAddressResolution = useMemo(() => {
+    return (
+      needsBaseAddressResolution
+      || needsShieldedFromAddressResolution
+      || needsShieldedToAddressResolution
+    )
+  }, [
+    needsBaseAddressResolution,
+    needsShieldedFromAddressResolution,
+    needsShieldedToAddressResolution,
+  ])
 
   const nativeAsset = useMemo(
     () => makeNetworkAsset(fromNetwork),
@@ -288,9 +383,10 @@ export const useSwap = () => {
         ? {
             network: fromNetwork,
             accounts: [fromAccount],
-            tokens: isNativeAsset(fromToken)
-              ? [nativeAsset]
-              : [nativeAsset, fromToken],
+            tokens:
+              isNativeAsset(fromToken) && !fromToken.isShielded
+                ? [nativeAsset]
+                : [nativeAsset, fromToken],
           }
         : skipToken,
     )
@@ -352,15 +448,6 @@ export const useSwap = () => {
       })
     }
 
-    if (quoteUnion.squidQuote) {
-      return getSquidQuoteOptions({
-        quote: quoteUnion.squidQuote,
-        fromNetwork,
-        spotPrices,
-        defaultFiatCurrency,
-      })
-    }
-
     if (quoteUnion.gate3Quote) {
       return getGate3QuoteOptions({
         quote: quoteUnion.gate3Quote,
@@ -392,8 +479,8 @@ export const useSwap = () => {
       toToken,
       toAmount: editingFromOrToAmount === 'to' ? toAmount : '',
       slippageTolerance,
-      fromAccountAddress,
-      toAccountAddress,
+      fromAccountAddress: effectiveFromAccountAddress,
+      toAccountAddress: effectiveToAccountAddress,
       needsAddressResolution,
     }
   }, [
@@ -406,8 +493,8 @@ export const useSwap = () => {
     toToken,
     toAmount,
     slippageTolerance,
-    fromAccountAddress,
-    toAccountAddress,
+    effectiveFromAccountAddress,
+    effectiveToAccountAddress,
     needsAddressResolution,
   ])
 
@@ -419,7 +506,6 @@ export const useSwap = () => {
   const jupiter = useJupiter(swapProviderHookParams)
   const zeroEx = useZeroEx(swapProviderHookParams)
   const lifi = useLifi(swapProviderHookParams)
-  const squid = useSquid(swapProviderHookParams)
   const gate3 = useGate3(swapProviderHookParams)
   const { approveSpendAllowance, checkAllowance, hasAllowance } =
     useTokenAllowance()
@@ -538,8 +624,13 @@ export const useSwap = () => {
         quoteResponse = await generateSwapQuote({
           fromAccountId: {
             ...fromAccount.accountId,
-            // Use fetched address for UTXO accounts where address field is empty
-            address: fromAccount.accountId.address || fromAccountAddress || '',
+            // Use fetched address for UTXO accounts where address field is empty.
+            // For shielded ZEC, this will be the orchard address for correct
+            // refund routing.
+            address:
+              fromAccount.accountId.address
+              || effectiveFromAccountAddress
+              || '',
           },
           fromChainId: params.fromToken.chainId,
           fromAmount:
@@ -552,7 +643,8 @@ export const useSwap = () => {
           toAccountId: params.toAccountId && {
             ...params.toAccountId,
             // Use fetched address for UTXO accounts where address field is empty
-            address: params.toAccountId.address || toAccountAddress || '',
+            address:
+              params.toAccountId.address || effectiveToAccountAddress || '',
           },
           toChainId: params.toToken.chainId,
           toAmount:
@@ -667,31 +759,6 @@ export const useSwap = () => {
           })
         }
 
-        if (quoteResponse.response.squidQuote) {
-          if (params.editingFromOrToAmount === 'from') {
-            setToAmount(
-              getSquidToAmount({
-                quote: quoteResponse.response.squidQuote,
-                toToken: params.toToken,
-              }).format(6),
-            )
-          } else {
-            setFromAmount(
-              getSquidFromAmount({
-                quote: quoteResponse.response.squidQuote,
-                fromToken: params.fromToken,
-              }).format(6),
-            )
-          }
-
-          await checkAllowance({
-            account: fromAccount,
-            spendAmount: fromAssetBalance.format(),
-            spenderAddress: quoteResponse.response.squidQuote.allowanceTarget,
-            token: params.fromToken,
-          })
-        }
-
         if (quoteResponse.response.gate3Quote) {
           const { routes } = quoteResponse.response.gate3Quote
 
@@ -751,9 +818,9 @@ export const useSwap = () => {
     },
     [
       fromAccount,
-      fromAccountAddress,
+      effectiveFromAccountAddress,
       toAccountId,
-      toAccountAddress,
+      effectiveToAccountAddress,
       needsAddressResolution,
       fromNetwork,
       fromAmount,
@@ -821,12 +888,23 @@ export const useSwap = () => {
     if (!fromAccount || !toAccount || !fromToken || !toToken) {
       return
     }
+
+    // After flip: newFrom = oldTo, newTo = oldFrom
+    // Route type based on whether these are same network
+    const isSameNetwork = toToken.chainId === fromToken.chainId
+    const routeType = isSameNetwork ? 'swap' : 'bridge'
+
+    // Check coin compatibility for the flipped positions:
+    // - toAccount becomes new fromAccount, must be able to hold toToken (new fromToken)
+    // - fromAccount becomes new toAccount, must be able to hold fromToken (new toToken)
     if (
-      !isBridge
-      && (fromAccount.accountId.coin !== toToken.coin
-        || toAccountId?.coin !== fromToken.coin)
+      toAccount.accountId.coin !== toToken.coin
+      || fromAccount.accountId.coin !== fromToken.coin
     ) {
-      history.replace(WalletRoutes.Swap)
+      // Incompatible coins - clear params
+      history.replace(
+        routeType === 'bridge' ? WalletRoutes.Bridge : WalletRoutes.Swap,
+      )
     } else {
       history.replace(
         makeSwapOrBridgeRoute({
@@ -834,7 +912,7 @@ export const useSwap = () => {
           fromAccount: toAccount,
           toToken: fromToken,
           toAccountId: fromAccount.accountId,
-          routeType: isBridge ? 'bridge' : 'swap',
+          routeType,
         }),
       )
     }
@@ -844,10 +922,8 @@ export const useSwap = () => {
     toAccount,
     fromToken,
     toToken,
-    toAccountId,
     handleOnSetFromAmount,
     history,
-    isBridge,
   ])
 
   // Changing the To asset does the following:
@@ -866,13 +942,18 @@ export const useSwap = () => {
         return
       }
       setEditingFromOrToAmount('from')
+
+      // Dynamic route type: same network = swap, different network = bridge
+      const isSameNetwork = fromToken.chainId === token.chainId
+      const routeType = isSameNetwork ? 'swap' : 'bridge'
+
       history.replace(
         makeSwapOrBridgeRoute({
           fromToken,
           fromAccount,
           toToken: token,
           toAccountId: account?.accountId,
-          routeType: isBridge ? 'bridge' : 'swap',
+          routeType,
         }),
       )
       setSelectingFromOrTo(undefined)
@@ -885,14 +966,7 @@ export const useSwap = () => {
         toAccountId: account?.accountId,
       })
     },
-    [
-      fromToken,
-      fromAccount,
-      history,
-      isBridge,
-      reset,
-      handleQuoteRefreshInternal,
-    ],
+    [fromToken, fromAccount, history, reset, handleQuoteRefreshInternal],
   )
 
   // Changing the From asset does the following:
@@ -910,45 +984,26 @@ export const useSwap = () => {
       }
       setEditingFromOrToAmount('from')
 
-      if (isBridge) {
-        history.replace(
-          makeSwapOrBridgeRoute({
-            fromToken: token,
-            fromAccount: account,
-            toToken,
-            toAccountId,
-            routeType: 'bridge',
-          }),
-        )
-        setSelectingFromOrTo(undefined)
-        setFromAmount('')
-        setToAmount('')
-        reset()
-        return
+      // Dynamic route type based on whether toToken exists and network comparison
+      // If no toToken, preserve current mode (stay on bridge if already on bridge)
+      // If toToken exists: same network = swap, different network = bridge
+      let routeType: 'swap' | 'bridge'
+      if (toToken) {
+        routeType = toToken.chainId !== token.chainId ? 'bridge' : 'swap'
+      } else {
+        // No toToken yet, preserve current mode
+        routeType = isBridge ? 'bridge' : 'swap'
       }
 
-      // For regular Swaps we check that the toToken
-      // and the incoming fromToken are on the same network.
-      // If not we clear the toToken from params.
-      if (toToken && toToken.chainId === token.chainId) {
-        history.replace(
-          makeSwapOrBridgeRoute({
-            fromToken: token,
-            fromAccount: account,
-            toToken,
-            toAccountId,
-            routeType: 'swap',
-          }),
-        )
-      } else {
-        history.replace(
-          makeSwapOrBridgeRoute({
-            fromToken: token,
-            fromAccount: account,
-            routeType: 'swap',
-          }),
-        )
-      }
+      history.replace(
+        makeSwapOrBridgeRoute({
+          fromToken: token,
+          fromAccount: account,
+          toToken,
+          toAccountId,
+          routeType,
+        }),
+      )
       setSelectingFromOrTo(undefined)
       setFromAmount('')
       setToAmount('')
@@ -1030,45 +1085,20 @@ export const useSwap = () => {
       return [BraveWallet.SwapProvider.kAuto]
     }
 
-    const hasSolInFillPath =
-      fromToken?.coin === BraveWallet.CoinType.SOL
-      || toToken?.coin === BraveWallet.CoinType.SOL
+    const providerCoins = isBridge ? bridgeProviderCoins : swapProviderCoins
+    const providers: BraveWallet.SwapProvider[] = [
+      BraveWallet.SwapProvider.kAuto,
+    ]
 
-    const hasEthInFillPath =
-      fromToken?.coin === BraveWallet.CoinType.ETH
-      || toToken?.coin === BraveWallet.CoinType.ETH
-
-    if (!isBridge && hasSolInFillPath) {
-      return [BraveWallet.SwapProvider.kAuto, BraveWallet.SwapProvider.kJupiter]
+    for (const [provider, coins] of providerCoins) {
+      const fromSupported = fromToken ? coins.includes(fromToken.coin) : true
+      const toSupported = toToken ? coins.includes(toToken.coin) : true
+      if (fromSupported && toSupported) {
+        providers.push(provider)
+      }
     }
 
-    if (!isBridge && hasEthInFillPath) {
-      return [
-        BraveWallet.SwapProvider.kAuto,
-        BraveWallet.SwapProvider.kLiFi,
-        BraveWallet.SwapProvider.kZeroEx,
-        BraveWallet.SwapProvider.kSquid,
-      ]
-    }
-
-    if (isBridge && hasSolInFillPath) {
-      return [
-        BraveWallet.SwapProvider.kAuto,
-        BraveWallet.SwapProvider.kLiFi,
-        BraveWallet.SwapProvider.kNearIntents,
-      ]
-    }
-
-    if (isBridge && hasEthInFillPath) {
-      return [
-        BraveWallet.SwapProvider.kAuto,
-        BraveWallet.SwapProvider.kLiFi,
-        BraveWallet.SwapProvider.kSquid,
-        BraveWallet.SwapProvider.kNearIntents,
-      ]
-    }
-
-    return [BraveWallet.SwapProvider.kAuto]
+    return providers
   }, [isBridge, fromToken, toToken])
 
   const swapValidationError: SwapValidationErrorType | undefined =
@@ -1145,14 +1175,6 @@ export const useSwap = () => {
           : 'unknownError'
       }
 
-      if (quoteErrorUnion?.squidError) {
-        if (quoteErrorUnion.squidError.isInsufficientLiquidity) {
-          return 'insufficientLiquidity'
-        }
-
-        return 'unknownError'
-      }
-
       // Gate3 specific validations
       if (quoteErrorUnion?.gate3Error) {
         if (
@@ -1160,6 +1182,34 @@ export const useSwap = () => {
           === BraveWallet.Gate3SwapErrorKind.kInsufficientLiquidity
         ) {
           return 'insufficientLiquidity'
+        }
+
+        if (
+          quoteErrorUnion.gate3Error.kind
+          === BraveWallet.Gate3SwapErrorKind.kAmountTooLow
+        ) {
+          return 'amountTooLow'
+        }
+
+        if (
+          quoteErrorUnion.gate3Error.kind
+          === BraveWallet.Gate3SwapErrorKind.kUnsupportedNetwork
+        ) {
+          return 'unsupportedNetwork'
+        }
+
+        if (
+          quoteErrorUnion.gate3Error.kind
+          === BraveWallet.Gate3SwapErrorKind.kUnsupportedTokens
+        ) {
+          return 'unsupportedTokens'
+        }
+
+        if (
+          quoteErrorUnion.gate3Error.kind
+          === BraveWallet.Gate3SwapErrorKind.kInvalidRequest
+        ) {
+          return 'invalidRequest'
         }
 
         return 'unknownError'
@@ -1189,9 +1239,7 @@ export const useSwap = () => {
 
       // EVM specific validations
       if (
-        (quoteUnion?.zeroExQuote
-          || quoteUnion?.lifiQuote
-          || quoteUnion?.squidQuote)
+        (quoteUnion?.zeroExQuote || quoteUnion?.lifiQuote)
         && fromToken.coin === BraveWallet.CoinType.ETH
         && fromToken.contractAddress
         && !hasAllowance
@@ -1229,7 +1277,6 @@ export const useSwap = () => {
       quoteUnion?.zeroExQuote,
       quoteUnion?.lifiQuote,
       quoteUnion?.jupiterQuote?.routePlan.length,
-      quoteUnion?.squidQuote,
       quoteUnion?.gate3Quote,
       hasAllowance,
       quoteErrorUnion,
@@ -1321,28 +1368,6 @@ export const useSwap = () => {
       }
     }
 
-    if (quoteUnion.squidQuote) {
-      if (hasAllowance) {
-        const error = await squid.exchange()
-        if (error) {
-          console.log('squid.exchange error', error.squidError)
-          setQuoteErrorUnion(error)
-        } else {
-          setFromAmount('')
-          setToAmount('')
-          reset()
-        }
-      } else {
-        await approveSpendAllowance({
-          account: fromAccount,
-          network: fromNetwork,
-          spenderAddress: quoteUnion.squidQuote.allowanceTarget,
-          token: fromToken,
-          spendAmount: fromAssetBalance.format(),
-        })
-      }
-    }
-
     if (quoteUnion.gate3Quote) {
       const route = selectedQuoteOptionId
         ? quoteUnion.gate3Quote.routes.find(
@@ -1397,7 +1422,6 @@ export const useSwap = () => {
     approveSpendAllowance,
     lifi,
     jupiter,
-    squid,
     gate3,
   ])
 
@@ -1463,6 +1487,22 @@ export const useSwap = () => {
       return getLocale('braveSwapInsufficientLiquidity')
     }
 
+    if (swapValidationError === 'amountTooLow') {
+      return getLocale('braveSwapAmountTooLow')
+    }
+
+    if (swapValidationError === 'unsupportedNetwork') {
+      return getLocale('braveSwapUnsupportedNetwork')
+    }
+
+    if (swapValidationError === 'unsupportedTokens') {
+      return getLocale('braveSwapUnsupportedTokens')
+    }
+
+    if (swapValidationError === 'invalidRequest') {
+      return getLocale('braveSwapInvalidRequest')
+    }
+
     if (swapValidationError === 'unknownError') {
       return getLocale('braveWalletSwapUnknownError')
     }
@@ -1507,7 +1547,7 @@ export const useSwap = () => {
       || (swapValidationError
         && fromNetwork.coin === BraveWallet.CoinType.ETH
         && swapValidationError !== 'insufficientAllowance')
-      || (swapValidationError && fromNetwork.coin === BraveWallet.CoinType.SOL)
+      || (swapValidationError && fromNetwork.coin !== BraveWallet.CoinType.ETH)
     )
   }, [
     fromNetwork,

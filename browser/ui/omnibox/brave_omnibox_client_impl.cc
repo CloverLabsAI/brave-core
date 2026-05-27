@@ -17,6 +17,9 @@
 #include "brave/components/brave_rewards/core/pref_names.h"
 #include "brave/components/brave_search_conversion/p3a.h"
 #include "brave/components/brave_search_conversion/utils.h"
+#include "brave/components/misc_metrics/brave_search_metrics.h"
+#include "brave/components/misc_metrics/navigation_source_metrics.h"
+#include "brave/components/misc_metrics/page_metrics.h"
 #include "brave/components/omnibox/browser/brave_omnibox_prefs.h"
 #include "brave/components/omnibox/browser/promotion_utils.h"
 #include "brave/components/p3a_utils/bucket.h"
@@ -82,15 +85,26 @@ BraveOmniboxClientImpl::BraveOmniboxClientImpl(LocationBar* location_bar,
   // Record initial search count p3a value.
   RecordSearchEventP3A();
 
-#if BUILDFLAG(ENABLE_AI_CHAT)
   auto* profile_metrics =
       misc_metrics::ProfileMiscMetricsServiceFactory::GetServiceForContext(
           profile);
   if (profile_metrics) {
+#if BUILDFLAG(ENABLE_AI_CHAT)
     ai_chat_metrics_ = profile_metrics->GetAIChatMetrics();
     CHECK(ai_chat_metrics_);
-  }
 #endif
+  }
+
+  auto* original_profile_metrics =
+      misc_metrics::ProfileMiscMetricsServiceFactory::GetServiceForContext(
+          profile->GetOriginalProfile());
+  if (original_profile_metrics) {
+    auto* page_metrics = original_profile_metrics->GetPageMetrics();
+    if (page_metrics) {
+      brave_search_metrics_ = &page_metrics->brave_search_metrics();
+      navigation_source_metrics_ = &page_metrics->navigation_source_metrics();
+    }
+  }
 
   pref_change_registrar_.Init(profile_->GetPrefs());
   pref_change_registrar_.Add(
@@ -150,7 +164,34 @@ void BraveOmniboxClientImpl::OnAutocompleteAccept(
       ai_chat_metrics_->RecordOmniboxSearchQuery();
     }
 #endif
+
+    // Record omnibox entry type for Brave Search queries
+    if (brave_search_metrics_) {
+      bool is_suggestion =
+          match.type != AutocompleteMatchType::SEARCH_WHAT_YOU_TYPED;
+      brave_search_metrics_->MaybeRecordOmniboxQuery(destination_url,
+                                                     is_suggestion);
+    }
   }
+  if (navigation_source_metrics_ && destination_url.SchemeIsHTTPOrHTTPS()) {
+    switch (match.type) {
+      case AutocompleteMatchType::URL_WHAT_YOU_TYPED:
+        navigation_source_metrics_->RecordDirectNavigation();
+        break;
+      case AutocompleteMatchType::HISTORY_URL:
+      case AutocompleteMatchType::HISTORY_TITLE:
+      case AutocompleteMatchType::HISTORY_BODY:
+      case AutocompleteMatchType::HISTORY_KEYWORD:
+        navigation_source_metrics_->RecordHistoryNavigation();
+        break;
+      case AutocompleteMatchType::BOOKMARK_TITLE:
+        navigation_source_metrics_->RecordBookmarkNavigation();
+        break;
+      default:
+        break;
+    }
+  }
+
   ChromeOmniboxClient::OnAutocompleteAccept(
       destination_url, post_content, disposition, transition, match_type,
       match_selection_timestamp, destination_url_entered_without_scheme,

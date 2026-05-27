@@ -7,8 +7,10 @@ import * as React from 'react'
 import Button from '@brave/leo/react/button'
 import Icon from '@brave/leo/react/icon'
 import { Redirect, useParams, useHistory } from 'react-router'
-import { useDispatch } from 'react-redux'
 import { skipToken } from '@reduxjs/toolkit/query/react'
+
+// redux
+import { useAppDispatch } from '../../../../common/hooks/use-redux'
 
 // Selectors
 import {
@@ -117,7 +119,6 @@ import {
   useGetVisibleNetworksQuery,
   useGetUserTokensRegistryQuery,
   useGetTransactionsQuery,
-  useGetTokenSpotPricesQuery,
   useStartShieldSyncMutation,
   useGetChainTipStatusQuery,
   useGetZCashAccountInfoQuery,
@@ -129,6 +130,9 @@ import {
 import {
   querySubscriptionOptions60s, //
 } from '../../../../common/slices/constants'
+import {
+  usePersistedTokenSpotPricesQuery, //
+} from '../../../../common/hooks/use-persisted-spot-prices'
 import {
   useBalancesFetcher, //
 } from '../../../../common/hooks/use-balances-fetcher'
@@ -187,7 +191,7 @@ export const Account = () => {
   const history = useHistory()
 
   // redux
-  const dispatch = useDispatch()
+  const dispatch = useAppDispatch()
 
   // queries
   const { accounts } = useAccountsQuery()
@@ -437,7 +441,7 @@ export const Account = () => {
   )
 
   const { data: spotPrices = [], isLoading: isLoadingSpotPrices } =
-    useGetTokenSpotPricesQuery(
+    usePersistedTokenSpotPricesQuery(
       tokenPriceRequests.length && defaultFiatCurrency
         ? { requests: tokenPriceRequests, vsCurrency: defaultFiatCurrency }
         : skipToken,

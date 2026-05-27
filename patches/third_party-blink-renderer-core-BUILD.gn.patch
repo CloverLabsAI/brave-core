@@ -1,8 +1,8 @@
 diff --git a/third_party/blink/renderer/core/BUILD.gn b/third_party/blink/renderer/core/BUILD.gn
-index 0813930230f26..a31901d2588c7 100644
+index e90757c2962fccbdfeff5842b0805e51ed8eb152..a777cb1cc7698982ed795fba25a87642057cdc23 100644
 --- a/third_party/blink/renderer/core/BUILD.gn
 +++ b/third_party/blink/renderer/core/BUILD.gn
-@@ -407,6 +407,7 @@ component("core") {
+@@ -406,6 +406,7 @@ component("core") {
      ":make_deprecation_info",
      ":xml_ffi",
      "//base",
@@ -10,7 +10,7 @@ index 0813930230f26..a31901d2588c7 100644
      "//components/attribution_reporting",
      "//components/attribution_reporting:mojom_blink",
      "//components/paint_preview/common",
-@@ -477,6 +478,7 @@ component("core") {
+@@ -476,6 +477,7 @@ component("core") {
        "Carbon.framework",
      ]
    }

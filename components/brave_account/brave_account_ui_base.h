@@ -10,11 +10,14 @@
 
 #include "base/check.h"
 #include "base/check_deref.h"
+#include "base/containers/map_util.h"
 #include "base/containers/span.h"
 #include "base/functional/callback_forward.h"
 #include "base/functional/callback_helpers.h"
 #include "base/memory/raw_ref.h"
+#include "brave/components/brave_account/brave_account_constants.h"
 #include "brave/components/brave_account/brave_account_service.h"
+#include "brave/components/brave_account/brave_account_utils.h"
 #include "brave/components/brave_account/features.h"
 #include "brave/components/brave_account/mojom/brave_account.mojom.h"
 #include "brave/components/brave_account/resources/grit/brave_account_resources.h"
@@ -23,12 +26,12 @@
 #include "brave/components/password_strength_meter/password_strength_meter.h"
 #include "brave/components/password_strength_meter/password_strength_meter.mojom.h"
 #include "components/grit/brave_components_resources.h"
-#include "components/grit/brave_components_strings.h"
+#include "components/grit/brave_components_webui_strings.h"
 #include "mojo/public/cpp/bindings/pending_receiver.h"
+#include "net/base/url_util.h"
 #include "services/network/public/mojom/content_security_policy.mojom.h"
-#include "ui/base/l10n/l10n_util.h"
 #include "ui/base/webui/resource_path.h"
-#include "ui/base/webui/web_ui_util.h"
+#include "url/gurl.h"
 
 // Template base class for Brave Account WebUI controllers.
 //
@@ -44,6 +47,7 @@ class BraveAccountUIBase {
   template <typename Profile>
   explicit BraveAccountUIBase(
       Profile* profile,
+      const GURL& url,
       base::OnceCallback<void(WebUIDataSource*,
                               base::span<const webui::ResourcePath>,
                               int)> setup_webui_data_source = base::DoNothing())
@@ -55,7 +59,7 @@ class BraveAccountUIBase {
     std::move(setup_webui_data_source)
         .Run(source, kBraveAccountResources,
              IDR_BRAVE_ACCOUNT_BRAVE_ACCOUNT_PAGE_HTML);
-    SetupWebUIDataSource(source);
+    SetupWebUIDataSource(source, url);
   }
 
   void BindInterface(mojo::PendingReceiver<brave_account::mojom::Authentication>
@@ -70,14 +74,7 @@ class BraveAccountUIBase {
   }
 
  private:
-  static inline constexpr char16_t kBraveAccountSelfCustodyLearnMoreURL[] =
-      u"https://search.brave.com";
-  static inline constexpr char16_t kBraveAccountTermsOfServiceURL[] =
-      u"https://brave.com/terms-of-use/";
-  static inline constexpr char16_t kBraveAccountPrivacyAgreementURL[] =
-      u"https://brave.com/privacy/browser/";
-
-  void SetupWebUIDataSource(WebUIDataSource* source) {
+  void SetupWebUIDataSource(WebUIDataSource* source, const GURL& url) {
     source->OverrideContentSecurityPolicy(
         network::mojom::CSPDirectiveName::ScriptSrc,
         "script-src chrome://resources 'self' 'wasm-unsafe-eval';");
@@ -92,106 +89,23 @@ class BraveAccountUIBase {
     source->EnableReplaceI18nInJS();
 
     source->AddResourcePaths(kBraveAccountResources);
-    source->AddResourcePath("", IDR_BRAVE_ACCOUNT_BRAVE_ACCOUNT_PAGE_HTML);
+    source->SetDefaultResource(IDR_BRAVE_ACCOUNT_BRAVE_ACCOUNT_PAGE_HTML);
 
-    static constexpr webui::LocalizedString kStrings[] = {
-        {"braveAccountPageTitle", IDS_BRAVE_ACCOUNT_PAGE_TITLE},
-        // 'Entry' dialog:
-        {"braveAccountEntryDialogTitle", IDS_BRAVE_ACCOUNT_ENTRY_DIALOG_TITLE},
-        {"braveAccountEntryDialogDescription",
-         IDS_BRAVE_ACCOUNT_ENTRY_DIALOG_DESCRIPTION},
-        {"braveAccountCreateBraveAccountButtonLabel",
-         IDS_BRAVE_ACCOUNT_ENTRY_DIALOG_CREATE_BRAVE_ACCOUNT_BUTTON_LABEL},
-        {"braveAccountAlreadyHaveAccountSignInButtonLabel",
-         IDS_BRAVE_ACCOUNT_ALREADY_HAVE_ACCOUNT_SIGN_IN_BUTTON_LABEL},
-        {"braveAccountSelfCustodyButtonLabel",
-         IDS_BRAVE_ACCOUNT_SELF_CUSTODY_BUTTON_LABEL},
-        // 'Create' dialog:
-        {"braveAccountCreateDialogTitle",
-         IDS_BRAVE_ACCOUNT_CREATE_DIALOG_TITLE},
-        {"braveAccountCreateDialogDescription",
-         IDS_BRAVE_ACCOUNT_CREATE_DIALOG_DESCRIPTION},
-        {"braveAccountEmailInputErrorMessage",
-         IDS_BRAVE_ACCOUNT_EMAIL_INPUT_ERROR_MESSAGE},
-        {"braveAccountCreatePasswordInputLabel",
-         IDS_BRAVE_ACCOUNT_CREATE_PASSWORD_INPUT_LABEL},
-        {"braveAccountPasswordStrengthMeterWeak",
-         IDS_BRAVE_ACCOUNT_PASSWORD_STRENGTH_METER_WEAK},
-        {"braveAccountPasswordStrengthMeterMedium",
-         IDS_BRAVE_ACCOUNT_PASSWORD_STRENGTH_METER_MEDIUM},
-        {"braveAccountPasswordStrengthMeterStrong",
-         IDS_BRAVE_ACCOUNT_PASSWORD_STRENGTH_METER_STRONG},
-        {"braveAccountConfirmPasswordInputLabel",
-         IDS_BRAVE_ACCOUNT_CONFIRM_PASSWORD_INPUT_LABEL},
-        {"braveAccountConfirmPasswordInputPlaceholder",
-         IDS_BRAVE_ACCOUNT_CONFIRM_PASSWORD_INPUT_PLACEHOLDER},
-        {"braveAccountConfirmPasswordInputErrorMessage",
-         IDS_BRAVE_ACCOUNT_CONFIRM_PASSWORD_INPUT_ERROR_MESSAGE},
-        {"braveAccountConfirmPasswordInputSuccessMessage",
-         IDS_BRAVE_ACCOUNT_CONFIRM_PASSWORD_INPUT_SUCCESS_MESSAGE},
-        {"braveAccountCreateAccountButtonLabel",
-         IDS_BRAVE_ACCOUNT_CREATE_ACCOUNT_BUTTON_LABEL},
-        // 'Sign In' dialog:
-        {"braveAccountSignInDialogTitle",
-         IDS_BRAVE_ACCOUNT_SIGN_IN_DIALOG_TITLE},
-        {"braveAccountSignInDialogDescription",
-         IDS_BRAVE_ACCOUNT_SIGN_IN_DIALOG_DESCRIPTION},
-        {"braveAccountPasswordInputLabel",
-         IDS_BRAVE_ACCOUNT_PASSWORD_INPUT_LABEL},
-        {"braveAccountForgotPasswordButtonLabel",
-         IDS_BRAVE_ACCOUNT_FORGOT_PASSWORD_BUTTON_LABEL},
-        {"braveAccountSignInButtonLabel",
-         IDS_BRAVE_ACCOUNT_SIGN_IN_BUTTON_LABEL},
-        // 'Forgot Password' dialog:
-        {"braveAccountForgotPasswordDialogTitle",
-         IDS_BRAVE_ACCOUNT_FORGOT_PASSWORD_DIALOG_TITLE},
-        {"braveAccountForgotPasswordDialogDescription",
-         IDS_BRAVE_ACCOUNT_FORGOT_PASSWORD_DIALOG_DESCRIPTION},
-        {"braveAccountAlertMessage", IDS_BRAVE_ACCOUNT_ALERT_MESSAGE},
-        {"braveAccountResetPasswordButtonLabel",
-         IDS_BRAVE_ACCOUNT_RESET_PASSWORD_BUTTON_LABEL},
-        // 'Error' dialog:
-        {"braveAccountErrorDialogTitle", IDS_BRAVE_ACCOUNT_ERROR_DIALOG_TITLE},
-        {"braveAccountErrorDialogDescription",
-         IDS_BRAVE_ACCOUNT_ERROR_DIALOG_DESCRIPTION},
-        {"braveAccountError", IDS_BRAVE_ACCOUNT_ERROR},
-        {"braveAccountClientError", IDS_BRAVE_ACCOUNT_CLIENT_ERROR},
-        {"braveAccountServerError", IDS_BRAVE_ACCOUNT_SERVER_ERROR},
-        {"braveAccountErrorDialogIncorrectEmail",
-         IDS_BRAVE_ACCOUNT_ERROR_DIALOG_INCORRECT_EMAIL},
-        {"braveAccountErrorDialogIncorrectPassword",
-         IDS_BRAVE_ACCOUNT_ERROR_DIALOG_INCORRECT_PASSWORD},
-        {"braveAccountErrorDialogAccountExists",
-         IDS_BRAVE_ACCOUNT_ERROR_DIALOG_ACCOUNT_EXISTS},
-        {"braveAccountErrorDialogEmailDomainNotSupported",
-         IDS_BRAVE_ACCOUNT_ERROR_DIALOG_EMAIL_DOMAIN_NOT_SUPPORTED},
-        {"braveAccountErrorDialogTooManyVerifications",
-         IDS_BRAVE_ACCOUNT_ERROR_DIALOG_TOO_MANY_VERIFICATIONS},
-        // Common:
-        {"braveAccountBackButtonLabel", IDS_BRAVE_ACCOUNT_BACK_BUTTON_LABEL},
-        {"braveAccountEmailInputLabel", IDS_BRAVE_ACCOUNT_EMAIL_INPUT_LABEL},
-        {"braveAccountEmailInputPlaceholder",
-         IDS_BRAVE_ACCOUNT_EMAIL_INPUT_PLACEHOLDER},
-        {"braveAccountPasswordInputPlaceholder",
-         IDS_BRAVE_ACCOUNT_PASSWORD_INPUT_PLACEHOLDER},
-    };
-
-    source->AddLocalizedStrings(kStrings);
-
-    source->AddString(
-        "braveAccountSelfCustodyDescription",
-        l10n_util::GetStringFUTF16(IDS_BRAVE_ACCOUNT_SELF_CUSTODY_DESCRIPTION,
-                                   kBraveAccountSelfCustodyLearnMoreURL));
-    source->AddString(
-        "braveAccountConsentCheckboxLabel",
-        l10n_util::GetStringFUTF16(IDS_BRAVE_ACCOUNT_CONSENT_CHECKBOX_LABEL,
-                                   kBraveAccountTermsOfServiceURL,
-                                   kBraveAccountPrivacyAgreementURL));
+    source->AddLocalizedStrings(webui::kBraveAccountStrings);
 
     source->AddResourcePath("full_brave_brand.svg",
                             IDR_BRAVE_ACCOUNT_IMAGES_FULL_BRAVE_BRAND_SVG);
     source->AddResourcePath("full_brave_brand_dark.svg",
                             IDR_BRAVE_ACCOUNT_IMAGES_FULL_BRAVE_BRAND_DARK_SVG);
+
+    if (std::string initiating_service_name; net::GetValueForKeyInQuery(
+            url, brave_account::kInitiatingServiceNameQueryParam,
+            &initiating_service_name)) {
+      source->AddInteger(
+          "initiatingService",
+          static_cast<int32_t>(CHECK_DEREF(base::FindOrNull(
+              brave_account::kServiceFromString, initiating_service_name))));
+    }
   }
 
  private:

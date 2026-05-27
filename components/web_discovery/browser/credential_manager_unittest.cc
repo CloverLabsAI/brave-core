@@ -11,6 +11,7 @@
 
 #include "base/base64.h"
 #include "base/files/file_util.h"
+#include "base/functional/callback_helpers.h"
 #include "base/json/json_writer.h"
 #include "base/path_service.h"
 #include "base/test/bind.h"
@@ -104,7 +105,7 @@ class WebDiscoveryCredentialManagerTest : public testing::Test {
     ASSERT_TRUE(join_responses_.contains(*ts));
     ASSERT_EQ(request.url.spec(), GetDirectHPNHost() + "/join");
 
-    base::Value::Dict dict;
+    base::DictValue dict;
     dict.Set("joinResponse", join_responses_.at(*ts));
     ASSERT_TRUE(
         base::JSONWriter::Write(base::Value(std::move(dict)), &response));

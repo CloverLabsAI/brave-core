@@ -10,75 +10,73 @@
     <PreferenceCategory
         android:key="brave_account_section"
         android:order="1"
-        android:title="@string/prefs_brave_account"/>
+        android:title="@string/brave_account_title"/>
     <org.chromium.chrome.browser.settings.BraveAccountPreference
         android:key="user_info"
         android:order="1"
-        android:icon="@drawable/ic_brave"
-        android:title="@string/prefs_brave_account_email_address"
-        app:summary_text_color="@color/brave_theme_subtitle_text"
+        app:title_truncate_middle="true"
         android:selectable="false"/>
     <org.chromium.chrome.browser.settings.BraveAccountPreference
         android:key="sign_out"
         android:order="2"
-        android:title="@string/prefs_brave_account_sign_out"
+        android:title="@string/settings_brave_account_log_out_button_label"
         app:title_text_color="@color/brave_link"/>
     <org.chromium.chrome.browser.settings.BraveAccountPreference
         android:key="almost_there"
         android:order="3"
-        android:title="@string/prefs_brave_account_almost_there"
-        android:summary="@string/prefs_brave_account_almost_there_detail"
+        android:title="@string/settings_brave_account_verification_row_title"
+        android:summary="@string/settings_brave_account_verification_row_description_1"
         app:summary_text_color="@color/brave_theme_subtitle_text"
         android:selectable="false"/>
     <org.chromium.chrome.browser.settings.BraveAccountPreference
         android:key="resend_confirmation_email"
         android:order="4"
-        android:title="@string/prefs_brave_account_resend_confirmation_email"
+        android:title="@string/settings_brave_account_resend_confirmation_email_button_label"
         app:title_text_color="@color/brave_link"
-        android:summary="@string/prefs_brave_account_resend_confirmation_email_detail"
+        android:summary="@string/settings_brave_account_verification_row_description_2"
         app:summary_text_color="@color/brave_theme_subtitle_text"/>
     <org.chromium.chrome.browser.settings.BraveAccountPreference
         android:key="cancel_registration"
         android:order="5"
-        android:title="@string/prefs_brave_account_cancel_registration"
+        android:title="@string/settings_brave_account_cancel_registration_button_label"
         app:title_text_color="@color/systemfeedback_error_text"/>
     <org.chromium.chrome.browser.settings.BraveAccountPreference
         android:key="get_started"
         android:order="6"
         android:icon="@drawable/ic_brave"
-        android:title="@string/prefs_brave_account_get_started"/>
+        android:title="@string/settings_brave_account_get_started_button_label"/>
     <PreferenceCategory
         android:key="features_section"
         android:order="2"
         android:title="@string/prefs_section_features"/>
     <org.chromium.components.browser_ui.settings.ChromeBasePreference
-        android:fragment="org.chromium.chrome.browser.privacy.BravePrivacySettings"
+        android:fragment="org.chromium.chrome.browser.privacy.settings.BravePrivacySettings"
         android:key="brave_shields_and_privacy"
-        android:icon="@drawable/ic_brave"
+        android:icon="@drawable/ic_shield_done"
         android:order="1"
         android:title="@string/brave_shields_and_privacy"/>
     <org.chromium.components.browser_ui.settings.ChromeBasePreference
         android:fragment="org.chromium.chrome.browser.settings.BraveNewsPreferencesV2"
         android:key="brave_news_v2"
-        android:icon="@drawable/ic_news"
+        android:icon="@drawable/ic_product_brave_news"
         android:order="2"
         android:title="@string/brave_news_title"/>
     <org.chromium.components.browser_ui.settings.ChromeBasePreference
         android:fragment="org.chromium.chrome.browser.settings.BraveWalletPreferences"
         android:key="brave_wallet"
-        android:icon="@drawable/ic_crypto_wallets"
+        android:icon="@drawable/ic_product_brave_wallet"
         android:order="3"
         android:title="@string/brave_ui_brave_wallet"/>
     <org.chromium.components.browser_ui.settings.ChromeBasePreference
         android:fragment="org.chromium.chrome.browser.vpn.settings.BraveVpnPreferences"
         android:key="brave_vpn"
-        android:icon="@drawable/ic_vpn"
+        android:icon="@drawable/ic_product_vpn"
         android:order="4"
         android:title="@string/brave_firewall_vpn"/>
     <org.chromium.components.browser_ui.settings.ChromeBasePreference
         android:fragment="org.chromium.chrome.browser.settings.BraveLeoPreferences"
         android:key="brave_leo"
-        android:icon="@drawable/ic_brave_ai"
+        android:icon="@drawable/ic_product_brave_leo"
         android:order="4"
         android:title="@string/menu_brave_leo"/>
     <org.chromium.components.browser_ui.settings.ChromeBasePreference
@@ -95,32 +93,32 @@
         android:fragment="org.chromium.chrome.browser.settings.BraveSearchEnginesPreferences"
         android:key="brave_search_engines"
         android:order="6"
-        android:icon="@drawable/ic_search_vector"
+        android:icon="@drawable/ic_search"
         android:title="@string/brave_search_engines"/>
 
     <org.chromium.components.browser_ui.settings.ChromeBasePreference
         android:fragment="org.chromium.chrome.browser.settings.BraveSearchEnginesPreferences"
         android:key="home_screen_widget"
         android:order="7"
-        android:icon="@drawable/ic_home_screen_widget"
+        android:icon="@drawable/ic_widget_search2"
         android:title="@string/home_screen_widget"/>
 
     <org.chromium.components.browser_ui.settings.ChromeBasePreference
         android:fragment="org.chromium.chrome.browser.settings.BraveStatsPreferences"
         android:key="brave_stats"
         android:order="9"
-        android:icon="@drawable/ic_privacy_reports"
+        android:icon="@drawable/ic_bar_chart_search"
         android:title="@string/brave_stats"/>
     <org.chromium.components.browser_ui.settings.ChromeSwitchPreference
         android:key="closing_all_tabs_closes_brave"
         android:order="13"
         android:defaultValue="false"
-        android:icon="@drawable/ic_closing_all_closes_brave"
+        android:icon="@drawable/ic_window_tab_close"
         android:title="@string/prefs_closing_all_tabs_closes_brave"/>
     <org.chromium.components.browser_ui.settings.ChromeBasePreference
         android:key="brave_origin"
         android:order="14"
-        android:icon="@drawable/product_origin"
+        android:icon="@drawable/ic_product_origin"
         android:title="@string/menu_origin"/>
     <PreferenceCategory
         android:key="display_section"
@@ -130,7 +128,7 @@
         android:fragment="org.chromium.chrome.browser.settings.MediaPreferences"
         android:key="media"
         android:order="16"
-        android:icon="@drawable/ic_media"
+        android:icon="@drawable/ic_media_player"
         android:title="@string/prefs_media"/>
     <org.chromium.components.browser_ui.settings.ChromeBasePreference
         android:fragment="org.chromium.chrome.browser.settings.AppearancePreferences"
@@ -142,7 +140,7 @@
         android:fragment="org.chromium.chrome.browser.settings.BackgroundImagesPreferences"
         android:key="background_images"
         android:order="18"
-        android:icon="@drawable/ic_new_tab_page"
+        android:icon="@drawable/ic_window_tab_new"
         android:title="@string/prefs_new_tab_page"/>
     <org.chromium.components.browser_ui.settings.ChromeSwitchPreference
         android:key="autofill_private_window"
@@ -150,26 +148,16 @@
         android:icon="@drawable/ic_autofill"
         android:title="@string/prefs_autofill_private_window_title"
         android:summary="@string/prefs_autofill_private_window_summary"/>
-    <PreferenceCategory
-        android:key="support_section"
-        android:order="24"
-        android:title="@string/prefs_support_section"/>
-
     <org.chromium.components.browser_ui.settings.ChromeBasePreference
         android:fragment="org.chromium.chrome.browser.settings.BraveSyncScreensPreference"
         android:key="brave_sync_layout"
         android:order="22"
-        android:icon="@drawable/ic_sync"
+        android:icon="@drawable/ic_product_sync"
         android:title="@string/sync_category_title"/>
-    <Preference
-        android:key="rate_brave"
-        android:order="28"
-        android:icon="@drawable/ic_rate"
-        android:title="@string/prefs_rate_brave"/>
     <org.chromium.components.browser_ui.settings.ChromeSwitchPreference
         android:key="use_custom_tabs"
         android:order="20"
-        android:icon="@drawable/ic_custom_tabs"
+        android:icon="@drawable/ic_window"
         android:title="@string/prefs_use_custom_tabs_title"
         android:summary="@string/prefs_use_custom_tabs_text"/>
     <!-- <org.chromium.components.browser_ui.settings.ChromeBasePreference
@@ -183,13 +171,22 @@
         android:fragment="org.chromium.chrome.browser.language.settings.BraveLanguageSettings"
         android:key="brave_languages"
         android:order="23"
-        icon="@drawable/ic_languages"
+        icon="@drawable/ic_product_translate"
         android:title="@string/language_settings"/>
+    <PreferenceCategory
+        android:key="support_section"
+        android:order="24"
+        android:title="@string/prefs_support_section"/>
+    <Preference
+        android:key="rate_brave"
+        android:order="28"
+        android:icon="@drawable/ic_star_circle"
+        android:title="@string/prefs_rate_brave"/>
     <org.chromium.components.browser_ui.settings.ChromeBasePreference
         android:fragment="org.chromium.chrome.browser.download.settings.BraveDownloadSettings"
         android:key="brave_downloads"
         android:order="24"
-        android:icon="@drawable/ic_downloads"
+        android:icon="@drawable/ic_download"
         android:title="@string/menu_downloads"/>
     <PreferenceCategory
         android:key="about_section"

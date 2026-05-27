@@ -6,52 +6,104 @@
 import * as React from 'react'
 import { createRoot } from 'react-dom/client'
 import { setIconBasePath } from '@brave/leo/react/icon'
-import '$web-components/app.global.scss'
 import '$web-common/defaultTrustedTypesPolicy'
-import getAPI from './api'
+import * as Mojom from '../common/mojom'
+import bindWebUiServices from './api/bind_webui_services'
+import useUpdateDocumentTitle from './hooks/useUpdateDocumentTitle'
 import {
-  AIChatContextProvider,
+  AIChatProvider,
   ConversationEntriesProps,
   useAIChat,
 } from './state/ai_chat_context'
 import {
-  ConversationContextProvider,
-  useConversation,
+  ConversationProvider,
+  useConversationState,
 } from './state/conversation_context'
 import Main from './components/main'
 import FullScreen from './components/full_page'
 import Loading from './components/loading'
-import { ActiveChatProviderFromUrl } from './state/active_chat_context'
+import {
+  ActiveChatProviderFromUrl,
+  useActiveChat,
+} from './state/active_chat_context'
+import styles from './chat_ui.module.scss'
 
 import '../common/strings'
+// <if expr="is_ios">
+import { useIOSOneTapFix } from '../common/useIOSOneTapFix'
+// </if>
+
+// Perform any setup specific to this platform
 
 setIconBasePath('chrome://resources/brave-icons')
 
-// Make sure we're fetching data as early as possible
-const api = getAPI()
+// Create global mojo connections
+const aiChat = bindWebUiServices()
+
+// Receive child frame interface
+aiChat.api.subscribeToOnChildFrameBound((parentPageReceiver) => {
+  new Mojom.ParentUIFrameReceiver(
+    aiChat.conversationEntriesFrameObserver,
+  ).$.bindHandle(parentPageReceiver.handle)
+})
 
 function App() {
+  // <if expr="is_ios">
+  useIOSOneTapFix()
+
+  // When the iframe calls dismissMenus() (user tapped/clicked there), trigger a
+  // click in the parent so Leo's clickOutside closes any open menus.
+  aiChat.api.useDismissMenus(() => {
+    document.body.click()
+  })
+  // </if>
+
   React.useEffect(() => {
     document.getElementById('mountPoint')?.classList.add('loaded')
   }, [])
 
   return (
-    <AIChatContextProvider conversationEntriesComponent={ConversationEntries}>
-      <ActiveChatProviderFromUrl>
-        <ConversationContextProvider>
-          <Content />
-        </ConversationContextProvider>
-      </ActiveChatProviderFromUrl>
-    </AIChatContextProvider>
+    <AIChatProvider
+      api={aiChat.api}
+      conversationEntriesComponent={ConversationEntries}
+    >
+      <ContentWithConversationContext />
+    </AIChatProvider>
+  )
+}
+
+function ContentWithConversationContext() {
+  const aiChatContext = useAIChat()
+
+  if (!aiChatContext.initialized || aiChatContext.isStandalone === undefined) {
+    // Don't load the ActiveChatProvider until the database is initialized.
+    // Otherwise it will always create a new conversation instead of loading one
+    // which will cause a new conversation to be created and 'initialized' set
+    // to true prematurely.
+    return <Loading />
+  }
+
+  return (
+    <ActiveChatProviderFromUrl>
+      <MainConversation />
+    </ActiveChatProviderFromUrl>
+  )
+}
+
+function MainConversation() {
+  // Get conversation based on the URL and set on this part of the tree
+  const selectedConversationDetails = useActiveChat()
+  return (
+    <ConversationProvider {...selectedConversationDetails}>
+      <Content />
+    </ConversationProvider>
   )
 }
 
 function Content() {
   const aiChatContext = useAIChat()
 
-  if (!aiChatContext.initialized || aiChatContext.isStandalone === undefined) {
-    return <Loading />
-  }
+  useUpdateDocumentTitle()
 
   if (!aiChatContext.isStandalone) {
     return <Main />
@@ -61,110 +113,34 @@ function Content() {
 }
 
 function ConversationEntries(props: ConversationEntriesProps) {
-  const conversationContext = useConversation()
-  const iframeRef = React.useRef<HTMLIFrameElement | null>(null)
-  const hasNotifiedContentReady = React.useRef(false)
-  const [hasLoaded, setHasLoaded] = React.useState(false)
+  const state = useConversationState()
 
-  // Notify onIsContentReady when
-  // - iframe increases in height after a conversation change OR
-  // - iframe is loaded AND iframe conversation length is 0 after a conversation change
-
-  // Reset when conversation changes
-  React.useEffect(() => {
-    setHasLoaded(false)
-    props.onIsContentReady(false)
-    hasNotifiedContentReady.current = false
-    if (iframeRef.current) {
-      iframeRef.current.style.height = '0px'
-    }
-  }, [conversationContext.conversationUuid, props.onIsContentReady])
-
-  // The iframe has loaded if there're no conversation entries,
-  // it will never grow until a user action happens.
-  React.useEffect(() => {
-    // conversationUuid populated is a sign that data has been fetched
-    if (
-      !hasNotifiedContentReady.current
-      && conversationContext.conversationUuid
-      && !conversationContext.conversationHistory.length
-      && hasLoaded
-    ) {
-      hasNotifiedContentReady.current = true
-      props.onIsContentReady(true)
-    }
-  }, [
-    conversationContext.conversationUuid,
-    conversationContext.conversationHistory.length,
-    hasLoaded,
-  ])
+  const [iframeSrc, setIframeSrc] = React.useState<string>()
 
   React.useEffect(() => {
-    const listener = (height: number) => {
-      // Use the first height change to notify that the iframe has rendered,
-      // in lieu of an actual "has rendered the conversation entries" event
-      // which, if we get any bugs with this and need to add complexity, might
-      // be simpler to implement explicitly, from child -> parent.
-      if (!hasNotifiedContentReady.current && height > 0) {
-        hasNotifiedContentReady.current = true
-        props.onIsContentReady(true)
-      }
-      if (iframeRef.current) {
-        // Additional height is added here to address the issue where the
-        // button menu's get cut off when the conversation is short since
-        // they cant be rendered outside of the iframe.
-        // See https://github.com/brave/brave-browser/issues/46042
-        const additionalHeight = Math.max(0, 600 - height)
-        document.body.style.setProperty(
-          '--iframe-additional-margin-for-menus',
-          additionalHeight + 'px',
-        )
-        iframeRef.current.style.height = height + additionalHeight + 'px'
-        props.onHeightChanged()
-      }
+    // The state conversationUuid can bounce from a valid value to a null
+    // value whilst the conversationUuid for a newly-bound conversation is
+    // fetched. Only update the Src once this settles.
+    if (!state.conversationUuid) {
+      return
     }
-    const id =
-      api.conversationEntriesFrameObserver.childHeightChanged.addListener(
-        listener,
-      )
-
-    return () => {
-      api.conversationEntriesFrameObserver.removeListener(id)
-    }
-  }, [props.onHeightChanged, props.onIsContentReady])
-
-  React.useEffect(() => {
-    // Set the iframe position to relative when the regenerate
-    // answer menu is open. Otherwise the menu can sometimes be
-    // overlapped by the Suggested question buttons.
-    const listener = (isOpen: boolean) => {
-      document.body.style.setProperty(
-        '--iframe-position-for-menus',
-        isOpen ? 'relative' : 'unset',
-      )
-    }
-    const id =
-      api.conversationEntriesFrameObserver.regenerateAnswerMenuIsOpen.addListener(
-        listener,
-      )
-
-    return () => {
-      api.conversationEntriesFrameObserver.removeListener(id)
-    }
-  }, [])
+    setIframeSrc(
+      `chrome-untrusted://leo-ai-conversation-entries/${state.conversationUuid}`,
+    )
+  }, [state.conversationUuid])
 
   return (
-    <iframe
-      sandbox='allow-scripts allow-same-origin allow-modals allow-forms allow-popups allow-popups-to-escape-sandbox'
-      allow='clipboard-write'
-      src={
-        'chrome-untrusted://leo-ai-conversation-entries/'
-        + conversationContext.conversationUuid
-      }
-      ref={iframeRef}
-      data-testid='conversation-entries-iframe'
-      onLoad={() => setHasLoaded(true)}
-    />
+    <div className={props.className}>
+      {iframeSrc && (
+        <iframe
+          data-testid='conversation-entries-iframe'
+          className={styles.conversationEntriesFrame}
+          sandbox='allow-scripts allow-same-origin allow-modals allow-forms allow-popups allow-popups-to-escape-sandbox'
+          allow='clipboard-write'
+          src={iframeSrc}
+        />
+      )}
+    </div>
   )
 }
 

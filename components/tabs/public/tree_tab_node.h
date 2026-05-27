@@ -6,7 +6,11 @@
 #ifndef BRAVE_COMPONENTS_TABS_PUBLIC_TREE_TAB_NODE_H_
 #define BRAVE_COMPONENTS_TABS_PUBLIC_TREE_TAB_NODE_H_
 
+#include <optional>
+#include <vector>
+
 #include "base/memory/raw_ref.h"
+#include "base/types/pass_key.h"
 #include "brave/components/tabs/public/tree_tab_node_id.h"
 
 namespace tabs {
@@ -17,6 +21,10 @@ class TreeTabNodeTabCollection;
 // A class that represents metadata about a tree tab node.
 class TreeTabNode {
  public:
+  // Returns the empty tree tab node. This is used when a tree tab node is not
+  // associated with a tab in tests.
+  static const TreeTabNode& GetEmptyTreeTabNode();
+
   TreeTabNode(TreeTabNodeTabCollection& collection,
               const tree_tab::TreeTabNodeId& id);
   TreeTabNode(const TreeTabNode&) = delete;
@@ -28,6 +36,8 @@ class TreeTabNode {
   int height() const { return height_; }
   int level() const { return level_; }
 
+  void set_height_for_test(int height) { height_ = height; }
+
   void set_collapsed(bool collapsed) { collapsed_ = collapsed; }
   bool collapsed() const { return collapsed_; }
 
@@ -35,11 +45,39 @@ class TreeTabNode {
   // method will traverse up to the root node and return its height.
   int GetTreeHeight() const;
 
-  // Returns the tab associated with this tree tab node, or nullptr if this
-  // node does not currently have an associated tab
-  const TabInterface* GetTab() const;
+  // Returns the tab(s) associated with this tree tab node. Returns one tab when
+  // holding a single TabInterface, two when holding a SplitTabCollection, and
+  // all tabs in the group when holding a TabGroupTabCollection.
+  std::vector<const TabInterface*> GetTabs() const;
+
+  // Returns the id of the closest ancestor that is collapsed, or nullopt if
+  // no ancestor is collapsed.
+  std::optional<tree_tab::TreeTabNodeId> GetClosestCollapsedAncestorId() const;
+
+  // Appends the ids of all descendant tree tab nodes to |out|. Requires
+  // non-const because it uses GetTreeNodeChildren() on the collection.
+  void CollectDescendantIds(std::vector<tree_tab::TreeTabNodeId>& out);
+
+  // Appends the ids of descendant tree tab nodes to |out| but does not recurse
+  // into collapsed nodes. Use when assigning this node as closest collapsed
+  // ancestor so nodes under a closer collapsed ancestor are not overwritten.
+  void CollectUncollapsedDescendantIds(
+      std::vector<tree_tab::TreeTabNodeId>& out);
+
+  // Exposes the calculation of level and height to TreeTabNodeTabCollection.
+  int CalculateLevelAndHeightRecursively(
+      base::PassKey<TreeTabNodeTabCollection> pass_key);
+  void OnChildHeightChanged(base::PassKey<TreeTabNodeTabCollection> pass_key);
 
  private:
+  // Recalculates the level and height of this node and its children recursively
+  // in the tree. This returns the deepest height of the subtree rooted at this
+  // node.
+  int CalculateLevelAndHeightRecursivelyImpl();
+
+  // Called when child node's height changes to update this node's height.
+  void OnChildHeightChangedImpl();
+
   // Owner of this TreeNode.
   base::raw_ref<TreeTabNodeTabCollection> collection_;
 

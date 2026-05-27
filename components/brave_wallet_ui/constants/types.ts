@@ -11,12 +11,14 @@ import {
   ExternalWallet,
   ExternalWalletProvider,
 } from '../../brave_rewards/resources/shared/lib/external_wallet'
+import * as MeldTypes from 'gen/brave/components/brave_wallet/common/meld_integration.mojom.m.js'
+
+import Amount from '../utils/amount'
 
 // Re-export BraveWallet for use in other modules, to avoid hard-coding the
 // path of generated mojom files.
 export { BraveWallet }
 export { Url } from 'gen/url/mojom/url.mojom.m.js'
-import * as MeldTypes from 'gen/brave/components/brave_wallet/common/meld_integration.mojom.m.js'
 export {
   MeldFiatCurrency,
   MeldFilter,
@@ -34,8 +36,6 @@ export type DAppConnectionOptionsType = 'networks' | 'accounts' | 'main'
 
 export { Origin } from 'gen/url/mojom/origin.mojom.m.js'
 export { TimeDelta }
-
-import Amount from '../utils/amount'
 
 export type HardwareWalletResponseCodeType =
   | 'deviceNotConnected'
@@ -221,6 +221,11 @@ export interface PanelState {
   connectingAccounts: string[]
   hardwareWalletCode?: HardwareWalletResponseCodeType
   selectedTransactionId?: TransactionInfoLookup
+  /**
+   * Set while a transaction is being submitted (e.g. ZCash); keeps panel on
+   * pending view until status is shown.
+   */
+  submittingTransaction?: SerializableTransactionInfo
 }
 
 export interface PageState {
@@ -323,6 +328,7 @@ export interface SendZecTransactionParams extends BaseTransactionParams {
 
 export interface SendCardanoTransactionParams extends BaseTransactionParams {
   sendingMaxAmount: boolean
+  tokenId: string | undefined
 }
 
 export interface SendPolkadotTransactionParams extends BaseTransactionParams {
@@ -666,6 +672,7 @@ export const emptyProviderErrorCodeUnion: BraveWallet.ProviderErrorUnion = {
   filecoinProviderError: undefined,
   solanaProviderError: undefined,
   cardanoProviderError: undefined,
+  polkadotProviderError: undefined,
 }
 
 export interface TransactionProviderErrorRegistry {
@@ -1138,3 +1145,15 @@ export interface ParsedSwapInfo {
   destinationAddress: string
   provider: BraveWallet.SwapProvider | undefined
 }
+
+export const SupportedSwapCoinTypes = [
+  BraveWallet.CoinType.SOL,
+  BraveWallet.CoinType.ETH,
+]
+
+export const SupportedBridgeCoinTypes = [
+  ...SupportedSwapCoinTypes,
+  BraveWallet.CoinType.BTC,
+  BraveWallet.CoinType.ZEC,
+  BraveWallet.CoinType.ADA,
+]

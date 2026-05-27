@@ -16,11 +16,17 @@
 /* Label to display in the Discoverability overlay for keyboard shortcuts */
 "addBookmarkTitle" = "Tambahkan Markah";
 
+/* Add a new item to the current list */
+"addButtonTitle" = "Tambahkan";
+
 /* Label to display in the Discoverability overlay for keyboard shortcuts */
 "addFavouritesTitle" = "Tambahkan ke Favorit";
 
 /* Cell title for add folder action */
 "AddFolderActionCellTitle" = "Folder baru";
+
+/* Settings item that opens instructions for adding Brave to the iOS dock. */
+"addToDockSettingsCell" = "Tambahkan ke Dock";
 
 /* Add to favorites share action. */
 "AddToFavorites" = "Tambahkan ke Favorit";
@@ -66,6 +72,45 @@
 
 /* Username textbox in Authentication prompt */
 "AuthPromptAlertUsernamePlaceholderText" = "Nama pengguna";
+
+/* Settings autofill section title */
+"Autofill" = "Isi-Otomatis";
+
+/* Label for account when indicating that a domain has multiple accounts */
+"autofill.managePassword.multipleAccounts" = "Akun";
+
+/* Alert message warning the user that deleting non-synced passwords will permanently remove them */
+"autofill.managePasswords.deleteCredentialConfirmMessage" = "Tindakan ini akan menghapus kata sandi tersimpan untuk %@ dari Sync Chain dan perangkat Anda.";
+
+/* Prompt title when deleting passwords */
+"autofill.managePasswords.deleteCredentialsAlertTitle" = "Anda yakin?";
+
+/* Label for the button used to delete the current login. */
+"autofill.managePasswords.deleteManagePasswordButtonTitle" = "Hapus";
+
+/* Title for the section header in the Manage Passwords list screen, that lists the saved sites */
+"autofill.managePasswords.headerTitle" = "Disimpan";
+
+/* The message displayed on the manage passwords list screen, when there's at least one password, explain the feature */
+"autofill.managePasswords.instructions" = "Buat, simpan, dan kelola kata sandi Anda untuk masuk dengan mudah ke situs dan aplikasi.";
+
+/* The header title displayed over the never saved passwords list */
+"autofill.managePasswords.neverSavedListHeaderTitle" = "Jangan Pernah Disimpan";
+
+/* Display text for the option to offer to save passwords */
+"autofill.managePasswords.offerToSavePasswords" = "Tawarkan untuk menyimpan kata sandi";
+
+/* Prompt that is diplayed in the search bar of the Manage Passwords list screen */
+"autofill.managePasswords.searchWebsitesPrompt" = "Cari Situs Web";
+
+/* Title for navigation bar of the Manage Passwords screen */
+"autofill.managePasswords.title" = "Kelola Kata Sandi";
+
+/* Text to show when the origin of a managed password is not available */
+"autofill.managePasswords.UnknownDomainText" = "Tidak dikenal";
+
+/* Settings autofill section title */
+"autofill.settings.title" = "Isi-Otomatis";
 
 /* This is a title for a setting toggle that enables/disables auto-redirect of Google's AMP (Accelerated Mobile Page) pages to the original (non-AMP) pages. The text 'AMP' is not to be translated. */
 "AutoRedirectAMPPages" = "Halaman AMP yang Diarahkan Ulang Otomatis";
@@ -141,9 +186,6 @@
 
 /* Placeholder text for adding or editing a bookmark */
 "BookmarkUrlPlaceholderText" = "Alamat";
-
-/* Title for the Brave Account section in settings */
-"BraveAccount" = "Akun Brave";
 
 /* Button to show the brave panel */
 "BravePanel" = "Panel Brave";
@@ -682,15 +724,6 @@
 /* Description for new folder popup */
 "EnterFolderName" = "Masukkan nama folder";
 
-/* Shown in error pages to suggest a fix to the user. */
-"errorPageCantBeReachedTry" = "Coba ketik ulang URL, atau membuka mesin pencarian dan mencari URL baru.";
-
-/* Shown in error pages for files that can't be shown and need to be downloaded. */
-"ErrorPageOpenInSafariButtonTitle" = "Buka di Safari";
-
-/* Shown in error pages on a button that will try to load the page again */
-"ErrorPageReloadButtonTitle" = "Muat Ulang";
-
 /* Additional warning text when clicking the Advanced button on error pages. %@ is a placeholder, do not localize it. Do not localize <br />. */
 "ErrorPagesAdvancedErrorPinningDetails" = "%1$@ biasanya menggunakan enkripsi untuk melindungi informasi Anda. Saat Brave coba menyambung ke %2$@ kali ini, situs web mengirimkan kembali kredensial yang tidak biasa dan salah. Hal ini bisa terjadi saat penyerang mencoba berpura-pura menjadi %3$@, atau layar sign-in Wi-Fi telah mengganggu sambungan. Informasi Anda masih aman karena Brave memutus koneksi sebelum terjadi pertukaran data apa pun.<br />Anda tidak dapat mengunjungi %4$@ sekarang karena situs web menggunakan penyematan sertifikat. Kesalahan dan serangan jaringan biasanya bersifat sementara, jadi halaman ini mungkin bisa berfungsi nanti.";
 
@@ -801,9 +834,6 @@
 
 /* No comment provided by engineer. */
 "genericErrorTitle" = "Error";
-
-/* Button text to get started with Brave Account */
-"GetStarted" = "Memulai";
 
 /* No comment provided by engineer. */
 "GoogleSafeBrowsing" = "Memblokir Situs Web Berbahaya";
@@ -1042,11 +1072,8 @@
 /* No comment provided by engineer. */
 "ntp.hideSponsoredImages" = "Sembunyikan gambar bersponsor";
 
-/* The text description of image type which is being used NTP */
-"ntp.imageTypeSelectionDescription" = "Gambar Bersponsor adalah latar belakang bermerek yang muncul di tab yang baru dibuka di browser. Mengaktifkan Gambar Bersponsor mendukung misi Brave.";
-
-/* The text label of image type learn more link */
-"ntp.imageTypeSelectionDescriptionLearnMore" = "Pelajari lebih lanjut";
+/* The text description of image type which is being used NTP. The text inside the square brackets should be translated and is a link */
+"ntp.imageTypeSelectionDescription" = "Gambar Bersponsor adalah latar belakang bermerek yang muncul di tab yang baru dibuka di browser. Mengaktifkan Gambar Bersponsor mendukung misi Brave. [Pelajari Lebih Lanjut](#learn-more)";
 
 /* No comment provided by engineer. */
 "ntp.learnMoreAboutRewards" = "Pelajari lebih lanjut tentang Brave Rewards";
@@ -2347,9 +2374,6 @@
 /* Title of an action that allows user to perform a one-click web search for selected text */
 "SearchWithBrave" = "Mencari dengan Brave";
 
-/* Settings security section title */
-"Security" = "Keamanan";
-
 /* No comment provided by engineer. */
 "sendButtonTitle" = "Kirim";
 
@@ -2713,6 +2737,9 @@
 /* Setting to show/hide the tabs bar */
 "ShowTabsBar" = "Bilah Tab";
 
+/* Settings item for clearing site-specific settings and shields settings. */
+"SiteAndShieldsSettings" = "Pengaturan Situs dan Perisai";
+
 /* No comment provided by engineer. */
 "SiteReportedBody" = "Terima kasih telah memberi tahu pengembang Brave tentang masalah dengan situs ini. Kami akan berusaha sebaik mungkin untuk memperbaikinya!";
 
@@ -3056,7 +3083,7 @@
 "tabGrid.deselectTabsButtonTitle" = "Batalkan semua pilihan tab";
 
 /* A button title which when tapped will display a menu with more options */
-"tabGrid.moreMenuButtonTitle" = "Lebih lanjut";
+"tabGrid.moreMenuButtonTitle" = "Lainnya";
 
 /* A bullet point explaining the benefits of private browsing */
 "tabGrid.privateBrowsingInfoBulletOneBody" = "Situs yang Anda kunjungi di jendela pribadi tidak akan muncul di riwayat Anda. Kuki, data formulir, dan data situs akan hilang setelah semua jendela pribadi ditutup.";
@@ -3077,7 +3104,7 @@
 "tabGrid.privateBrowsingInfoBulletTwoTitle" = "Visibilitas penelusuran";
 
 /* A title shown when in private browsing mode with no tabs open */
-"tabGrid.privateBrowsingInfoTitle" = "tab pribadi";
+"tabGrid.privateBrowsingInfoTitle" = "Tab Pribadi";
 
 /* Accessibility label for the regular browsing option in the browsing mode picker */
 "tabGrid.privateBrowsingModeAccessibilityLabel" = "Penjelajahan Pribadi";
@@ -3124,6 +3151,12 @@
 /* Toggled ON accessibility value */
 "TabPrivateModeToggleAccessibilityValueOn" = "Aktifkan";
 
+/* The description of the toggle for user to turn on auto-open keyboard when creating a new tab. */
+"tabs.settings.autoOpenKeyboardDescription" = "Otomatis fokus pada bilah alamat saat membuat tab baru";
+
+/* The title of the toggle for user to turn on auto-open keyboard when creating a new tab. */
+"tabs.settings.autoOpenKeyboardTitle" = "Papan Ketik Terbuka Otomatis";
+
 /* No comment provided by engineer. */
 "tabs.settings.persistentPrivateBrowsingDescription" = "Menjaga tab peramban privat  tetap terbuka ketika Anda menutup aplikasi, memastikan sesi perambanan privat tetap berlanjut dengan mulus.";
 
@@ -3150,6 +3183,12 @@
 
 /* No comment provided by engineer. */
 "tabs.settings.privateTabsSettingsTitle" = "Tab Pribadi";
+
+/* The description of the toggle for users to allow the browser to remember its last browsing mode so it can re-launch in that mode when Keep Private Tabs is enabled. */
+"tabs.settings.rememberBrowsingModeDescription" = "Jika browser dalam mode pribadi saat terakhir ditutup, browser akan terbuka dalam mode pribadi saat diluncurkan ulang.";
+
+/* Toggle to launch the browser in private mode when Keep Private Tabs is enabled */
+"tabs.settings.rememberBrowsingModeTitle" = "Ingat Mode Penjelajahan";
 
 /* Accessibility label for the navigation toolbar displayed at the bottom of the screen. */
 "TabToolbarAccessibilityLabel" = "Bilah Alat Navigasi";
@@ -3252,9 +3291,6 @@
 
 /* Setting to choose the user interface theme for normal browsing mode, contains choices like 'light' or 'dark' themes */
 "ThemesDisplayBrightness" = "Tampilan";
-
-/* Text specifying that the above setting does not impact the user interface while they user is in private browsing mode. */
-"ThemesDisplayBrightnessFooter" = "Pengaturan ini tidak diterapkan dalam mode penjelajahan pribadi.";
 
 /* Selection to color/style the user interface with a light theme. */
 "ThemesLightOption" = "Terang";
@@ -3480,6 +3516,12 @@
 
 /* No comment provided by engineer. */
 "UserWalletGenericErrorTitle" = "Maaf, sepertinya telah terjadi kesalahan";
+
+/* Message for error alert when a VCard contact file cannot be parsed or opened */
+"VCard.unableToOpenContactErrorMessage" = "File kontak tidak dapat dibaca. File mungkin rusak atau dalam format yang tidak didukung.";
+
+/* Title for error alert when a VCard contact file cannot be parsed or opened */
+"VCard.unableToOpenContactErrorTitle" = "Tidak dapat Membuka Kontak";
 
 /* Version number of Brave shown in settings */
 "VersionTemplate" = "Versi %1$@ (%2$@)";

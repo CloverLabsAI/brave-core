@@ -8,7 +8,6 @@
 #include <utility>
 
 #include "base/check.h"
-#include "base/containers/contains.h"
 #include "base/strings/string_number_conversions.h"
 #include "brave/components/brave_rewards/core/engine/bitflyer/bitflyer.h"
 #include "brave/components/brave_rewards/core/engine/endpoint/bitflyer/bitflyer_server.h"
@@ -71,8 +70,7 @@ void ConnectBitFlyerWallet::Authorize(ConnectExternalWalletCallback callback) {
 
   const std::string hashed_payment_id =
       crypto::SHA256HashString(rewards_wallet->payment_id);
-  const std::string external_account_id =
-      base::HexEncode(hashed_payment_id.data(), hashed_payment_id.size());
+  const std::string external_account_id = base::HexEncode(hashed_payment_id);
 
   bitflyer_server_.post_oauth().Request(
       external_account_id, oauth_info_.code, oauth_info_.code_verifier,

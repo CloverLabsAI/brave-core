@@ -28,42 +28,32 @@ public enum SecureContentState {
 public class TabStateFactory {
   public struct CreateTabParams {
     public var id: UUID
+    public var profile: any Profile
     public var initialConfiguration: WKWebViewConfiguration?
     public var lastActiveTime: Date?
-    public var braveCore: BraveProfileController?
 
     public init(
       id: UUID = .init(),
+      profile: any Profile,
       initialConfiguration: WKWebViewConfiguration? = nil,
-      lastActiveTime: Date? = nil,
-      braveCore: BraveProfileController? = nil
+      lastActiveTime: Date? = nil
     ) {
       self.id = id
+      self.profile = profile
       self.initialConfiguration = initialConfiguration
       self.lastActiveTime = lastActiveTime
-      self.braveCore = braveCore
     }
   }
 
   public static func create(with params: CreateTabParams) -> any TabState {
-    let wkConfiguration = params.initialConfiguration ?? .init()
-    wkConfiguration.enablePageTopColorSampling()
-    if let braveCore = params.braveCore, FeatureList.kUseChromiumWebViews.enabled {
-      let cwvConfiuration =
-        wkConfiguration.websiteDataStore.isPersistent
-        ? braveCore.defaultWebViewConfiguration
-        : braveCore.nonPersistentWebViewConfiguration
-      return ChromiumTabState(
-        id: params.id,
-        configuration: cwvConfiuration,
-        wkConfiguration: wkConfiguration
-      )
-    }
-    let webKitTabState = WebKitTabState(id: params.id, configuration: wkConfiguration)
-    if let lastActiveTime = params.lastActiveTime {
-      webKitTabState.lastActiveTime = lastActiveTime
-    }
-    return webKitTabState
+    let wkConfiguration = params.initialConfiguration
+    wkConfiguration?.enablePageTopColorSampling()
+    let cwvConfiuration = BraveWebViewConfiguration(profile: params.profile)
+    return ChromiumTabState(
+      id: params.id,
+      configuration: cwvConfiuration,
+      wkConfiguration: wkConfiguration
+    )
   }
 }
 
@@ -73,14 +63,23 @@ public enum TabRestorationError: Error {
   case invalidData
 }
 
+/// Favicon related information for a current navigation
+public struct FaviconStatus {
+  /// The URL of the favicon which was used to load it off the web.
+  public var url: URL?
+  /// The favicon bitmap for the page. It is fetched asynchronously after the favicon URL is set,
+  /// so it is possible for `image` to be nil if the fetch hasn't completed
+  public var image: UIImage?
+}
+
 /// Core interface for interaction with the web
 @dynamicMemberLookup
 public protocol TabState: AnyObject {
   typealias ID = UUID
   /// A unique identifier associated with this TabState
   var id: ID { get }
-  /// Whehter or not the TabState persists data
-  var isPrivate: Bool { get }
+  /// The associated profile
+  var profile: any Profile { get }
   /// Arbitrary data that is associated with this TabState
   var data: TabDataValues { get set }
   /// The view containing the contents of the current web page.
@@ -136,9 +135,8 @@ public protocol TabState: AnyObject {
   var visibleSecureContentState: SecureContentState { get }
   /// The certificiate assoicated with this page if one exists
   var serverTrust: SecTrust? { get }
-  /// The current pages favicon
-  // TODO: Should be get only, make favicon fetch logic internal (brave/brave-browser#45095)
-  var favicon: Favicon? { get set }
+  /// The current cached favicon for the realized tab
+  var faviconStatus: FaviconStatus? { get }
   /// The current URL loaded on the page, regardless of the navigation status or spoofing
   @available(iOS, deprecated, message: "Use `visibleURL` or `lastCommittedURL` instead")
   var url: URL? { get }
@@ -250,9 +248,7 @@ public protocol TabState: AnyObject {
   ///
   /// This will be the initial configuration passed in TabStateFactory until `isWebViewCreated`
   /// is true, at which point, it will be the configuration associated with the web view
-  var configuration: WKWebViewConfiguration { get }
-  /// The print formatter associated with the underlying web view to allow for printing the page
-  var viewPrintFormatter: UIViewPrintFormatter? { get }
+  var configuration: WKWebViewConfiguration? { get }
   /// Returns the PDF data for the current page if one is being displayed
   var dataForDisplayedPDF: Data? { get }
   /// Returns a colour that was sampled from the top of the page for UI purposes
@@ -284,6 +280,11 @@ extension TabState {
 
 // Default args for methods
 extension TabState {
+  /// Whether or not the Tab uses an off the record/private profile
+  public var isPrivate: Bool {
+    profile.isOffTheRecord
+  }
+
   /// Presents the find in page interaction
   public func presentFindInteraction() {
     presentFindInteraction(with: "")
@@ -358,6 +359,7 @@ public protocol WebViewProxy {
   var scrollView: UIScrollView? { get }
   var bounds: CGRect { get }
   var frame: CGRect { get }
+  var isKeyboardVisible: Bool { get }
   func becomeFirstResponder() -> Bool
 }
 

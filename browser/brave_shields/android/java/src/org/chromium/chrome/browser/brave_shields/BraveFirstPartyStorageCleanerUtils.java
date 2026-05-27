@@ -9,19 +9,26 @@ import org.jni_zero.JNINamespace;
 import org.jni_zero.NativeMethods;
 
 import org.chromium.build.annotations.NullMarked;
+import org.chromium.chrome.browser.profiles.Profile;
 import org.chromium.chrome.browser.tab.Tab;
 
 @JNINamespace("brave_shields")
 @NullMarked
 public class BraveFirstPartyStorageCleanerUtils {
-    private static final String TAG = "FirstPartyStorageCleanerUtils";
+    private static final String TAG = "FPSCleanerUtils";
 
     public static void cleanupTLDFirstPartyStorage(Tab tab) {
         BraveFirstPartyStorageCleanerUtilsJni.get().cleanupTLDFirstPartyStorage(tab);
     }
 
+    public static void triggerCurrentAppStateNotification(Profile profile) {
+        BraveFirstPartyStorageCleanerUtilsJni.get().triggerCurrentAppStateNotification(profile);
+    }
+
     @NativeMethods
     interface Natives {
         void cleanupTLDFirstPartyStorage(Tab tab);
+
+        void triggerCurrentAppStateNotification(Profile profile);
     }
 }

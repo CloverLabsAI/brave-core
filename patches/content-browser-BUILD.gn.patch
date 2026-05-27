@@ -1,10 +1,10 @@
 diff --git a/content/browser/BUILD.gn b/content/browser/BUILD.gn
-index e1a23a7d1090390e2ab418b62cf4d820e25ebc2d..2d8696b5c5f8e9192c101e38440e8714a8e25cc2 100644
+index 718b28f411f7c32af45dc1e1cf4b4deeba78b06b..adccba81003ba752e09a0f149e8bc01c32f09009 100644
 --- a/content/browser/BUILD.gn
 +++ b/content/browser/BUILD.gn
-@@ -3701,6 +3701,7 @@ source_set("browser") {
-   if (is_chromeos) {
-     deps += [ "//ash/constants" ]
+@@ -3774,6 +3774,7 @@ source_set("browser") {
+       "surface_embed/surface_embed_connector_impl.h",
+     ]
    }
 +  import("//brave/content/browser/sources.gni") sources += brave_content_browser_sources deps += brave_content_browser_deps
  }

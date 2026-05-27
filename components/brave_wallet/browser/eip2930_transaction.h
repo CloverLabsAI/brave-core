@@ -17,72 +17,58 @@ namespace brave_wallet {
 
 class Eip2930Transaction : public EthTransaction {
  public:
-  typedef std::array<uint8_t, 20> AccessedAddress;
-  typedef std::array<uint8_t, 32> AccessedStorageKey;
+  using AccessedAddress = std::array<uint8_t, 20>;
+  using AccessedStorageKey = std::array<uint8_t, 32>;
   struct AccessListItem {
     AccessListItem();
     ~AccessListItem();
     AccessListItem(const AccessListItem&);
-    bool operator==(const AccessListItem&) const;
+    bool operator==(const AccessListItem&) const = default;
 
     AccessedAddress address;
     std::vector<AccessedStorageKey> storage_keys;
   };
   // [[{20 bytes}, [{32 bytes}...]]...]
-  typedef std::vector<AccessListItem> AccessList;
+  using AccessList = std::vector<AccessListItem>;
 
   Eip2930Transaction();
   Eip2930Transaction(const Eip2930Transaction&);
   ~Eip2930Transaction() override;
-  bool operator==(const Eip2930Transaction&) const;
+  bool operator==(const Eip2930Transaction&) const = default;
 
   static std::optional<Eip2930Transaction> FromTxData(const mojom::TxDataPtr&,
-                                                      uint256_t chain_id,
                                                       bool strict = true);
   static std::optional<Eip2930Transaction> FromValue(
-      const base::Value::Dict& value);
+      const base::DictValue& value);
 
-  static base::Value::List AccessListToValue(const AccessList&);
-  static std::optional<AccessList> ValueToAccessList(const base::Value::List&);
+  static base::ListValue AccessListToValue(const AccessList&);
+  static std::optional<AccessList> ValueToAccessList(const base::ListValue&);
 
-  uint256_t chain_id() const { return chain_id_; }
   const AccessList* access_list() const { return &access_list_; }
   AccessList* access_list() { return &access_list_; }
 
-  // 0x01 || rlp([chainId, nonce, gasPrice, gasLimit, to, value, data,
-  // accessList])
-  std::vector<uint8_t> GetMessageToSign(uint256_t chain_id) const override;
-
-  // 0x01 || rlp([chainId, nonce, gasPrice, gasLimit, to, value, data,
-  // accessList, signatureYParity, signatureR, signatureS])
-  std::string GetSignedTransaction() const override;
-
-  // keccack(0x01 || rlp([chainId, nonce, gasPrice, gasLimit, to, value, data,
-  // accessList, signatureYParity, signatureR, signatureS]))
-  std::string GetTransactionHash() const override;
-
-  bool IsSigned() const override;
-
-  base::Value::Dict ToValue() const override;
+ protected:
+  Eip2930Transaction(uint256_t chain_id,
+                     std::optional<uint256_t> nonce,
+                     uint256_t gas_price,
+                     uint256_t gas_limit,
+                     std::variant<EthAddress, EthContractCreationAddress> to,
+                     uint256_t value,
+                     const std::vector<uint8_t>& data);
 
   uint256_t GetDataFee() const override;
 
- protected:
-  Eip2930Transaction(std::optional<uint256_t> nonce,
-                     uint256_t gas_price,
-                     uint256_t gas_limit,
-                     const EthAddress& to,
-                     uint256_t value,
-                     const std::vector<uint8_t>& data,
-                     uint256_t chain_id);
+  // 0x01 || rlp([chainId, nonce, gasPrice, gasLimit, to, value, data,
+  // accessList])
+  std::vector<uint8_t> GetMessageToSignImpl() const override;
 
-  uint256_t chain_id_;
+  // 0x01 || rlp([chainId, nonce, gasPrice, gasLimit, to, value, data,
+  // accessList, signatureYParity, signatureR, signatureS])
+  std::vector<uint8_t> Serialize() const override;
+
+  base::DictValue ToValueImpl() const override;
+
   AccessList access_list_;
-
-  bool VIsRecid() const override;
-
- private:
-  std::vector<uint8_t> Serialize() const;
 };
 
 }  // namespace brave_wallet

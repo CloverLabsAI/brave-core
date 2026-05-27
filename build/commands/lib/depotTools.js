@@ -3,12 +3,13 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 
-const ActionGuard = require('./actionGuard')
-const config = require('./config')
-const fs = require('fs')
-const path = require('path')
-const Log = require('./logging')
-const util = require('./util')
+import ActionGuard from './actionGuard.js'
+import config from './config.js'
+import { isCI } from './ciDetect.ts'
+import fs from 'node:fs'
+import path from 'node:path'
+import Log from './logging.js'
+import util from './util.js'
 
 // The .disable_auto_update file in the depot_tools directory, regardless of
 // its content, disables auto-updates. If a specific depot_tools reference is
@@ -71,6 +72,7 @@ function removeDepotTools() {
 function installDepotTools(options = config.defaultOptions) {
   options.cwd = config.braveCoreDir
 
+  // @ts-ignore
   const enforcedDepotToolsRef = config.getProjectRef('depot_tools', null)
   if (enforcedDepotToolsRef && !isDepotToolsRefValid(enforcedDepotToolsRef)) {
     Log.error(
@@ -133,7 +135,7 @@ function installDepotTools(options = config.defaultOptions) {
       }
     }
 
-    if (process.platform === 'win32' && config.isCI) {
+    if (process.platform === 'win32' && isCI) {
       // Bootstrap gsutil on Windows manually to fix random LockFile issues.
       util.run(path.join(config.depotToolsDir, 'gsutil.py.bat'), [], {
         ...options,
@@ -169,7 +171,7 @@ function optOutOfBuildTelemetry() {
   }
 }
 
-module.exports = {
+export default {
   installDepotTools,
   optOutOfBuildTelemetry,
 }

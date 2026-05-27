@@ -17,7 +17,6 @@
 #include "gin/wrappable.h"
 #include "mojo/public/cpp/bindings/receiver.h"
 #include "mojo/public/cpp/bindings/remote.h"
-#include "v8/include/cppgc/persistent.h"
 
 namespace brave_wallet {
 
@@ -43,10 +42,10 @@ class JSCardanoProvider final : public gin::Wrappable<JSCardanoProvider>,
  private:
   bool EnsureConnected();
   v8::Local<v8::Promise> Enable(v8::Isolate* isolate);
-  void OnEnableResponse(mojo::Remote<mojom::CardanoApi> remote,
-                        v8::Global<v8::Context> global_context,
+  void OnEnableResponse(v8::Global<v8::Context> global_context,
                         v8::Global<v8::Promise::Resolver> promise_resolver,
                         v8::Isolate* isolate,
+                        mojo::PendingRemote<mojom::CardanoApi> pending_remote,
                         mojom::CardanoProviderErrorBundlePtr error_message);
 
   v8::Local<v8::Promise> IsEnabled(v8::Isolate* isolate);
@@ -63,10 +62,6 @@ class JSCardanoProvider final : public gin::Wrappable<JSCardanoProvider>,
   void OnDestruct() override;
 
   mojo::Remote<mojom::CardanoProvider> cardano_provider_;
-
-  // Persistent self-reference to prevent GC from freeing this object while
-  // it's still needed for JavaScript bindings. Cleared in OnDestruct().
-  cppgc::Persistent<JSCardanoProvider> self_;
 
   base::WeakPtrFactory<JSCardanoProvider> weak_ptr_factory_{this};
 };

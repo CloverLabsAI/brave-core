@@ -8,13 +8,15 @@
 
 #include <optional>
 
-#include "base/values.h"
 #include "brave/components/brave_ads/core/internal/account/confirmations/confirmation_info.h"
+
+namespace base {
+class DictValue;
+}  // namespace base
 
 namespace brave_ads::json::reader {
 
-std::optional<ConfirmationList> ParseConfirmations(
-    const base::Value::Dict& dict);
+std::optional<ConfirmationList> ParseConfirmations(const base::DictValue& dict);
 
 }  // namespace brave_ads::json::reader
 

@@ -17,7 +17,6 @@
 
 #include "base/check.h"
 #include "base/check_op.h"
-#include "base/containers/contains.h"
 #include "base/containers/fixed_flat_set.h"
 #include "base/containers/span.h"
 #include "base/debug/crash_logging.h"
@@ -25,7 +24,6 @@
 #include "base/files/file_path.h"
 #include "base/functional/bind.h"
 #include "base/functional/callback.h"
-#include "base/json/json_reader.h"
 #include "base/logging.h"
 #include "base/memory/weak_ptr.h"
 #include "base/numerics/safe_math.h"
@@ -59,10 +57,7 @@
 #include "services/network/public/cpp/shared_url_loader_factory.h"
 #include "ui/base/l10n/l10n_util.h"
 
-#define STARTER_PROMPT(TYPE)                                              \
-  l10n_util::GetStringUTF8(IDS_AI_CHAT_STATIC_STARTER_TITLE_##TYPE),      \
-      l10n_util::GetStringUTF8(IDS_AI_CHAT_STATIC_STARTER_PROMPT_##TYPE), \
-      mojom::ActionType::CONVERSATION_STARTER
+using api_request_helper::APIRequestResult;
 
 namespace ai_chat {
 class AIChatCredentialManager;
@@ -91,6 +86,28 @@ ConversationHandler::Suggestion::Suggestion(Suggestion&&) = default;
 ConversationHandler::Suggestion& ConversationHandler::Suggestion::operator=(
     Suggestion&&) = default;
 ConversationHandler::Suggestion::~Suggestion() = default;
+
+void ConversationHandler::BuildCapabilitiesSet() {
+  conversation_capabilities_.clear();
+  // Set conversation capability based on profile-global state.
+  // TODO(https://github.com/brave/brave-browser/issues/49261): This is
+  // temporary whilst content agent conversations are
+  // 1) not toggleable by the user and
+  // 2) only for specific profiles.
+  // When this is toggleable by the user,
+  // we should have some client function that changes the conversation
+  // capability. And when this is not global to a Profile, we should not have
+  // the service make the determination.
+  conversation_capabilities_.insert(mojom::ConversationCapability::CHAT);
+  if (ai_chat_service_->GetIsContentAgentAllowed()) {
+    conversation_capabilities_.insert(
+        mojom::ConversationCapability::CONTENT_AGENT);
+  }
+  if (features::IsAIChatDeepResearchEnabled()) {
+    conversation_capabilities_.insert(
+        mojom::ConversationCapability::DEEP_RESEARCH);
+  }
+}
 
 ConversationHandler::ConversationHandler(
     mojom::Conversation* conversation,
@@ -131,18 +148,7 @@ ConversationHandler::ConversationHandler(
       feedback_api_(feedback_api),
       prefs_(prefs),
       url_loader_factory_(url_loader_factory) {
-  // Set conversation capability based on profile-global state.
-  // TODO(https://github.com/brave/brave-browser/issues/49261): This is
-  // temporary whilst content agent conversations are
-  // 1) not toggleable by the user and
-  // 2) only for specific profiles.
-  // When this is toggleable by the user,
-  // we should have some client function that changes the conversation
-  // capability. And when this is not global to a Profile, we should not have
-  // the service make the determination.
-  if (ai_chat_service_->GetIsContentAgentAllowed()) {
-    conversation_capability_ = mojom::ConversationCapability::CONTENT_AGENT;
-  }
+  BuildCapabilitiesSet();
 
   // Observe tool providers
   for (const auto& tool_provider : tool_providers_) {
@@ -387,8 +393,10 @@ void ConversationHandler::GetState(GetStateCallback callback) {
 
   mojom::ConversationStatePtr state = mojom::ConversationState::New(
       metadata_->uuid, is_request_in_progress_, std::move(models_copy),
-      model_key, default_model_key, std::move(suggestions),
-      suggestion_generation_status_,
+      model_key, default_model_key,
+#if BUILDFLAG(IS_IOS)
+      std::move(suggestions), suggestion_generation_status_,
+#endif
       associated_content_manager_->GetAssociatedContent(), current_error_,
       metadata_->temporary, tool_use_task_state_);
 
@@ -426,7 +434,7 @@ void ConversationHandler::RateMessage(bool is_liked,
 
   feedback_api_->SendRating(
       is_liked, ai_chat_service_->IsPremiumStatus(), history_slice,
-      model->options->get_leo_model_options()->name, selected_language_,
+      model->options->get_leo_model_options()->name,
       base::BindOnce(
           [](RateMessageCallback callback, APIRequestResult result) {
             if (result.Is2XXResponseCode() && result.value_body().is_dict()) {
@@ -479,7 +487,7 @@ void ConversationHandler::SendFeedback(const std::string& category,
       category, feedback, rating_id,
       urls.empty() ? std::nullopt
                    : std::make_optional(base::JoinString(urls, ",")),
-      selected_language_, std::move(on_complete));
+      std::move(on_complete));
 }
 
 void ConversationHandler::GetConversationUuid(
@@ -926,7 +934,7 @@ void ConversationHandler::GenerateQuestions() {
 
 void ConversationHandler::PerformQuestionGeneration() {
   engine_->GenerateQuestionSuggestions(
-      associated_content_manager_->GetCachedContents(), selected_language_,
+      associated_content_manager_->GetCachedContents(),
       base::BindOnce(&ConversationHandler::OnSuggestedQuestionsResponse,
                      weak_ptr_factory_.GetWeakPtr()));
 }
@@ -952,11 +960,6 @@ void ConversationHandler::RetryAPIRequest() {
       break;
     }
   }
-}
-
-void ConversationHandler::GetAPIResponseError(
-    GetAPIResponseErrorCallback callback) {
-  std::move(callback).Run(current_error_);
 }
 
 void ConversationHandler::StopGenerationAndMaybeGetHumanEntry(
@@ -1058,9 +1061,14 @@ void ConversationHandler::OnUserOptedIn() {
   MaybeFetchOrClearContentStagedConversation();
 }
 
+void ConversationHandler::SwitchToNonPremiumModel() {
+  ChangeModel(features::kAIModelsDefaultKey.Get());
+}
+
 void ConversationHandler::RespondToToolUseRequest(
     const std::string& tool_use_id,
-    std::vector<mojom::ContentBlockPtr> output) {
+    std::vector<mojom::ContentBlockPtr> output,
+    std::vector<mojom::ToolArtifactPtr> artifacts) {
   auto* tool_use = GetToolUseEventForLastResponse(tool_use_id);
   if (!tool_use) {
     DLOG(ERROR) << "Tool use event not found: " << tool_use_id;
@@ -1080,6 +1088,7 @@ void ConversationHandler::RespondToToolUseRequest(
   DVLOG(0) << "got output for tool: " << tool_use->tool_name;
 
   tool_use->output = std::move(output);
+  tool_use->artifacts = std::move(artifacts);
 
   OnToolUseEventOutput(chat_history_.back().get(), tool_use);
 
@@ -1212,8 +1221,8 @@ void ConversationHandler::PerformAssistantGeneration() {
 
   engine_->GenerateAssistantResponse(
       associated_content_manager_->GetCachedContentsMap(), chat_history_,
-      selected_language_, IsTemporaryChat(), GetTools(),
-      std::nullopt /* preferred_tool_name */, conversation_capability_,
+      IsTemporaryChat(), GetTools(), std::nullopt /* preferred_tool_name */,
+      conversation_capabilities_,
       base::BindRepeating(&ConversationHandler::OnEngineCompletionDataReceived,
                           weak_ptr_factory_.GetWeakPtr()),
       base::BindOnce(&ConversationHandler::OnEngineCompletionComplete,
@@ -1234,6 +1243,8 @@ void ConversationHandler::PerformPostToolAssistantGeneration() {
 
 void ConversationHandler::SetAPIError(const mojom::APIError& error) {
   current_error_ = error;
+
+  OnStateForConversationEntriesChanged();
 
   for (auto& client : conversation_ui_handlers_) {
     client->OnAPIResponseError(error);
@@ -1310,8 +1321,11 @@ void ConversationHandler::UpdateOrCreateLastAssistantEntry(
                << " is empty? " << tool_use_event->tool_name.empty()
                << " with input: " << tool_use_event->arguments_json;
 
+      // Accumulate streamed arguments_json from tool requests in the existing
+      // tool use event.
       if (last_event->is_tool_use_event() &&
-          tool_use_event->tool_name.empty()) {
+          tool_use_event->tool_name.empty() &&
+          !tool_use_event->output.has_value()) {
         last_event->get_tool_use_event()->arguments_json =
             base::StrCat({last_event->get_tool_use_event()->arguments_json,
                           tool_use_event->arguments_json});
@@ -1319,17 +1333,36 @@ void ConversationHandler::UpdateOrCreateLastAssistantEntry(
         OnHistoryUpdate(entry.Clone());
         return;
       }
+
+      // For server-side tool results, tool_name is empty but output exists.
+      // Find the tool use event created from tool call request and update its
+      // output. If there are any other client-side tool use requests to be
+      // processed, we would handle it upon CompleteGeneration after server has
+      // finished streaming everything for this generation request.
+      if (tool_use_event->tool_name.empty() &&
+          tool_use_event->output.has_value() &&
+          tool_use_event->is_server_result) {
+        auto* existing_tool_use_event =
+            GetToolUseEventForLastResponse(tool_use_event->id);
+        if (!existing_tool_use_event) {
+          DVLOG(1) << "Server tool result for unknown id: "
+                   << tool_use_event->id;
+          return;
+        }
+
+        // Update the tool with the server's output
+        existing_tool_use_event->output = std::move(tool_use_event->output);
+        existing_tool_use_event->artifacts =
+            std::move(tool_use_event->artifacts);
+        existing_tool_use_event->is_server_result = true;
+        // Notify UI about the tool completion
+        OnToolUseEventOutput(entry.get(), existing_tool_use_event);
+        return;
+      }
     }
 
     if (event->is_conversation_title_event()) {
       OnConversationTitleChanged(event->get_conversation_title_event()->title);
-      // Don't add this event to history
-      return;
-    }
-
-    if (event->is_selected_language_event()) {
-      OnSelectedLanguageChanged(
-          event->get_selected_language_event()->selected_language);
       // Don't add this event to history
       return;
     }
@@ -1357,6 +1390,11 @@ void ConversationHandler::MaybeSeedOrClearSuggestions() {
       return;
     }
 
+#define STARTER_PROMPT(TYPE)                                              \
+  l10n_util::GetStringUTF8(IDS_AI_CHAT_STATIC_STARTER_TITLE_##TYPE),      \
+      l10n_util::GetStringUTF8(IDS_AI_CHAT_STATIC_STARTER_PROMPT_##TYPE), \
+      mojom::ActionType::CONVERSATION_STARTER
+
     suggestions_.emplace_back(STARTER_PROMPT(MEMO));
     suggestions_.emplace_back(STARTER_PROMPT(INTERVIEW));
     suggestions_.emplace_back(STARTER_PROMPT(STUDY_PLAN));
@@ -1366,6 +1404,8 @@ void ConversationHandler::MaybeSeedOrClearSuggestions() {
     suggestions_.emplace_back(STARTER_PROMPT(BRAINSTORM));
     suggestions_.emplace_back(STARTER_PROMPT(PROFESSIONAL_EMAIL));
     suggestions_.emplace_back(STARTER_PROMPT(BUSINESS_PROPOSAL));
+
+#undef STARTER_PROMPT
 
     // We don't have an external list of all the available suggestions, so we
     // generate all of them  and remove random ones until we have the required
@@ -1612,21 +1652,9 @@ void ConversationHandler::OnEngineCompletionComplete(
       return;
     }
   }
+
   OnConversationEntryAdded(chat_history_.back());
 
-  // Check if we need title generation (after assistant response is added)
-  if (engine_->RequiresClientSideTitleGeneration() &&
-      chat_history_.size() == 2) {
-    // Keep the request active and complete the generation in OnTitleGenerated.
-    engine_->GenerateConversationTitle(
-        associated_content_manager_->GetCachedContentsMap(), chat_history_,
-        selected_language_,
-        base::BindOnce(&ConversationHandler::OnTitleGenerated,
-                       weak_ptr_factory_.GetWeakPtr()));
-    return;
-  }
-
-  // Complete the generation if we don't need title generation.
   CompleteGeneration(true);
 }
 
@@ -1638,14 +1666,24 @@ void ConversationHandler::OnTitleGenerated(
     OnConversationTitleChanged(
         result->event->get_conversation_title_event()->title);
   }
-
-  CompleteGeneration(true);
 }
 
 void ConversationHandler::CompleteGeneration(bool success) {
   is_request_in_progress_ = false;
   OnAPIRequestInProgressChanged();
+
   if (success) {
+    // Trigger title generation in background after request completes but
+    // before pending requests or tool handling. This is independent of request
+    // progress.
+    if (engine_->RequiresClientSideTitleGeneration() &&
+        chat_history_.size() == 2) {
+      engine_->GenerateConversationTitle(
+          associated_content_manager_->GetCachedContentsMap(), chat_history_,
+          base::BindOnce(&ConversationHandler::OnTitleGenerated,
+                         weak_ptr_factory_.GetWeakPtr()));
+    }
+
     MaybePopPendingRequests();
     if (!MaybeRespondToNextToolUseRequest()) {
       // Inform tool providers that there are no more tool use requests to
@@ -1947,8 +1985,22 @@ ConversationHandler::GetStateForConversationEntries() {
       (ai_chat_service_->IsPremiumStatus() || !is_leo_model ||
        model.options->get_leo_model_options()->access !=
            mojom::ModelAccess::PREMIUM);
-  entries_state->conversation_capability = conversation_capability_;
-  entries_state->is_premium_user = ai_chat_service_->IsPremiumStatus();
+  entries_state->conversation_capabilities = {
+      conversation_capabilities_.begin(), conversation_capabilities_.end()};
+
+  // Suggested questions
+  std::vector<std::string> suggestions;
+  std::ranges::transform(suggestions_, std::back_inserter(suggestions),
+                         [](const auto& s) { return s.title; });
+  entries_state->suggested_questions = std::move(suggestions);
+  entries_state->suggestion_status = suggestion_generation_status_;
+
+  // API error
+  entries_state->current_error = current_error_;
+
+  // Temporary chat flag
+  entries_state->is_temporary = metadata_->temporary;
+
   return entries_state;
 }
 
@@ -1981,20 +2033,17 @@ void ConversationHandler::OnConversationUIConnectionChanged(
   OnClientConnectionChanged();
 }
 
-void ConversationHandler::OnSelectedLanguageChanged(
-    const std::string& selected_language) {
-  selected_language_ = selected_language;
-}
-
 void ConversationHandler::OnSuggestedQuestionsChanged() {
+  OnStateForConversationEntriesChanged();
   std::vector<std::string> suggestions;
   std::ranges::transform(suggestions_, std::back_inserter(suggestions),
                          [](const auto& s) { return s.title; });
-
+#if BUILDFLAG(IS_IOS)
   for (auto& client : conversation_ui_handlers_) {
     client->OnSuggestedQuestionsChanged(suggestions,
                                         suggestion_generation_status_);
   }
+#endif
 }
 
 void ConversationHandler::OnAPIRequestInProgressChanged() {
@@ -2034,11 +2083,12 @@ std::vector<base::WeakPtr<Tool>> ConversationHandler::GetTools() {
       std::remove_if(
           tools.begin(), tools.end(),
           [&](auto& tool) {
-            return (!tool->IsSupportedByModel(model) ||
-                    !tool->SupportsConversation(
-                        GetIsTemporary(),
-                        associated_content_manager_->HasAssociatedContent(),
-                        conversation_capability_));
+            return (
+                !tool->IsSupportedByModel(model, conversation_capabilities_) ||
+                !tool->SupportsConversation(
+                    GetIsTemporary(),
+                    associated_content_manager_->HasAssociatedContent(),
+                    conversation_capabilities_));
           }),
       tools.end());
 
@@ -2086,6 +2136,7 @@ bool ConversationHandler::MaybeRespondToNextToolUseRequest() {
 
   bool has_pending_tool_use_request = false;
   bool has_only_completed_tool_use_events = false;
+  bool has_non_server_tool_results = false;
 
   // Handle one tool at a time and wait for its response
   // before handling the next one
@@ -2095,6 +2146,11 @@ bool ConversationHandler::MaybeRespondToNextToolUseRequest() {
       if (tool_use_event->output != std::nullopt) {
         // already handled
         has_only_completed_tool_use_events = true;
+
+        // Track if any tool result was not from the server.
+        if (!has_non_server_tool_results && !tool_use_event->is_server_result) {
+          has_non_server_tool_results = true;
+        }
         continue;
       }
 
@@ -2154,7 +2210,7 @@ bool ConversationHandler::MaybeRespondToNextToolUseRequest() {
                 base::StrCat({"The ", tool_use_event->tool_name,
                               " tool is not available."}))));
 
-        RespondToToolUseRequest(tool_use_event->id, std::move(result));
+        RespondToToolUseRequest(tool_use_event->id, std::move(result), {});
         break;
       }
 
@@ -2203,9 +2259,13 @@ bool ConversationHandler::MaybeRespondToNextToolUseRequest() {
     }
   }
 
-  // If there's nothing to do but send results, and there is no request in
-  // progress, then we must be resuming from a previous cancellation
-  if (has_only_completed_tool_use_events && !is_request_in_progress_) {
+  // All tool use events have completed. Send results back to the server to
+  // continue generation if any tool was not server-executed.
+  // If all tools are server-executed, we do not need to trigger an extra
+  // generation request as the final assistant response is already sent together
+  // with the tool result.
+  if (has_only_completed_tool_use_events && !is_request_in_progress_ &&
+      has_non_server_tool_results) {
     PerformPostToolAssistantGeneration();
   }
 
@@ -2239,6 +2299,8 @@ void ConversationHandler::SetTemporary(bool temporary) {
   }
 
   metadata_->temporary = temporary;
+
+  OnStateForConversationEntriesChanged();
 }
 
 bool ConversationHandler::IsTemporaryChat() const {
@@ -2327,5 +2389,3 @@ void ConversationHandler::OnAutoScreenshotsTaken(
 }
 
 }  // namespace ai_chat
-
-#undef STARTER_PROMPT

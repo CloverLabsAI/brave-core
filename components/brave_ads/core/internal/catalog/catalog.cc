@@ -7,6 +7,7 @@
 
 #include "base/check.h"
 #include "base/functional/bind.h"
+#include "base/functional/callback_helpers.h"
 #include "base/time/time.h"
 #include "brave/components/brave_ads/core/internal/ads_client/ads_client_util.h"
 #include "brave/components/brave_ads/core/internal/catalog/catalog_info.h"
@@ -87,16 +88,12 @@ void Catalog::MaybeFetchCatalog() const {
   }
 }
 
-void Catalog::NotifyDidFetchCatalog(const CatalogInfo& catalog) const {
-  for (CatalogObserver& observer : observers_) {
-    observer.OnDidFetchCatalog(catalog);
-  }
+void Catalog::NotifyDidFetchCatalog(const CatalogInfo& catalog) {
+  observers_.Notify(&CatalogObserver::OnDidFetchCatalog, catalog);
 }
 
-void Catalog::NotifyFailedToFetchCatalog() const {
-  for (CatalogObserver& observer : observers_) {
-    observer.OnFailedToFetchCatalog();
-  }
+void Catalog::NotifyFailedToFetchCatalog() {
+  observers_.Notify(&CatalogObserver::OnFailedToFetchCatalog);
 }
 
 void Catalog::OnNotifyDidInitializeAds() {

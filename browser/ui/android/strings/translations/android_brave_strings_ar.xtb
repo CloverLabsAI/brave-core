@@ -49,6 +49,14 @@
 <translation id="2998960761270772157">يحظر عناصر تسجيل الدخول والقائمة والتعليقات ومعلومات الفيديو على youtube.com.</translation>
 <translation id="8531835121131500698">حظر YouTube Shorts</translation>
 <translation id="2167271714269158912">حظر Shorts من الصفحة الرئيسية، وصفحة الأحداث الرائجة، ونتائج البحث على موقع youtube.com.</translation>
+<translation id="2564435705466025309">حظر فيديوهات YouTube المدبلجة تلقائيًا</translation>
+<translation id="3603500459037204525">يحظر فيديوهات YouTube المدبلجة تلقائيًا من الظهور على الصفحة الرئيسية لموقع youtube.com ونتائج البحث.</translation>
+<translation id="4067265130987656010">حظر صور مصغرة YouTube</translation>
+<translation id="3034711349887440574">يحظر الصور المصغرة من الظهور على الصفحة الرئيسية لموقع youtube.com ونتائج البحث.</translation>
+<translation id="8741919213635379855">حظر ألعاب YouTube القابلة للتشغيل</translation>
+<translation id="2216551241986578034">يحظر الألعاب القابلة للتشغيل من الظهور على الصفحة الرئيسية لموقع youtube.com ونتائج البحث.</translation>
+<translation id="9038505474874975130">حظر فيديوهات YouTube الحصرية للأعضاء</translation>
+<translation id="3084239516382196983">يحظر فيديوهات YouTube الحصرية للأعضاء من الظهور على الصفحة الرئيسية لموقع youtube.com ونتائج البحث.</translation>
 <translation id="6052725679982758334">حجب وسائل التواصل الاجتماعي</translation>
 <translation id="7498695072878479744">السماح بأزرار تسجيل الدخول إلى Brave على مواقع أطراف خارجية</translation>
 <translation id="863171915776379000">السماح بتسجيل الدخول إلى فيسبوك والمشاركات المدمجة</translation>
@@ -68,8 +76,6 @@
 <translation id="7304425663107214334">إظهار اقتراحات المتصفح</translation>
 <translation id="8982438328166986164">يعرض اقتراحات مواقع الويب بناءً على الإشارات المرجعية وسجل التصفح.</translation>
 <translation id="924029461438529367">إظهار اقتراحات ميزة البحث</translation>
-<translation id="6285118765755298263">فهرس محركات البحث الأخرى</translation>
-<translation id="919715748352669592">يقوم تلقائيًا بفهرسة مواقع الويب التي تتبع مواصفات OpenSearch.</translation>
 <translation id="9148058034647219655">إنهاء</translation>
 <translation id="7534079972563542000">النطاقات التي لا يمكن إيقافها</translation>
 <translation id="6486983549008741930">تصفية المحتوى</translation>
@@ -146,6 +152,8 @@
 <translation id="4690906712010847708">عدم بترقية الاتصالات إلى HTTPS (معطل)</translation>
 <translation id="693506469193748756">لا تتذكرني فور أن أغلق هذا الموقع</translation>
 <translation id="6975864539539353406">يتم مسح البيانات الخاصة بالكوكيز ومعلومات الموقع الأخرى عند إغلاق الموقع</translation>
+<translation id="7740929262043547697">السماح بحظر العناصر في نوافذ خاصة</translation>
+<translation id="1260864846935682371">يتيح ميزة حظر العناصر في Shields داخل النوافذ الخاصة. لاحظ أن العناصر المحظورة في النوافذ الخاصة ستكون محظورة أيضًا في النوافذ غير الخاصة.</translation>
 <translation id="1680858055899097121">لا تواصل استخدام علامات التبويب بين جلسات التصفح</translation>
 <translation id="7142548388914389999">السماح بتحليلات المنتج التي تحافظ على الخصوصية (P3A)</translation>
 <translation id="5254037869598726291">تساعد معلومات P3A مجهولة المصدر Brave على تقدير الاستخدام الكلي، وتضمن أننا ’re نقوم بتحسين الميزات الشائعة.</translation>
@@ -165,10 +173,6 @@
 <translation id="9110294136812584522">يمكن أن تطلب المواقع استخدام ميزة "تسجيل الدخول القديم إلى Google عبر ملفات تعريف الارتباط التابعة للجهات الخارجية</translation>
 <translation id="2903783737778379345">عدم السماح بتسجيل الدخول القديم إلى Google عبر ملفات تعريف الارتباط التابعة للجهات الخارجية</translation>
 <translation id="6880817299303842099">يُسمح باستخدام ملفات تعريف الارتباط التابعة للجهات الخارجية لتسجيل الدخول القديم إلى Google</translation>
-<translation id="2136412236435693622">الوصول إلى المضيف المحلي (Localhost)</translation>
-<translation id="4172219483893066798">يمكن للمواقع طلب الوصول إلى موارد Localhost</translation>
-<translation id="7181706637590665047">عدم السماح بالوصول إلى موارد Localhost</translation>
-<translation id="1485435696620658073">يسمح بالوصول إلى موارد Localhost</translation>
 <translation id="181905442828471321">الإعدادات الافتراضية لطرق الحماية من Brave</translation>
 <translation id="2675679258824361492">إعدادات الخصوصية الأخرى</translation>
 <translation id="8026334261755873520">محو بيانات التصفُّح</translation>
@@ -193,14 +197,27 @@
 <translation id="834487290629916192">لاحقاً</translation>
 <translation id="4117451092682672487">الخصوصية. أصبحت أبسط.</translation>
 <translation id="7909375417585209817">باستخدام Brave كافتراضي، يفتح كل رابط تنقر عليه بحماية خصوصية Brave.</translation>
-<translation id="7370959926683925817">حظر الإعلانات. حفظ البيانات. كل يوم.</translation>
-<translation id="7281027579943912834">باستخدام Brave كافتراضي، يحصل كل رابط تنقر عليه على حماية حظر الإعلانات من Brave. وكذلك كل صفحة وفيديو وبث.</translation>
-<translation id="5148943178722443958">ساعد في تحسين Brave.</translation>
+<translation id="763369711159699222">ساعد في تحسين Brave</translation>
+<translation id="8025937231644975408">أخبرنا بالميزات التي تستمتع بها أكثر.</translation>
 <translation id="6718362830686703942">أرسل تقارير التشخيص إذا واجهت حالة عطل أو توقف.</translation>
 <translation id="8616157231067364693">شارك نتائج تحليلات المنتج الخاصة والمجهولة حول الميزات التي يستخدمها مستخدمو Brave.</translation>
 <translation id="2888496576732880897">ساعد Brave Search على النمو</translation>
+<translation id="7198716519700700181">منع الانقطاعات عند البث</translation>
 <translation id="7044431516245362795">اشترك في مشروع اكتشاف الويب للمساعدة في تطوير الفهرس وتحسين نتائج البحث. <ph name="LEARN_MORE_START"/>تعرف على المزيد.<ph name="LEARN_MORE_END"/></translation>
+<translation id="4847979153841887006">شعار Brave</translation>
+<translation id="1389386068457132299">خلفية الإعداد الأولي</translation>
+<translation id="5101985748360228609">زينة الأوراق العلوية</translation>
+<translation id="5270920361877570459">زينة الأوراق السفلية</translation>
+<translation id="4021716437419160885">التمرير لأسفل</translation>
+<translation id="4767173360729868049">توضيح مساعدة Brave Search</translation>
+<translation id="8241918461631453498">توضيح منع الانقطاعات</translation>
+<translation id="8213310572767907663">توضيح جعل Brave أفضل</translation>
+<translation id="2427917529469438577">حظر الانقطاعات المزعجة على مواقع البث المفضلة لديك.</translation>
 <translation id="7818938154803162778">بالتأكيد، سأقدم المساعدة.</translation>
+<translation id="5298784657468199167">إرسال تقارير الأعطال</translation>
+<translation id="6188781052835527980">أرسل تقارير التشخيص المجهولة إذا واجهت حالة عطل أو توقف.</translation>
+<translation id="4780647518983772446">شارك نتائج تحليلات المنتج الخاصة والمجهولة حول ميزات Brave التي يتم استخدامها.</translation>
+<translation id="5109496672133133896">نتائج تحليلات المنتج الخاصة</translation>
 <translation id="3545804467215833536">انقر لعرض Brave Shields</translation>
 <translation id="1724327820822194498">شاهد كل الأشياء السيئةالتي تم حظرها بواسطة Brave، في كل صفحة، باستخدام Shields.</translation>
 <translation id="5386259141409498372"><ph name="BIG_TECH"/> و<ph name="TRACKER"/> إعلانات أخرى &amp; تم حظر أجهزة التعقب</translation>
@@ -368,6 +385,14 @@
 <translation id="8793108040181436796">عناصر واجهة المستخدم</translation>
 <translation id="8643377320501056697">عرض أهم المواقع</translation>
 <translation id="7275773481201277457">إظهار إحصائيات Brave</translation>
+<translation id="7462178177755090262">شاشة البدء</translation>
+<translation id="5365434987337264071">علامة التبويب الأخيرة المفتوحة</translation>
+<translation id="6019856124237323989">{HOURS, plural,
+          =1 {علامة تبويب جديدة بعد اسم <ph name="HOURS_ONE"/> ساعة من عدم النشاط}
+          other {علامة تبويب جديدة بعد اسم <ph name="HOURS_MANY"/> ساعات من عدم النشاط}
+        }</translation>
+<translation id="5233638681132016545">علامة تبويب جديدة</translation>
+<translation id="8395271296293035055">الرجوع إلى آخر علامة تبويب استخدمتها</translation>
 <translation id="8297488609722895137">الصورة بعدسة <ph name="PHOTO_BY"/></translation>
 <translation id="2898634658146274982">فتح الروابط الخارجية في Brave</translation>
 <translation id="5616508928556767259">يفتح روابط من تطبيقات أخرى في عرض الويب بمتصفح Brave. ملاحظة: يجب تعيين Brave كمتصفحك الافتراضي.</translation>
@@ -378,7 +403,7 @@
 <translation id="717952606991220586">عذرًا، حدث خطأ ما. الرجاء المحاولة مرة أخرى لاحقًا.</translation>
 <translation id="987264212798334818">عام</translation>
 <translation id="1116694919640316211">حول</translation>
-<translation id="1275213816424141989">ربما لاحقاً</translation>
+<translation id="2370739752330685659">ربما لاحقًا</translation>
 <translation id="3624048886326677117">حجب المتتبعات &amp; والإعلانات (شديد)</translation>
 <translation id="7151914815476509258">حجب المتتبعات &amp; والإعلانات (قياسي)</translation>
 <translation id="7384778069178817075">السماح بجميع المتتبعات والإعلانات</translation>
@@ -416,6 +441,13 @@
 <translation id="7141438739990875547">شبكات بيتكوين</translation>
 <translation id="9055546041146396417">إذا كان هذا الموقع يبدو معطلاً فجرّب إيقاف تشغيل Shields.</translation>
 <translation id="7898672232170410330">عنصر الحظر</translation>
+<translation id="9064628362799094520">حذف بيانات الموقع</translation>
+<translation id="8949611615512336262">حذف تلقائي بشكل نهائي: <ph name="AUTO_SHRED_MODE_TEXT"/></translation>
+<translation id="9140049656798805345">حذف بيانات الموقع بشكل نهائي الآن</translation>
+<translation id="6795622376590884449">حذف تلقائي بشكل نهائي</translation>
+<translation id="7961015016161918242">مطلقًا</translation>
+<translation id="1991004083507807299">تم إغلاق علامات تبويب الموقع</translation>
+<translation id="5827277414420724690">إغلاق التطبيق</translation>
 <translation id="1209739344687072997">الإبلاغ عن موقع إلكتروني معطل</translation>
 <translation id="8510478288840333677">إخطار مطوري Brave بأن هذا الموقع لا يعمل بشكلٍ سليم مع Shields:</translation>
 <translation id="1653405824851871276">نشكرك على تقديم المساعدة في أن يصبح Brave أفضل للجميع. لن يحتوي هذا التقرير إلا على المعلومات اللازمة لنا لإصلاح هذا الموقع. <ph name="LEARN_MORE"/></translation>
@@ -489,7 +521,6 @@
 <translation id="5705882733397021510">العودة</translation>
 <translation id="7889432931837317731">الفتح تلقائياً عندما يكون ذلك ممكناً</translation>
 <translation id="1029304566263314007">عرض إشعارات تقدم التنزيل</translation>
-<translation id="2910433761530295035">اسأل عن مكان حفظ الملفات (إذا تم اكتشاف بطاقة SD)</translation>
 <translation id="2977501775944575564">التنزيل الموازي</translation>
 <translation id="6224180438946945617">تمكين التنزيل المتوازي لتسريع سرعة التنزيل</translation>
 <translation id="8967385052772844086">عرض تقرير الخصوصية الكامل</translation>
@@ -758,7 +789,6 @@
 <translation id="6889920539620318793">تعيين كنشط</translation>
 <translation id="2653659639078652383">إرسال</translation>
 <translation id="4945690646623486292">تحديد شبكة</translation>
-<translation id="5233638681132016545">علامة تبويب جديدة</translation>
 <translation id="8006088103295786154">الدخول إلى محفظة Brave</translation>
 <translation id="5308380583665731573">اتصال</translation>
 <translation id="8030169304546394654">قُطع الاتصال</translation>
@@ -911,6 +941,9 @@
 <translation id="703185154752046151">تمت إضافة عنصر واجهة مستخدم إلى الشاشة الرئيسية</translation>
 <translation id="4635094429202343515">تجربة عنصر واجهة مستخدم البحث على Brave</translation>
 <translation id="4809681171446727314">يمكنك الوصول إلى بحث خاص ومستقل مباشرة من شاشتك الرئيسية.</translation>
+<translation id="3280562213547448728">البحث الصوتي</translation>
+<translation id="3925312712530886302">افتح البحث الخاص</translation>
+<translation id="9214590551301647710">افتح Leo</translation>
 <translation id="7751715172931488388">إضافة عنصر واجهة المستخدم</translation>
 <translation id="7285167584112910782">البحث السريع عن الإجراءات على Brave</translation>
 <translation id="2326703104633309781">استخدام ترجمة Brave</translation>
@@ -942,15 +975,25 @@
 <translation id="5494920125229734069">تحديد الكل</translation>
 <translation id="2361906291514218784">Leo الذكاء الاصطناعي</translation>
 <translation id="944736176598169208">Rewards</translation>
-<translation id="4272190451231642425">إرسال تقارير الأعطال تلقائياً</translation>
 <translation id="1199170151481311646">تحليلات الحفاظ على الخصوصية</translation>
 <translation id="1706715315466634757">الأسماء المستعارة للبريد الإلكتروني</translation>
+<translation id="738840791756723657">ذكاء اصطناعي</translation>
 <translation id="6709133671862442373">الأخبار</translation>
 <translation id="5990642573624858459">إعداد التقارير الإحصائية</translation>
 <translation id="7705524343798198388">VPN</translation>
 <translation id="2441719842399509963">إعادة التعيين إلى الإعدادات الافتراضية</translation>
 <translation id="4922034974043704366">تم تمكين هذه الميزة لأنك قمت باختيارها</translation>
-<translation id="3144818380093107753">Brave Origin هي طريقة قائمة على الاشتراك لتعطيل الميزات المدرة للدخل التي تدعم Brave كعمل تجاري. سيستمر المشتركون في Brave Origin في الاستفادة من الخصوصية الرائدة في المجال وحظر الإعلانات والسرعة (عبر Brave Shields)، بالإضافة إلى تحديثات البرامج المنتظمة وتصحيحات Chromium وتحسينات الأمان والخصوصية. سيحصلون أيضًا على خيار تعطيل ميزات مثل Brave Leo، والأخبار، والمكافآت، والمحفظة، والشبكة الافتراضية الخاصة، ونطاقات Web3، والمزيد.&lt;br/&gt;&lt;br/&gt;سيشاهد المشتركون لوحة تحكم جديدة في قائمة إعدادات المتصفح. ستظهر الميزات الحالية - بالإضافة إلى أي ميزات جديدة نشحنها في المستقبل - هنا، وسيتم إيقاف تشغيلها افتراضيًا.&lt;br/&gt;&lt;br/&gt;&lt;b&gt;ملاحظة: لن يقوم Brave Origin بتعطيل ميزات المتصفح التي تستخدمها حاليًا، ولن يؤثر على ميزات Brave Search أو إعلانات Brave Search.&lt;/b&gt;</translation>
+<translation id="2587535830241068901">تخصيص متصفحك مع الاستمرار في دعم Brave</translation>
+<translation id="7235314227387539944">Brave Origin هي نسخة مدفوعة من المتصفح للمستخدمين الذين لا يحتاجون إلى جميع الميزات التي تدعم Brave كعمل تجاري، لكنهم لا يزالون يريدون الخصوصية التي يوفرها Brave فقط. سيستمر مستخدمو Origin في الاستفادة من خصوصيتنا الرائدة في الصناعة وحظر الإعلانات والسرعة (عبر Shields)، بالإضافة إلى تحديثات البرامج العادية وتصحيحات Chromium وتحسينات الأمان والخصوصية. سيزيل Origin معظم الميزات الأخرى من المتصفح.</translation>
+<translation id="7941943775131052130">لاحظ أن شراء Brave Origin سيشمل أيضًا إمكانية الوصول إلى Brave Search Premium، حيث سيزيل Origin الإعلانات من صفحة نتائج Brave Search.</translation>
+<translation id="2573819149217596923">تغيير ميزات Brave</translation>
+<translation id="7415416427817229128">تفعيل أو تعطيل ميزة Brave يتطلب إعادة تشغيل المتصفح لتطبيق التغييرات. هل تريد إعادة التشغيل الآن؟</translation>
+<translation id="2256115617011615191">إعادة التشغيل الآن</translation>
+<translation id="2160089182263405907">تعطيل الميزات</translation>
+<translation id="3362364767724670721">يتطلب تفعيل أو تعطيل ميزة Brave إعادة تشغيل المتصفح لتطبيق التغييرات. يرجى النقر على <ph name="BEGIN_BOLD"/>إعادة التشغيل الآن<ph name="END_BOLD"/> بمجرد انتهاء Origin من التحديث.</translation>
+<translation id="1028940738207645746">هل أنت متأكد من أنك تريد إعادة تعيين جميع الإعدادات إلى الافتراضية؟</translation>
+<translation id="5939518447894949180">إعادة الضبط</translation>
+<translation id="8554205386170195281">شراء</translation>
 <translation id="8613144770663526433">تسجيل الدخول إلى Brave Wallet</translation>
 <translation id="3696514931437952995">أنت الآن تقوم بتسجيل الدخول في <ph name="ORIGIN"/>. سوف تشارك Brave wallet عنوان محفظتك مع <ph name="ORIGIN"/>.</translation>
 <translation id="1028781062521375153">عرض التفاصيل</translation>
@@ -986,7 +1029,6 @@ Leo AI في المستقبل وستقوم أيضًا بمحو سجل الدرد�
 <translation id="1309636029062006520">قم بإنشاء قوائم تشغيل الصوت ومقاطع الفيديو المفضلة لديك، وقم بتشغيلها في أي وقت وفي أي مكان.</translation>
 <translation id="7899390017499980820">الزر "إضافة إلى قائمة التشغيل"</translation>
 <translation id="6901152954398668317">إظهار أو إخفاء زر "إضافة إلى قائمة التشغيل" للوصول السريع لإضافة أو إزالة الوسائط.</translation>
-<translation id="5939518447894949180">إعادة الضبط</translation>
 <translation id="8199028711686989861">احذف جميع الفيديوهات من قائمة التشغيل، بما في ذلك التخزين في وضع عدم الاتصال.</translation>
 <translation id="4590997608186539865">قائمة التشغيل</translation>
 <translation id="7525067979554623046">إنشاء</translation>
@@ -1067,17 +1109,22 @@ Leo AI في المستقبل وستقوم أيضًا بمحو سجل الدرد�
 <translation id="4650851936784160359">يتعذر تحديث قائمة التصفية. يُرجى المحاولة مجددًا</translation>
 <translation id="3098054327870766317">إظهار زر التراجع عند إغلاق علامات التبويب</translation>
 <translation id="1336494649091412226">هل أنت متأكد من أنك تريد مغادرة Brave؟</translation>
+<translation id="6061635824229591714">هل تريد حذف بيانات الموقع بشكل نهائي؟</translation>
+<translation id="1265051174491933207">سيؤدي الحذف بشكل نهائي إلى إغلاق جميع علامات التبويب لموقع '<ph name="SITE_NAME"/>'، وحذف جميع بياناته. ولا يمكن التراجع عن هذا الإجراء.</translation>
+<translation id="5528772406060281700">حذف بيانات الموقع</translation>
+<translation id="4426990318287827331">حذف البيانات بشكل نهائي</translation>
 <translation id="7942415993090181327">سجل الدردشة</translation>
 <translation id="6859935199732075666">عرض أخطاء وضع التصفح الآمن</translation>
 <translation id="2735247450315842119">السماح بلقطات الشاشة في علامات التبويب الخاصة</translation>
 <translation id="8420414929552321089">في حالة السماح بالتقاطها، ستكون علامات التبويب الخاصة مرئية أيضًا عند فتح تطبيقات متعددة.</translation>
 <translation id="7956713633345437162">الإشارات المرجعية للجوال</translation>
+<translation id="7984508421152399880">شراء الآن</translation>
 <translation id="6261139507111008244">دعم مهمتنا &amp; عمل مفتوح المصدر</translation>
-<translation id="7882690061170175552">الحد الأدنى من واجهة مستخدم المتصفح التي تتمحور حول الدروع</translation>
+<translation id="6073373503121903099">واجهة متصفح بسيطة تركز على Brave Shields</translation>
 <translation id="2267973897341040743">الحفاظ على حظر الإعلانات الأساسية والخصوصية وسرعة &amp;</translation>
-<translation id="1361157028850796410">أفضل قيمة</translation>
-<translation id="7280825497485894053">اشتراك شهري</translation>
-<translation id="4570901726096223030">تعرّف على المزيد حول Origin</translation>
+<translation id="3339535734679532460">شراء بمرة واحدة بدون تكاليف اشتراك إضافية</translation>
+<translation id="2805615640226281689">شراء لمرة واحدة</translation>
+<translation id="261433018299584676">احصل على رمز تسجيل الدخول</translation>
 <translation id="1943432128510653496">حفظ كلمات المرور</translation>
 <translation id="2100273922101894616">تسجيل الدخول تلقائيًا</translation>
 <translation id="363596933471559332">يمكنك تسجيل الدخول تلقائيًا إلى المواقع الإلكترونية باستخدام بيانات الاعتماد المخزّنة. وعندما تكون هذه الميزة غير مفعّلة، سيُطلب منك التحقّق من بيانات الاعتماد في كل مرة قبل تسجيل الدخول إلى موقع إلكتروني.</translation>
@@ -1135,4 +1182,20 @@ Leo AI في المستقبل وستقوم أيضًا بمحو سجل الدرد�
 <translation id="1724977129262658800">عليك فتح قفل الشاشة لتتمكّن من تعديل كلمة المرور.</translation>
 <translation id="5780792035410621042">لنسخ كلمات المرور، عليك أولاً إعداد قفل الشاشة على جهازك.</translation>
 <translation id="7986497153528221272">للاطّلاع على كلمات المرور، يجب أولاً إعداد قفل الشاشة على جهازك.</translation>
+<translation id="4882237634123415792">محركات البحث المخصصة</translation>
+<translation id="8364431224461158026">إضافة محرك بحث مخصص</translation>
+<translation id="7307935603426295341">تحرير محرك Search مخصص</translation>
+<translation id="4002066346123236978">العنوان</translation>
+<translation id="3653110185270660915">أدخل اسم محرك البحث</translation>
+<translation id="7400418766976504921">‏عنوان URL</translation>
+<translation id="6410668567036790476">إضافة محرك Search</translation>
+<translation id="6289878295410648689">اكتب عنوان url للبحث واستبدل الاستعلام بـ <ph name="SPECIAL_SYMBOL"/>.</translation>
+<translation id="8943582268084103903">على سبيل المثال: https://youtube.com/search?q=<ph name="SPECIAL_SYMBOL"/>. إذا كان الموقع يدعم OpenSearch، فسيتم توفير خيار للإضافة تلقائيًا أثناء تحرير هذا الحقل.</translation>
+<translation id="8706939021136180678">عنوان url غير صحيح.</translation>
+<translation id="6528099556282059181">محرك Search مضاف بالفعل.</translation>
+<translation id="463451857046640291">فشل في إضافة محرك Search.</translation>
+<translation id="1229671956956864948">فشل في تحديث محرك Search.</translation>
+<translation id="1462771969120037152">فشل في حذف محرك Search. قد يكون محرك Search الذي تحاول حذفه معيّنًا كمحرك البحث الافتراضي.</translation>
+<translation id="1079140196216383600">حذف محرك Search المخصص</translation>
+<translation id="525276572490219787">هل أنت متأكد من أنك تريد حذف "<ph name="SEARCH_ENGINE_NAME"/>"؟ لا يمكن التراجع عن هذا الإجراء.</translation>
 </translationbundle>

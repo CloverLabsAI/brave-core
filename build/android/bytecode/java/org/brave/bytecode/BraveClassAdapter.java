@@ -24,6 +24,8 @@ public class BraveClassAdapter {
         chain = new BraveAutocompleteEditTextClassAdapter(chain);
         chain = new BraveAutocompleteMediatorBaseClassAdapter(chain);
         chain = new BraveAutocompleteMediatorClassAdapter(chain);
+        chain = new BraveAutofillClientProviderUtilsClassAdapter(chain);
+        chain = new BraveAutofillPaymentMethodsFragmentBaseClassAdapter(chain);
         chain = new BraveBookmarkActivityClassAdapter(chain);
         chain = new BraveBookmarkBridgeClassAdapter(chain);
         chain = new BraveBookmarkDelegateClassAdapter(chain);
@@ -53,6 +55,7 @@ public class BraveClassAdapter {
         chain = new BraveContentViewClassAdapter(chain);
         chain = new BraveCustomizationProviderDelegateImplClassAdapter(chain);
         chain = new BraveDefaultBrowserPromoUtilsClassAdapter(chain);
+        chain = new BraveDownloadLocationDialogCoordinatorClassAdapter(chain);
         chain = new BraveDownloadMessageUiControllerImplClassAdapter(chain);
         chain = new BraveDropdownItemViewInfoListBuilderClassAdapter(chain);
         chain = new BraveDropdownItemViewInfoListManagerClassAdapter(chain);
@@ -60,6 +63,7 @@ public class BraveClassAdapter {
         chain = new BraveEditUrlSuggestionProcessorBaseClassAdapter(chain);
         chain = new BraveEditUrlSuggestionProcessorClassAdapter(chain);
         chain = new BraveExternalNavigationHandlerClassAdapter(chain);
+        chain = new BraveFaviconUtilsClassAdapter(chain);
         chain = new BraveFeedSurfaceCoordinatorClassAdapter(chain);
         chain = new BraveFeedSurfaceMediatorClassAdapter(chain);
         chain = new BraveForegroundServiceUtilsClassAdapter(chain);
@@ -70,6 +74,7 @@ public class BraveClassAdapter {
         chain = new BraveHttpURLConnectionFactoryImplClassAdapter(chain);
         chain = new BraveHubManagerImplClassAdapter(chain);
         chain = new BraveIdentityDiscControllerClassAdapter(chain);
+        chain = new BraveIncognitoNewTabPageClassAdapter(chain);
         chain = new BraveIncognitoTabSwitcherPaneClassAdapter(chain);
         chain = new BraveInfoBarContainerViewClassAdapter(chain);
         chain = new BraveIntentHandlerClassAdapter(chain);
@@ -90,9 +95,12 @@ public class BraveClassAdapter {
         chain = new BraveMostVisitedTilesLayoutBaseClassAdapter(chain);
         chain = new BraveMostVisitedTilesMediatorClassAdapter(chain);
         chain = new BraveMultiInstanceManagerApi31ClassAdapter(chain);
+        chain = new BraveMultiInstanceOrchestratorImplClassAdapter(chain);
         chain = new BraveMultiWindowUtilsClassAdapter(chain);
         chain = new BraveNewTabPageClassAdapter(chain);
+        chain = new BraveNewTabPageCoordinatorClassAdapter(chain);
         chain = new BraveNewTabPageLayoutClassAdapter(chain);
+        chain = new BraveNtpCustomizationUtilsClassAdapter(chain);
         chain = new BraveNotificationBuilderClassAdapter(chain);
         chain = new BraveNotificationManagerProxyImplClassAdapter(chain);
         chain = new BraveNotificationPermissionRationaleDialogControllerClassAdapter(chain);
@@ -114,6 +122,7 @@ public class BraveClassAdapter {
         chain = new BraveSearchEnginePreferenceClassAdapter(chain);
         chain = new BraveSettingsIntentUtilClassAdapter(chain);
         chain = new BraveSettingsLauncherImplClassAdapter(chain);
+        chain = new BraveSettingsUtilsClassAdapter(chain);
         chain = new BraveShareDelegateImplClassAdapter(chain);
         chain = new BraveSingleCategorySettingsClassAdapter(chain);
         chain = new BraveSingleWebsiteSettingsClassAdapter(chain);
@@ -131,6 +140,7 @@ public class BraveClassAdapter {
         chain = new BraveTabbedAdaptiveToolbarBehaviorClassAdapter(chain);
         chain = new BraveTabbedNavigationBarColorControllerBaseClassAdapter(chain);
         chain = new BraveTabbedRootUiCoordinatorClassAdapter(chain);
+        chain = new BraveTabBrowserControlsConstraintsHelperClassAdapter(chain);
         chain = new BraveTabCollectionTabModelImplClassAdapter(chain);
         chain = new BraveThemeUtilsClassAdapter(chain);
         chain = new BraveTileViewClassAdapter(chain);

@@ -12,9 +12,11 @@
 #include "base/check.h"
 #include "base/feature_list.h"
 #include "base/json/json_reader.h"
+#include "base/json/string_escape.h"
+#include "base/memory/scoped_refptr.h"
 #include "base/strings/string_util.h"
 #include "base/values.h"
-#include "brave/components/brave_shields/content/browser/ad_block_service.h"
+#include "brave/components/brave_shields/content/browser/ad_block_engine_wrapper.h"
 #include "brave/components/brave_shields/core/common/brave_shield_constants.h"
 #include "brave/components/brave_shields/core/common/features.h"
 #include "components/content_settings/core/browser/host_content_settings_map.h"
@@ -32,7 +34,7 @@ constexpr char kProceduralActionsScript[] =
             }
             return $1;
           };
-          CC.proceduralActionFilters = JSON.parse(String.raw`$2`).filter(f => takeStyleFilter(f));
+          CC.proceduralActionFilters = JSON.parse($2).filter(f => takeStyleFilter(f));
           CC.hasProceduralActions = CC.proceduralActionFilters.length > 0;
           return stylesheet;
         })();)";
@@ -42,8 +44,8 @@ constexpr char kProceduralActionsScript[] =
 namespace cosmetic_filters {
 
 CosmeticFiltersResources::CosmeticFiltersResources(
-    brave_shields::AdBlockService* ad_block_service)
-    : ad_block_service_(ad_block_service) {}
+    brave_shields::AdBlockEngineWrapper* engine_wrapper)
+    : engine_wrapper_(engine_wrapper) {}
 
 CosmeticFiltersResources::~CosmeticFiltersResources() = default;
 
@@ -51,18 +53,17 @@ void CosmeticFiltersResources::HiddenClassIdSelectors(
     const std::string& input,
     const std::vector<std::string>& exceptions,
     HiddenClassIdSelectorsCallback callback) {
-  DCHECK(ad_block_service_->GetTaskRunner()->RunsTasksInCurrentSequence());
-  std::optional<base::Value::Dict> input_dict = base::JSONReader::ReadDict(
+  std::optional<base::DictValue> input_dict = base::JSONReader::ReadDict(
       input, base::JSON_PARSE_CHROMIUM_EXTENSIONS |
                  base::JSON_REPLACE_INVALID_CHARACTERS);
   if (!input_dict) {
     // Nothing to work with
-    std::move(callback).Run(base::Value::Dict());
+    std::move(callback).Run(base::DictValue());
     return;
   }
 
   std::vector<std::string> classes;
-  base::Value::List* classes_list = input_dict->FindList("classes");
+  base::ListValue* classes_list = input_dict->FindList("classes");
   if (classes_list) {
     for (const auto& class_item : *classes_list) {
       if (!class_item.is_string()) {
@@ -72,7 +73,7 @@ void CosmeticFiltersResources::HiddenClassIdSelectors(
     }
   }
   std::vector<std::string> ids;
-  base::Value::List* ids_list = input_dict->FindList("ids");
+  base::ListValue* ids_list = input_dict->FindList("ids");
   if (ids_list) {
     for (const auto& id_item : *ids_list) {
       if (!id_item.is_string()) {
@@ -83,7 +84,7 @@ void CosmeticFiltersResources::HiddenClassIdSelectors(
   }
 
   auto selectors =
-      ad_block_service_->HiddenClassIdSelectors(classes, ids, exceptions);
+      engine_wrapper_->HiddenClassIdSelectors(classes, ids, exceptions);
 
   std::move(callback).Run(std::move(selectors));
 }
@@ -92,9 +93,8 @@ void CosmeticFiltersResources::UrlCosmeticResources(
     const std::string& url,
     bool aggressive_blocking,
     UrlCosmeticResourcesCallback callback) {
-  DCHECK(ad_block_service_->GetTaskRunner()->RunsTasksInCurrentSequence());
   auto resources =
-      ad_block_service_->UrlCosmeticResources(url, aggressive_blocking);
+      engine_wrapper_->UrlCosmeticResources(url, aggressive_blocking);
 
   const auto* procedural_actions_list =
       resources.FindList(brave_shields::kCosmeticResourcesProceduralActions);
@@ -117,9 +117,12 @@ void CosmeticFiltersResources::UrlCosmeticResources(
                    });
     std::string procedural_actions_json = base::StrCat(
         {"[", base::JoinString(procedural_actions_strings, ","), "]"});
+    std::string escaped_procedural_actions;
+    base::EscapeJSONString(procedural_actions_json, true,
+                           &escaped_procedural_actions);
     std::string procedural_actions_script = base::ReplaceStringPlaceholders(
         kProceduralActionsScript,
-        {procedural_filtering_feature_enabled, procedural_actions_json},
+        {procedural_filtering_feature_enabled, escaped_procedural_actions},
         nullptr);
     resources.Set("procedural_actions_script", procedural_actions_script);
   }

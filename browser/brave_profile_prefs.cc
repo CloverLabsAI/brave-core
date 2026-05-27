@@ -38,7 +38,6 @@
 #include "brave/components/brave_wallet/common/buildflags/buildflags.h"
 #include "brave/components/brave_wayback_machine/buildflags/buildflags.h"
 #include "brave/components/constants/pref_names.h"
-#include "brave/components/containers/buildflags/buildflags.h"
 #include "brave/components/de_amp/common/pref_names.h"
 #include "brave/components/debounce/core/browser/debounce_service.h"
 #include "brave/components/email_aliases/email_aliases_service.h"
@@ -52,6 +51,7 @@
 #include "brave/components/query_filter/pref_names.h"
 #include "brave/components/request_otr/common/buildflags/buildflags.h"
 #include "brave/components/search_engines/brave_prepopulated_engines.h"
+#include "brave/components/serp_metrics/pref_names.h"
 #include "brave/components/speedreader/common/buildflags/buildflags.h"
 #include "brave/components/tor/buildflags/buildflags.h"
 #include "brave/components/web_discovery/buildflags/buildflags.h"
@@ -164,10 +164,6 @@ using extensions::FeatureSwitch;
 #include "brave/components/psst/common/pref_names.h"
 #endif
 
-#if BUILDFLAG(ENABLE_CONTAINERS)
-#include "brave/components/containers/core/browser/prefs.h"
-#endif
-
 #if BUILDFLAG(ENABLE_BRAVE_WALLET)
 #include "brave/components/brave_wallet/browser/pref_names.h"
 #endif
@@ -194,11 +190,6 @@ void OverrideDefaultPrefValues(user_prefs::PrefRegistrySyncable* registry) {
   registry->SetDefaultPrefValue(feed::prefs::kArticlesListVisible,
                                 base::Value(false));
   registry->SetDefaultPrefValue(feed::prefs::kEnableSnippetsByDse,
-                                base::Value(false));
-
-  // Explicitly disable safe browsing extended reporting by default in case they
-  // change it in upstream.
-  registry->SetDefaultPrefValue(prefs::kSafeBrowsingScoutReportingEnabled,
                                 base::Value(false));
 #else
   // Turn on most visited mode on NTP by default.
@@ -227,6 +218,11 @@ void OverrideDefaultPrefValues(user_prefs::PrefRegistrySyncable* registry) {
   registry->SetDefaultPrefValue(
       prefs::kSafeBrowsingExtendedReportingOptInAllowed, base::Value(false));
 
+  // Explicitly disable safe browsing extended reporting by default in case they
+  // change it in upstream.
+  registry->SetDefaultPrefValue(prefs::kSafeBrowsingScoutReportingEnabled,
+                                base::Value(false));
+
 #if defined(TOOLKIT_VIEWS)
   // Disable side search by default.
   // Copied from side_search_prefs.cc because it's not exported.
@@ -243,11 +239,6 @@ void OverrideDefaultPrefValues(user_prefs::PrefRegistrySyncable* registry) {
       prefetch::prefs::kNetworkPredictionOptions,
       base::Value(
           static_cast<int>(prefetch::NetworkPredictionOptions::kDisabled)));
-
-  // Disable cloud print
-  // Cloud Print: Don't allow this browser to act as Cloud Print server
-  registry->SetDefaultPrefValue(prefs::kCloudPrintProxyEnabled,
-                                base::Value(false));
 
   // Disable default webstore icons in topsites or apps.
   registry->SetDefaultPrefValue(policy::policy_prefs::kHideWebStoreIcon,
@@ -388,6 +379,13 @@ void RegisterProfilePrefsForMigration(
 
   // Added 2025-12
   registry->RegisterBooleanPref(prefs::kAddOpenSearchEngines, false);
+
+  // Added 2026-03
+  registry->RegisterDictionaryPref(
+      serp_metrics::prefs::kDeprecatedSerpMetricsTimePeriodStorage);
+
+  // Added 2026-03
+  registry->RegisterBooleanPref(kNewTabPageHideAllWidgets, false);
 }
 
 void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
@@ -472,7 +470,6 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
   registry->RegisterStringPref(kNewTabPageClockFormat, "");
   registry->RegisterBooleanPref(kNewTabPageShowStats, true);
   registry->RegisterBooleanPref(kNewTabPageShowRewards, true);
-  registry->RegisterBooleanPref(kNewTabPageHideAllWidgets, false);
 
 #if BUILDFLAG(ENABLE_BRAVE_TALK)
   registry->RegisterBooleanPref(brave_talk::prefs::kNewTabPageShowBraveTalk,
@@ -543,6 +540,7 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
   registry->RegisterBooleanPref(
       kWebViewRoundedCorners,
       base::FeatureList::IsEnabled(features::kBraveRoundedCornersByDefault));
+  registry->RegisterBooleanPref(kBraveSubtleAppMenuLogo, false);
 
   brave_tabs::RegisterBraveProfilePrefs(registry);
 
@@ -590,14 +588,11 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
   web_discovery::WebDiscoveryService::RegisterProfilePrefs(registry);
 #endif
 
-#if BUILDFLAG(ENABLE_CONTAINERS)
-  containers::RegisterProfilePrefs(registry);
-#endif
-
   email_aliases::EmailAliasesService::RegisterProfilePrefs(registry);
 
 #if defined(TOOLKIT_VIEWS)
   registry->RegisterBooleanPref(prefs::kPinShareMenuButton, true);
+  registry->RegisterBooleanPref(prefs::kPinPwaInstallButton, true);
 #endif  // defined(TOOLKIT_VIEWS)
 
   OverrideDefaultPrefValues(registry);

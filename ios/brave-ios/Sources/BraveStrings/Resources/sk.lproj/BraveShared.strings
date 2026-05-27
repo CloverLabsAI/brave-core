@@ -16,11 +16,17 @@
 /* Label to display in the Discoverability overlay for keyboard shortcuts */
 "addBookmarkTitle" = "Pridať záložku";
 
+/* Add a new item to the current list */
+"addButtonTitle" = "Pridať";
+
 /* Label to display in the Discoverability overlay for keyboard shortcuts */
 "addFavouritesTitle" = "Pridať do obľúbených";
 
 /* Cell title for add folder action */
 "AddFolderActionCellTitle" = "Nový priečinok";
+
+/* Settings item that opens instructions for adding Brave to the iOS dock. */
+"addToDockSettingsCell" = "Pridať do Docku";
 
 /* Add to favorites share action. */
 "AddToFavorites" = "Pridať k obľúbeným";
@@ -66,6 +72,45 @@
 
 /* Username textbox in Authentication prompt */
 "AuthPromptAlertUsernamePlaceholderText" = "Meno používateľa";
+
+/* Settings autofill section title */
+"Autofill" = "Automatické dopĺňanie";
+
+/* Label for account when indicating that a domain has multiple accounts */
+"autofill.managePassword.multipleAccounts" = "Účty";
+
+/* Alert message warning the user that deleting non-synced passwords will permanently remove them */
+"autofill.managePasswords.deleteCredentialConfirmMessage" = "Týmto sa uložené heslá pre %@ odstránia zo synchronizačného reťazca a z vášho zariadenia.";
+
+/* Prompt title when deleting passwords */
+"autofill.managePasswords.deleteCredentialsAlertTitle" = "Ste si istý?";
+
+/* Label for the button used to delete the current login. */
+"autofill.managePasswords.deleteManagePasswordButtonTitle" = "Odstrániť";
+
+/* Title for the section header in the Manage Passwords list screen, that lists the saved sites */
+"autofill.managePasswords.headerTitle" = "Uložené";
+
+/* The message displayed on the manage passwords list screen, when there's at least one password, explain the feature */
+"autofill.managePasswords.instructions" = "Vytvárajte, ukladajte a spravujte svoje heslá pre jednoduché prihlasovanie na stránky a do aplikácií.";
+
+/* The header title displayed over the never saved passwords list */
+"autofill.managePasswords.neverSavedListHeaderTitle" = "Neuložené";
+
+/* Display text for the option to offer to save passwords */
+"autofill.managePasswords.offerToSavePasswords" = "Ponúknuť uloženie hesiel";
+
+/* Prompt that is diplayed in the search bar of the Manage Passwords list screen */
+"autofill.managePasswords.searchWebsitesPrompt" = "Hľadať webové stránky";
+
+/* Title for navigation bar of the Manage Passwords screen */
+"autofill.managePasswords.title" = "Spravovať heslá";
+
+/* Text to show when the origin of a managed password is not available */
+"autofill.managePasswords.UnknownDomainText" = "Neznámy";
+
+/* Settings autofill section title */
+"autofill.settings.title" = "Automatické dopĺňanie";
 
 /* This is a title for a setting toggle that enables/disables auto-redirect of Google's AMP (Accelerated Mobile Page) pages to the original (non-AMP) pages. The text 'AMP' is not to be translated. */
 "AutoRedirectAMPPages" = "Stránky AMP s automatickým presmerovaním";
@@ -141,9 +186,6 @@
 
 /* Placeholder text for adding or editing a bookmark */
 "BookmarkUrlPlaceholderText" = "Adresa";
-
-/* Title for the Brave Account section in settings */
-"BraveAccount" = "Účet Brave";
 
 /* Button to show the brave panel */
 "BravePanel" = "Panel Brave";
@@ -682,15 +724,6 @@
 /* Description for new folder popup */
 "EnterFolderName" = "Zadajte názov priečinka";
 
-/* Shown in error pages to suggest a fix to the user. */
-"errorPageCantBeReachedTry" = "Skúste znova zadať adresu URL alebo otvorte vyhľadávací nástroj a vyhľadajte novú adresu URL.";
-
-/* Shown in error pages for files that can't be shown and need to be downloaded. */
-"ErrorPageOpenInSafariButtonTitle" = "Otvoriť v Safari";
-
-/* Shown in error pages on a button that will try to load the page again */
-"ErrorPageReloadButtonTitle" = "Obnoviť";
-
 /* Additional warning text when clicking the Advanced button on error pages. %@ is a placeholder, do not localize it. Do not localize <br />. */
 "ErrorPagesAdvancedErrorPinningDetails" = "%1$@ bežne používa na ochranu vašich informácií šifrovanie. Keď sa Brave tentokrát pokúsil pripojiť k %2$@, webová lokalita poslala späť nezvyčajné a nesprávne poverenia. Môže sa to stať, keď sa útočník snaží predstierať, že je %3$@, alebo keď pripojenie prerušila prihlasovacia obrazovka siete Wi-Fi. Vaše informácie sú stále v bezpečí, pretože Brave zastavil pripojenie skôr, ako došlo k výmene akýchkoľvek údajov.<br />Momentálne nemôžete navštíviť %4$@, pretože web používa autentifikáciu certifikátov. Sieťové chyby a útoky sú zvyčajne dočasné, takže táto stránka bude pravdepodobne neskôr fungovať.";
 
@@ -801,9 +834,6 @@
 
 /* No comment provided by engineer. */
 "genericErrorTitle" = "Chyba";
-
-/* Button text to get started with Brave Account */
-"GetStarted" = "Začať";
 
 /* No comment provided by engineer. */
 "GoogleSafeBrowsing" = "Blokovať nebezpečné webové stránky";
@@ -1042,11 +1072,8 @@
 /* No comment provided by engineer. */
 "ntp.hideSponsoredImages" = "Skryť sponzorované obrázky";
 
-/* The text description of image type which is being used NTP */
-"ntp.imageTypeSelectionDescription" = "Sponzorované obrázky sú označené pozadia, ktoré sa zobrazujú na novootvorených kartách v prehliadači. Povolením týchto sponzorovaných obrázkov podporíte poslanie spoločnosti Brave.";
-
-/* The text label of image type learn more link */
-"ntp.imageTypeSelectionDescriptionLearnMore" = "Zjistěte více.";
+/* The text description of image type which is being used NTP. The text inside the square brackets should be translated and is a link */
+"ntp.imageTypeSelectionDescription" = "Sponzorované obrázky sú označené pozadia, ktoré sa zobrazujú na novootvorených kartách v prehliadači. Povolením týchto sponzorovaných obrázkov podporíte poslanie spoločnosti Brave. [Ďalšie informácie](#learn-more)";
 
 /* No comment provided by engineer. */
 "ntp.learnMoreAboutRewards" = "Prečítajte si viac o odmenách Brave.";
@@ -2347,9 +2374,6 @@
 /* Title of an action that allows user to perform a one-click web search for selected text */
 "SearchWithBrave" = "Vyhľadávanie pomocou Brave";
 
-/* Settings security section title */
-"Security" = "Bezpečnosť";
-
 /* No comment provided by engineer. */
 "sendButtonTitle" = "Odoslať";
 
@@ -2712,6 +2736,9 @@
 
 /* Setting to show/hide the tabs bar */
 "ShowTabsBar" = "Panel záložiek";
+
+/* Settings item for clearing site-specific settings and shields settings. */
+"SiteAndShieldsSettings" = "Nastavenia stránky a štítov";
 
 /* No comment provided by engineer. */
 "SiteReportedBody" = "Ďakujeme, že ste vývojárom Brave oznámili, že na tejto stránke je niečo chybné. Urobíme všetko pre to, aby sme to napravili!";
@@ -3077,7 +3104,7 @@
 "tabGrid.privateBrowsingInfoBulletTwoTitle" = "Viditeľnosť prehliadania";
 
 /* A title shown when in private browsing mode with no tabs open */
-"tabGrid.privateBrowsingInfoTitle" = "súkromná karta";
+"tabGrid.privateBrowsingInfoTitle" = "Súkromná karta";
 
 /* Accessibility label for the regular browsing option in the browsing mode picker */
 "tabGrid.privateBrowsingModeAccessibilityLabel" = "Súkromné ​​prehliadanie";
@@ -3124,6 +3151,12 @@
 /* Toggled ON accessibility value */
 "TabPrivateModeToggleAccessibilityValueOn" = "Zapnuté";
 
+/* The description of the toggle for user to turn on auto-open keyboard when creating a new tab. */
+"tabs.settings.autoOpenKeyboardDescription" = "Automaticky zamerajte adresný riadok pri vytváraní novej karty";
+
+/* The title of the toggle for user to turn on auto-open keyboard when creating a new tab. */
+"tabs.settings.autoOpenKeyboardTitle" = "Automatické otváranie klávesnice";
+
 /* No comment provided by engineer. */
 "tabs.settings.persistentPrivateBrowsingDescription" = "Po zatvorení aplikácie nechajte karty súkromného prehliadania otvorené, čím zaistíte bezproblémové pokračovanie súkromných relácií prehliadania.";
 
@@ -3150,6 +3183,12 @@
 
 /* No comment provided by engineer. */
 "tabs.settings.privateTabsSettingsTitle" = "Súkromné karty";
+
+/* The description of the toggle for users to allow the browser to remember its last browsing mode so it can re-launch in that mode when Keep Private Tabs is enabled. */
+"tabs.settings.rememberBrowsingModeDescription" = "Ak bol prehliadač pri poslednom zatvorení v súkromnom režime, pri opätovnom spustení sa otvorí v súkromnom režime.";
+
+/* Toggle to launch the browser in private mode when Keep Private Tabs is enabled */
+"tabs.settings.rememberBrowsingModeTitle" = "Zapamätať si režim prehliadania";
 
 /* Accessibility label for the navigation toolbar displayed at the bottom of the screen. */
 "TabToolbarAccessibilityLabel" = "Navigačný panel s nástrojmi";
@@ -3252,9 +3291,6 @@
 
 /* Setting to choose the user interface theme for normal browsing mode, contains choices like 'light' or 'dark' themes */
 "ThemesDisplayBrightness" = "Vzhľad";
-
-/* Text specifying that the above setting does not impact the user interface while they user is in private browsing mode. */
-"ThemesDisplayBrightnessFooter" = "Tieto nastavenia sa nepoužijú v režime súkromného prehliadania.";
 
 /* Selection to color/style the user interface with a light theme. */
 "ThemesLightOption" = "Svetlý";
@@ -3480,6 +3516,12 @@
 
 /* No comment provided by engineer. */
 "UserWalletGenericErrorTitle" = "Prepáčte, niečo sa pokazilo";
+
+/* Message for error alert when a VCard contact file cannot be parsed or opened */
+"VCard.unableToOpenContactErrorMessage" = "Súbor s kontaktom sa nepodarilo prečítať. Môže byť poškodený alebo v nepodporovanom formáte.";
+
+/* Title for error alert when a VCard contact file cannot be parsed or opened */
+"VCard.unableToOpenContactErrorTitle" = "Nedá sa otvoriť kontakt";
 
 /* Version number of Brave shown in settings */
 "VersionTemplate" = "Verzia %1$@ (%2$@)";

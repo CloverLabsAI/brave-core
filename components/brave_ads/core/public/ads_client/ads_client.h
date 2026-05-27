@@ -10,8 +10,11 @@
 #include <string>
 
 #include "base/values.h"
+#include "brave/components/brave_ads/buildflags/buildflags.h"
 #include "brave/components/brave_ads/core/mojom/brave_ads.mojom-forward.h"
 #include "brave/components/brave_ads/core/public/ads_client/ads_client_callback.h"
+
+static_assert(BUILDFLAG(ENABLE_BRAVE_ADS));
 
 namespace brave_ads {
 
@@ -129,7 +132,7 @@ class AdsClient {
   virtual bool HasLocalStatePrefPath(const std::string& path) const = 0;
 
   // Get the virtual preferences.
-  virtual base::Value::Dict GetVirtualPrefs() const = 0;
+  virtual base::DictValue GetVirtualPrefs() const = 0;
 
   // Log a `message` to `file` and the console log with `line` and
   // `verbose_level`.

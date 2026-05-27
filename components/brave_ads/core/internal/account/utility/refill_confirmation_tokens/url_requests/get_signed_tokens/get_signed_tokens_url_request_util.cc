@@ -8,6 +8,7 @@
 #include <string_view>
 
 #include "base/check.h"
+#include "base/values.h"
 #include "brave/components/brave_ads/core/internal/account/tokens/confirmation_tokens/confirmation_token_info.h"
 #include "brave/components/brave_ads/core/internal/account/tokens/confirmation_tokens/confirmation_tokens_util.h"
 #include "brave/components/brave_ads/core/internal/account/wallet/wallet_info.h"
@@ -51,7 +52,7 @@ ConfirmationTokenList BuildConfirmationTokens(
 
 }  // namespace
 
-std::optional<std::string> ParseCaptchaId(const base::Value::Dict& dict) {
+std::optional<std::string> ParseCaptchaId(const base::DictValue& dict) {
   const std::string* const captcha_id = dict.FindString(kCaptchaIdKey);
   if (!captcha_id || captcha_id->empty()) {
     return std::nullopt;

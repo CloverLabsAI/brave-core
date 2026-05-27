@@ -11,14 +11,13 @@
 
 #include "base/check.h"
 #include "base/path_service.h"
-#include "brave/browser/brave_ads/ads_service_factory.h"
-#include "brave/browser/brave_rewards/rewards_service_factory.h"
 #include "brave/browser/misc_metrics/profile_misc_metrics_service_factory.h"
 #include "brave/browser/perf/brave_perf_features_processor.h"
 #include "brave/browser/profiles/profile_util.h"
 #include "brave/browser/request_otr/request_otr_service_factory.h"
-#include "brave/browser/url_sanitizer/url_sanitizer_service_factory.h"
 #include "brave/components/ai_chat/core/common/buildflags/buildflags.h"
+#include "brave/components/brave_ads/buildflags/buildflags.h"
+#include "brave/components/brave_rewards/core/buildflags/buildflags.h"
 #include "brave/components/brave_shields/content/browser/brave_shields_util.h"
 #include "brave/components/brave_shields/core/browser/brave_shields_p3a.h"
 #include "brave/components/brave_shields/core/browser/brave_shields_utils.h"
@@ -51,6 +50,14 @@
 #if !BUILDFLAG(IS_ANDROID)
 #include "brave/browser/user_education/brave_user_education_utils.h"
 #include "chrome/browser/user_education/user_education_service_factory.h"
+#endif
+
+#if BUILDFLAG(ENABLE_BRAVE_ADS)
+#include "brave/browser/brave_ads/ads_service_factory.h"
+#endif  // BUILDFLAG(ENABLE_BRAVE_ADS)
+
+#if BUILDFLAG(ENABLE_BRAVE_REWARDS)
+#include "brave/browser/brave_rewards/rewards_service_factory.h"
 #endif
 
 #if BUILDFLAG(ENABLE_BRAVE_WALLET)
@@ -114,7 +121,7 @@ void RecordInitialP3AValues(Profile* profile) {
   if (profile->IsRegularProfile()) {
     auto* map = HostContentSettingsMapFactory::GetForProfile(profile);
     MaybeRecordInitialShieldsSettings(
-        profile->GetPrefs(), map,
+        g_browser_process->local_state(), profile->GetPrefs(), map,
         brave_shields::GetCosmeticFilteringControlType(map, GURL()),
         brave_shields::GetFingerprintingControlType(map, GURL()));
   }
@@ -201,8 +208,12 @@ void BraveProfileManager::DoFinalInitForServices(Profile* profile,
 #endif
 
   perf::MaybeEnableBraveFeaturesServicesAndComponentsForPerfTesting(profile);
+#if BUILDFLAG(ENABLE_BRAVE_ADS)
   brave_ads::AdsServiceFactory::GetForProfile(profile);
+#endif  // BUILDFLAG(ENABLE_BRAVE_ADS)
+#if BUILDFLAG(ENABLE_BRAVE_REWARDS)
   brave_rewards::RewardsServiceFactory::GetForProfile(profile);
+#endif
 #if BUILDFLAG(ENABLE_BRAVE_WALLET)
   brave_wallet::BraveWalletServiceFactory::GetServiceForContext(profile);
 #endif
@@ -212,7 +223,6 @@ void BraveProfileManager::DoFinalInitForServices(Profile* profile,
   DCHECK(status);
   status->UpdateGCMDriverStatus();
 #endif
-  brave::URLSanitizerServiceFactory::GetForBrowserContext(profile);
   misc_metrics::ProfileMiscMetricsServiceFactory::GetServiceForContext(profile);
 #if BUILDFLAG(ENABLE_REQUEST_OTR)
   request_otr::RequestOTRServiceFactory::GetForBrowserContext(profile);

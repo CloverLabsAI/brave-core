@@ -6,35 +6,32 @@
 import { html } from '//resources/lit/v3_0/lit.rollup.js'
 
 import './brave_account_dialog.js'
+import './brave_account_email_input.js'
 import { BraveAccountForgotPasswordDialogElement } from './brave_account_forgot_password_dialog.js'
+import type { EmailInputEventDetail } from './brave_account_email_input.js'
 
 export function getHtml(this: BraveAccountForgotPasswordDialogElement) {
   return html`<!--_html_template_start_-->
     <brave-account-dialog
-      alert-message="$i18n{braveAccountAlertMessage}"
-      dialog-description="$i18n{braveAccountForgotPasswordDialogDescription}"
-      dialog-title="$i18n{braveAccountForgotPasswordDialogTitle}"
+      alert-message="$i18n{BRAVE_ACCOUNT_ALERT_MESSAGE}"
+      dialog-description="$i18n{BRAVE_ACCOUNT_FORGOT_PASSWORD_DIALOG_DESCRIPTION}"
+      dialog-title="$i18n{BRAVE_ACCOUNT_FORGOT_PASSWORD_DIALOG_TITLE}"
       show-back-button
     >
       <div slot="inputs">
-        <leo-input
-          placeholder="$i18n{braveAccountEmailInputPlaceholder}"
-          @input=${this.onEmailInput}
+        <brave-account-email-input
+          @email-input=${(e: CustomEvent<EmailInputEventDetail>) => {
+            this.email = e.detail.email
+            this.isEmailValid = e.detail.isValid
+          }}
         >
-          <div
-            class="label ${this.email.length !== 0 && !this.isEmailValid
-              ? 'error'
-              : ''}"
-          >
-            $i18n{braveAccountEmailInputLabel}
-          </div>
-        </leo-input>
+        </brave-account-email-input>
       </div>
       <leo-button
         slot="buttons"
         ?isDisabled=${!this.isEmailValid}
       >
-        $i18n{braveAccountResetPasswordButtonLabel}
+        $i18n{BRAVE_ACCOUNT_RESET_PASSWORD_BUTTON_LABEL}
       </leo-button>
     </brave-account-dialog>
     <!--_html_template_end_-->`

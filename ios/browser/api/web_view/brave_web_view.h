@@ -22,6 +22,13 @@ NS_ASSUME_NONNULL_BEGIN
 @protocol AIChatUIHandlerBridge;
 @protocol WalletPageHandlerBridge;
 @protocol AIChatAssociatedContentPageFetcher;
+@protocol ProfileBridge;
+@protocol LoginsTabHelperBridge;
+@protocol BraveTalkTabHelperBridge;
+@protocol PrintHandler;
+
+typedef void (^ResetConfigurationCallback)(id<ProfileBridge>,
+                                           WKWebViewConfiguration*);
 
 CWV_EXPORT
 @interface BraveNavigationAction : CWVNavigationAction
@@ -74,6 +81,10 @@ CWV_EXPORT
         (BraveNavigationAction*)navigationAction
                          decisionHandler:(void (^)(CWVNavigationActionPolicy))
                                              decisionHandler;
+/// Noifies the delegate that a navigation did commit on the same document
+/// (reference fragment navigations, pushState/replaceState, same document
+/// history navigation)
+- (void)webViewDidCommitSameDocumentNavigation:(CWVWebView*)webView;
 
 @end
 
@@ -92,12 +103,18 @@ CWV_EXPORT
 /// on the page.
 - (void)webView:(CWVWebView*)webView
     buildEditMenuWithBuilder:(id<UIMenuBuilder>)builder;
+/// Called when the favicon driver updates the web views favicon status
+- (void)webView:(CWVWebView*)webView
+    didUpdateFaviconStatus:(nullable CWVFaviconStatus*)faviconStatus;
 @end
 
 /// A CWVWebView with Chrome tab helpers attached and the ability to handle
 /// some Brave specific features
 CWV_EXPORT
 @interface BraveWebView : CWVWebView
+
+@property(nonatomic, class, nullable)
+    ResetConfigurationCallback didResetConfiguration;
 
 // This web view's navigation delegate.
 @property(nonatomic, weak, nullable) id<BraveWebViewNavigationDelegate>
@@ -115,6 +132,14 @@ CWV_EXPORT
 
 @end
 
+// Temporary methods for notifying that media started/stopped until
+// AdsReportingScript is converted to a Chromium JavaScriptFeature
+CWV_EXPORT
+@interface BraveWebView (AdsNotifier)
+- (void)notifyTabDidStartPlayingMedia;
+- (void)notifyTabDidStopPlayingMedia;
+@end
+
 CWV_EXPORT
 @interface BraveWebView (AIChatWebUI)
 /// A bridge for handling Leo AI WebUI page actions
@@ -124,10 +149,80 @@ CWV_EXPORT
 @end
 
 CWV_EXPORT
+@interface BraveWebView (AIChatDistiller)
+// Fetches the main article text content from the current page and returns it
+// via completionHandler. Returns an empty string if no article content could
+// be extracted.
+- (void)fetchMainArticle:(void (^)(NSString* text))completionHandler;
+@end
+
+CWV_EXPORT
 @interface BraveWebView (WalletWebUI)
 /// A bridge for handling Brave Wallet WebUI page actions
 @property(nonatomic, weak, nullable) id<WalletPageHandlerBridge>
     walletPageHandler;
+@end
+
+CWV_EXPORT
+@interface BraveWebView (ForcePaste)
+// Force pastes the contents into the active element in the web view
+- (void)forcePasteContents:(NSString*)contents;
+@end
+
+CWV_EXPORT
+@interface BraveWebView (PageMetadata)
+// Fetches the page metadata (OpenSearch & RSS feeds from the page) and returns
+// a JSON string with the results
+- (void)fetchMetadata:(void (^)(NSString* _Nullable json))completionHandler;
+@end
+
+CWV_EXPORT
+@interface BraveWebView (Logins)
+/// A bridge for handling Logins script messages
+- (void)setLoginsHelper:(id<LoginsTabHelperBridge>)loginsHelper;
+@end
+
+CWV_EXPORT
+@interface BraveWebView (DocumentFetch)
+/// Downloads the resource at `url` using an XHR in the page context and
+/// delivers the result to `completionHandler`. On success `data` contains the
+/// response body and `statusCode` is the HTTP status code. On failure (no main
+/// frame, network error, etc.) `statusCode` is 0 and `data` is nil.
+- (void)downloadDocumentAtURL:(NSURL*)url
+            completionHandler:
+                (void (^)(NSInteger statusCode,
+                          NSData* _Nullable data))completionHandler;
+@end
+
+CWV_EXPORT
+@interface BraveWebView (ReaderMode)
+/// Checks whether the current page is readable and returns the parsed result
+/// as a JSON string, or nil if the page is not readable or the call times out.
+- (void)checkReadability:(void (^)(NSString* _Nullable json))completionHandler;
+/// Updates the reader mode display style on the current page.
+- (void)setReaderModeTheme:(NSString*)theme
+                  fontType:(NSString*)fontType
+                  fontSize:(NSInteger)fontSize;
+@end
+
+CWV_EXPORT
+@interface BraveWebView (BraveSearchAdResults)
+// Fetches search result ad creatives from the current page and returns them
+// as a JSON string, or nil if none could be retrieved.
+- (void)fetchSearchAdCreatives:
+    (void (^)(NSString* _Nullable json))completionHandler;
+@end
+
+CWV_EXPORT
+@interface BraveWebView (BraveTalk)
+/// A bridge for handling Brave Talk tab features
+- (void)setBraveTalkHelper:(id<BraveTalkTabHelperBridge>)braveTalkHelper;
+@end
+
+CWV_EXPORT
+@interface BraveWebView (Print)
+/// A bridge for handling window.print script messages
+- (void)setPrintHandler:(id<PrintHandler>)printHandler;
 @end
 
 NS_ASSUME_NONNULL_END

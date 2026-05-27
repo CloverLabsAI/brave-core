@@ -15,12 +15,14 @@
 #include "base/metrics/histogram_samples.h"
 #include "base/metrics/statistics_recorder.h"
 #include "base/trace_event/trace_event.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/p3a/component_installer.h"
 #include "brave/components/p3a/message_manager.h"
 #include "brave/components/p3a/metric_config_utils.h"
 #include "brave/components/p3a/metric_names.h"
 #include "brave/components/p3a/p3a_config.h"
 #include "brave/components/p3a/pref_names.h"
+#include "brave/components/p3a_utils/event_relay.h"
 #include "components/prefs/pref_registry_simple.h"
 #include "components/prefs/pref_service.h"
 #include "components/prefs/scoped_user_pref_update.h"
@@ -42,6 +44,11 @@ namespace {
 // to the backend. For now we consider this as a hack for p3a metrics, which
 // should be refactored in better times.
 const uint64_t kSuspendedMetricBucket = INT_MAX - 1;
+
+#if BUILDFLAG(IS_IOS)
+constexpr std::string_view kIsLikelyDefaultHistogramName =
+    "Brave.IOS.IsLikelyDefault";
+#endif  // BUILDFLAG(IS_IOS)
 
 bool IsSuspendedMetric(std::string_view metric_name, uint64_t value_or_bucket) {
   return value_or_bucket == kSuspendedMetricBucket;
@@ -78,17 +85,20 @@ P3AService::P3AService(PrefService& local_state,
 
   message_manager_ = std::make_unique<MessageManager>(
       local_state, &config_, *this, channel, first_run_time);
+
+  event_relay_observation_.Observe(p3a_utils::EventRelay::GetInstance());
 }
 
 P3AService::~P3AService() = default;
 
 void P3AService::RegisterPrefs(PrefRegistrySimple* registry, bool first_run) {
   MessageManager::RegisterPrefs(registry);
-  registry->RegisterBooleanPref(kP3AEnabled, true);
-
+  registry->RegisterBooleanPref(kP3AEnabled,
+                                !BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED));
   // New users are shown the P3A notice via the welcome page.
   registry->RegisterBooleanPref(kP3ANoticeAcknowledged, first_run);
 
+  registry->RegisterDictionaryPref(kCustomAttributesDictPref);
   registry->RegisterDictionaryPref(kDynamicMetricsDictPref);
   registry->RegisterDictionaryPref(kActivationDatesDictPref);
 }
@@ -116,6 +126,9 @@ void P3AService::InitCallbacks() {
 }
 
 void P3AService::StartTeardown() {
+#if !BUILDFLAG(IS_IOS)
+  default_browser_observation_.Reset();
+#endif  // !BUILDFLAG(IS_IOS)
   dynamic_metric_sample_callbacks_.clear();
   pref_change_registrar_.RemoveAll();
 }
@@ -318,10 +331,41 @@ void P3AService::OnHistogramChanged(std::string_view histogram_name,
                                 histogram_name, bucket));
 }
 
+#if !BUILDFLAG(IS_IOS)
+void P3AService::SetDefaultBrowserMonitor(
+    misc_metrics::DefaultBrowserMonitor* monitor) {
+  default_browser_observation_.Observe(monitor);
+  auto cached_status = monitor->GetCachedDefaultStatus();
+  if (cached_status.has_value()) {
+    message_manager_->SetIsBrowserDefault(*cached_status);
+  }
+}
+
+void P3AService::OnDefaultBrowserStatusChanged(bool is_default) {
+  message_manager_->SetIsBrowserDefault(is_default);
+}
+#endif  // !BUILDFLAG(IS_IOS)
+
+void P3AService::OnCustomAttributeSet(
+    std::string_view attribute_name,
+    std::optional<std::string_view> attribute_value) {
+  ScopedDictPrefUpdate update(&*local_state_, kCustomAttributesDictPref);
+  if (attribute_value) {
+    update->Set(attribute_name, *attribute_value);
+  } else {
+    update->Remove(attribute_name);
+  }
+}
+
 void P3AService::HandleHistogramChange(std::string_view histogram_name,
                                        size_t bucket) {
   VLOG(2) << "P3AService::OnHistogramChanged: histogram_name = "
           << histogram_name << " Sample = " << bucket;
+#if BUILDFLAG(IS_IOS)
+  if (histogram_name == kIsLikelyDefaultHistogramName) {
+    message_manager_->SetIsBrowserDefault(bucket == 2);
+  }
+#endif  // BUILDFLAG(IS_IOS)
   if (!initialized_) {
     // Will handle it later when ready.
     histogram_values_[histogram_name] = bucket;

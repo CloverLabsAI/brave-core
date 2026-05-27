@@ -16,11 +16,11 @@
 #include "base/json/json_reader.h"
 #include "base/logging.h"
 #include "base/notreached.h"
+#include "base/strings/string_view_util.h"
 #include "base/strings/utf_string_conversion_utils.h"
 #include "base/task/bind_post_task.h"
 #include "base/task/sequenced_task_runner.h"
 #include "base/task/thread_pool.h"
-#include "base/types/cxx23_to_underlying.h"
 #include "base/types/fixed_array.h"
 #include "brave/components/brave_wallet/browser/password_encryptor.h"
 #include "brave/third_party/argon2/src/include/argon2.h"
@@ -46,7 +46,7 @@ namespace brave_wallet {
 
 namespace {
 
-void OnRunWithStorage(base::OnceCallback<void(base::Value::Dict)> callback,
+void OnRunWithStorage(base::OnceCallback<void(base::DictValue)> callback,
                       ValueStore* storage) {
   DCHECK(IsOnBackendSequence());
   DCHECK(storage);
@@ -54,7 +54,7 @@ void OnRunWithStorage(base::OnceCallback<void(base::Value::Dict)> callback,
 }
 
 std::string GetLegacyCryptoWalletsPassword(const std::string& password,
-                                           base::Value::Dict dict) {
+                                           base::DictValue dict) {
   std::string legacy_crypto_wallets_password;
   const auto* argon_params =
       dict.FindDictByDottedPath("data.KeyringController.argonParams");
@@ -95,8 +95,7 @@ std::string GetLegacyCryptoWalletsPassword(const std::string& password,
   size_t character_count = 0;
   for (size_t i = 0; i < salt_str->size(); ++i) {
     base_icu::UChar32 code_point;
-    if (base::ReadUnicodeCharacter(salt_str->data(), salt_str->size(), &i,
-                                   &code_point)) {
+    if (base::ReadUnicodeCharacter(*salt_str, &i, &code_point)) {
       ++character_count;
     }
   }
@@ -123,9 +122,8 @@ std::string GetLegacyCryptoWalletsPassword(const std::string& password,
   // https://github.com/brave/KeyringController/blob/0769514cea07e85ae190f30765d0a301c631c56b/index.js#L547
   for (size_t i = 0; i < sub_key.size(); ++i) {
     base_icu::UChar32 code_point;
-    if (!base::ReadUnicodeCharacter(
-            reinterpret_cast<const char*>(sub_key.data()), sub_key.size(), &i,
-            &code_point) ||
+    if (!base::ReadUnicodeCharacter(base::as_string_view(sub_key), &i,
+                                    &code_point) ||
         !base::IsValidCodepoint(code_point)) {
       code_point = 0xfffd;
     }
@@ -156,7 +154,7 @@ void ExternalWalletsImporter::Initialize(InitCallback callback) {
     }
   } else {
     NOTREACHED() << "Unsupported ExternalWalletType type. value="
-                 << base::to_underlying(type_);
+                 << std::to_underlying(type_);
   }
 
   GetLocalStorage(*extension, std::move(callback));
@@ -252,7 +250,7 @@ void ExternalWalletsImporter::GetLocalStorage(
 }
 
 void ExternalWalletsImporter::OnGetLocalStorage(InitCallback callback,
-                                                base::Value::Dict dict) {
+                                                base::DictValue dict) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   storage_data_ = std::move(dict);
   std::move(callback).Run(true);
@@ -402,7 +400,7 @@ void ExternalWalletsImporter::GetMnemonic(bool is_legacy_crypto_wallets,
        number_of_accounts ? static_cast<size_t>(*number_of_accounts) : 1})));
 }
 
-void ExternalWalletsImporter::SetStorageDataForTesting(base::Value::Dict data) {
+void ExternalWalletsImporter::SetStorageDataForTesting(base::DictValue data) {
   storage_data_ = std::move(data);
 }
 

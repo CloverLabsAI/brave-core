@@ -98,6 +98,9 @@ import {
   PortfolioOverviewHeader, //
 } from '../../card-headers/portfolio-overview-header'
 import { Banners } from '../banners/banners'
+import {
+  LastPricesUpdatedTooltip, //
+} from '../../../shared/last_prices_updated_tooltip/last_prices_updated_tooltip'
 
 // Styled Components
 import {
@@ -121,7 +124,6 @@ import {
 import {
   useGetVisibleNetworksQuery,
   useGetPricesHistoryQuery,
-  useGetTokenSpotPricesQuery,
   useGetDefaultFiatCurrencyQuery,
   useGetRewardsInfoQuery,
   useGetUserTokensRegistryQuery,
@@ -129,6 +131,9 @@ import {
 import {
   querySubscriptionOptions60s, //
 } from '../../../../common/slices/constants'
+import {
+  usePersistedTokenSpotPricesQuery, //
+} from '../../../../common/hooks/use-persisted-spot-prices'
 import {
   selectAllVisibleFungibleUserAssetsFromQueryResult, //
 } from '../../../../common/slices/entities/blockchain-token.entity'
@@ -342,7 +347,7 @@ export const PortfolioOverview = () => {
   )
 
   const { data: spotPrices = [], isLoading: isLoadingSpotPrices } =
-    useGetTokenSpotPricesQuery(
+    usePersistedTokenSpotPricesQuery(
       !isCollectionView && tokenPriceRequests.length && defaultFiat
         ? { requests: tokenPriceRequests, vsCurrency: defaultFiat }
         : skipToken,
@@ -567,16 +572,17 @@ export const PortfolioOverview = () => {
             >
               <BalanceAndButtonsWrapper
                 fullWidth={true}
-                alignItems='center'
                 padding='40px 32px'
               >
                 <BalanceAndChangeWrapper>
                   {formattedFullPortfolioFiatBalance !== '' ? (
-                    <BalanceText>
-                      {hidePortfolioBalances
-                        ? '******'
-                        : formattedFullPortfolioFiatBalance}
-                    </BalanceText>
+                    <LastPricesUpdatedTooltip>
+                      <BalanceText>
+                        {hidePortfolioBalances
+                          ? '******'
+                          : formattedFullPortfolioFiatBalance}
+                      </BalanceText>
+                    </LastPricesUpdatedTooltip>
                   ) : (
                     <Column padding='9px 0px'>
                       <LoadingSkeleton

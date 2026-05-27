@@ -36,6 +36,7 @@
 *.xml   text eol=lf
 *.xslt  text eol=lf
 *.xtb   text eol=lf
+*.toml  text eol=lf
 
 .ci_features             text eol=lf linguist-language=ini
 .clang*                  text eol=lf
@@ -69,4 +70,4 @@ test/data/tor/tor_control/*_win/controlport   text eol=crlf
 # cargo calculates the checksums based on the line endings of the vendored deps,
 # and not based on what we have set for the different file types above.
 tools/crates/vendor/** -text
-ui/webui/resources/wasm/vendor/** -text
+third_party/wasm/vendor/** -text

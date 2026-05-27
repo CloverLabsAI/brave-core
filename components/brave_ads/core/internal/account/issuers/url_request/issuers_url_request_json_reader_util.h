@@ -8,13 +8,16 @@
 
 #include <optional>
 
-#include "base/values.h"
 #include "brave/components/brave_ads/core/internal/account/issuers/token_issuers/token_issuer_info.h"
+
+namespace base {
+class DictValue;
+}  // namespace base
 
 namespace brave_ads::json::reader {
 
-std::optional<int> ParsePing(const base::Value::Dict& dict);
-std::optional<TokenIssuerList> ParseTokenIssuers(const base::Value::Dict& dict);
+std::optional<int> ParsePing(const base::DictValue& dict);
+std::optional<TokenIssuerList> ParseTokenIssuers(const base::DictValue& dict);
 
 }  // namespace brave_ads::json::reader
 

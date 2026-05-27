@@ -11,12 +11,14 @@
 #include "brave/components/brave_wallet/browser/brave_wallet_p3a.h"
 #include "brave/components/brave_wallet/browser/brave_wallet_service.h"
 #include "brave/components/brave_wallet/browser/brave_wallet_utils.h"
+#include "brave/components/brave_wallet/browser/cardano/cardano_provider_impl.h"
 #include "brave/components/brave_wallet/browser/ethereum_provider_impl.h"
 #include "brave/components/brave_wallet/browser/solana_provider_impl.h"
 #include "brave/components/brave_wallet/resources/grit/brave_wallet_script_generated.h"
 #include "brave/ios/browser/api/brave_wallet/brave_wallet.mojom.objc+private.h"
 #include "brave/ios/browser/api/brave_wallet/brave_wallet_provider_delegate_ios+private.h"
 #include "brave/ios/browser/api/brave_wallet/brave_wallet_provider_delegate_ios.h"
+#include "brave/ios/browser/api/url/url_origin_ios+private.h"
 #include "brave/ios/browser/brave_wallet/brave_wallet_service_factory.h"
 #include "components/grit/brave_components_resources.h"
 #include "ios/chrome/browser/content_settings/model/host_content_settings_map_factory.h"
@@ -69,8 +71,12 @@ BraveWalletProviderScriptKey const BraveWalletProviderScriptKeyWalletStandard =
 
 - (nullable id<BraveWalletEthereumProvider>)
     ethereumProviderWithDelegate:(id<BraveWalletProviderDelegate>)delegate
+                          origin:(URLOriginIOS*)origin
                isPrivateBrowsing:(bool)isPrivateBrowsing {
   DCHECK_CURRENTLY_ON(web::WebThread::UI);
+  if (!origin) {
+    return nil;
+  }
   auto* profile = _profile.get();
   if (isPrivateBrowsing) {
     profile = profile->GetOffTheRecordProfile();
@@ -82,20 +88,26 @@ BraveWalletProviderScriptKey const BraveWalletProviderScriptKeyWalletStandard =
     return nil;
   }
 
+  url::Origin committed_origin([origin underlyingOrigin]);
+
   auto provider = std::make_unique<brave_wallet::EthereumProviderImpl>(
       ios::HostContentSettingsMapFactory::GetForProfile(profile),
       brave_wallet_service,
       std::make_unique<brave_wallet::BraveWalletProviderDelegateBridge>(
           delegate),
-      profile->GetPrefs());
+      profile->GetPrefs(), committed_origin);
   return [[BraveWalletEthereumProviderMojoImpl alloc]
       initWithEthereumProviderImpl:std::move(provider)];
 }
 
 - (nullable id<BraveWalletSolanaProvider>)
     solanaProviderWithDelegate:(id<BraveWalletProviderDelegate>)delegate
+                        origin:(URLOriginIOS*)origin
              isPrivateBrowsing:(bool)isPrivateBrowsing {
   DCHECK_CURRENTLY_ON(web::WebThread::UI);
+  if (!origin) {
+    return nil;
+  }
   auto* profile = _profile.get();
   if (isPrivateBrowsing) {
     profile = profile->GetOffTheRecordProfile();
@@ -113,12 +125,51 @@ BraveWalletProviderScriptKey const BraveWalletProviderScriptKeyWalletStandard =
     return nil;
   }
 
+  url::Origin committed_origin([origin underlyingOrigin]);
+
   auto provider = std::make_unique<brave_wallet::SolanaProviderImpl>(
       *host_content_settings_map, brave_wallet_service,
       std::make_unique<brave_wallet::BraveWalletProviderDelegateBridge>(
-          delegate));
+          delegate),
+      committed_origin);
   return [[BraveWalletSolanaProviderMojoImpl alloc]
       initWithSolanaProviderImpl:std::move(provider)];
+}
+
+- (nullable id<BraveWalletCardanoProvider>)
+    cardanoProviderWithDelegate:(id<BraveWalletProviderDelegate>)delegate
+                         origin:(URLOriginIOS*)origin
+              isPrivateBrowsing:(bool)isPrivateBrowsing {
+  DCHECK_CURRENTLY_ON(web::WebThread::UI);
+  if (!origin) {
+    return nil;
+  }
+  auto* profile = _profile.get();
+  if (isPrivateBrowsing) {
+    profile = profile->GetOffTheRecordProfile();
+  }
+
+  auto* brave_wallet_service =
+      brave_wallet::BraveWalletServiceFactory::GetServiceForState(profile);
+  if (!brave_wallet_service) {
+    return nil;
+  }
+
+  url::Origin committed_origin([origin underlyingOrigin]);
+
+  auto provider = std::make_unique<brave_wallet::CardanoProviderImpl>(
+      *brave_wallet_service,
+      base::BindRepeating(
+          [](id<BraveWalletProviderDelegate> delegate)
+              -> std::unique_ptr<brave_wallet::BraveWalletProviderDelegate> {
+            return std::make_unique<
+                brave_wallet::BraveWalletProviderDelegateBridge>(delegate);
+          },
+          delegate),
+      committed_origin);
+
+  return [[BraveWalletCardanoProviderMojoImpl alloc]
+      initWithCardanoProviderImpl:std::move(provider)];
 }
 
 - (NSString*)resourceForID:(int)resource_id {

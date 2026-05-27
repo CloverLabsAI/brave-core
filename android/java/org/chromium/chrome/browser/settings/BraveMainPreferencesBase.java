@@ -7,6 +7,7 @@ package org.chromium.chrome.browser.settings;
 
 import static org.chromium.build.NullUtil.assumeNonNull;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
@@ -28,6 +29,7 @@ import org.chromium.chrome.browser.brave_leo.BraveLeoPrefUtils;
 import org.chromium.chrome.browser.brave_news.BraveNewsPolicy;
 import org.chromium.chrome.browser.brave_origin.BraveOriginPlansActivity;
 import org.chromium.chrome.browser.brave_origin.BraveOriginSubscriptionPrefs;
+import org.chromium.chrome.browser.crypto_wallet.BraveWalletPolicy;
 import org.chromium.chrome.browser.flags.ChromeFeatureList;
 import org.chromium.chrome.browser.homepage.settings.BraveHomepageSettings;
 import org.chromium.chrome.browser.notifications.BraveNotificationWarningDialog;
@@ -37,21 +39,31 @@ import org.chromium.chrome.browser.onboarding.OnboardingPrefManager;
 import org.chromium.chrome.browser.partnercustomizations.CloseBraveManager;
 import org.chromium.chrome.browser.preferences.BravePref;
 import org.chromium.chrome.browser.privacy.settings.BravePrivacySettings;
+import org.chromium.chrome.browser.profiles.Profile;
 import org.chromium.chrome.browser.profiles.ProfileManager;
 import org.chromium.chrome.browser.rate.BraveRateDialogFragment;
 import org.chromium.chrome.browser.search_engines.TemplateUrlServiceFactory;
+import org.chromium.chrome.browser.settings.search.ChromeBaseSearchIndexProvider;
 import org.chromium.chrome.browser.toolbar.bottom.BottomToolbarConfiguration;
+import org.chromium.chrome.browser.vpn.BraveVpnPolicy;
 import org.chromium.chrome.browser.vpn.settings.VpnCalloutPreference;
 import org.chromium.chrome.browser.vpn.utils.BraveVpnPrefUtils;
 import org.chromium.chrome.browser.vpn.utils.BraveVpnUtils;
 import org.chromium.chrome.browser.widget.quickactionsearchandbookmark.utils.BraveSearchWidgetUtils;
+import org.chromium.components.brave_account.BraveAccountFeatures;
 import org.chromium.components.browser_ui.settings.ChromeBasePreference;
 import org.chromium.components.browser_ui.settings.ChromeSwitchPreference;
 import org.chromium.components.browser_ui.settings.SettingsUtils;
+import org.chromium.components.browser_ui.settings.search.PreferenceParser;
+import org.chromium.components.browser_ui.settings.search.SearchIndexProvider;
+import org.chromium.components.browser_ui.settings.search.SettingsIndexData;
+import org.chromium.components.browser_ui.site_settings.BraveSiteSettingsPreferencesBase;
+import org.chromium.components.browser_ui.site_settings.SiteSettings;
 import org.chromium.components.user_prefs.UserPrefs;
 import org.chromium.ui.base.DeviceFormFactor;
 
 import java.util.HashMap;
+import java.util.Map;
 
 // This excludes some settings in main settings screen.
 @NullMarked
@@ -134,12 +146,16 @@ public abstract class BraveMainPreferencesBase extends BravePreferenceFragment
     @Override
     public void onResume() {
         super.onResume();
-        // Run updateBravePreferences() after finishing MainPreferences::updatePreferences().
-        // Otherwise, some prefs could be added after finishing updateBravePreferences().
+
+        // We need to organise the Brave preferences right away so all the theming is applied
+        // correctly.
+        organiseBravePreferences();
+        // Run prepareBravePreferences() after finishing MainPreferences::updatePreferences().
+        // Otherwise, some prefs could be added after finishing prepareBravePreferences().
         // Defers execution until after the current call stack completes.
         // Allows the fragment lifecycle to fully complete before updating preferences.
         // Prevents timing issues where preferences might not be fully initialized yet.
-        PostTask.postTask(TaskTraits.UI_DEFAULT, this::updateBravePreferences);
+        PostTask.postTask(TaskTraits.UI_DEFAULT, this::prepareBravePreferences);
         if (mAccountController != null) {
             mAccountController.updateUI();
         }
@@ -147,6 +163,8 @@ public abstract class BraveMainPreferencesBase extends BravePreferenceFragment
         // Check if features are disabled by policy
         checkLeoPolicyAndUpdatePreference();
         checkNewsPolicyAndUpdatePreference();
+        checkVpnPolicyAndUpdatePreference();
+        checkWalletPolicyAndUpdatePreference();
 
         if (mNotificationClicked
                 && BraveNotificationWarningDialog.shouldShowNotificationWarningDialog(getActivity())
@@ -207,7 +225,7 @@ public abstract class BraveMainPreferencesBase extends BravePreferenceFragment
         }
     }
 
-    private void updateBravePreferences() {
+    private void organiseBravePreferences() {
         // Below prefs are removed from main settings.
         removePreferenceIfPresent(MainSettings.PREF_SIGN_IN);
         removePreferenceIfPresent(MainSettings.PREF_SEARCH_ENGINE);
@@ -217,7 +235,6 @@ public abstract class BraveMainPreferencesBase extends BravePreferenceFragment
         removePreferenceIfPresent(MainSettings.PREF_SAFETY_HUB);
         removePreferenceIfPresent(MainSettings.PREF_ACCOUNT_AND_GOOGLE_SERVICES_SECTION);
         removePreferenceIfPresent(MainSettings.PREF_GOOGLE_SERVICES);
-        removePreferenceIfPresent(MainSettings.PREF_HOME_MODULES_CONFIG);
         removePreferenceIfPresent(PREF_LANGUAGES);
         removePreferenceIfPresent(PREF_BASICS_SECTION);
         // removePreferenceIfPresent(MainSettings.PREF_HOMEPAGE);
@@ -226,6 +243,8 @@ public abstract class BraveMainPreferencesBase extends BravePreferenceFragment
         removePreferenceIfPresent(PREF_ADVANCED_SECTION);
         removePreferenceIfPresent(PREF_PRIVACY);
         removePreferenceIfPresent(PREF_BRAVE_VPN_CALLOUT);
+        removePreferenceIfPresent(MainSettings.PREF_SETTINGS_PROMO_CARD);
+        removePreferenceIfPresent(MainSettings.PREF_MANAGE_SYNC);
 
         if (!ChromeFeatureList.isEnabled(BraveFeatureList.BRAVE_PLAYLIST)) {
             removePreferenceIfPresent(PREF_BRAVE_PLAYLIST);
@@ -242,8 +261,18 @@ public abstract class BraveMainPreferencesBase extends BravePreferenceFragment
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
             removePreferenceIfPresent(PREF_BACKGROUND_IMAGES);
         }
+    }
+
+    private void prepareBravePreferences() {
         setCustomTabPreference();
         setAutofillPrivateWindowPreference();
+        // Register the final containment update listener. This runs after the current call stack
+        // completes (posted via PostTask), so it fires after any synchronous observer callbacks
+        // from MainSettings (e.g. onSignInAllowedChanged → updatePreferences →
+        // notifyPreferencesUpdated) that would otherwise replace our listener with one that sees
+        // preferences before Brave's rearrangement. Also handles the back-navigation timing race
+        // where GlobalLayout fires before onResume's organiseBravePreferences completes.
+        notifyPreferencesUpdated();
     }
 
     private void setAutofillPrivateWindowPreference() {
@@ -283,10 +312,12 @@ public abstract class BraveMainPreferencesBase extends BravePreferenceFragment
     private void rearrangePreferenceOrders() {
         int firstSectionOrder = 0;
 
-        if (getActivity() != null && !getActivity().isFinishing()
+        if (getActivity() != null
+                && !getActivity().isFinishing()
                 && BraveVpnPrefUtils.shouldShowCallout()
                 && !BraveVpnPrefUtils.isSubscriptionPurchase()
-                && BraveVpnUtils.isVpnFeatureSupported(getActivity())) {
+                && BraveVpnUtils.isVpnFeatureSupported(getActivity())
+                && !BraveVpnPolicy.isDisabledByPolicy(getProfile())) {
             if (mVpnCalloutPreference == null) {
                 mVpnCalloutPreference = new VpnCalloutPreference(getActivity());
             }
@@ -425,6 +456,20 @@ public abstract class BraveMainPreferencesBase extends BravePreferenceFragment
 
         // We have our own Appearance settings so we don't need the upstream's one.
         removePreferenceIfPresent(MainSettings.PREF_APPEARANCE);
+
+        resortPreferenceScreenChildren();
+    }
+
+    // PreferenceGroup (with orderingFromXml=false) only re-sorts its children list when
+    // addPreference() is called, not when setOrder() is called on existing preferences.
+    // The addPreference(mVpnCalloutPreference) in rearrangePreferenceOrders() fires before the
+    // setPreferenceOrder() calls, so it sorts with stale XML orders. Removing and re-adding any
+    // always-present preference triggers a final sort with all the correct final order values.
+    private void resortPreferenceScreenChildren() {
+        Preference featuresSectionPref = findPreference(PREF_FEATURES_SECTION);
+        assumeNonNull(featuresSectionPref);
+        getPreferenceScreen().removePreference(featuresSectionPref);
+        getPreferenceScreen().addPreference(featuresSectionPref);
     }
 
     // A wrapper to suppress NullAway warning for the prefs which always present
@@ -450,20 +495,20 @@ public abstract class BraveMainPreferencesBase extends BravePreferenceFragment
     }
 
     private void updatePreferenceIcons() {
-        updatePreferenceIcon(PREF_PASSWORDS, R.drawable.ic_brave_password);
-        updatePreferenceIcon(PREF_CONTENT_SETTINGS, R.drawable.ic_site_settings);
-        updatePreferenceIcon(PREF_PAYMENT_METHODS, R.drawable.ic_payment_methods);
-        updatePreferenceIcon(PREF_DOWNLOADS, R.drawable.ic_downloads);
-        updatePreferenceIcon(PREF_LANGUAGES, R.drawable.ic_languages);
-        updatePreferenceIcon(PREF_BRAVE_LANGUAGES, R.drawable.ic_languages);
-        updatePreferenceIcon(PREF_ABOUT_CHROME, R.drawable.ic_info);
+        updatePreferenceIcon(PREF_PASSWORDS, R.drawable.ic_key);
+        updatePreferenceIcon(PREF_CONTENT_SETTINGS, R.drawable.ic_tune);
+        updatePreferenceIcon(PREF_PAYMENT_METHODS, R.drawable.ic_credit_card);
+        updatePreferenceIcon(PREF_DOWNLOADS, R.drawable.ic_download);
+        updatePreferenceIcon(PREF_LANGUAGES, R.drawable.ic_product_translate);
+        updatePreferenceIcon(PREF_BRAVE_LANGUAGES, R.drawable.ic_product_translate);
+        updatePreferenceIcon(PREF_ABOUT_CHROME, R.drawable.ic_info_outline);
         updatePreferenceIcon(PREF_ACCESSIBILITY, R.drawable.ic_accessibility);
-        updatePreferenceIcon(PREF_PRIVACY, R.drawable.ic_privacy_reports);
-        updatePreferenceIcon(PREF_ADDRESSES, R.drawable.ic_addresses);
+        updatePreferenceIcon(PREF_PRIVACY, R.drawable.ic_bar_chart_search);
+        updatePreferenceIcon(PREF_ADDRESSES, R.drawable.ic_location_on);
         updatePreferenceIcon(PREF_AUTOFILL_PRIVATE_WINDOW, R.drawable.ic_autofill);
         updatePreferenceIcon(PREF_NOTIFICATIONS, R.drawable.ic_notification);
-        updatePreferenceIcon(MainSettings.PREF_DEVELOPER, R.drawable.ic_info);
-        updatePreferenceIcon(MainSettings.PREF_HOMEPAGE, R.drawable.ic_homepage);
+        updatePreferenceIcon(MainSettings.PREF_DEVELOPER, R.drawable.ic_code);
+        updatePreferenceIcon(MainSettings.PREF_HOMEPAGE, R.drawable.ic_browser_home);
         updatePreferenceIcon(MainSettings.PREF_TABS, R.drawable.ic_browser_mobile_tabs);
         updatePreferenceIcon(
                 MainSettings.PREF_ADDRESS_BAR,
@@ -619,4 +664,107 @@ public abstract class BraveMainPreferencesBase extends BravePreferenceFragment
             removePreferenceIfPresent(PREF_BRAVE_NEWS_V2);
         }
     }
+
+    /** Checks if Brave VPN is disabled by policy and removes the preference if so. */
+    private void checkVpnPolicyAndUpdatePreference() {
+        if (BraveVpnPolicy.isDisabledByPolicy(getProfile())) {
+            removePreferenceIfPresent(PREF_BRAVE_VPN);
+            removePreferenceIfPresent(PREF_BRAVE_VPN_CALLOUT);
+        }
+    }
+
+    /** Checks if Brave Wallet is disabled by policy and removes the preference if so. */
+    private void checkWalletPolicyAndUpdatePreference() {
+        if (BraveWalletPolicy.isDisabledByPolicy(getProfile())) {
+            removePreferenceIfPresent(PREF_BRAVE_WALLET);
+        }
+    }
+
+    // Wraps MainSettings.SEARCH_INDEX_DATA_PROVIDER and additionally removes upstream preferences
+    // that BraveMainPreferencesBase hides from the Brave main settings UI.
+    public static final ChromeBaseSearchIndexProvider SEARCH_INDEX_DATA_PROVIDER =
+            new ChromeBaseSearchIndexProvider(MainSettings.class.getName(), 0) {
+
+                @Override
+                public void initPreferenceXml(
+                        Context context,
+                        Profile profile,
+                        SettingsIndexData indexData,
+                        Map<String, SearchIndexProvider> providerMap) {
+                    MainSettings.SEARCH_INDEX_DATA_PROVIDER.initPreferenceXml(
+                            context, profile, indexData, providerMap);
+                    // Also index preferences from brave_main_preferences.xml, which is loaded
+                    // alongside main_preferences.xml at runtime.
+                    PreferenceParser.parseAndPopulate(
+                            context,
+                            R.xml.brave_main_preferences,
+                            indexData,
+                            MainSettings.class.getName(),
+                            new Bundle(),
+                            providerMap);
+                }
+
+                @Override
+                public void updateDynamicPreferences(
+                        Context context, SettingsIndexData indexData, Profile profile) {
+                    MainSettings.SEARCH_INDEX_DATA_PROVIDER.updateDynamicPreferences(
+                            context, indexData, profile);
+                    // Remove upstream preferences hidden from the main settings UI.
+                    // "languages" is safe to remove now that
+                    // LanguageSettings.SEARCH_INDEX_DATA_PROVIDER
+                    // is replaced by BraveLanguageSettings.SEARCH_INDEX_DATA_PROVIDER in the
+                    // registry.
+                    indexData.removeEntry(getUniqueId("languages"));
+                    indexData.removeEntry(getUniqueId(MainSettings.PREF_SIGN_IN));
+                    indexData.removeEntry(getUniqueId(MainSettings.PREF_SEARCH_ENGINE));
+                    indexData.removeEntry(getUniqueId(MainSettings.PREF_DOWNLOADS));
+                    indexData.removeEntry(getUniqueId(MainSettings.PREF_SAFETY_HUB));
+                    indexData.removeEntry(getUniqueId(MainSettings.PREF_SETTINGS_PROMO_CARD));
+                    indexData.removeEntry(getUniqueId(MainSettings.PREF_MANAGE_SYNC));
+                    indexData.removeEntry(
+                            getUniqueId(MainSettings.PREF_ACCOUNT_AND_GOOGLE_SERVICES_SECTION));
+                    indexData.removeEntry(getUniqueId(MainSettings.PREF_GOOGLE_SERVICES));
+                    indexData.removeEntry(getUniqueId(MainSettings.PREF_PRIVACY));
+                    indexData.removeEntry(getUniqueId(MainSettings.PREF_APPEARANCE));
+                    indexData.removeEntry(getUniqueId(MainSettings.PREF_ADDRESS_BAR));
+                    indexData.removeEntry(getUniqueId(MainSettings.PREF_TOOLBAR_SHORTCUT));
+                    // Account section is only shown when Brave Account is enabled.
+                    if (!BraveAccountFeatures.isBraveAccountEnabled()) {
+                        for (String key : BraveAccountSectionController.ALL_PREFERENCE_KEYS) {
+                            indexData.removeEntry(getUniqueId(key));
+                        }
+                    }
+                    // Brave leaf switches/actions in main settings have no sub-screen to
+                    // navigate to from search results, so exclude them from the index.
+                    indexData.removeEntry(getUniqueId(PREF_CLOSING_ALL_TABS_CLOSES_BRAVE));
+                    indexData.removeEntry(getUniqueId(PREF_RATE_BRAVE));
+                    indexData.removeEntry(getUniqueId(PREF_AUTOFILL_PRIVATE_WINDOW));
+                    indexData.removeEntry(getUniqueId(PREF_USE_CUSTOM_TABS));
+                    // Leaf prefs from brave_main_preferences.xml that are conditionally hidden.
+                    if (!BraveSearchWidgetUtils.isRequestPinAppWidgetSupported()) {
+                        indexData.removeEntry(getUniqueId(PREF_HOME_SCREEN_WIDGET));
+                    }
+                    // Remove features disabled by Brave Origin or enterprise policy.
+                    if (BraveLeoPrefUtils.isLeoDisabledByPolicy(profile)) {
+                        indexData.removeEntry(getUniqueId(PREF_BRAVE_LEO));
+                    }
+                    if (BraveNewsPolicy.isDisabledByPolicy(profile)) {
+                        indexData.removeEntry(getUniqueId(PREF_BRAVE_NEWS_V2));
+                    }
+                    if (BraveVpnPolicy.isDisabledByPolicy(profile)) {
+                        indexData.removeEntry(getUniqueId(PREF_BRAVE_VPN));
+                    }
+                    if (BraveWalletPolicy.isDisabledByPolicy(profile)) {
+                        indexData.removeEntry(getUniqueId(PREF_BRAVE_WALLET));
+                        // Also remove wallet-related entries from site settings.
+                        String siteSettingsFrag = SiteSettings.class.getName();
+                        indexData.removeEntryForKey(
+                                siteSettingsFrag,
+                                BraveSiteSettingsPreferencesBase.ETHEREUM_CONNECTED_SITES_KEY);
+                        indexData.removeEntryForKey(
+                                siteSettingsFrag,
+                                BraveSiteSettingsPreferencesBase.SOLANA_CONNECTED_SITES_KEY);
+                    }
+                }
+            };
 }

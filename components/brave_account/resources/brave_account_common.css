@@ -10,7 +10,7 @@
 .label {
   color: var(--leo-color-text-primary);
   font: var(--leo-font-small-semibold);
-  margin: 0px 0px 0px var(--leo-spacing-s);
+  margin: 0 0 0 var(--leo-spacing-s);
 }
 
 .label.error {
@@ -21,6 +21,45 @@ leo-input {
   --leo-control-border-color: var(--leo-color-divider-strong);
 }
 
-leo-input:not(:focus):has(> .error) {
+leo-input:not(:focus):has(.error) {
   --leo-control-border-color: var(--leo-color-systemfeedback-error-icon);
+}
+
+leo-input:focus:has(.error) {
+  --leo-control-focus-effect: 0 0 0 2px
+    var(--leo-color-systemfeedback-error-icon);
+}
+
+.dropdown {
+  display: grid;
+  grid-template-rows: 0fr;
+  margin-inline: var(--leo-spacing-s);
+  overflow: hidden;
+  transition: all 400ms;
+
+  &.visible {
+    grid-template-rows: 1fr;
+    margin-top: var(--leo-spacing-s);
+  }
+
+  .dropdown-content {
+    align-self: end;
+    min-height: 0;
+
+    leo-icon[name='check-circle-filled'] {
+      --leo-icon-color: var(--leo-color-systemfeedback-success-icon);
+
+      & + div {
+        color: var(--leo-color-systemfeedback-success-text);
+      }
+    }
+
+    leo-icon[name='warning-triangle-filled'] {
+      --leo-icon-color: var(--leo-color-systemfeedback-error-icon);
+
+      & + div {
+        color: var(--leo-color-systemfeedback-error-text);
+      }
+    }
+  }
 }

@@ -16,9 +16,9 @@
 #include "brave/browser/ui/views/side_panel/side_panel.h"
 #include "brave/browser/ui/views/sidebar/sidebar_control_view.h"
 #include "brave/components/sidebar/browser/sidebar_service.h"
+#include "chrome/browser/ui/side_panel/side_panel_entry_observer.h"
 #include "chrome/browser/ui/tabs/tab_strip_model_observer.h"
 #include "chrome/browser/ui/views/side_panel/side_panel_coordinator.h"
-#include "chrome/browser/ui/views/side_panel/side_panel_entry_observer.h"
 #include "components/prefs/pref_member.h"
 #include "ui/events/event_observer.h"
 #include "ui/gfx/animation/slide_animation.h"
@@ -129,7 +129,7 @@ class SidebarContainerView : public sidebar::Sidebar,
       TabStripModel* tab_strip_model,
       const TabStripModelChange& change,
       const TabStripSelectionChange& selection) override;
-  void OnTabWillBeRemoved(content::WebContents* contents, int index) override;
+  void OnTabWillBeRemoved(tabs::TabInterface* tab, int index) override;
 
   void UpdateActiveItemState();
 
@@ -160,6 +160,7 @@ class SidebarContainerView : public sidebar::Sidebar,
   // Call this when want to hide and only want to consider show opton.
   void HideSidebarForShowOption();
 
+  bool IsSidePanelShowing() const;
   bool ShouldForceShowSidebar() const;
   void UpdateToolbarButtonVisibility();
 

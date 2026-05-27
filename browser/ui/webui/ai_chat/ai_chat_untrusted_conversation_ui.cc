@@ -18,9 +18,11 @@
 #include "brave/browser/ui/side_panel/ai_chat/ai_chat_side_panel_utils.h"
 #include "brave/browser/ui/webui/ai_chat/ai_chat_ui.h"
 #include "brave/browser/ui/webui/untrusted_sanitized_image_source.h"
+#include "brave/common/webui_url_constants.h"
 #include "brave/components/ai_chat/core/browser/ai_chat_service.h"
 #include "brave/components/ai_chat/core/browser/constants.h"
 #include "brave/components/ai_chat/core/browser/conversation_handler.h"
+#include "brave/components/ai_chat/core/browser/utils.h"
 #include "brave/components/ai_chat/core/common/ai_chat_urls.h"
 #include "brave/components/ai_chat/core/common/features.h"
 #include "brave/components/ai_chat/core/common/mojom/ai_chat.mojom.h"
@@ -63,7 +65,7 @@
 
 namespace {
 
-// Implments the interface to calls from the UI to the browser
+// Implements the interface to calls from the UI to the browser
 class UIHandler : public ai_chat::mojom::UntrustedUIHandler {
  public:
   UIHandler(content::WebUI* web_ui,
@@ -93,28 +95,33 @@ class UIHandler : public ai_chat::mojom::UntrustedUIHandler {
 
   // ai_chat::mojom::UntrustedConversationUIHandler
   void OpenLearnMoreAboutBraveSearchWithLeo() override {
-    if (!web_ui_->GetRenderFrameHost()->HasTransientUserActivation()) {
-      return;
-    }
     OpenURL(GURL(ai_chat::kLeoBraveSearchSupportUrl));
   }
 
   void OpenSearchURL(const std::string& search_query) override {
-    if (!web_ui_->GetRenderFrameHost()->HasTransientUserActivation()) {
-      return;
-    }
     OpenURL(GURL("https://search.brave.com/search?q=" +
                  base::EscapeQueryParamValue(search_query, true)));
   }
 
   void OpenURLFromResponse(const GURL& url) override {
-    if (!web_ui_->GetRenderFrameHost()->HasTransientUserActivation()) {
-      return;
-    }
     if (!url.is_valid() || !url.SchemeIs(url::kHttpsScheme)) {
       return;
     }
     OpenURL(url);
+  }
+
+  void GoPremium() override { OpenURL(GURL(ai_chat::kLeoGoPremiumUrl)); }
+
+  void RefreshPremiumSession() override {
+    OpenURL(GURL(ai_chat::kLeoRefreshPremiumSessionUrl));
+  }
+
+  void OpenModelSupportUrl() override {
+    OpenURL(GURL(ai_chat::kLeoModelSupportUrl));
+  }
+
+  void OpenStorageSupportUrl() override {
+    OpenURL(GURL(ai_chat::kLeoStorageSupportUrl));
   }
 
   void AddTabToThumbnailTracker(int32_t tab_id) override {
@@ -258,7 +265,9 @@ class UIHandler : public ai_chat::mojom::UntrustedUIHandler {
     if (!url.SchemeIs(url::kHttpsScheme)) {
       return;
     }
-
+    if (!web_ui_->GetRenderFrameHost()->HasTransientUserActivation()) {
+      return;
+    }
 #if !BUILDFLAG(IS_ANDROID)
     Browser* browser =
         ai_chat::GetBrowserForWebContents(web_ui_->GetWebContents());
@@ -351,19 +360,23 @@ AIChatUntrustedConversationUI::AIChatUntrustedConversationUI(
 
   constexpr bool kIsMobile = BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_IOS);
   source->AddBoolean("isMobile", kIsMobile);
+  source->AddBoolean("isHistoryEnabled",
+                     ai_chat::features::IsAIChatHistoryEnabled());
 
   source->OverrideContentSecurityPolicy(
       network::mojom::CSPDirectiveName::ScriptSrc,
       "script-src 'self' chrome-untrusted://resources;");
 
-  // If the feature is not enabled then don't add the origin to the CSP.
+  std::string rich_search_widgets_url;
   if (base::FeatureList::IsEnabled(ai_chat::features::kRichSearchWidgets)) {
-    source->OverrideContentSecurityPolicy(
-        network::mojom::CSPDirectiveName::FrameSrc,
-        base::StrCat({"frame-src ",
-                      ai_chat::features::kRichSearchWidgetsOrigin.Get(),
-                      "/embed.html;"}));
+    rich_search_widgets_url =
+        base::StrCat({" ", ai_chat::features::kRichSearchWidgetsOrigin.Get(),
+                      "/embed.html"});
   }
+  source->OverrideContentSecurityPolicy(
+      network::mojom::CSPDirectiveName::FrameSrc,
+      base::StrCat({"frame-src ", kAIChatChartDisplayUIURL,
+                    rich_search_widgets_url, ";"}));
 
   // If the feature is not enabled don't specify an origin for loading the rich
   // search widgets.
@@ -372,6 +385,10 @@ AIChatUntrustedConversationUI::AIChatUntrustedConversationUI(
       base::FeatureList::IsEnabled(ai_chat::features::kRichSearchWidgets)
           ? ai_chat::features::kRichSearchWidgetsOrigin.Get()
           : "");
+
+  // Note: For the current usages of this API there is no difference between the
+  // premium and non-premium API host.
+  source->AddString("apiHost", ai_chat::GetEndpointUrl(false, "").spec());
 
   source->OverrideContentSecurityPolicy(
       network::mojom::CSPDirectiveName::StyleSrc,
@@ -386,7 +403,7 @@ AIChatUntrustedConversationUI::AIChatUntrustedConversationUI(
       "font-src 'self' chrome-untrusted://resources;");
   source->OverrideContentSecurityPolicy(
       network::mojom::CSPDirectiveName::FrameAncestors,
-      absl::StrFormat("frame-ancestors %s;", kAIChatUIURL));
+      base::StrCat({"frame-ancestors ", kAIChatUIURL, ";"}));
   source->OverrideContentSecurityPolicy(
       network::mojom::CSPDirectiveName::TrustedTypes, "trusted-types default;");
 
@@ -408,6 +425,16 @@ AIChatUntrustedConversationUI::~AIChatUntrustedConversationUI() = default;
 void AIChatUntrustedConversationUI::BindInterface(
     mojo::PendingReceiver<ai_chat::mojom::UntrustedUIHandler> receiver) {
   ui_handler_ = std::make_unique<UIHandler>(web_ui(), std::move(receiver));
+}
+
+void AIChatUntrustedConversationUI::BindInterface(
+    mojo::PendingReceiver<ai_chat::mojom::UntrustedService> receiver) {
+  ai_chat::AIChatService* service =
+      ai_chat::AIChatServiceFactory::GetForBrowserContext(
+          Profile::FromWebUI(web_ui()));
+  if (service) {
+    service->BindUntrustedService(std::move(receiver));
+  }
 }
 
 WEB_UI_CONTROLLER_TYPE_IMPL(AIChatUntrustedConversationUI)

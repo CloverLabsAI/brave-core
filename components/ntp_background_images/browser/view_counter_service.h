@@ -10,6 +10,7 @@
 #include <optional>
 #include <string>
 
+#include "base/functional/callback.h"
 #include "base/gtest_prod_util.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
@@ -77,14 +78,16 @@ class ViewCounterService : public KeyedService,
       const std::string& target_url,
       brave_ads::mojom::NewTabPageAdMetricType mojom_ad_metric_type);
 
-  std::optional<base::Value::Dict> GetNextWallpaperForDisplay();
-  std::optional<base::Value::Dict> GetCurrentWallpaperForDisplay(
+  std::optional<base::DictValue> GetNextWallpaperForDisplay();
+  void GetCurrentWallpaperForDisplay(
+      base::OnceCallback<void(std::optional<base::DictValue>)> callback,
       bool allow_sponsored_image = true);
-  std::optional<base::Value::Dict> GetCurrentWallpaper() const;
-  std::optional<base::Value::Dict> GetCurrentBrandedWallpaper() const;
-  std::optional<base::Value::Dict> GetCurrentBrandedWallpaperFromAdsService()
-      const;
-  std::optional<base::Value::Dict> GetCurrentBrandedWallpaperFromModel() const;
+  std::optional<base::DictValue> GetCurrentWallpaper() const;
+  void GetCurrentBrandedWallpaper(
+      base::OnceCallback<void(std::optional<base::DictValue>)> callback);
+  void GetCurrentBrandedWallpaperFromAdsService(
+      base::OnceCallback<void(std::optional<base::DictValue>)> callback);
+  std::optional<base::DictValue> GetCurrentBrandedWallpaperFromModel() const;
 
   NTPSponsoredImagesData* GetSponsoredImagesData() const;
 
@@ -144,7 +147,7 @@ class ViewCounterService : public KeyedService,
   // NTPBackgroundImagesService::Observer:
   void OnBackgroundImagesDataDidUpdate(NTPBackgroundImagesData* data) override;
   void OnSponsoredImagesDataDidUpdate(NTPSponsoredImagesData* data) override;
-  void OnSponsoredContentDidUpdate(const base::Value::Dict& data) override;
+  void OnSponsoredContentDidUpdate(const base::DictValue& data) override;
 
   void ParseAndSaveNewTabPageAdsCallback(bool success);
 
@@ -165,7 +168,12 @@ class ViewCounterService : public KeyedService,
 
   void ResetModel();
 
-  void MaybePrefetchNewTabPageAd();
+  void OnGetCurrentBrandedWallpaper(
+      base::OnceCallback<void(std::optional<base::DictValue>)> callback,
+      std::optional<base::DictValue> branded_wallpaper);
+  void GetCurrentBrandedWallpaperFromAdsServiceCallback(
+      base::OnceCallback<void(std::optional<base::DictValue>)> callback,
+      brave_ads::mojom::NewTabPageAdInfoPtr ad);
 
   void MaybeTriggerNewTabPageAdEvent(
       const std::string& placement_id,

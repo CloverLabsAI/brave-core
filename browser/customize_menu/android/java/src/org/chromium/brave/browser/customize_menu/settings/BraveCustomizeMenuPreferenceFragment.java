@@ -14,8 +14,9 @@ import androidx.annotation.DrawableRes;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceCategory;
 
-import org.chromium.base.supplier.ObservableSupplier;
-import org.chromium.base.supplier.ObservableSupplierImpl;
+import org.chromium.base.supplier.MonotonicObservableSupplier;
+import org.chromium.base.supplier.ObservableSuppliers;
+import org.chromium.base.supplier.SettableMonotonicObservableSupplier;
 import org.chromium.brave.browser.customize_menu.CustomizeBraveMenu;
 import org.chromium.brave.browser.customize_menu.MenuItemData;
 import org.chromium.brave.browser.customize_menu.R;
@@ -25,6 +26,7 @@ import org.chromium.chrome.browser.preferences.ChromeSharedPreferences;
 import org.chromium.chrome.browser.settings.ChromeBaseSettingsFragment;
 import org.chromium.components.browser_ui.settings.ChromeSwitchPreference;
 import org.chromium.components.browser_ui.settings.SettingsUtils;
+import org.chromium.components.browser_ui.settings.search.BaseSearchIndexProvider;
 import org.chromium.ui.base.ViewUtils;
 
 import java.util.List;
@@ -40,7 +42,8 @@ public class BraveCustomizeMenuPreferenceFragment extends ChromeBaseSettingsFrag
     private static final String MAIN_MENU_SECTION = "main_menu_section";
     private static final String PAGE_ACTIONS_SECTION = "page_actions_section";
 
-    private final ObservableSupplierImpl<String> mPageTitle = new ObservableSupplierImpl<>();
+    private final SettableMonotonicObservableSupplier<String> mPageTitle =
+            ObservableSuppliers.createMonotonic();
     private int mIconSizePx;
 
     @Override
@@ -118,7 +121,7 @@ public class BraveCustomizeMenuPreferenceFragment extends ChromeBaseSettingsFrag
     }
 
     @Override
-    public ObservableSupplier<String> getPageTitle() {
+    public MonotonicObservableSupplier<String> getPageTitle() {
         return mPageTitle;
     }
 
@@ -132,4 +135,11 @@ public class BraveCustomizeMenuPreferenceFragment extends ChromeBaseSettingsFrag
         ChromeSharedPreferences.getInstance().writeBoolean(preference.getKey(), (Boolean) newValue);
         return true;
     }
+
+    // All menu item switches are added programmatically from a bundle; there are no static
+    // preferences to index.
+    public static final BaseSearchIndexProvider SEARCH_INDEX_DATA_PROVIDER =
+            new BaseSearchIndexProvider(
+                    BraveCustomizeMenuPreferenceFragment.class.getName(),
+                    BaseSearchIndexProvider.INDEX_OPT_OUT);
 }

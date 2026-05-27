@@ -8,10 +8,6 @@
 
 #include "chrome/browser/ui/views/tabs/tab_slot_controller.h"
 
-#define IsGroupCollapsed(...)                   \
-  IsGroupCollapsed(__VA_ARGS__) const override; \
-  const Browser* GetBrowser()
-
 // Add override for
 // ShouldAlwaysHideTabCloseButton()/CanCloseTabViaMiddleButtonClick() and
 // setters to control its return value in tests.
@@ -31,21 +27,60 @@
   }                                                              \
   bool ShouldAlwaysHideCloseButton()
 
-// Add override for IsVerticalTabsFloating()
-#define EndDrag(...)             \
-  EndDrag(__VA_ARGS__) override; \
-  bool IsVerticalTabsFloating() const
+// Add override for IsVerticalTabsFloating() and
+// IsVerticalTabsAnimatingButNotFinalState()
+#define EndDrag(...)                            \
+  EndDrag(__VA_ARGS__) override;                \
+  bool IsVerticalTabsFloating() const override; \
+  bool IsVerticalTabsAnimatingButNotFinalState() const
 
-// Add override for CanCloseTabViaMiddleButtonClick()
-#define CanPaintThrobberToLayer()           \
-  CanPaintThrobberToLayer() const override; \
-  bool CanCloseTabViaMiddleButtonClick()
+// Add overrides for TabAccent related methods
+#define CanPaintThrobberToLayer()                                   \
+  ShouldPaintTabAccent(const Tab* tab) const override;              \
+  std::optional<TabAccentColors> GetTabAccentColors(const Tab* tab) \
+      const override;                                               \
+  ui::ImageModel GetTabAccentIcon(const Tab* tab) const override;   \
+  bool CanCloseTabViaMiddleButtonClick() const override;            \
+  bool CanPaintThrobberToLayer()
+
+// Add a method to TabSlotController to get the height of the tree tab node for
+// the given tab.
+#define ShiftGroupRight(...)                                                 \
+  ShiftGroupRight_Unused();                                                  \
+  int GetTreeHeight(const tree_tab::TreeTabNodeId& id) const override;       \
+  const tabs::TreeTabNode* GetTreeTabNode(const tree_tab::TreeTabNodeId& id) \
+      const override;                                                        \
+  void SetTreeTabNodeCollapsed(const tree_tab::TreeTabNodeId& id,            \
+                               bool collapsed) override;                     \
+  bool IsInCollapsedTreeTabNode(const tree_tab::TreeTabNodeId& id)           \
+      const override;                                                        \
+  void ShiftGroupRight(__VA_ARGS__)
+
+// Brave: test-controlled tab minimum width mode (brave_tabs::TabMinWidthMode).
+#define GetStrokeThickness()                                       \
+  GetStrokeThickness() const override;                             \
+                                                                   \
+ private:                                                          \
+  brave_tabs::TabMinWidthMode tab_min_width_mode_ =                \
+      brave_tabs::TabMinWidthMode::kDefault;                       \
+  bool horizontal_scrolling_enabled_ = false;                      \
+                                                                   \
+ public:                                                           \
+  void set_tab_min_width_mode(brave_tabs::TabMinWidthMode mode) {  \
+    tab_min_width_mode_ = mode;                                    \
+  }                                                                \
+  void set_horizontal_scrolling_enabled(bool enabled) {            \
+    horizontal_scrolling_enabled_ = enabled;                       \
+  }                                                                \
+  brave_tabs::TabMinWidthMode GetTabMinWidthMode() const override; \
+  bool IsHorizontalScrollingEnabled()
 
 #include <chrome/browser/ui/views/tabs/fake_tab_slot_controller.h>  // IWYU pragma: export
 
+#undef GetStrokeThickness
+#undef ShiftGroupRight
 #undef CanPaintThrobberToLayer
 #undef EndDrag
 #undef ShouldCompactLeadingEdge
-#undef IsGroupCollapsed
 
 #endif  // BRAVE_CHROMIUM_SRC_CHROME_BROWSER_UI_VIEWS_TABS_FAKE_TAB_SLOT_CONTROLLER_H_

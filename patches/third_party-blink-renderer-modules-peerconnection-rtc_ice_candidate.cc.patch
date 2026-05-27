@@ -1,5 +1,5 @@
 diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.cc b/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.cc
-index 2c4713a9717a5..a578d4512c3f2 100644
+index 2c4713a9717a57a7599598e1c6fe6db1c2d3e90b..eacd17ec3aee111319540f1b7df3dc33333c5b38 100644
 --- a/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.cc
 +++ b/third_party/blink/renderer/modules/peerconnection/rtc_ice_candidate.cc
 @@ -32,6 +32,7 @@
@@ -71,20 +71,20 @@ index 2c4713a9717a5..a578d4512c3f2 100644
 +  GetWebRTCIPOverrides(execution_context_, &mask_ipv4, &mask_ipv6);
 +
 +  // Only allow mDNS candidates (*.local), mask all other IP addresses
-+  if (original.Contains(".local")) {
++  if (original.contains(".local")) {
 +    return original;  // Already mDNS obfuscated
 +  }
 +
 +  // Replace IP address in SDP string
 +  // Format: candidate:<foundation> <component-id> <transport> <priority> <address> <port> typ <type>
 +  Vector<String> parts;
-+  original.Split(' ', parts);
++  parts = original.Split(' ');
 +
 +  if (parts.size() >= 5) {
 +    String original_ip = parts[4];
-+    if (!original_ip.EndsWith(".local")) {
++    if (!original_ip.ends_with(".local")) {
 +      // Use appropriate mask based on IP type
-+      parts[4] = original_ip.Contains(":") ? mask_ipv6 : mask_ipv4;
++      parts[4] = original_ip.contains(":") ? mask_ipv6 : mask_ipv4;
 +
 +      // Reconstruct the candidate string
 +      StringBuilder result;
@@ -121,7 +121,7 @@ index 2c4713a9717a5..a578d4512c3f2 100644
 +  }
 +
 +  // Only expose mDNS-obfuscated addresses (*.local)
-+  if (real_address.EndsWith(".local")) {
++  if (real_address.ends_with(".local")) {
 +    return real_address;
 +  }
 +
@@ -129,10 +129,10 @@ index 2c4713a9717a5..a578d4512c3f2 100644
 +  if (execution_context_) {
 +    auto& session_cache = brave::BraveSessionCache::From(*execution_context_);
 +    if (session_cache.HasWebRTCIPOverride()) {
-+      return real_address.Contains(":") ? session_cache.GetWebRTCIPv6Override() : session_cache.GetWebRTCIPv4Override();
++      return real_address.contains(":") ? session_cache.GetWebRTCIPv6Override() : session_cache.GetWebRTCIPv4Override();
 +    }
 +  }
-+  return real_address.Contains(":") ? "::" : "0.0.0.0";
++  return real_address.contains(":") ? "::" : "0.0.0.0";
  }
  
  std::optional<V8RTCIceProtocol> RTCIceCandidate::protocol() const {
@@ -158,7 +158,7 @@ index 2c4713a9717a5..a578d4512c3f2 100644
 +  }
 +
 +  // Only expose mDNS-obfuscated related addresses
-+  if (real_related.EndsWith(".local")) {
++  if (real_related.ends_with(".local")) {
 +    return real_related;
 +  }
 +
@@ -166,10 +166,10 @@ index 2c4713a9717a5..a578d4512c3f2 100644
 +  if (execution_context_) {
 +    auto& session_cache = brave::BraveSessionCache::From(*execution_context_);
 +    if (session_cache.HasWebRTCIPOverride()) {
-+      return real_related.Contains(":") ? session_cache.GetWebRTCIPv6Override() : session_cache.GetWebRTCIPv4Override();
++      return real_related.contains(":") ? session_cache.GetWebRTCIPv6Override() : session_cache.GetWebRTCIPv4Override();
 +    }
 +  }
-+  return real_related.Contains(":") ? "::" : "0.0.0.0";
++  return real_related.contains(":") ? "::" : "0.0.0.0";
  }
  
  std::optional<uint16_t> RTCIceCandidate::relatedPort() const {

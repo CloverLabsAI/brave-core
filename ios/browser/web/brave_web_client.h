@@ -12,6 +12,8 @@
 
 #include "ios/chrome/browser/web/model/chrome_web_client.h"
 
+@class WKWebViewConfiguration;
+
 class BraveWebClient : public ChromeWebClient {
  public:
   BraveWebClient();
@@ -49,6 +51,18 @@ class BraveWebClient : public ChromeWebClient {
                                    NSURLRequest* request) override;
   bool ShouldBlockUniversalLinks(web::WebState* web_state,
                                  NSURLRequest* request) override;
+
+  bool CanRunOpenPanel(web::WebState* web_state) const override
+      API_AVAILABLE(ios(18.4));
+  void RunOpenPanel(web::WebState* web_state,
+                    WKOpenPanelParameters* parameters,
+                    WKFrameInfo* frame,
+                    base::OnceCallback<void(NSArray<NSURL*>*)> completion)
+      const override API_AVAILABLE(ios(18.4));
+
+  void DidResetConfiguration(web::BrowserState* browser_state,
+                             WKWebViewConfiguration* configuration) override;
+  bool IsSmoothScrollingSupported() const override;
 
  private:
   std::string legacy_user_agent_;

@@ -19,7 +19,6 @@
 #include "brave/browser/importer/extensions_import_helpers.h"
 #include "brave/common/importer/importer_constants.h"
 #include "brave/components/constants/brave_paths.h"
-#include "chrome/browser/extensions/load_error_reporter.h"
 #include "chrome/browser/extensions/test_extension_system.h"
 #include "chrome/browser/importer/importer_progress_observer.h"
 #include "chrome/test/base/testing_profile.h"
@@ -28,6 +27,7 @@
 #include "content/public/test/browser_task_environment.h"
 #include "extensions/browser/extension_registrar.h"
 #include "extensions/browser/extension_system.h"
+#include "extensions/browser/load_error_reporter.h"
 #include "extensions/common/constants.h"
 #include "extensions/common/extension_builder.h"
 #include "testing/gtest/include/gtest/gtest.h"
@@ -131,7 +131,7 @@ class BraveExternalProcessImporterHostUnitTest : public testing::Test {
 
   void AddExtension(const std::string& id) {
     auto extension = extensions::ExtensionBuilder()
-                         .SetManifest(base::Value::Dict()
+                         .SetManifest(base::DictValue()
                                           .Set("name", "ext")
                                           .Set("version", "0.1")
                                           .Set("manifest_version", 2))

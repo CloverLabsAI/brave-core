@@ -56,7 +56,6 @@
     E_CPONLY(kColorSidebarAddBubbleItemTextBackgroundHovered) \
     E_CPONLY(kColorSidebarAddBubbleItemTextHovered)           \
     E_CPONLY(kColorSidebarAddBubbleItemTextNormal)            \
-    E_CPONLY(kColorSidebarAddButtonDisabled)                  \
     E_CPONLY(kColorSidebarArrowBackgroundHovered)             \
     E_CPONLY(kColorSidebarArrowDisabled)                      \
     E_CPONLY(kColorSidebarArrowNormal)                        \
@@ -64,8 +63,6 @@
     E_CPONLY(kColorSidebarButtonPressed)                      \
     E_CPONLY(kColorSidebarItemDragIndicator)                  \
     E_CPONLY(kColorSidebarSeparator)                          \
-    E_CPONLY(kColorSidebarPanelHeaderSeparator)               \
-    E_CPONLY(kColorSidebarPanelHeaderBackground)              \
     E_CPONLY(kColorSidebarPanelHeaderTitle)                   \
     E_CPONLY(kColorSidebarPanelHeaderButton)                  \
     E_CPONLY(kColorSidebarPanelHeaderButtonHovered)
@@ -156,9 +153,6 @@
 #define BRAVE_EXTENSION_MENU_COLOR_IDS \
     E_CPONLY(kColorBraveExtensionMenuIcon)
 
-#define BRAVE_APP_MENU_COLOR_IDS \
-    E_CPONLY(kColorBraveAppMenuAccentColor)
-
 #define BRAVE_COLOR_IDS               \
     BRAVE_COMMON_COLOR_IDS            \
     BRAVE_SEARCH_CONVERSION_COLOR_IDS \
@@ -171,8 +165,7 @@
     BRAVE_PLAYLIST_COLOR_IDS          \
     BRAVE_OMNIBOX_COLOR_IDS           \
     BRAVE_WAYBACK_MACHINE_COLOR_IDS   \
-    BRAVE_EXTENSION_MENU_COLOR_IDS    \
-    BRAVE_APP_MENU_COLOR_IDS
+    BRAVE_EXTENSION_MENU_COLOR_IDS
 
 #include "ui/color/color_id_macros.inc"
 

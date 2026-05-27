@@ -8,7 +8,6 @@
 #include <algorithm>
 
 #include "base/check.h"
-#include "base/containers/contains.h"
 #include "base/feature_list.h"
 #include "base/logging.h"
 #include "base/metrics/field_trial_params.h"
@@ -172,6 +171,8 @@ ConversionType GetConversionType(PrefService* prefs,
 void RegisterPrefs(PrefRegistrySimple* registry) {
   registry->RegisterBooleanPref(prefs::kDismissed, false);
   registry->RegisterBooleanPref(prefs::kShowNTPSearchBox, true);
+  registry->RegisterBooleanPref(prefs::kShowNTPChatInput, true);
+  registry->RegisterBooleanPref(prefs::kMigratedNTPChatInputFromSearch, false);
   registry->RegisterStringPref(prefs::kLastUsedNTPSearchEngine,
                                "search.brave.com");
   registry->RegisterBooleanPref(prefs::kPromptEnableSuggestions, true);

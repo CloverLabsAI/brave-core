@@ -172,6 +172,18 @@ void MigrateToV43(const mojom::DBTransactionInfoPtr& mojom_db_transaction) {
 void MigrateToV50(const mojom::DBTransactionInfoPtr& mojom_db_transaction) {
   CHECK(mojom_db_transaction);
 
+  // Delete legacy ad events with an undefined `placement_id`, `campaign_id`,
+  // `creative_set_id`, or `creative_instance_id`.
+  Execute(mojom_db_transaction, R"(
+      DELETE FROM
+        ad_events
+      WHERE
+        COALESCE(placement_id, '') = ''
+        OR COALESCE(campaign_id, '') = ''
+        OR COALESCE(creative_set_id, '') = ''
+        OR COALESCE(creative_instance_id, '') = ''
+        OR created_at IS NULL)");
+
   // Create a temporary table:
   //   - with a new `target_url` column with a default value of
   //     'https://brave.com/brave-ads/'.
@@ -282,7 +294,7 @@ void AdEvents::IsFirstTime(const std::string& campaign_id,
               THEN 1
               ELSE 0
             END AS is_first_time;)",
-      {GetTableName(), std::string(ToString(confirmation_type)), campaign_id},
+      {kTableName, std::string(ToString(confirmation_type)), campaign_id},
       nullptr);
   mojom_db_action->bind_column_types = {
       mojom::DBBindColumnType::kBool  // is_first_time
@@ -333,7 +345,7 @@ void AdEvents::GetAll(GetAdEventsCallback callback) const {
             created_at
           FROM
             $1)",
-      {GetTableName()}, nullptr);
+      {kTableName}, nullptr);
   BindColumnTypes(mojom_db_action);
   mojom_db_transaction->actions.push_back(std::move(mojom_db_action));
 
@@ -370,7 +382,7 @@ void AdEvents::Get(mojom::AdType mojom_ad_type,
             AND created_at > $4
           ORDER BY
             created_at ASC)",
-      {GetTableName(), std::string(ToString(mojom_ad_type)),
+      {kTableName, std::string(ToString(mojom_ad_type)),
        std::string(ToString(mojom_confirmation_type)),
        TimeToSqlValueAsString(base::Time::Now() - time_window)},
       nullptr);
@@ -448,9 +460,9 @@ void AdEvents::GetVirtualPrefs(const base::flat_set<std::string>& ids,
         const auto& mojom_db_rows =
             mojom_db_transaction_result->rows_union->get_rows();
 
-        base::Value::Dict virtual_prefs;
+        base::DictValue virtual_prefs;
 
-        base::Value::Dict* ad_events_dict =
+        base::DictValue* ad_events_dict =
             virtual_prefs.EnsureDict("[virtual]:ad_events");
         for (const auto& row : mojom_db_rows) {
           CHECK(row);
@@ -460,7 +472,7 @@ void AdEvents::GetVirtualPrefs(const base::flat_set<std::string>& ids,
           const std::string confirmation_type = ColumnString(row, 1);
           const int count = ColumnInt(row, 2);
 
-          base::Value::Dict* id_dict = ad_events_dict->EnsureDict(id);
+          base::DictValue* id_dict = ad_events_dict->EnsureDict(id);
           id_dict->Set(confirmation_type, count);
         }
 
@@ -502,8 +514,7 @@ void AdEvents::GetUnexpired(GetAdEventsCallback callback) const {
             OR created_at > $2
           ORDER BY
             created_at ASC)",
-      {GetTableName(),
-       TimeToSqlValueAsString(base::Time::Now() - base::Days(90))},
+      {kTableName, TimeToSqlValueAsString(base::Time::Now() - base::Days(90))},
       nullptr);
   BindColumnTypes(mojom_db_action);
   mojom_db_transaction->actions.push_back(std::move(mojom_db_action));
@@ -546,7 +557,7 @@ void AdEvents::GetUnexpired(mojom::AdType mojom_ad_type,
             )
           ORDER BY
             created_at ASC)",
-      {GetTableName(), std::string(ToString(mojom_ad_type)),
+      {kTableName, std::string(ToString(mojom_ad_type)),
        TimeToSqlValueAsString(base::Time::Now() - base::Days(90))},
       nullptr);
   BindColumnTypes(mojom_db_action);
@@ -576,7 +587,7 @@ void AdEvents::PurgeExpired(ResultCallback callback) const {
               )
               AND type != 'new_tab_page_ad'
               AND created_at <= $2)",
-          {GetTableName(),
+          {kTableName,
            TimeToSqlValueAsString(base::Time::Now() - base::Days(days))});
 
   // New tab page ads.
@@ -594,7 +605,7 @@ void AdEvents::PurgeExpired(ResultCallback callback) const {
               )
               AND type == 'new_tab_page_ad'
               AND created_at <= $2)",
-          {GetTableName(),
+          {kTableName,
            TimeToSqlValueAsString(base::Time::Now() - base::Days(days))});
 
   RunTransaction(FROM_HERE, std::move(mojom_db_transaction),
@@ -610,7 +621,7 @@ void AdEvents::PurgeForAdType(mojom::AdType ad_type,
               $1
             WHERE
               type = '$2')",
-          {GetTableName(), std::string(ToString(ad_type))});
+          {kTableName, std::string(ToString(ad_type))});
 
   RunTransaction(FROM_HERE, std::move(mojom_db_transaction),
                  std::move(callback));
@@ -620,8 +631,7 @@ void AdEvents::PurgeOrphaned(mojom::AdType mojom_ad_type,
                              ResultCallback callback) const {
   mojom::DBTransactionInfoPtr mojom_db_transaction =
       mojom::DBTransactionInfo::New();
-  Execute(
-      mojom_db_transaction, R"(
+  Execute(mojom_db_transaction, R"(
         DELETE FROM
           $1
         WHERE
@@ -637,7 +647,7 @@ void AdEvents::PurgeOrphaned(mojom::AdType mojom_ad_type,
           )
           AND confirmation_type = 'served'
           AND type = '$3')",
-      {GetTableName(), GetTableName(), std::string(ToString(mojom_ad_type))});
+          {kTableName, kTableName, std::string(ToString(mojom_ad_type))});
 
   RunTransaction(FROM_HERE, std::move(mojom_db_transaction),
                  std::move(callback));
@@ -658,7 +668,8 @@ void AdEvents::PurgeOrphaned(const std::vector<std::string>& placement_ids,
 
   mojom::DBTransactionInfoPtr mojom_db_transaction =
       mojom::DBTransactionInfo::New();
-  Execute(mojom_db_transaction, R"(
+  Execute(
+      mojom_db_transaction, R"(
             DELETE FROM
               $1
             WHERE
@@ -674,8 +685,7 @@ void AdEvents::PurgeOrphaned(const std::vector<std::string>& placement_ids,
               )
               AND confirmation_type = 'served'
               AND placement_id IN ($3))",
-          {GetTableName(), GetTableName(),
-           base::JoinString(quoted_placement_ids, ", ")});
+      {kTableName, kTableName, base::JoinString(quoted_placement_ids, ", ")});
 
   RunTransaction(FROM_HERE, std::move(mojom_db_transaction),
                  std::move(callback));
@@ -699,14 +709,10 @@ void AdEvents::PurgeAllOrphaned(ResultCallback callback) const {
                   count(*) = 1
               )
               AND confirmation_type = 'served')",
-          {GetTableName(), GetTableName()});
+          {kTableName, kTableName});
 
   RunTransaction(FROM_HERE, std::move(mojom_db_transaction),
                  std::move(callback));
-}
-
-std::string AdEvents::GetTableName() const {
-  return kTableName;
 }
 
 void AdEvents::Create(const mojom::DBTransactionInfoPtr& mojom_db_transaction) {
@@ -729,24 +735,24 @@ void AdEvents::Create(const mojom::DBTransactionInfoPtr& mojom_db_transaction) {
 
   // Optimize database query for `GetUnexpired`, and `PurgeExpired` from
   // schema 35.
-  CreateTableIndex(mojom_db_transaction, GetTableName(),
+  CreateTableIndex(mojom_db_transaction, kTableName,
                    /*columns=*/{"created_at"});
 
   // Optimize database query for `GetUnexpired`, and `PurgeExpired` from
   // schema 43.
-  CreateTableIndex(mojom_db_transaction, GetTableName(),
+  CreateTableIndex(mojom_db_transaction, kTableName,
                    /*columns=*/{"creative_set_id"});
 
   // Optimize database query for `GetUnexpired`, and `PurgeOrphaned` from
   // schema 43.
-  CreateTableIndex(mojom_db_transaction, GetTableName(),
+  CreateTableIndex(mojom_db_transaction, kTableName,
                    /*columns=*/{"type"});
 
   // Optimize database query for `PurgeOrphaned`, and `PurgeAllOrphaned` from
   // schema 43.
-  CreateTableIndex(mojom_db_transaction, GetTableName(),
+  CreateTableIndex(mojom_db_transaction, kTableName,
                    /*columns=*/{"confirmation_type"});
-  CreateTableIndex(mojom_db_transaction, GetTableName(),
+  CreateTableIndex(mojom_db_transaction, kTableName,
                    /*columns=*/{"placement_id"});
 
   // Optimize database query for `IsFirstTime` from schema 50.
@@ -834,8 +840,7 @@ std::string AdEvents::BuildInsertSql(
             target_url,
             created_at
           ) VALUES $2)",
-      {GetTableName(),
-       BuildBindColumnPlaceholders(/*column_count=*/10, row_count)},
+      {kTableName, BuildBindColumnPlaceholders(/*column_count=*/10, row_count)},
       nullptr);
 }
 

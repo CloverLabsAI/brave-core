@@ -48,15 +48,20 @@ class BraveEphemeralStorageServiceDelegate
   void CleanupFirstPartyStorageArea(const TLDEphemeralAreaKey& key) override;
   void RegisterFirstWindowOpenedCallback(base::OnceClosure callback) override;
   void PrepareTabsForFirstPartyStorageCleanup(
-      const std::string& ephemeral_domain) override;
+      const std::vector<std::string>& ephemeral_domains,
+      const bool enforced_by_user) override;
   bool IsShieldsDisabledOnAnyHostMatchingDomainOf(
       const GURL& url) const override;
+  std::optional<brave_shields::mojom::AutoShredMode> GetAutoShredMode(
+      const GURL& url) override;
 #if BUILDFLAG(IS_ANDROID)
   // Initiates the notification of the current app state on Android.
   void TriggerCurrentAppStateNotification() override;
 #endif
 
  private:
+  std::vector<std::string> GetEphemeralDomainsToCleanOnAppClose();
+
   raw_ptr<content::BrowserContext> context_ = nullptr;
   raw_ptr<HostContentSettingsMap> host_content_settings_map_ = nullptr;
   scoped_refptr<content_settings::CookieSettings> cookie_settings_;

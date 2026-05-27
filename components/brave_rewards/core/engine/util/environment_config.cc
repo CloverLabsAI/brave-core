@@ -5,8 +5,14 @@
 
 #include "brave/components/brave_rewards/core/engine/util/environment_config.h"
 
+#include <string_view>
+
 #include "base/check.h"
-#include "brave/components/brave_rewards/core/engine/buildflags.h"
+#include "base/strings/strcat.h"
+#include "brave/brave_domains/constants.h"
+#include "brave/components/brave_rewards/core/buildflags/buildflags.h"
+#include "brave/components/constants/brave_services_key.h"
+#include "brave/components/constants/network_constants.h"
 
 namespace brave_rewards::internal {
 
@@ -67,28 +73,20 @@ GURL EnvironmentConfig::rewards_grant_url() const {
   }
 }
 
-GURL EnvironmentConfig::uphold_oauth_url() const {
+GURL EnvironmentConfig::uphold_url() const {
   return URLValue(current_environment() == mojom::Environment::kProduction
                       ? BUILDFLAG(UPHOLD_PRODUCTION_OAUTH_URL)
                       : BUILDFLAG(UPHOLD_SANDBOX_OAUTH_URL));
+}
+
+GURL EnvironmentConfig::uphold_oauth_url() const {
+  return BuildGate3OAuthURL("uphold");
 }
 
 GURL EnvironmentConfig::uphold_api_url() const {
   return URLValue(current_environment() == mojom::Environment::kProduction
                       ? BUILDFLAG(UPHOLD_PRODUCTION_API_URL)
                       : BUILDFLAG(UPHOLD_SANDBOX_API_URL));
-}
-
-std::string EnvironmentConfig::uphold_client_id() const {
-  return current_environment() == mojom::Environment::kProduction
-             ? BUILDFLAG(UPHOLD_PRODUCTION_CLIENT_ID)
-             : BUILDFLAG(UPHOLD_SANDBOX_CLIENT_ID);
-}
-
-std::string EnvironmentConfig::uphold_client_secret() const {
-  return current_environment() == mojom::Environment::kProduction
-             ? BUILDFLAG(UPHOLD_PRODUCTION_CLIENT_SECRET)
-             : BUILDFLAG(UPHOLD_SANDBOX_CLIENT_SECRET);
 }
 
 std::string EnvironmentConfig::uphold_fee_address() const {
@@ -98,9 +96,7 @@ std::string EnvironmentConfig::uphold_fee_address() const {
 }
 
 GURL EnvironmentConfig::gemini_oauth_url() const {
-  return URLValue(current_environment() == mojom::Environment::kProduction
-                      ? BUILDFLAG(GEMINI_PRODUCTION_OAUTH_URL)
-                      : BUILDFLAG(GEMINI_SANDBOX_OAUTH_URL));
+  return BuildGate3OAuthURL("gemini");
 }
 
 GURL EnvironmentConfig::gemini_api_url() const {
@@ -109,28 +105,10 @@ GURL EnvironmentConfig::gemini_api_url() const {
                       : BUILDFLAG(GEMINI_SANDBOX_API_URL));
 }
 
-std::string EnvironmentConfig::gemini_client_id() const {
-  return current_environment() == mojom::Environment::kProduction
-             ? BUILDFLAG(GEMINI_PRODUCTION_CLIENT_ID)
-             : BUILDFLAG(GEMINI_SANDBOX_CLIENT_ID);
-}
-
-std::string EnvironmentConfig::gemini_client_secret() const {
-  return current_environment() == mojom::Environment::kProduction
-             ? BUILDFLAG(GEMINI_PRODUCTION_CLIENT_SECRET)
-             : BUILDFLAG(GEMINI_SANDBOX_CLIENT_SECRET);
-}
-
 std::string EnvironmentConfig::gemini_fee_address() const {
   return current_environment() == mojom::Environment::kProduction
              ? BUILDFLAG(GEMINI_PRODUCTION_FEE_ADDRESS)
              : BUILDFLAG(GEMINI_SANDBOX_FEE_ADDRESS);
-}
-
-GURL EnvironmentConfig::zebpay_oauth_url() const {
-  return URLValue(current_environment() == mojom::Environment::kProduction
-                      ? BUILDFLAG(ZEBPAY_PRODUCTION_OAUTH_URL)
-                      : BUILDFLAG(ZEBPAY_SANDBOX_OAUTH_URL));
 }
 
 GURL EnvironmentConfig::zebpay_api_url() const {
@@ -139,16 +117,8 @@ GURL EnvironmentConfig::zebpay_api_url() const {
                       : BUILDFLAG(ZEBPAY_SANDBOX_API_URL));
 }
 
-std::string EnvironmentConfig::zebpay_client_id() const {
-  return current_environment() == mojom::Environment::kProduction
-             ? BUILDFLAG(ZEBPAY_PRODUCTION_CLIENT_ID)
-             : BUILDFLAG(ZEBPAY_SANDBOX_CLIENT_ID);
-}
-
-std::string EnvironmentConfig::zebpay_client_secret() const {
-  return current_environment() == mojom::Environment::kProduction
-             ? BUILDFLAG(ZEBPAY_PRODUCTION_CLIENT_SECRET)
-             : BUILDFLAG(ZEBPAY_SANDBOX_CLIENT_SECRET);
+GURL EnvironmentConfig::zebpay_oauth_url() const {
+  return BuildGate3OAuthURL("zebpay");
 }
 
 GURL EnvironmentConfig::bitflyer_url() const {
@@ -173,6 +143,19 @@ std::string EnvironmentConfig::bitflyer_fee_address() const {
   return current_environment() == mojom::Environment::kProduction
              ? BUILDFLAG(BITFLYER_PRODUCTION_FEE_ADDRESS)
              : BUILDFLAG(BITFLYER_SANDBOX_FEE_ADDRESS);
+}
+
+std::string EnvironmentConfig::BraveServicesKeyHeader() const {
+  return base::StrCat(
+      {kBraveServicesKeyHeader, ": ", BUILDFLAG(BRAVE_SERVICES_KEY)});
+}
+
+GURL EnvironmentConfig::BuildGate3OAuthURL(std::string_view provider) const {
+  std::string environment =
+      current_environment() == mojom::Environment::kProduction ? "production"
+                                                               : "sandbox";
+  return URLValue(base::StrCat({brave_domains::kGate3URL, "/api/oauth/",
+                                provider, "/", environment, "/"}));
 }
 
 GURL EnvironmentConfig::URLValue(std::string value) const {

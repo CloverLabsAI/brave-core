@@ -141,14 +141,15 @@ void MigrateToV40(const mojom::DBTransactionInfoPtr& mojom_db_transaction) {
   CHECK(mojom_db_transaction);
 
   // Delete legacy transactions with an undefined `creative_instance_id`,
-  // `segment` or `ad_type`.
+  // `segment`, `ad_type`, or `confirmation_type`.
   Execute(mojom_db_transaction, R"(
       DELETE FROM
         transactions
       WHERE
         COALESCE(creative_instance_id, '') = ''
         OR COALESCE(segment, '') = ''
-        OR ad_type = '')");
+        OR COALESCE(ad_type, '') = ''
+        OR COALESCE(confirmation_type, '') = '')");
 
   // Create a temporary table:
   //   - with a new `creative_instance_id` column constraint.
@@ -243,7 +244,7 @@ void Transactions::GetForDateRange(base::Time from_time,
             $1
           WHERE
             created_at BETWEEN $2 AND $3)",
-      {GetTableName(), TimeToSqlValueAsString(from_time),
+      {kTableName, TimeToSqlValueAsString(from_time),
        TimeToSqlValueAsString(to_time)},
       nullptr);
   BindColumnTypes(mojom_db_action);
@@ -276,7 +277,7 @@ void Transactions::Reconcile(const PaymentTokenList& payment_tokens,
               id IN $3
               OR creative_instance_id IN $4
             ))",
-      {GetTableName(), TimeToSqlValueAsString(base::Time::Now()),
+      {kTableName, TimeToSqlValueAsString(base::Time::Now()),
        BuildBindColumnPlaceholder(
            /*column_count=*/transaction_ids.size()),
        BuildBindColumnPlaceholder(/*column_count=*/1)},
@@ -297,21 +298,17 @@ void Transactions::Reconcile(const PaymentTokenList& payment_tokens,
 void Transactions::PurgeExpired(ResultCallback callback) const {
   mojom::DBTransactionInfoPtr mojom_db_transaction =
       mojom::DBTransactionInfo::New();
-  Execute(mojom_db_transaction, R"(
+  Execute(
+      mojom_db_transaction, R"(
             DELETE FROM
               $1
             WHERE
               reconciled_at != 0
             AND created_at <= $2)",
-          {GetTableName(),
-           TimeToSqlValueAsString(base::Time::Now() - base::Days(90))});
+      {kTableName, TimeToSqlValueAsString(base::Time::Now() - base::Days(90))});
 
   RunTransaction(FROM_HERE, std::move(mojom_db_transaction),
                  std::move(callback));
-}
-
-std::string Transactions::GetTableName() const {
-  return kTableName;
 }
 
 void Transactions::Create(
@@ -331,14 +328,14 @@ void Transactions::Create(
       ))");
 
   // Optimize database query for `GetForDateRange` from schema 35 and 40.
-  CreateTableIndex(mojom_db_transaction, GetTableName(),
+  CreateTableIndex(mojom_db_transaction, kTableName,
                    /*columns=*/{"created_at"});
 
   // Optimize database query for `Reconcile` from schema 43.
-  CreateTableIndex(mojom_db_transaction, GetTableName(),
+  CreateTableIndex(mojom_db_transaction, kTableName,
                    /*columns=*/{"reconciled_at"});
-  CreateTableIndex(mojom_db_transaction, GetTableName(), /*columns=*/{"id"});
-  CreateTableIndex(mojom_db_transaction, GetTableName(),
+  CreateTableIndex(mojom_db_transaction, kTableName, /*columns=*/{"id"});
+  CreateTableIndex(mojom_db_transaction, kTableName,
                    /*columns=*/{"creative_instance_id"});
 }
 
@@ -404,8 +401,7 @@ std::string Transactions::BuildInsertSql(
             confirmation_type,
             reconciled_at
           ) VALUES $2)",
-      {GetTableName(),
-       BuildBindColumnPlaceholders(/*column_count=*/8, row_count)},
+      {kTableName, BuildBindColumnPlaceholders(/*column_count=*/8, row_count)},
       nullptr);
 }
 

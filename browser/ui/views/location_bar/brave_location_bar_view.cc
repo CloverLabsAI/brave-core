@@ -9,7 +9,6 @@
 #include <utility>
 
 #include "base/check.h"
-#include "base/containers/contains.h"
 #include "base/feature_list.h"
 #include "brave/app/vector_icons/vector_icons.h"
 #include "brave/browser/themes/brave_theme_service.h"
@@ -117,7 +116,7 @@ void BraveLocationBarView::Init() {
     focus_ring->SetPathGenerator(
         std::make_unique<
             BraveLocationBarViewFocusRingHighlightPathGenerator>());
-    if (const auto color_id = GetFocusRingColor(profile())) {
+    if (const auto color_id = GetFocusRingColor(GetProfile())) {
       focus_ring->SetColorId(color_id.value());
     }
   }
@@ -137,7 +136,7 @@ void BraveLocationBarView::Init() {
       std::make_unique<OnionLocationView>(browser_->profile(), this, this));
 #endif
 
-  if (PromotionButtonController::PromotionEnabled(profile()->GetPrefs())) {
+  if (PromotionButtonController::PromotionEnabled(GetProfile()->GetPrefs())) {
     promotion_button_ = AddChildView(std::make_unique<PromotionButtonView>());
     promotion_controller_ = std::make_unique<PromotionButtonController>(
         promotion_button_, omnibox_view_, browser());
@@ -150,7 +149,7 @@ void BraveLocationBarView::Init() {
 
   // brave action buttons
   brave_actions_ = AddChildView(
-      std::make_unique<BraveActionsContainer>(browser_, profile()));
+      std::make_unique<BraveActionsContainer>(browser_, GetProfile()));
   brave_actions_->Init();
   // Call Update again to cause a Layout
   Update(nullptr);
@@ -302,28 +301,89 @@ void BraveLocationBarView::RefreshBackground() {
   }
 }
 
+int BraveLocationBarView::GetMinimumTrailingWidth() const {
+  int trailing_width = LocationBarView::GetMinimumTrailingWidth();
+  const int elem_pad =
+      GetLayoutConstant(LayoutConstant::kLocationBarElementPadding);
+
+  if (brave_actions_ && brave_actions_->GetVisible()) {
+    trailing_width += brave_actions_->GetMinimumSize().width() + elem_pad;
+  }
+
+#if BUILDFLAG(ENABLE_BRAVE_NEWS)
+  if (brave_news_action_icon_view_ &&
+      brave_news_action_icon_view_->GetVisible()) {
+    trailing_width +=
+        brave_news_action_icon_view_->GetMinimumSize().width() + elem_pad;
+  }
+
+#endif
+#if BUILDFLAG(ENABLE_TOR)
+  if (onion_location_view_ && onion_location_view_->GetVisible()) {
+    trailing_width += onion_location_view_->GetMinimumSize().width() + elem_pad;
+  }
+#endif
+
+  return trailing_width;
+}
+
+gfx::Size BraveLocationBarView::GetMinimumSize() const {
+  gfx::Size min_size = LocationBarView::GetMinimumSize();
+  if (!IsInitialized()) {
+    return min_size;
+  }
+
+  // Skip the additive formula for non-normal browser windows (popups, apps).
+  //
+  // The additive minimum-width formula produces a larger minimum width than
+  // upstream's max(omnibox, leading+trailing) formula. For popup windows opened
+  // via JavaScript (e.g. window.open(..., 'width=200')), Chromium's
+  // popup-clamping code computes the on-screen position using the *requested*
+  // width, then the window is later expanded to meet the minimum. If our
+  // minimum exceeds the requested width, the position calculated for the
+  // requested width is no longer valid for the actual (larger) window, causing
+  // the popup to extend partially outside the work area. Verified by
+  // PopupTest.OpenClampedToCurrentDisplay.
+  if (!browser_->is_type_normal()) {
+    return min_size;
+  }
+
+  // Unlike upstream which uses max(omnibox, leading+trailing), reserve space
+  // for all children simultaneously so the omnibox always has its minimum
+  // alongside all visible decorations.
+  const int padding =
+      GetLayoutConstant(LayoutConstant::kLocationBarElementPadding);
+  const int width = GetInsets().width() + GetMinimumLeadingWidth() + padding +
+                    omnibox_view_->GetMinimumSize().width() +
+                    GetMinimumTrailingWidth();
+  min_size.set_width(width);
+  return min_size;
+}
+
 gfx::Size BraveLocationBarView::CalculatePreferredSize(
     const views::SizeBounds& available_size) const {
   gfx::Size min_size = LocationBarView::CalculatePreferredSize(available_size);
   if (brave_actions_ && brave_actions_->GetVisible()) {
     const int brave_actions_min = brave_actions_->GetMinimumSize().width();
     const int extra_width =
-        brave_actions_min + GetLayoutConstant(LOCATION_BAR_ELEMENT_PADDING);
+        brave_actions_min +
+        GetLayoutConstant(LayoutConstant::kLocationBarElementPadding);
     min_size.Enlarge(extra_width, 0);
   }
 #if BUILDFLAG(ENABLE_BRAVE_NEWS)
   if (brave_news_action_icon_view_ &&
       brave_news_action_icon_view_->GetVisible()) {
     const int extra_width =
-        GetLayoutConstant(LOCATION_BAR_ELEMENT_PADDING) +
+        GetLayoutConstant(LayoutConstant::kLocationBarElementPadding) +
         brave_news_action_icon_view_->GetMinimumSize().width();
     min_size.Enlarge(extra_width, 0);
   }
 #endif  // BUILDFLAG(ENABLE_BRAVE_NEWS)
 #if BUILDFLAG(ENABLE_TOR)
   if (onion_location_view_ && onion_location_view_->GetVisible()) {
-    const int extra_width = GetLayoutConstant(LOCATION_BAR_ELEMENT_PADDING) +
-                            onion_location_view_->GetMinimumSize().width();
+    const int extra_width =
+        GetLayoutConstant(LayoutConstant::kLocationBarElementPadding) +
+        onion_location_view_->GetMinimumSize().width();
     min_size.Enlarge(extra_width, 0);
   }
 #endif
@@ -352,8 +412,8 @@ void BraveLocationBarView::ChildVisibilityChanged(views::View* child) {
   // the size changes when an icon is shown or hidden. The LocationBarView
   // does not listen to ChildVisibilityChanged events so we must make we Layout
   // and re-caculate trailing decorator positions when a child changes.
-  if (base::Contains(GetLeftMostTrailingViews(), child) ||
-      base::Contains(GetRightMostTrailingViews(), child)) {
+  if (std::ranges::contains(GetLeftMostTrailingViews(), child) ||
+      std::ranges::contains(GetRightMostTrailingViews(), child)) {
     DeprecatedLayoutImmediately();
     SchedulePaint();
   }
@@ -380,7 +440,8 @@ int BraveLocationBarView::GetBorderRadius() const {
       views::Emphasis::kMaximum, size());
 }
 
-void BraveLocationBarView::FocusLocation(bool is_user_initiated) {
+void BraveLocationBarView::FocusLocation(bool is_user_initiated,
+                                         bool clear_focus_if_failed) {
   if (base::FeatureList::IsEnabled(tabs::kBraveSharedPinnedTabs) &&
       browser_->profile()->GetPrefs()->GetBoolean(
           brave_tabs::kSharedPinnedTab)) {

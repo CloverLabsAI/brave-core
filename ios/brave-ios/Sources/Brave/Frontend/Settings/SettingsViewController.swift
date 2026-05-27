@@ -16,6 +16,7 @@ import DataImporter
 import Growth
 import LocalAuthentication
 import NetworkExtension
+import Onboarding
 import Origin
 import Playlist
 import Preferences
@@ -55,6 +56,7 @@ protocol SettingsDelegate: AnyObject {
   func settingsCreateFakeTabs()
   func settingsCreateFakeBookmarks()
   func settingsCreateFakeHistory()
+  func settingsPresentQuickView()
 }
 
 class SettingsViewController: TableViewController {
@@ -84,9 +86,11 @@ class SettingsViewController: TableViewController {
     return BraveAccountAuthenticationBridgeImpl(profile: braveCore.profile)
   }()
 
+  private let braveAccountSectionUUID: UUID = .init()
   private let featureSectionUUID: UUID = .init()
   private let displaySectionUUID: UUID = .init()
 
+  private let braveAccountResendConfirmationEmailRowUUID: UUID = .init()
   private let walletRowUUID: UUID = .init()
   private let appIconRowUUID: UUID = .init()
 
@@ -125,6 +129,10 @@ class SettingsViewController: TableViewController {
     self.prefsChangeRegistrar = PrefChangeRegistrar(prefService: braveCore.profile.prefs)
 
     super.init(style: .insetGrouped)
+
+    Task { @MainActor in
+      await BraveOriginServiceFactory.get(profile: braveCore.profile)?.checkPurchaseState()
+    }
 
     UIImageView.appearance(whenContainedInInstancesOf: [SettingsViewController.self]).tintColor =
       .braveLabel
@@ -206,6 +214,8 @@ class SettingsViewController: TableViewController {
     super.viewWillAppear(animated)
     // Reset dev options access count
     aboutHeaderTapCount = 0
+    // Hide toolbar in case it was enabled by a child controller
+    navigationController?.setToolbarHidden(true, animated: animated)
   }
 
   private func displayRewardsDebugMenu() {
@@ -254,12 +264,12 @@ class SettingsViewController: TableViewController {
       generalSection,
       displaySection,
       tabsSection,
-      securitySection,
+      autofillSection,
       supportSection,
       aboutSection,
     ]
 
-    if FeatureList.kBraveAccount.enabled {
+    if IsBraveAccountEnabled() {
       list.insert(braveAccountSection, at: 1)
     }
 
@@ -318,9 +328,35 @@ class SettingsViewController: TableViewController {
   }()
 
   private lazy var defaultBrowserSection: Static.Section = {
-    var section = Static.Section(
+    let addToDockRows: [Row] =
+      AddToDockEligibility.isEligible
+      ? [
+        Row(
+          text: Strings.addToDockSettingsCell,
+          selection: { [weak self] in
+            guard let self else { return }
+            let controller = OnboardingController(
+              environment: .init(
+                p3aUtils: p3aUtilities,
+                attributionManager: attributionManager
+              ),
+              steps: [.addToDock],
+              showSplashScreen: false,
+              showDismissButton: false
+            ).then {
+              $0.isModalInPresentation = true
+              $0.modalPresentationStyle = .overFullScreen
+            }
+            self.present(controller, animated: true)
+          },
+          cellClass: MultilineButtonCell.self
+        )
+      ]
+      : []
+
+    return Static.Section(
       rows: [
-        .init(
+        Row(
           text: Strings.setDefaultBrowserSettingsCell,
           selection: { [unowned self] in
             guard let settingsUrl = URL(string: UIApplication.openSettingsURLString) else {
@@ -329,8 +365,9 @@ class SettingsViewController: TableViewController {
             UIApplication.shared.open(settingsUrl)
           },
           cellClass: MultilineButtonCell.self
-        ),
-        .init(
+        )
+      ] + addToDockRows + [
+        Row(
           text: Strings.importBrowsingDataSettingsMenuTitle,
           selection: { [unowned self] in
             let controller = UIHostingController(
@@ -353,12 +390,27 @@ class SettingsViewController: TableViewController {
             self.navigationController?.pushViewController(controller, animated: true)
           },
           cellClass: MultilineButtonCell.self
-        ),
+        )
       ]
     )
-
-    return section
   }()
+
+  private func setCellEnabled(_ enabled: Bool, rowUUID: UUID, sectionUUID: UUID) {
+    if let indexPath = dataSource.indexPath(
+      rowUUID: rowUUID.uuidString,
+      sectionUUID: sectionUUID.uuidString
+    ),
+      let cell = tableView.cellForRow(at: indexPath)
+    {
+      cell.isUserInteractionEnabled = enabled
+
+      if var content = cell.contentConfiguration as? UIListContentConfiguration {
+        content.textProperties.color =
+          enabled ? view.tintColor : UIColor(braveSystemName: .textDisabled)
+        cell.contentConfiguration = content
+      }
+    }
+  }
 
   private var braveAccountSection: Static.Section {
     let authenticationToken = braveCore.profile.prefs.string(
@@ -366,22 +418,23 @@ class SettingsViewController: TableViewController {
     )
     if !authenticationToken.isEmpty {
       return Static.Section(
-        header: .title(Strings.braveAccount),
+        header: .title(L10nUtils.string(messageId: .BRAVE_ACCOUNT_TITLE)),
         rows: [
           Row(
-            text: Strings.braveAccountEmailAddress,
-            detailText: braveCore.profile.prefs.string(
+            text: braveCore.profile.prefs.string(
               forPath: BraveAccountEmailAddressPref
             ),
-            image: UIImage(sharedNamed: "brave.logo"),
-            cellClass: BraveAccountIconCell.self
+            cellClass: BraveAccountIconCell.self,
+            context: [
+              BraveAccountIconCell.textTruncateMiddle: true
+            ]
           ),
           Row(
-            text: Strings.braveAccountSignOut,
+            text: L10nUtils.string(messageId: .SETTINGS_BRAVE_ACCOUNT_LOG_OUT_BUTTON_LABEL),
             selection: { [unowned self] in braveAccountAuthentication.logOut() },
             cellClass: BraveAccountIconCell.self,
             context: [
-              BraveAccountIconCell.titleColorKey: view.tintColor
+              BraveAccountIconCell.textColor: view.tintColor
             ]
           ),
         ]
@@ -393,17 +446,30 @@ class SettingsViewController: TableViewController {
     )
     if !verificationToken.isEmpty {
       return Static.Section(
-        header: .title(Strings.braveAccount),
+        header: .title(L10nUtils.string(messageId: .BRAVE_ACCOUNT_TITLE)),
         rows: [
           Row(
-            text: Strings.braveAccountAlmostThere,
-            detailText: Strings.braveAccountAlmostThereDetail,
+            text: L10nUtils.string(
+              messageId: .SETTINGS_BRAVE_ACCOUNT_VERIFICATION_ROW_TITLE
+            ),
+            detailText: L10nUtils.string(
+              messageId: .SETTINGS_BRAVE_ACCOUNT_VERIFICATION_ROW_DESCRIPTION_1
+            ),
             cellClass: BraveAccountIconCell.self
           ),
           Row(
-            text: Strings.braveAccountResendConfirmationEmail,
-            detailText: Strings.braveAccountResendConfirmationEmailDetail,
+            text: L10nUtils.string(
+              messageId: .SETTINGS_BRAVE_ACCOUNT_RESEND_CONFIRMATION_EMAIL_BUTTON_LABEL
+            ),
+            detailText: L10nUtils.string(
+              messageId: .SETTINGS_BRAVE_ACCOUNT_VERIFICATION_ROW_DESCRIPTION_2
+            ),
             selection: { [unowned self] in
+              setCellEnabled(
+                false,
+                rowUUID: braveAccountResendConfirmationEmailRowUUID,
+                sectionUUID: braveAccountSectionUUID
+              )
               braveAccountAuthentication.resendConfirmationEmail { [weak self] title, message in
                 guard let self else { return }
                 DispatchQueue.main.async {
@@ -414,35 +480,46 @@ class SettingsViewController: TableViewController {
                   )
                   alert.addAction(UIAlertAction(title: Strings.OKString, style: .default))
                   self.present(alert, animated: true)
+                  setCellEnabled(
+                    true,
+                    rowUUID: braveAccountResendConfirmationEmailRowUUID,
+                    sectionUUID: braveAccountSectionUUID
+                  )
                 }
               }
             },
             cellClass: BraveAccountIconCell.self,
             context: [
-              BraveAccountIconCell.titleColorKey: view.tintColor
-            ]
+              BraveAccountIconCell.textColor: view.tintColor
+            ],
+            uuid: braveAccountResendConfirmationEmailRowUUID.uuidString
           ),
           Row(
-            text: Strings.braveAccountCancelRegistration,
+            text: L10nUtils.string(
+              messageId: .SETTINGS_BRAVE_ACCOUNT_CANCEL_REGISTRATION_BUTTON_LABEL
+            ),
             selection: { [unowned self] in braveAccountAuthentication.cancelRegistration() },
             cellClass: BraveAccountIconCell.self,
             context: [
-              BraveAccountIconCell.titleColorKey: UIColor(braveSystemName: .systemfeedbackErrorText)
+              BraveAccountIconCell.textColor: UIColor(braveSystemName: .systemfeedbackErrorText)
             ]
           ),
-        ]
+        ],
+        uuid: braveAccountSectionUUID.uuidString
       )
     }
 
     return Static.Section(
-      header: .title(Strings.braveAccount),
+      header: .title(L10nUtils.string(messageId: .BRAVE_ACCOUNT_TITLE)),
       rows: [
         Row(
-          text: Strings.braveAccountGetStarted,
+          text: L10nUtils.string(
+            messageId: .SETTINGS_BRAVE_ACCOUNT_GET_STARTED_BUTTON_LABEL
+          ),
           selection: { [unowned self] in
             let controller = ChromeWebUIController(braveCore: braveCore, isPrivateBrowsing: false)
             let container = UINavigationController(rootViewController: controller)
-            controller.title = Strings.braveAccount
+            controller.title = L10nUtils.string(messageId: .BRAVE_ACCOUNT_TITLE)
             controller.webView.load(URLRequest(url: URL(string: "brave://account")!))
             controller.navigationItem.rightBarButtonItem = .init(
               systemItem: .done,
@@ -616,10 +693,7 @@ class SettingsViewController: TableViewController {
         Row(
           text: Strings.searchEngines,
           selection: { [unowned self] in
-            let viewController = SearchSettingsViewController(
-              profile: self.profile,
-              privateBrowsingManager: tabManager.privateBrowsingManager
-            )
+            let viewController = SearchSettingsViewController(profile: self.profile)
             self.navigationController?.pushViewController(viewController, animated: true)
           },
           image: UIImage(braveSystemNamed: "leo.search"),
@@ -733,12 +807,47 @@ class SettingsViewController: TableViewController {
         Row(
           text: Strings.Origin.originProductName,
           selection: { [unowned self] in
-            guard let service = BraveOriginServiceFactory.get(profile: braveCore.profile) else {
+            guard let originService = BraveOriginServiceFactory.get(profile: braveCore.profile),
+              let skusService = Skus.SkusServiceFactory.get(profile: braveCore.profile)
+            else {
               return
             }
-            let controller = UIHostingController(rootView: OriginSettingsView(service: service))
-            controller.title = Strings.Origin.originProductName  // Not Translated
-            self.navigationController?.pushViewController(controller, animated: true)
+            if originService.isPurchased() {
+              let controller = UIHostingController(
+                rootView: OriginSettingsView(
+                  viewModel: .init(
+                    service: originService,
+                    storeSDK: BraveStoreSDK(skusService: skusService)
+                  )
+                )
+                .environment(
+                  \.openURL,
+                  OpenURLAction { [weak self] url in
+                    guard let self else { return .handled }
+                    settingsDelegate?.settingsOpenURLInNewTab(url)
+                    dismiss(animated: true)
+                    return .handled
+                  }
+                )
+              )
+              controller.title = Strings.Origin.originProductName  // Not Translated
+              self.navigationController?.pushViewController(controller, animated: true)
+            } else {
+              let skusService = Skus.SkusServiceFactory.get(profile: braveCore.profile)
+              let controller = UIHostingController(
+                rootView: OriginPaywallView(
+                  viewModel: .init(store: .init(skusService: skusService))
+                )
+                .environment(
+                  \.openURL,
+                  OpenURLAction { [weak self] url in
+                    self?.settingsDelegate?.settingsOpenURLInNewTab(url)
+                    return .handled
+                  }
+                )
+              )
+              present(controller, animated: true)
+            }
           },
           image: UIImage(braveSystemNamed: "leo.product.origin"),
           accessory: .disclosureIndicator,
@@ -746,6 +855,31 @@ class SettingsViewController: TableViewController {
         )
       )
     }
+
+    let browserLockRow = Row(
+      text: Strings.Privacy.browserLock,
+      detailText: Strings.Privacy.browserLockDescription,
+      image: UIImage(braveSystemNamed: "leo.biometric.login"),
+      accessory: .view(
+        SwitchAccessoryView(
+          initialValue: Preferences.Privacy.lockWithPasscode.value,
+          valueChange: { [unowned self] isOn in
+            if isOn {
+              Preferences.Privacy.lockWithPasscode.value = isOn
+            } else {
+              self.askForLocalAuthentication { [weak self] success, error in
+                if success {
+                  Preferences.Privacy.lockWithPasscode.value = isOn
+                }
+              }
+            }
+          }
+        )
+      ),
+      cellClass: MultilineSubtitleCell.self,
+      uuid: Preferences.Privacy.lockWithPasscode.key
+    )
+    general.rows.append(browserLockRow)
 
     return general
   }()
@@ -918,7 +1052,6 @@ class SettingsViewController: TableViewController {
         }
       )
       optionsViewController.headerText = Strings.themesDisplayBrightness
-      optionsViewController.footerText = Strings.themesDisplayBrightnessFooter
       optionsViewController.navigationItem.title = Strings.themesDisplayBrightness
 
       let nightModeSection = Section(
@@ -928,9 +1061,6 @@ class SettingsViewController: TableViewController {
             title: Strings.NightMode.settingsTitle,
             detailText: Strings.NightMode.settingsDescription,
             option: Preferences.General.nightModeEnabled,
-            onValueChange: { [unowned self] enabled in
-              DarkReaderScriptHandler.set(tabManager: tabManager, enabled: enabled)
-            },
             image: UIImage(braveSystemNamed: "leo.theme.dark")
           )
         ],
@@ -967,6 +1097,7 @@ class SettingsViewController: TableViewController {
                   request,
                   isPrivate: false
                 )
+                self.dismiss(animated: true)
               }
             ),
             animated: true
@@ -1054,11 +1185,13 @@ class SettingsViewController: TableViewController {
             guard BraveVPN.vpnState.isPaywallEnabled else { return }
             self.presentVPNPaywall()
           case .purchased:
-            let vpnSettingsVC = BraveVPNSettingsViewController(iapObserver: BraveVPN.iapObserver)
-            vpnSettingsVC.openURL = { [unowned self] url in
-              self.settingsDelegate?.settingsOpenURLInNewTab(url)
-              self.dismiss(animated: true)
-            }
+            let vpnSettingsVC = BraveVPNSettingsViewController(
+              skusService: Skus.SkusServiceFactory.get(profile: braveCore.profile),
+              openURL: { [unowned self] url in
+                self.settingsDelegate?.settingsOpenURLInNewTab(url)
+                self.dismiss(animated: true)
+              }
+            )
             self.navigationController?.pushViewController(vpnSettingsVC, animated: true)
           }
         } else {
@@ -1138,49 +1271,39 @@ class SettingsViewController: TableViewController {
     )
   }
 
-  private lazy var securitySection: Static.Section = {
+  private lazy var autofillSection: Static.Section = {
     return Section(
-      header: .title(Strings.security),
+      header: .title(Strings.Autofill.settingsSectionTitle),
       rows: [
         Row(
-          text: Strings.Privacy.browserLock,
-          detailText: Strings.Privacy.browserLockDescription,
-          image: UIImage(braveSystemNamed: "leo.biometric.login"),
-          accessory: .view(
-            SwitchAccessoryView(
-              initialValue: Preferences.Privacy.lockWithPasscode.value,
-              valueChange: { [unowned self] isOn in
-                if isOn {
-                  Preferences.Privacy.lockWithPasscode.value = isOn
-                } else {
-                  self.askForLocalAuthentication { [weak self] success, error in
-                    if success {
-                      Preferences.Privacy.lockWithPasscode.value = isOn
-                    }
-                  }
-                }
-              }
-            )
-          ),
-          cellClass: MultilineSubtitleCell.self,
-          uuid: Preferences.Privacy.lockWithPasscode.key
-        ),
-        Row(
-          text: Strings.Login.loginListNavigationTitle,
+          text: Strings.Autofill.managePasswordsTitle,
           selection: { [unowned self] in
-            let loginsPasswordsViewController = LoginListViewController(
-              passwordAPI: self.passwordAPI,
-              windowProtection: self.windowProtection
-            )
-            loginsPasswordsViewController.settingsDelegate = self.settingsDelegate
-            self.navigationController?.pushViewController(
-              loginsPasswordsViewController,
-              animated: true
-            )
+
+            if FeatureList.kUseChromiumWebViewsAutofill.enabled,
+              let autofillDataManager = braveCore.defaultWebViewConfiguration.autofillDataManager
+            {
+              let managePasswordsViewController = ManagePasswordsViewController(
+                autofillDataManager: autofillDataManager
+              )
+              self.navigationController?.pushViewController(
+                managePasswordsViewController,
+                animated: true
+              )
+            } else {
+              let loginsPasswordsViewController = LoginListViewController(
+                passwordAPI: passwordAPI,
+                windowProtection: windowProtection
+              )
+              loginsPasswordsViewController.settingsDelegate = self.settingsDelegate
+              self.navigationController?.pushViewController(
+                loginsPasswordsViewController,
+                animated: true
+              )
+            }
           },
-          image: UIImage(braveSystemNamed: "leo.outside"),
+          image: UIImage(braveSystemNamed: "leo.key"),
           accessory: .disclosureIndicator
-        ),
+        )
       ]
     )
   }()
@@ -1307,21 +1430,8 @@ class SettingsViewController: TableViewController {
         Row(
           text: Strings.settingsLicenses,
           selection: { [unowned self] in
-            if FeatureList.kUseChromiumWebViews.enabled {
-              if let url = URL(string: "brave://credits") {
-                settingsDelegate?.settingsOpenURLInNewTab(url)
-              }
-            } else {
-              let controller = ChromeWebUIController(braveCore: braveCore, isPrivateBrowsing: false)
-              let container = UINavigationController(rootViewController: controller)
-              controller.webView.load(URLRequest(url: URL(string: "brave://credits")!))
-              controller.navigationItem.leftBarButtonItem = .init(
-                systemItem: .done,
-                primaryAction: .init { [unowned container] _ in
-                  container.dismiss(animated: true)
-                }
-              )
-              present(container, animated: true)
+            if let url = URL(string: "brave://credits") {
+              settingsDelegate?.settingsOpenURLInNewTab(url)
             }
           },
           accessory: .disclosureIndicator
@@ -1467,15 +1577,6 @@ class SettingsViewController: TableViewController {
           cellClass: MultilineValue1Cell.self
         ),
         Row(
-          text: "Injected Scripts",
-          selection: { [unowned self] in
-            let controller = UIHostingController(rootView: UserScriptsDebugView())
-            self.navigationController?.pushViewController(controller, animated: true)
-          },
-          accessory: .disclosureIndicator,
-          cellClass: MultilineValue1Cell.self
-        ),
-        Row(
           text: "StoreKit Receipt Viewer",
           selection: { [unowned self] in
             let controller = UIHostingController(rootView: StoreKitReceiptView())
@@ -1536,7 +1637,7 @@ class SettingsViewController: TableViewController {
           cellClass: ButtonCell.self
         ),
         Row(
-          text: "Create 1000 History Entries",
+          text: "Create 10000 History Entries for past 10 days",
           selection: { [unowned self] in
             self.settingsDelegate?.settingsCreateFakeHistory()
             self.dismiss(animated: true)
@@ -1587,6 +1688,33 @@ class SettingsViewController: TableViewController {
       )
     }
     #endif
+    if !FeatureList.kUseProfileWebViewConfiguration.enabled {
+      section.rows.append(
+        Row(
+          text: "Injected Scripts",
+          selection: { [unowned self] in
+            let controller = UIHostingController(rootView: UserScriptsDebugView())
+            self.navigationController?.pushViewController(controller, animated: true)
+          },
+          accessory: .disclosureIndicator,
+          cellClass: MultilineValue1Cell.self
+        )
+      )
+    }
+    if FeatureList.kQuickViewEnabled.enabled {
+      section.rows.append(
+        Row(
+          text: "Test QuickView",
+          selection: { [weak self] in
+            guard let self else { return }
+            self.dismiss(animated: true) {
+              self.settingsDelegate?.settingsPresentQuickView()
+            }
+          },
+          cellClass: ButtonCell.self
+        )
+      )
+    }
     if AppConstants.isOfficialBuild {
       section.rows.append(
         Row(
@@ -1760,7 +1888,8 @@ class SettingsViewController: TableViewController {
 }
 
 private final class BraveAccountIconCell: UITableViewCell, Cell {
-  static let titleColorKey = "titleColor"
+  static let textColor = "textColor"
+  static let textTruncateMiddle = "textTruncateMiddle"
 
   func configure(row: Row) {
     var content = defaultContentConfiguration()
@@ -1771,9 +1900,14 @@ private final class BraveAccountIconCell: UITableViewCell, Cell {
     }
 
     content.text = row.text
-    content.textProperties.numberOfLines = 0
-    if let titleColor = row.context?[Self.titleColorKey] as? UIColor {
-      content.textProperties.color = titleColor
+    if let truncateMiddle = row.context?[Self.textTruncateMiddle] as? Bool, truncateMiddle {
+      content.textProperties.numberOfLines = 1
+      content.textProperties.lineBreakMode = .byTruncatingMiddle
+    } else {
+      content.textProperties.numberOfLines = 0
+    }
+    if let color = row.context?[Self.textColor] as? UIColor {
+      content.textProperties.color = color
     }
 
     content.secondaryText = row.detailText
@@ -1782,6 +1916,7 @@ private final class BraveAccountIconCell: UITableViewCell, Cell {
 
     contentConfiguration = content
     accessoryType = row.accessory.type
+    isUserInteractionEnabled = true
   }
 }
 

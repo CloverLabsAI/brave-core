@@ -11,7 +11,10 @@
 #include <vector>
 
 #include "base/memory/raw_ptr.h"
-#include "base/values.h"
+
+namespace base {
+class DictValue;
+}  // namespace base
 
 namespace user_prefs {
 class PrefRegistrySyncable;
@@ -89,7 +92,7 @@ class NTPBackgroundPrefs final {
   std::vector<std::string> GetCustomImageList() const;
 
  private:
-  const base::Value::Dict* GetPrefValue() const;
+  const base::DictValue* GetPrefValue() const;
 
   raw_ptr<PrefService> service_ = nullptr;
 };

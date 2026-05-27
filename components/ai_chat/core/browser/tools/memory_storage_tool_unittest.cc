@@ -51,10 +51,11 @@ class MemoryStorageToolTest : public testing::Test {
 TEST_F(MemoryStorageToolTest, UseTool_ValidInput) {
   const std::string input_json = R"({"memory": "User prefers TypeScript"})";
 
-  base::test::TestFuture<Tool::ToolResult> future;
+  base::test::TestFuture<Tool::ToolResult, Tool::ToolArtifacts> future;
   memory_tool_->UseTool(input_json, future.GetCallback());
 
-  Tool::ToolResult result = future.Take();
+  auto [result, artifacts] = future.Take();
+  EXPECT_TRUE(artifacts.empty());
   ASSERT_EQ(result.size(), 1u);
   ASSERT_TRUE(result[0]->is_text_content_block());
 
@@ -62,7 +63,7 @@ TEST_F(MemoryStorageToolTest, UseTool_ValidInput) {
   EXPECT_EQ(result[0]->get_text_content_block()->text, "");
 
   // Verify memory was stored in prefs
-  const base::Value::List& memories =
+  const base::ListValue& memories =
       pref_service_.GetList(prefs::kBraveAIChatUserMemories);
   ASSERT_EQ(memories.size(), 1u);
   EXPECT_EQ(memories[0].GetString(), "User prefers TypeScript");
@@ -71,10 +72,11 @@ TEST_F(MemoryStorageToolTest, UseTool_ValidInput) {
 TEST_F(MemoryStorageToolTest, UseTool_InvalidJson) {
   const std::string input_json = R"({"memory": invalid json})";
 
-  base::test::TestFuture<Tool::ToolResult> future;
+  base::test::TestFuture<Tool::ToolResult, Tool::ToolArtifacts> future;
   memory_tool_->UseTool(input_json, future.GetCallback());
 
-  Tool::ToolResult result = future.Take();
+  auto [result, artifacts] = future.Take();
+  EXPECT_TRUE(artifacts.empty());
   ASSERT_EQ(result.size(), 1u);
   ASSERT_TRUE(result[0]->is_text_content_block());
 
@@ -82,7 +84,7 @@ TEST_F(MemoryStorageToolTest, UseTool_InvalidJson) {
             "Error: Invalid JSON input, input must be a JSON object");
 
   // Verify no memory was stored
-  const base::Value::List& memories =
+  const base::ListValue& memories =
       pref_service_.GetList(prefs::kBraveAIChatUserMemories);
   EXPECT_EQ(memories.size(), 0u);
 }
@@ -90,10 +92,11 @@ TEST_F(MemoryStorageToolTest, UseTool_InvalidJson) {
 TEST_F(MemoryStorageToolTest, UseTool_MissingMemoryField) {
   const std::string input_json = R"({"other_field": "value"})";
 
-  base::test::TestFuture<Tool::ToolResult> future;
+  base::test::TestFuture<Tool::ToolResult, Tool::ToolArtifacts> future;
   memory_tool_->UseTool(input_json, future.GetCallback());
 
-  Tool::ToolResult result = future.Take();
+  auto [result, artifacts] = future.Take();
+  EXPECT_TRUE(artifacts.empty());
   ASSERT_EQ(result.size(), 1u);
   ASSERT_TRUE(result[0]->is_text_content_block());
 
@@ -101,7 +104,7 @@ TEST_F(MemoryStorageToolTest, UseTool_MissingMemoryField) {
             "Error: Missing or empty 'memory' field");
 
   // Verify no memory was stored
-  const base::Value::List& memories =
+  const base::ListValue& memories =
       pref_service_.GetList(prefs::kBraveAIChatUserMemories);
   EXPECT_EQ(memories.size(), 0u);
 }
@@ -109,10 +112,11 @@ TEST_F(MemoryStorageToolTest, UseTool_MissingMemoryField) {
 TEST_F(MemoryStorageToolTest, UseTool_EmptyMemoryField) {
   const std::string input_json = R"({"memory": ""})";
 
-  base::test::TestFuture<Tool::ToolResult> future;
+  base::test::TestFuture<Tool::ToolResult, Tool::ToolArtifacts> future;
   memory_tool_->UseTool(input_json, future.GetCallback());
 
-  Tool::ToolResult result = future.Take();
+  auto [result, artifacts] = future.Take();
+  EXPECT_TRUE(artifacts.empty());
   ASSERT_EQ(result.size(), 1u);
   ASSERT_TRUE(result[0]->is_text_content_block());
 
@@ -120,7 +124,7 @@ TEST_F(MemoryStorageToolTest, UseTool_EmptyMemoryField) {
             "Error: Missing or empty 'memory' field");
 
   // Verify no memory was stored
-  const base::Value::List& memories =
+  const base::ListValue& memories =
       pref_service_.GetList(prefs::kBraveAIChatUserMemories);
   EXPECT_EQ(memories.size(), 0u);
 }
@@ -131,10 +135,11 @@ TEST_F(MemoryStorageToolTest, UseTool_TooLongMemory) {
   const std::string input_json =
       absl::StrFormat(R"({"memory": "%s"})", long_memory);
 
-  base::test::TestFuture<Tool::ToolResult> future;
+  base::test::TestFuture<Tool::ToolResult, Tool::ToolArtifacts> future;
   memory_tool_->UseTool(input_json, future.GetCallback());
 
-  Tool::ToolResult result = future.Take();
+  auto [result, artifacts] = future.Take();
+  EXPECT_TRUE(artifacts.empty());
   ASSERT_EQ(result.size(), 1u);
   ASSERT_TRUE(result[0]->is_text_content_block());
 
@@ -142,7 +147,7 @@ TEST_F(MemoryStorageToolTest, UseTool_TooLongMemory) {
             "Error: Memory content exceeds 512 character limit");
 
   // Verify no memory was stored
-  const base::Value::List& memories =
+  const base::ListValue& memories =
       pref_service_.GetList(prefs::kBraveAIChatUserMemories);
   EXPECT_EQ(memories.size(), 0u);
 }
@@ -150,21 +155,21 @@ TEST_F(MemoryStorageToolTest, UseTool_TooLongMemory) {
 TEST_F(MemoryStorageToolTest, SupportsConversation_NonTemporary) {
 #if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_IOS)
   EXPECT_FALSE(memory_tool_->SupportsConversation(
-      false, false, mojom::ConversationCapability::CHAT));
+      false, false, {mojom::ConversationCapability::CHAT}));
 #else
   EXPECT_TRUE(memory_tool_->SupportsConversation(
-      false, false, mojom::ConversationCapability::CHAT));
+      false, false, {mojom::ConversationCapability::CHAT}));
 #endif
 }
 
 TEST_F(MemoryStorageToolTest, SupportsConversation_Temporary) {
   EXPECT_FALSE(memory_tool_->SupportsConversation(
-      true, false, mojom::ConversationCapability::CHAT));
+      true, false, {mojom::ConversationCapability::CHAT}));
 }
 
 TEST_F(MemoryStorageToolTest, SupportsConversation_UntrustedContent) {
   EXPECT_FALSE(memory_tool_->SupportsConversation(
-      false, true, mojom::ConversationCapability::CHAT));
+      false, true, {mojom::ConversationCapability::CHAT}));
 }
 
 }  // namespace ai_chat

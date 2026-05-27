@@ -43,7 +43,6 @@ BASE_DECLARE_FEATURE(kCosmeticFilteringExtraPerfMetrics);
 BASE_DECLARE_FEATURE(kCosmeticFilteringJsPerformance);
 BASE_DECLARE_FEATURE(kCosmeticFilteringSyncLoad);
 BASE_DECLARE_FEATURE(kBlockAllCookiesToggle);
-BASE_DECLARE_FEATURE(kCosmeticFilteringCustomScriptlets);
 BASE_DECLARE_FEATURE(kBraveShieldsElementPicker);
 BASE_DECLARE_FEATURE(kWebKitAdvancedPrivacyProtections);
 extern const base::FeatureParam<int> kComponentUpdateCheckIntervalMins;
@@ -81,6 +80,8 @@ inline constexpr base::FeatureParam<size_t>
 inline constexpr base::FeatureParam<size_t>
     kAdblockOnlyModePromptAfterPageReloadsMax{
         &kAdblockOnlyMode, "prompt_after_page_reloads_max", 0};
+
+BASE_DECLARE_FEATURE(kShowUpdatedShieldsPanel);
 
 }  // namespace features
 }  // namespace brave_shields

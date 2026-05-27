@@ -5,6 +5,7 @@
 
 #include "chrome/browser/ui/views/permissions/permission_prompt_bubble_base_view.h"
 
+#include "base/functional/callback_helpers.h"
 #include "base/test/run_until.h"
 #include "build/build_config.h"
 #include "chrome/browser/ui/views/chrome_widget_sublevel.h"
@@ -45,12 +46,12 @@ class MockPermissionPromptDelegate
 
   GURL GetEmbeddingOrigin() const override { return GURL(); }
 
-  void Accept() override {}
-  void AcceptThisTime() override {}
-  void Deny() override {}
-  void Dismiss() override {}
-  void Ignore() override {}
-  void SetPromptOptions(PromptOptions prompt_options) override {}
+  void Accept(const PromptOptions& prompt_options) override {}
+  void AcceptThisTime(const PromptOptions& prompt_options) override {}
+  void Deny(const PromptOptions& prompt_options) override {}
+  void Dismiss(const PromptOptions& prompt_options) override {}
+  void Ignore(const PromptOptions& prompt_options) override {}
+  void SwitchToLoudPrompt() override {}
   GeolocationAccuracy GetInitialGeolocationAccuracySelection() const override {
     NOTREACHED();
   }
@@ -77,6 +78,7 @@ class MockPermissionPromptDelegate
   const permissions::PermissionPrompt* GetCurrentPrompt() const override {
     return nullptr;
   }
+  bool ShouldShowLocationPrecisionSelector() const override { return false; }
 
   base::WeakPtr<permissions::PermissionPrompt::Delegate> GetWeakPtr() override {
     return weak_ptr_factory_.GetWeakPtr();

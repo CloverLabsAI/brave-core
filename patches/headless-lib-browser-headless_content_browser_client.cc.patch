@@ -1,8 +1,8 @@
 diff --git a/headless/lib/browser/headless_content_browser_client.cc b/headless/lib/browser/headless_content_browser_client.cc
-index e42025897f48659f0a5755c3600c9a73ac5859ac..550e1c48c04689456c6ec088eb9c00007c74aaf0 100644
+index 752ccbb30281dac57902bd926aeb1c535cfe26e2..e173a714cb97be44345fa6d0a81c07d3bbcde358 100644
 --- a/headless/lib/browser/headless_content_browser_client.cc
 +++ b/headless/lib/browser/headless_content_browser_client.cc
-@@ -584,10 +584,9 @@ void HeadlessContentBrowserClient::SetEncryptionKey(
+@@ -566,10 +566,9 @@ void HeadlessContentBrowserClient::SetEncryptionKey(
  
  content::BluetoothDelegate*
  HeadlessContentBrowserClient::GetBluetoothDelegate() {

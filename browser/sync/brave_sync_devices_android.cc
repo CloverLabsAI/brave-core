@@ -62,7 +62,7 @@ void BraveSyncDevicesAndroid::OnDeviceInfoChange() {
       weak_java_brave_sync_worker_.get(env));
 }
 
-base::Value::List BraveSyncDevicesAndroid::GetSyncDeviceList() {
+base::ListValue BraveSyncDevicesAndroid::GetSyncDeviceList() {
   auto* device_info_service =
       DeviceInfoSyncServiceFactory::GetForProfile(profile_);
   syncer::DeviceInfoTracker* tracker =
@@ -71,7 +71,7 @@ base::Value::List BraveSyncDevicesAndroid::GetSyncDeviceList() {
   const syncer::DeviceInfo* local_device_info = device_info_service
      ->GetLocalDeviceInfoProvider()->GetLocalDeviceInfo();
 
-  base::Value::List device_list;
+  base::ListValue device_list;
 
   for (const auto& device : tracker->GetAllBraveDeviceInfo()) {
     auto device_value = device->ToValue();
@@ -108,7 +108,7 @@ syncer::BraveSyncServiceImpl* BraveSyncDevicesAndroid::GetSyncService() const {
 
 void BraveSyncDevicesAndroid::DeleteDevice(
     JNIEnv* env,
-    const base::android::JavaParamRef<jstring>& device_guid) {
+    const base::android::JavaRef<jstring>& device_guid) {
   std::string str_device_guid =
       base::android::ConvertJavaStringToUTF8(device_guid);
   auto* sync_service = GetSyncService();
@@ -124,9 +124,11 @@ void BraveSyncDevicesAndroid::DeleteDevice(
 
 static void JNI_BraveSyncDevices_Init(
     JNIEnv* env,
-    const base::android::JavaParamRef<jobject>& jcaller) {
+    const base::android::JavaRef<jobject>& jcaller) {
   new BraveSyncDevicesAndroid(env, jcaller);
 }
 
 }  // namespace android
 }  // namespace chrome
+
+DEFINE_JNI(BraveSyncDevices)

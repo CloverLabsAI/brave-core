@@ -4,9 +4,11 @@
 # You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import("//brave/components/brave_ads/buildflags/buildflags.gni")
-import("//brave/components/brave_rewards/core/engine/config.gni")
+import("//brave/components/brave_rewards/core/buildflags/buildflags.gni")
 import("//brave/components/brave_wallet/common/buildflags/buildflags.gni")
 import("//extensions/buildflags/buildflags.gni")
+
+assert(enable_brave_rewards)
 
 static_library("content") {
   sources = [
@@ -32,6 +34,7 @@ static_library("content") {
 
   deps = [
     "//base",
+    "//brave/brave_domains:constants",
     "//brave/components/api_request_helper",
     "//brave/components/brave_ads/buildflags",
     "//brave/components/brave_rewards/core",
@@ -59,6 +62,7 @@ static_library("content") {
     "//services/data_decoder/public/cpp",
     "//services/network/public/cpp",
     "//services/service_manager/public/cpp",
+    "//skia:skia_core_public_headers",
     "//ui/base",
     "//ui/gfx",
     "//url",
@@ -89,6 +93,7 @@ source_set("testutil") {
     "//brave/browser",
     "//brave/browser/brave_rewards",
     "//brave/components/brave_rewards/core",
+    "//brave/components/brave_rewards/core/buildflags",
     "//brave/components/brave_rewards/core/engine:headers",
     "//chrome/browser/bitmap_fetcher",
     "//chrome/browser/prefs",

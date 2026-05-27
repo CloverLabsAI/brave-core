@@ -55,22 +55,19 @@ class EngineConsumerConversationAPI : public EngineConsumer {
   // EngineConsumer
   void GenerateQuestionSuggestions(
       PageContents page_contents,
-      const std::string& selected_language,
       SuggestedQuestionsCallback callback) override;
   void GenerateAssistantResponse(
       PageContentsMap&& page_contents,
       const ConversationHistory& conversation_history,
-      const std::string& selected_language,
       bool is_temporary_chat,
       const std::vector<base::WeakPtr<Tool>>& tools,
       std::optional<std::string_view> preferred_tool_name,
-      mojom::ConversationCapability conversation_capability,
+      const ConversationCapabilitySet& conversation_capabilities,
       GenerationDataCallback data_received_callback,
       GenerationCompletedCallback completed_callback) override;
   void GenerateRewriteSuggestion(
       const std::string& text,
       mojom::ActionType action_type,
-      const std::string& selected_language,
       GenerationDataCallback received_callback,
       GenerationCompletedCallback completed_callback) override;
   void SanitizeInput(std::string& input) override;
@@ -93,6 +90,10 @@ class EngineConsumerConversationAPI : public EngineConsumer {
                     GetFocusTabsCallback callback) override;
 
  private:
+  FRIEND_TEST_ALL_PREFIXES(
+      EngineConsumerConversationAPIUnitTest,
+      GetAssociatedContentConversationEvent_UTF8Truncation);
+
   // Processes the tab chunks and sends the merge callback with the results.
   // Used by GetSuggestedTopics and GetFocusTabs where the tabs are split into
   // chunks and processed.
@@ -102,17 +103,11 @@ class EngineConsumerConversationAPI : public EngineConsumer {
       base::OnceCallback<void(std::vector<GenerationResult>)> merge_callback,
       const std::string& topic);
 
-  // Merges the result from multiple GetSuggestedTopics requests, which would
-  // then trigger DedupeTopics below to get the final topic list with an emoji
-  // appended to each topic.
-  void MergeSuggestTopicsResults(GetSuggestedTopicsCallback callback,
-                                 std::vector<GenerationResult> results);
-
   // Given a list of results from GetSuggestedTopics, send another request to
   // the server to dedupe the topics.
   void DedupeTopics(
       base::expected<std::vector<std::string>, mojom::APIError> topics_result,
-      GetSuggestedTopicsCallback callback);
+      GetSuggestedTopicsCallback callback) override;
 
   void OnGenerateQuestionSuggestionsResponse(
       SuggestedQuestionsCallback callback,

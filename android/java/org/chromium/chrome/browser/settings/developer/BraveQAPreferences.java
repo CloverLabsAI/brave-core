@@ -6,12 +6,10 @@
 package org.chromium.chrome.browser.settings.developer;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -20,28 +18,33 @@ import android.view.View.OnFocusChangeListener;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.preference.Preference;
 import androidx.preference.Preference.OnPreferenceChangeListener;
 
 import org.chromium.base.ContextUtils;
 import org.chromium.base.FileUtils;
 import org.chromium.base.Log;
-import org.chromium.base.supplier.ObservableSupplier;
-import org.chromium.base.supplier.ObservableSupplierImpl;
+import org.chromium.base.supplier.MonotonicObservableSupplier;
+import org.chromium.base.supplier.ObservableSuppliers;
+import org.chromium.base.supplier.SettableMonotonicObservableSupplier;
 import org.chromium.chrome.R;
 import org.chromium.chrome.browser.BraveConfig;
 import org.chromium.chrome.browser.BraveRelaunchUtils;
 import org.chromium.chrome.browser.BraveRewardsHelper;
 import org.chromium.chrome.browser.BraveRewardsNativeWorker;
 import org.chromium.chrome.browser.BraveRewardsObserver;
+import org.chromium.chrome.browser.billing.InAppPurchaseWrapper;
 import org.chromium.chrome.browser.billing.LinkSubscriptionUtils;
 import org.chromium.chrome.browser.onboarding.OnboardingPrefManager;
 import org.chromium.chrome.browser.preferences.BravePref;
+import org.chromium.chrome.browser.preferences.ChromeSharedPreferences;
 import org.chromium.chrome.browser.profiles.ProfileManager;
 import org.chromium.chrome.browser.settings.BravePreferenceFragment;
 import org.chromium.chrome.browser.util.BraveDbUtil;
 import org.chromium.components.browser_ui.settings.ChromeSwitchPreference;
 import org.chromium.components.browser_ui.settings.SettingsUtils;
+import org.chromium.components.browser_ui.settings.search.BaseSearchIndexProvider;
 import org.chromium.components.user_prefs.UserPrefs;
 
 import java.io.File;
@@ -61,8 +64,10 @@ public class BraveQAPreferences extends BravePreferenceFragment
     private static final String QA_ADS_PER_HOUR = "qa_ads_per_hour";
     private static final String QA_IMPORT_REWARDS_DB = "qa_import_rewards_db";
     private static final String QA_EXPORT_REWARDS_DB = "qa_export_rewards_db";
+    private static final String QA_CONSUME_ORIGIN_PURCHASE = "qa_consume_origin_purchase";
 
-    private static final int CHOOSE_FILE_FOR_IMPORT_REQUEST_CODE = STORAGE_PERMISSION_IMPORT_REQUEST_CODE + 1;
+    private static final int CHOOSE_FILE_FOR_IMPORT_REQUEST_CODE =
+            STORAGE_PERMISSION_IMPORT_REQUEST_CODE + 1;
 
     private static final int MAX_ADS = 10;
     private static final int DEFAULT_ADS_PER_HOUR = 2;
@@ -81,7 +86,8 @@ public class BraveQAPreferences extends BravePreferenceFragment
     private String mFileToImport;
     private boolean mUseRewardsStagingServer;
 
-    private final ObservableSupplierImpl<String> mPageTitle = new ObservableSupplierImpl<>();
+    private final SettableMonotonicObservableSupplier<String> mPageTitle =
+            ObservableSuppliers.createMonotonic();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -137,6 +143,15 @@ public class BraveQAPreferences extends BravePreferenceFragment
         mExportRewardsDb = findPreference(QA_EXPORT_REWARDS_DB);
         setRewardsDbClickListeners();
 
+        Preference consumeOriginPurchase = findPreference(QA_CONSUME_ORIGIN_PURCHASE);
+        if (consumeOriginPurchase != null) {
+            consumeOriginPurchase.setOnPreferenceClickListener(
+                    preference -> {
+                        InAppPurchaseWrapper.getInstance().consumeExistingOriginPurchase();
+                        return true;
+                    });
+        }
+
         mCommandLine = findPreference(PREF_QA_COMMAND_LINE);
         setCommandLineClickListener();
 
@@ -144,7 +159,7 @@ public class BraveQAPreferences extends BravePreferenceFragment
     }
 
     @Override
-    public ObservableSupplier<String> getPageTitle() {
+    public MonotonicObservableSupplier<String> getPageTitle() {
         return mPageTitle;
     }
 
@@ -235,20 +250,29 @@ public class BraveQAPreferences extends BravePreferenceFragment
 
     @Override
     public void onStart() {
-        BraveRewardsNativeWorker.getInstance().addObserver(this);
+        BraveRewardsNativeWorker worker = BraveRewardsNativeWorker.getInstance();
+        if (worker != null) {
+            worker.addObserver(this);
+        }
         super.onStart();
     }
 
     @Override
     public void onStop() {
-        BraveRewardsNativeWorker.getInstance().removeObserver(this);
+        BraveRewardsNativeWorker worker = BraveRewardsNativeWorker.getInstance();
+        if (worker != null) {
+            worker.removeObserver(this);
+        }
         super.onStop();
     }
 
     @Override
     public boolean onPreferenceChange(Preference preference, Object newValue) {
         if (PREF_USE_REWARDS_STAGING_SERVER.equals(preference.getKey())) {
-            BraveRewardsNativeWorker.getInstance().resetTheWholeState();
+            BraveRewardsNativeWorker worker = BraveRewardsNativeWorker.getInstance();
+            if (worker != null) {
+                worker.resetTheWholeState();
+            }
             mUseRewardsStagingServer = (boolean) newValue;
             mMaximizeAdsNumber.setEnabled((boolean) newValue);
             enableMaximumAdsNumber(((boolean) newValue) && mMaximizeAdsNumber.isChecked());
@@ -267,27 +291,19 @@ public class BraveQAPreferences extends BravePreferenceFragment
     }
 
     private static void setOnPreferenceValue(String preferenceName, boolean newValue) {
-        SharedPreferences sharedPreferences = ContextUtils.getAppSharedPreferences();
-        SharedPreferences.Editor sharedPreferencesEditor = sharedPreferences.edit();
-        sharedPreferencesEditor.putBoolean(preferenceName, newValue);
-        sharedPreferencesEditor.apply();
+        ChromeSharedPreferences.getInstance().writeBoolean(preferenceName, newValue);
     }
 
     private static boolean getPreferenceValue(String preferenceName) {
-        SharedPreferences sharedPreferences = ContextUtils.getAppSharedPreferences();
-        return sharedPreferences.getBoolean(preferenceName, false);
+        return ChromeSharedPreferences.getInstance().readBoolean(preferenceName, false);
     }
 
     private static void setPreferenceString(String preferenceName, String newValue) {
-        SharedPreferences sharedPreferences = ContextUtils.getAppSharedPreferences();
-        SharedPreferences.Editor sharedPreferencesEditor = sharedPreferences.edit();
-        sharedPreferencesEditor.putString(preferenceName, newValue);
-        sharedPreferencesEditor.apply();
+        ChromeSharedPreferences.getInstance().writeString(preferenceName, newValue);
     }
 
     private static String getPreferenceString(String preferenceName) {
-        SharedPreferences sharedPreferences = ContextUtils.getAppSharedPreferences();
-        return sharedPreferences.getString(preferenceName, "");
+        return ChromeSharedPreferences.getInstance().readString(preferenceName, "");
     }
 
     public static boolean shouldVlogRewards() {
@@ -343,30 +359,28 @@ public class BraveQAPreferences extends BravePreferenceFragment
     }
 
     private void enableMaximumAdsNumber(boolean enable) {
+        BraveRewardsNativeWorker worker = BraveRewardsNativeWorker.getInstance();
+        if (worker == null) {
+            return;
+        }
         if (enable) {
             // Save current values
-            int adsPerHour = BraveRewardsNativeWorker.getInstance().getAdsPerHour();
-            SharedPreferences sharedPreferences = ContextUtils.getAppSharedPreferences();
-            SharedPreferences.Editor sharedPreferencesEditor = sharedPreferences.edit();
-            sharedPreferencesEditor.putInt(QA_ADS_PER_HOUR, adsPerHour);
-            sharedPreferencesEditor.apply();
+            int adsPerHour = worker.getAdsPerHour();
+            ChromeSharedPreferences.getInstance().writeInt(QA_ADS_PER_HOUR, adsPerHour);
             // Set max value
-            BraveRewardsNativeWorker.getInstance().setAdsPerHour(MAX_ADS);
+            worker.setAdsPerHour(MAX_ADS);
             return;
         }
         // Set saved values
-        int adsPerHour = ContextUtils.getAppSharedPreferences().getInt(
-                             QA_ADS_PER_HOUR, DEFAULT_ADS_PER_HOUR);
-        BraveRewardsNativeWorker.getInstance().setAdsPerHour(adsPerHour);
+        int adsPerHour =
+                ChromeSharedPreferences.getInstance()
+                        .readInt(QA_ADS_PER_HOUR, DEFAULT_ADS_PER_HOUR);
+        worker.setAdsPerHour(adsPerHour);
     }
 
     @Override
     public void onResetTheWholeState(boolean success) {
         if (success) {
-            SharedPreferences sharedPreferences = ContextUtils.getAppSharedPreferences();
-            SharedPreferences.Editor sharedPreferencesEditor = sharedPreferences.edit();
-            sharedPreferencesEditor.apply();
-
             UserPrefs.get(ProfileManager.getLastUsedRegularProfile())
                     .setBoolean(BravePref.USE_REWARDS_STAGING_SERVER, mUseRewardsStagingServer);
             BraveRewardsHelper.setRewardsEnvChange(true);
@@ -440,4 +454,9 @@ public class BraveQAPreferences extends BravePreferenceFragment
         dialog.setCanceledOnTouchOutside(false);
         dialog.show();
     }
+
+    // QA-only screen protected by a password; exclude entirely from settings search.
+    public static final BaseSearchIndexProvider SEARCH_INDEX_DATA_PROVIDER =
+            new BaseSearchIndexProvider(
+                    BraveQAPreferences.class.getName(), BaseSearchIndexProvider.INDEX_OPT_OUT);
 }

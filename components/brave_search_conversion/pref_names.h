@@ -27,6 +27,11 @@ inline constexpr char kLatestDDGBannerTypeFirstShownTime[] =
 inline constexpr char kShowNTPSearchBox[] =
     "brave.brave_search.show-ntp-search";
 
+inline constexpr char kShowNTPChatInput[] = "brave.brave_search.show-ntp-chat";
+
+inline constexpr char kMigratedNTPChatInputFromSearch[] =
+    "brave.brave_search.migrated-ntp-chat-from-search";
+
 inline constexpr char kLastUsedNTPSearchEngine[] =
     "brave.brave_search.last-used-ntp-search-engine";
 

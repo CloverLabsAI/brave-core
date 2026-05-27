@@ -45,6 +45,7 @@ export const mockTransactionInfo: SerializableTransactionInfo = {
   txDataUnion: {
     ethTxData1559: {
       baseData: {
+        chainId: '0x1',
         nonce: '0x1',
         gasPrice: '100000000',
         gasLimit: '122665', // wei
@@ -54,10 +55,8 @@ export const mockTransactionInfo: SerializableTransactionInfo = {
         signOnly: false,
         signedTransaction: undefined,
       },
-      chainId: '0x0',
       maxPriorityFeePerGas: '80410000', // (0.08041 gwei)
       maxFeePerGas: '3600000000', // (3.6 gwei)
-      gasEstimation: undefined,
     },
     ethTxData: undefined,
     solanaTxData: undefined,
@@ -372,6 +371,7 @@ export const mockEthSendTransaction = {
   txDataUnion: {
     ethTxData1559: {
       baseData: {
+        chainId: '0xaa36a7',
         nonce: '0xb',
         gasPrice: '0x0',
         gasLimit: '0x5208',
@@ -381,18 +381,8 @@ export const mockEthSendTransaction = {
         signOnly: false,
         signedTransaction: 'mockSignedTx',
       },
-      chainId: '0xaa36a7',
       maxPriorityFeePerGas: '0x2faf080',
       maxFeePerGas: '0x2faf092',
-      gasEstimation: {
-        slowMaxPriorityFeePerGas: '0x2',
-        slowMaxFeePerGas: '0x14',
-        avgMaxPriorityFeePerGas: '0x2faf080',
-        avgMaxFeePerGas: '0x2faf092',
-        fastMaxPriorityFeePerGas: '0x59682f00',
-        fastMaxFeePerGas: '0x59682f12',
-        baseFeePerGas: '0x12',
-      },
     },
   },
   txStatus: 4,
@@ -543,19 +533,10 @@ export const mockERC20TransferTransaction: SerializableTransactionInfo = {
   txArgs: ['0x0d8775f648430679a709e98d2b0cb6250d2887ef', '0x15ddf09c97b0000'],
   txDataUnion: {
     ethTxData1559: {
-      chainId: BraveWallet.MAINNET_CHAIN_ID,
       maxPriorityFeePerGas: '0x2faf080',
       maxFeePerGas: '0x2faf092',
-      gasEstimation: {
-        slowMaxPriorityFeePerGas: '0x2',
-        slowMaxFeePerGas: '0x14',
-        avgMaxPriorityFeePerGas: '0x2faf080',
-        avgMaxFeePerGas: '0x2faf092',
-        fastMaxPriorityFeePerGas: '0x59682f00',
-        fastMaxFeePerGas: '0x59682f12',
-        baseFeePerGas: '0x12',
-      },
       baseData: {
+        chainId: BraveWallet.MAINNET_CHAIN_ID,
         nonce: '0xb',
         gasPrice: '0x0',
         gasLimit: '0x5208',
@@ -654,20 +635,11 @@ export const createMockTransactionInfo = (arg: {
 
   const ethTxData = {
     ...txBase.txDataUnion.ethTxData1559,
-    chainId,
     maxPriorityFeePerGas: '0x2faf080',
     maxFeePerGas: '0x2faf092',
-    gasEstimation: {
-      slowMaxPriorityFeePerGas: '0x2',
-      slowMaxFeePerGas: '0x14',
-      avgMaxPriorityFeePerGas: '0x2faf080',
-      avgMaxFeePerGas: '0x2faf092',
-      fastMaxPriorityFeePerGas: '0x59682f00',
-      fastMaxFeePerGas: '0x59682f12',
-      baseFeePerGas: '0x12',
-    },
     baseData: {
       ...txBase.txDataUnion.ethTxData1559?.baseData,
+      chainId,
       data: [],
       gasLimit: '1',
       gasPrice: '1',
@@ -916,6 +888,7 @@ export const mockETHNativeTokenSendTransaction = {
   txDataUnion: {
     ethTxData1559: {
       baseData: {
+        chainId: '0x1',
         nonce: '',
         gasPrice: '0x5f5e100',
         gasLimit: '0x5208',
@@ -925,10 +898,8 @@ export const mockETHNativeTokenSendTransaction = {
         signOnly: false,
         signedTransaction: undefined,
       },
-      chainId: '',
       maxPriorityFeePerGas: '',
       maxFeePerGas: '',
-      gasEstimation: undefined,
     },
   },
 }

@@ -22,22 +22,38 @@ build_webui("build") {
     "brave_account_dialog.ts",
     "brave_account_dialogs.html.ts",
     "brave_account_dialogs.ts",
+    "brave_account_email_input.html.ts",
+    "brave_account_email_input.ts",
     "brave_account_entry_dialog.html.ts",
     "brave_account_entry_dialog.ts",
     "brave_account_error_dialog.html.ts",
     "brave_account_error_dialog.ts",
     "brave_account_forgot_password_dialog.html.ts",
     "brave_account_forgot_password_dialog.ts",
+    "brave_account_otp_dialog.html.ts",
+    "brave_account_otp_dialog.ts",
+    "brave_account_otp_input.html.ts",
+    "brave_account_otp_input.ts",
+    "brave_account_password_icons.html.ts",
+    "brave_account_password_icons.ts",
+    "brave_account_password_input.html.ts",
+    "brave_account_password_input.ts",
+    "brave_account_password_strength_meter.html.ts",
+    "brave_account_password_strength_meter.ts",
     "brave_account_sign_in_dialog.html.ts",
     "brave_account_sign_in_dialog.ts",
   ]
 
   css_files = [
     "brave_account_common.css",
-    "brave_account_create_dialog.css",
     "brave_account_dialog.css",
+    "brave_account_email_input.css",
     "brave_account_entry_dialog.css",
     "brave_account_forgot_password_dialog.css",
+    "brave_account_otp_input.css",
+    "brave_account_password_icons.css",
+    "brave_account_password_input.css",
+    "brave_account_password_strength_meter.css",
     "brave_account_sign_in_dialog.css",
   ]
 
@@ -57,10 +73,12 @@ build_webui("build") {
   mojo_files = [
     "$root_gen_dir/brave/components/brave_account/mojom/brave_account.mojom-webui.ts",
     "$root_gen_dir/brave/components/password_strength_meter/password_strength_meter.mojom-webui.ts",
+    "$root_gen_dir/components/grit/brave_components_webui_strings.ts",
   ]
 
   mojo_files_deps = [
     "//brave/components/brave_account/mojom:mojom_ts__generator",
     "//brave/components/password_strength_meter:mojom_ts__generator",
+    "//brave/components/resources:strings_grit",
   ]
 }

@@ -24,8 +24,10 @@
 #include "base/strings/string_util.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/types/expected.h"
+#include "brave/components/ai_chat/core/browser/engine/engine_consumer.h"
 #include "brave/components/ai_chat/core/browser/engine/oai_message_utils.h"
 #include "brave/components/ai_chat/core/browser/engine/oai_parsing.h"
+#include "brave/components/ai_chat/core/browser/engine/oai_serialization_utils.h"
 #include "brave/components/ai_chat/core/common/features.h"
 #include "brave/components/ai_chat/core/common/mojom/ai_chat.mojom.h"
 #include "brave/components/ai_chat/core/common/mojom/common.mojom.h"
@@ -65,19 +67,24 @@ net::NetworkTrafficAnnotationTag GetNetworkTrafficAnnotationTag() {
 }
 
 std::string CreateJSONRequestBody(
-    base::Value::List messages,
+    base::ListValue messages,
     const bool is_sse_enabled,
     const mojom::CustomModelOptions& model_options,
+    std::optional<base::ListValue> oai_tool_definitions,
     const std::optional<std::vector<std::string>>& stop_sequences) {
-  base::Value::Dict dict;
+  base::DictValue dict;
 
   dict.Set("messages", std::move(messages));
   dict.Set("stream", is_sse_enabled);
   dict.Set("temperature", 0.7);
   dict.Set("model", model_options.model_request_name);
 
+  if (oai_tool_definitions.has_value() && !oai_tool_definitions->empty()) {
+    dict.Set("tools", std::move(oai_tool_definitions.value()));
+  }
+
   if (stop_sequences && !stop_sequences->empty()) {
-    base::Value::List stop_list;
+    base::ListValue stop_list;
     for (const auto& sequence : *stop_sequences) {
       stop_list.Append(sequence);
     }
@@ -92,16 +99,16 @@ std::string CreateJSONRequestBody(
 }  // namespace
 
 // static
-base::Value::List OAIAPIClient::SerializeOAIMessages(
+base::ListValue OAIAPIClient::SerializeOAIMessages(
     std::vector<OAIMessage> messages) {
-  base::Value::List serialized_messages;
+  base::ListValue serialized_messages;
   for (const auto& message : messages) {
-    base::Value::Dict message_dict;
+    base::DictValue message_dict;
     message_dict.Set("role", std::move(message.role));
 
-    base::Value::List content_list;
+    base::ListValue content_list;
     for (const auto& block : message.content) {
-      base::Value::Dict content_block_dict;
+      base::DictValue content_block_dict;
 
       switch (block->which()) {
         case mojom::ContentBlock::Tag::kTextContentBlock:
@@ -111,10 +118,9 @@ base::Value::List OAIAPIClient::SerializeOAIMessages(
 
         case mojom::ContentBlock::Tag::kImageContentBlock: {
           content_block_dict.Set("type", "image_url");
-          const auto& image = block->get_image_content_block();
-          base::Value::Dict image_url;
-          image_url.Set("url", image->image_url.spec());
-          content_block_dict.Set("image_url", std::move(image_url));
+          content_block_dict.Set(
+              "image_url",
+              ImageContentBlockToDict(*block->get_image_content_block()));
           break;
         }
 
@@ -176,6 +182,9 @@ base::Value::List OAIAPIClient::SerializeOAIMessages(
             case mojom::SimpleRequestType::kRequestQuestions:
               message_id = IDS_AI_CHAT_SUGGEST_QUESTIONS_PROMPT;
               break;
+            case mojom::SimpleRequestType::kRequestSummary:
+              message_id = IDS_AI_CHAT_QUESTION_SUMMARIZE_PAGE;
+              break;
             default:
               DVLOG(2) << "Unsupported simple request type: "
                        << static_cast<int>(request->type);
@@ -183,6 +192,30 @@ base::Value::List OAIAPIClient::SerializeOAIMessages(
           }
 
           content_block_dict.Set("text", l10n_util::GetStringUTF8(message_id));
+          break;
+        }
+
+        case mojom::ContentBlock::Tag::kMemoryContentBlock: {
+          auto memory_dict =
+              MemoryContentBlockToDict(*block->get_memory_content_block());
+          auto memories_json = base::WriteJson(memory_dict);
+          if (!memories_json) {
+            continue;
+          }
+          content_block_dict.Set("type", "text");
+          content_block_dict.Set(
+              "text",
+              base::ReplaceStringPlaceholders(
+                  l10n_util::GetStringUTF8(
+                      IDS_AI_CHAT_CUSTOM_MODEL_USER_MEMORY_PROMPT_SEGMENT),
+                  {*memories_json}, nullptr));
+          break;
+        }
+
+        case mojom::ContentBlock::Tag::kFileContentBlock: {
+          content_block_dict.Set("type", "file");
+          content_block_dict.Set(
+              "file", FileContentBlockToDict(*block->get_file_content_block()));
           break;
         }
 
@@ -196,6 +229,51 @@ base::Value::List OAIAPIClient::SerializeOAIMessages(
           break;
         }
 
+        case mojom::ContentBlock::Tag::kSuggestFocusTopicsContentBlock: {
+          content_block_dict.Set("type", "text");
+          const auto& block_data =
+              block->get_suggest_focus_topics_content_block();
+          content_block_dict.Set(
+              "text",
+              l10n_util::GetStringFUTF8(IDS_AI_CHAT_TAB_FOCUS_SUGGEST_TOPICS,
+                                        base::UTF8ToUTF16(block_data->text)));
+          break;
+        }
+
+        case mojom::ContentBlock::Tag::
+            kSuggestFocusTopicsWithEmojiContentBlock: {
+          content_block_dict.Set("type", "text");
+          const auto& block_data =
+              block->get_suggest_focus_topics_with_emoji_content_block();
+          content_block_dict.Set(
+              "text", l10n_util::GetStringFUTF8(
+                          IDS_AI_CHAT_TAB_FOCUS_SUGGEST_TOPICS_WITH_EMOJI,
+                          base::UTF8ToUTF16(block_data->text)));
+          break;
+        }
+
+        case mojom::ContentBlock::Tag::kFilterTabsContentBlock: {
+          content_block_dict.Set("type", "text");
+          const auto& block_data = block->get_filter_tabs_content_block();
+          content_block_dict.Set(
+              "text",
+              l10n_util::GetStringFUTF8(IDS_AI_CHAT_TAB_FOCUS_FILTER_TABS,
+                                        base::UTF8ToUTF16(block_data->text),
+                                        base::UTF8ToUTF16(block_data->topic)));
+          break;
+        }
+
+        case mojom::ContentBlock::Tag::kReduceFocusTopicsContentBlock: {
+          content_block_dict.Set("type", "text");
+          const auto& block_data =
+              block->get_reduce_focus_topics_content_block();
+          content_block_dict.Set(
+              "text",
+              l10n_util::GetStringFUTF8(IDS_AI_CHAT_TAB_FOCUS_REDUCE_TOPICS,
+                                        base::UTF8ToUTF16(block_data->text)));
+          break;
+        }
+
         default:
           DVLOG(2) << "Unsupported block type: "
                    << static_cast<int>(block->which());
@@ -205,6 +283,8 @@ base::Value::List OAIAPIClient::SerializeOAIMessages(
       content_list.Append(std::move(content_block_dict));
     }
     message_dict.Set("content", std::move(content_list));
+
+    SerializeToolCallsOnMessageDict(message, message_dict);
 
     serialized_messages.Append(std::move(message_dict));
   }
@@ -224,20 +304,10 @@ void OAIAPIClient::ClearAllQueries() {
   api_request_helper_->CancelAll();
 }
 
-void OAIAPIClient::PerformRequestWithOAIMessages(
-    const mojom::CustomModelOptions& model_options,
-    std::vector<OAIMessage> messages,
-    GenerationDataCallback data_received_callback,
-    GenerationCompletedCallback completed_callback,
-    const std::optional<std::vector<std::string>>& stop_sequences) {
-  PerformRequest(model_options, SerializeOAIMessages(std::move(messages)),
-                 std::move(data_received_callback),
-                 std::move(completed_callback), stop_sequences);
-}
-
 void OAIAPIClient::PerformRequest(
     const mojom::CustomModelOptions& model_options,
-    base::Value::List messages,
+    std::vector<OAIMessage> messages,
+    std::optional<base::ListValue> oai_tool_definitions,
     GenerationDataCallback data_received_callback,
     GenerationCompletedCallback completed_callback,
     const std::optional<std::vector<std::string>>& stop_sequences) {
@@ -249,7 +319,8 @@ void OAIAPIClient::PerformRequest(
   const bool is_sse_enabled =
       ai_chat::features::kAIChatSSE.Get() && !data_received_callback.is_null();
   const std::string request_body = CreateJSONRequestBody(
-      std::move(messages), is_sse_enabled, model_options, stop_sequences);
+      SerializeOAIMessages(std::move(messages)), is_sse_enabled, model_options,
+      std::move(oai_tool_definitions), stop_sequences);
   base::flat_map<std::string, std::string> headers;
   if (!model_options.api_key.empty()) {
     headers.emplace("Authorization",
@@ -294,7 +365,7 @@ void OAIAPIClient::OnQueryCompleted(
     // We're checking for a value body in case for non-streaming API results.
     if (result.value_body().is_dict()) {
       if (auto result_data = ParseOAICompletionResponse(
-              result.value_body().GetDict(), nullptr /* model_service */)) {
+              result.value_body().GetDict(), std::nullopt /* model_key */)) {
         std::move(callback).Run(base::ok(std::move(*result_data)));
         return;
       }
@@ -339,9 +410,16 @@ void OAIAPIClient::OnQueryDataReceived(
     return;
   }
 
+  auto& result_dict = result->GetDict();
+
   if (auto result_data = ParseOAICompletionResponse(
-          result->GetDict(), nullptr /* model_service */)) {
+          result_dict, std::nullopt /* model_key */)) {
     callback.Run(std::move(*result_data));
+  }
+
+  for (auto& tool_result :
+       ParseToolCallsFromOAIResponse(result_dict, std::nullopt)) {
+    callback.Run(std::move(tool_result));
   }
 }
 

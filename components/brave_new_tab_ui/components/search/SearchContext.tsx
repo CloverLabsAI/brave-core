@@ -4,11 +4,13 @@
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import usePromise from '$web-common/usePromise';
-import { AutocompleteResult, OmniboxPopupSelection, PageHandler, PageHandlerRemote, PageInterface, PageReceiver, SelectedFileInfo, TabInfo } from 'chrome://resources/mojo/components/omnibox/browser/searchbox.mojom-webui.js';
+import { AutocompleteResult, OmniboxPopupSelection, PageHandlerFactory, PageHandlerRemote, PageInterface, PageReceiver, SelectedFileInfo, SelectionDirection, SelectionStep, TabInfo } from 'chrome://resources/mojo/components/omnibox/browser/searchbox.mojom-webui.js';
 import * as React from 'react';
 import getNTPBrowserAPI, { SearchEngineInfo } from '../../api/background';
 import { useEngineContext } from './EngineContext';
-import { FileUploadErrorType, FileUploadStatus } from 'gen/components/omnibox/composebox/composebox_query.mojom.m';
+import { ContextUploadErrorType, ContextUploadStatus } from 'gen/components/omnibox/composebox/composebox_query.mojom.m';
+import { InputState } from 'gen/ui/webui/resources/tsc/mojo/components/omnibox/composebox/composebox_query.mojom-webui';
+import { WindowOpenDisposition } from 'gen/ui/webui/resources/tsc/mojo/ui/base/mojom/window_open_disposition.mojom-webui';
 
 interface Context {
   open: boolean,
@@ -34,7 +36,7 @@ const Context = React.createContext<Context>({
 
 export const searchEnginesPromise = getNTPBrowserAPI().pageHandler.getSearchEngines().then(r => r.searchEngines)
 
-export const omniboxController: PageHandlerRemote = PageHandler.getRemote();
+export const omniboxController: PageHandlerRemote = new PageHandlerRemote();
 (window as any).omnibox = omniboxController;
 
 class SearchPage implements PageInterface {
@@ -44,7 +46,10 @@ class SearchPage implements PageInterface {
   private selectionListeners: Array<(selection: OmniboxPopupSelection) => void> = []
 
   constructor() {
-    omniboxController.setPage(this.receiver.$.bindNewPipeAndPassRemote())
+    PageHandlerFactory.getRemote().createPageHandler(
+      this.receiver.$.bindNewPipeAndPassRemote(),
+      omniboxController.$.bindNewPipeAndPassReceiver(),
+    )
   }
 
   addResultListener(listener: (result?: AutocompleteResult) => void) {
@@ -76,15 +81,18 @@ class SearchPage implements PageInterface {
   onShow(): void { }
   setInputText(inputText: string) { }
   setThumbnail(thumbnailUrl: string) { }
-  onContextualInputStatusChanged(token: string, status: FileUploadStatus, errorType: FileUploadErrorType | null) { }
+  onContextualInputStatusChanged(token: string, status: ContextUploadStatus, errorType: ContextUploadErrorType | null) { }
   onTabStripChanged() { }
   addFileContext(token: string, fileInfo: SelectedFileInfo) { }
   setKeywordSelected(isKeywordSelected: boolean): void {}
   updateAutoSuggestedTabContext(tab: (TabInfo | null)): void {}
   updateLensSearchEligibility(eligible: boolean): void {}
-  updateAimEligibility(eligible: boolean): void {}
-  onShowAiModePrefChanged(canShow: boolean): void {}
   updateContentSharingPolicy(enabled: boolean): void {}
+  onInputStateChanged(inputState: InputState): void {}
+  stepSelection(direction: SelectionDirection, step: SelectionStep): void {}
+  openCurrentSelection(disposition: WindowOpenDisposition): void {}
+  setAimButtonVisible(visible: boolean): void {}
+  updateAimPopupEligibility(eligible: boolean): void {}
 }
 
 export const search = new SearchPage()

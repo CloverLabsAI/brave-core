@@ -86,14 +86,19 @@ class BraveLocationBarView : public LocationBarView {
   void Layout(PassKey) override;
   void OnVisibleBoundsChanged() override;
 
+  // LocationBarView:
+  int GetMinimumTrailingWidth() const override;
+
   // views::View:
+  gfx::Size GetMinimumSize() const override;
   gfx::Size CalculatePreferredSize(
       const views::SizeBounds& available_size) const override;
   void OnThemeChanged() override;
   void ChildVisibilityChanged(views::View* child) override;
   void AddedToWidget() override;
   int GetBorderRadius() const override;
-  void FocusLocation(bool is_user_initiated) override;
+  void FocusLocation(bool is_user_initiated,
+                     bool clear_focus_if_failed) override;
 
   SkPath GetFocusRingHighlightPath() const;
   ContentSettingImageView* GetContentSettingsImageViewForTesting(size_t idx);

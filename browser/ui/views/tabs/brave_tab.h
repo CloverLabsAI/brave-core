@@ -10,36 +10,52 @@
 #include <string>
 
 #include "base/gtest_prod_util.h"
+#include "base/memory/raw_ptr.h"
+#include "brave/browser/ui/tabs/brave_tab_prefs.h"
+#include "brave/browser/ui/views/tabs/accent_color/brave_tab_accent_types.h"
 #include "chrome/browser/ui/views/tabs/tab.h"
 #include "ui/gfx/geometry/point.h"
-#include "ui/views/controls/label.h"
-#include "ui/views/controls/textfield/textfield.h"
-#include "ui/views/controls/textfield/textfield_controller.h"
-#include "ui/views/mouse_watcher.h"
+
+namespace views {
+class ImageButton;
+}  // namespace views
+
+namespace tabs {
+class TreeTabNode;
+}  // namespace tabs
 
 // Brave specific tab implementation that extends the base Tab class.
-// It includes features like vertical tab support, renaming functionality.
+// It includes features like vertical tab support.
 // Also customizes the tab layout and visual appearance for Brave's UI.
-class BraveTab : public Tab, public views::TextfieldController {
+class BraveTab : public Tab {
   METADATA_HEADER(BraveTab, Tab)
 
  public:
-  explicit BraveTab(TabSlotController* controller);
+  static constexpr int kTabAccentIconAreaWidth = 22;
+  static constexpr int kExtraLeftPadding = 4;
+
+  static int GetTabMinWidthForMode(brave_tabs::TabMinWidthMode mode,
+                                   int min_width,
+                                   int standard_width);
+
+  explicit BraveTab(tabs::TabHandle handle, TabSlotController* controller);
   BraveTab(const BraveTab&) = delete;
   BraveTab& operator=(const BraveTab&) = delete;
   ~BraveTab() override;
 
-  void EnterRenameMode();
-
   // Resets tab_style_views_ so that it can have correct style for orientation.
   void UpdateTabStyle();
+
+  // Updates the icon of the tree toggle button based on the collapsed state of
+  // the tree tab node.
+  void UpdateTreeToggleButtonIcon();
 
   // Tab:
   std::u16string GetRenderedTooltipText(const gfx::Point& p) const override;
 
   // Overridden because we moved alert button to left side in the tab whereas
-  // upstream put it on right side. Need to consider this change for calculating
-  // largest selectable region.
+  // upstream put it on right side. Need to consider this change for
+  // calculating largest selectable region.
   int GetWidthOfLargestSelectableRegion() const override;
 
   void ActiveStateChanged() override;
@@ -51,66 +67,80 @@ class BraveTab : public Tab, public views::TextfieldController {
   void Layout(PassKey) override;
   void MaybeAdjustLeftForPinnedTab(gfx::Rect* bounds,
                                    int visual_width) const override;
-  gfx::Insets GetInsets() const override;
-  void SetData(TabRendererData data) override;
+  void OnTabDataChanged(TabChangeType tab_change_type,
+                        const tabs::TabData& tab_data) override;
   bool IsActive() const override;
+  TabSizeInfo GetTabSizeInfo() const override;
+  TabNestingInfo GetTabNestingInfo() const override;
+  bool IsInCollapsedTreeTabNode() const override;
 
-  // views::TextfieldController:
-  bool HandleKeyEvent(views::Textfield* sender,
-                      const ui::KeyEvent& key_event) override;
+  // Returns whether this tab should have an accent painted.
+  bool ShouldPaintTabAccent() const;
+
+  // Returns whether this tab should show a large accent icon on the left side.
+  // Otherwise, it should show a small accent icon on the left-bottom cornder of
+  // the tab.
+  bool ShouldShowLargeAccentIcon() const;
+
+  // Returns the accent colors (border, background) for this tab if it should
+  // have an accent. Returns nullopt if the tab should not have an accent or
+  // colors cannot be determined.
+  std::optional<TabAccentColors> GetTabAccentColors() const;
+
+  // Returns the accent icon for this tab if it should have an accent.
+  // Returns an empty ImageModel if the tab should not have an accent or icon
+  // cannot be determined.
+  ui::ImageModel GetTabAccentIcon() const;
+
+  base::WeakPtr<BraveTab> GetWeakPtr();
 
  private:
   friend class BraveTabTest;
-  friend class BraveTabRenamingUnitTest;
 
   FRIEND_TEST_ALL_PREFIXES(BraveTabTest, ShouldAlwaysHideTabCloseButton);
-
-  FRIEND_TEST_ALL_PREFIXES(BraveTabRenamingUnitTest,
-                           ClickingOutsideRenamingTabCommitsRename);
-
-  // A textfield used for renaming tabs. It is a child of BraveTab and
-  // automatically handles mouse clicks outside of it to exit rename mode.
-  class RenameTextfield : public views::Textfield,
-                          public views::MouseWatcherListener {
-    METADATA_HEADER(RenameTextfield, views::Textfield)
-   public:
-    explicit RenameTextfield(base::RepeatingClosure on_click_outside_callback);
-    ~RenameTextfield() override;
-
-    // views::Textfield:
-    void VisibilityChanged(views::View* starting_from,
-                           bool is_visible) override;
-
-    // views::MouseWatcherListener:
-    void MouseMovedOutOfHost() override;
-
-   private:
-    // Callback to be invoked when mouse is clicked outside of the textfield.
-    base::RepeatingClosure on_click_outside_callback_;
-
-    // Mouse watcher that tracks mouse clicks outside of the textfield.
-    views::MouseWatcher mouse_watcher_;
-  };
+  FRIEND_TEST_ALL_PREFIXES(BraveTabTest,
+                           IconVisibilityWhenVerticalTabsAnimating);
+  FRIEND_TEST_ALL_PREFIXES(
+      BraveTabTest,
+      PinnedTabIconCenteredWhenFloatingFromCompletelyHiddenMode);
+  FRIEND_TEST_ALL_PREFIXES(BraveTabTestWithTreeTab,
+                           TreeToggleButtonVisibleInsteadOfCloseButton);
+  FRIEND_TEST_ALL_PREFIXES(
+      BraveTabTestWithTreeTab,
+      TreeToggleButtonAlwaysVisibleWhenCollapsedAndHasDescendants);
 
   bool IsAtMinWidthForVerticalTabStrip() const;
 
-  void CommitRename();
-  void ExitRenameMode();
-  void UpdateRenameTextfieldBounds();
+  // Initializes the tree toggle button.
+  void InitTreeToggleButton();
 
-  bool in_renaming_mode() const {
-    return rename_textfield_ && rename_textfield_->GetVisible();
-  }
+  // Called when the tree toggle button is pressed.
+  void OnTreeToggleButtonPressed();
 
-  // Reveals the title label which is in base class member.
-  views::Label* title_for_test() const { return title_; }
+  // Returns whether this tab has tree tab node descendants.
+  bool HasTreeTabNodeDescendants() const;
 
-  // Reveals the close button which is in base class member.
+  // Lays out the tree toggle button. This will update the bounds and visibility
+  // of the tree toggle button.
+  void LayoutTreeToggleButton();
+
+  // Returns whether the tree tab node is collapsed.
+  bool IsTreeNodeCollapsed() const;
+
+  raw_ptr<views::ImageButton> tree_toggle_button_ = nullptr;
+
+  // Returns the tree tab node for this tab.
+  const tabs::TreeTabNode* GetTreeTabNode() const;
+
+  // Returns the height of the tree tab node for this tab.
+  int GetTreeHeight() const;
+
+  // Test accessors to reveal base class members.
   TabCloseButton* close_button_for_test() const { return close_button_.get(); }
+  bool center_icon_for_test() const { return center_icon_; }
+  bool showing_close_button_for_test() const { return showing_close_button_; }
 
-  raw_ptr<RenameTextfield> rename_textfield_ = nullptr;
-
-  static constexpr int kExtraLeftPadding = 4;
+  base::WeakPtrFactory<BraveTab> weak_factory_{this};
 };
 
 #endif  // BRAVE_BROWSER_UI_VIEWS_TABS_BRAVE_TAB_H_

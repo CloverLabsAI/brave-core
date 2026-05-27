@@ -1,5 +1,5 @@
 diff --git a/third_party/blink/renderer/modules/peerconnection/rtc_stats_report.cc b/third_party/blink/renderer/modules/peerconnection/rtc_stats_report.cc
-index 596cda8db52f6ad2bfdda2e502f74d445346de42..b31ef1eac28d4f54632b62ad06bd37fd007434d9 100644
+index 510cfb8681c70b46e5382784cdaaea800863ff38..096748d382c92c8b5d16fbf2f8a3162f8b975011 100644
 --- a/third_party/blink/renderer/modules/peerconnection/rtc_stats_report.cc
 +++ b/third_party/blink/renderer/modules/peerconnection/rtc_stats_report.cc
 @@ -99,6 +99,24 @@ bool ExposeHardwareCapabilityStats(ScriptState* script_state) {
@@ -9,15 +9,15 @@ index 596cda8db52f6ad2bfdda2e502f74d445346de42..b31ef1eac28d4f54632b62ad06bd37fd
 +// Helper function to mask IP addresses in getStats() API
 +// Prevents WebRTC IP leaks through stats reporting
 +String MaskStatsIpAddress(const std::string& address) {
-+  String addr = String::FromUTF8(address);
++  String addr = String::FromUtf8(address);
 +
 +  // Preserve mDNS addresses (*.local)
-+  if (addr.EndsWith(".local")) {
++  if (addr.ends_with(".local")) {
 +    return addr;
 +  }
 +
 +  // Mask all other IP addresses
-+  if (addr.Contains(':')) {
++  if (addr.contains(':')) {
 +    return "::";  // IPv6
 +  } else {
 +    return "0.0.0.0";  // IPv4
@@ -27,7 +27,7 @@ index 596cda8db52f6ad2bfdda2e502f74d445346de42..b31ef1eac28d4f54632b62ad06bd37fd
  RTCCodecStats* ToV8Stat(ScriptState* script_state,
                          const webrtc::RTCCodecStats& webrtc_stat) {
    RTCCodecStats* v8_codec =
-@@ -489,8 +507,17 @@ RTCIceCandidateStats* ToV8Stat(
+@@ -498,8 +516,17 @@ RTCIceCandidateStats* ToV8Stat(
    RTCIceCandidateStats* v8_stat =
        MakeGarbageCollected<RTCIceCandidateStats>(script_state->GetIsolate());
    SET_STAT(webrtc_stat.transport_id, v8_stat->setTransportId);
@@ -47,7 +47,7 @@ index 596cda8db52f6ad2bfdda2e502f74d445346de42..b31ef1eac28d4f54632b62ad06bd37fd
    SET_STAT(webrtc_stat.protocol, v8_stat->setProtocol);
    SET_STAT_ENUM(webrtc_stat.candidate_type, v8_stat->setCandidateType,
                  V8RTCIceCandidateType);
-@@ -499,8 +526,17 @@ RTCIceCandidateStats* ToV8Stat(
+@@ -508,8 +535,17 @@ RTCIceCandidateStats* ToV8Stat(
    SET_STAT_ENUM(webrtc_stat.relay_protocol, v8_stat->setRelayProtocol,
                  V8RTCIceServerTransportProtocol);
    SET_STAT(webrtc_stat.foundation, v8_stat->setFoundation);
@@ -67,7 +67,7 @@ index 596cda8db52f6ad2bfdda2e502f74d445346de42..b31ef1eac28d4f54632b62ad06bd37fd
    SET_STAT(webrtc_stat.username_fragment, v8_stat->setUsernameFragment);
    SET_STAT_ENUM(webrtc_stat.tcp_type, v8_stat->setTcpType,
                  V8RTCIceTcpCandidateType);
-@@ -508,9 +544,11 @@ RTCIceCandidateStats* ToV8Stat(
+@@ -517,9 +553,11 @@ RTCIceCandidateStats* ToV8Stat(
    // Note: additional work needed to reach consensus on the privacy model.
    SET_STAT_ENUM(webrtc_stat.network_type, v8_stat->setNetworkType,
                  V8RTCNetworkType);

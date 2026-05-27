@@ -77,14 +77,12 @@ const std::string& GetResourceName(const base::Value& resource) {
   return *resource.GetDict().FindString(kNameField);
 }
 
-base::Value::List::iterator FindResource(base::Value::List& resources,
-                                         const std::string& name) {
+base::ListValue::iterator FindResource(base::ListValue& resources,
+                                       const std::string& name) {
   return std::ranges::find_if(resources, [name](const base::Value& v) {
     return GetResourceName(v) == name;
   });
 }
-
-
 
 }  // namespace
 
@@ -92,8 +90,6 @@ AdBlockCustomResourceProvider::AdBlockCustomResourceProvider(
     const base::FilePath& storage_root,
     std::unique_ptr<AdBlockResourceProvider> default_resource_provider)
     : default_resource_provider_(std::move(default_resource_provider)) {
-  CHECK(base::FeatureList::IsEnabled(
-      brave_shields::features::kCosmeticFilteringCustomScriptlets));
   CHECK(default_resource_provider_);
   auto factory =
       base::MakeRefCounted<value_store::ValueStoreFactoryImpl>(storage_root);

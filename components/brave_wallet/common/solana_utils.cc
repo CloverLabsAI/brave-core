@@ -10,6 +10,7 @@
 #include "base/check.h"
 #include "base/strings/string_number_conversions.h"
 #include "base/strings/string_split.h"
+#include "base/values.h"
 #include "brave/components/brave_wallet/common/brave_wallet.mojom.h"
 #include "brave/components/brave_wallet/common/brave_wallet_constants.h"
 #include "brave/components/brave_wallet/common/encoding_utils.h"
@@ -120,7 +121,7 @@ std::optional<std::vector<uint8_t>> CompactArrayDecode(
                               bytes.begin() + *bytes_index);
 }
 
-std::optional<uint8_t> GetUint8FromStringDict(const base::Value::Dict& dict,
+std::optional<uint8_t> GetUint8FromStringDict(const base::DictValue& dict,
                                               std::string_view key) {
   const std::string* string_value = dict.FindString(key);
   if (!string_value) {

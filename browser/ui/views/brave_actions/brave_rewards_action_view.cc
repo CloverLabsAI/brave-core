@@ -14,6 +14,7 @@
 #include "brave/app/vector_icons/vector_icons.h"
 #include "brave/browser/brave_rewards/rewards_service_factory.h"
 #include "brave/browser/ui/brave_icon_with_badge_image_source.h"
+#include "brave/browser/ui/page_info/features.h"
 #include "brave/browser/ui/webui/brave_rewards/rewards_page_top_ui.h"
 #include "brave/components/brave_rewards/content/rewards_p3a.h"
 #include "brave/components/brave_rewards/content/rewards_service.h"
@@ -24,6 +25,7 @@
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
+#include "chrome/browser/ui/color/chrome_color_id.h"
 #include "chrome/browser/ui/omnibox/omnibox_theme.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
 #include "chrome/browser/ui/views/bubble/webui_bubble_manager.h"
@@ -94,7 +96,7 @@ class RewardsBadgeImageSource : public brave::BraveIconWithBadgeImageSource {
       : BraveIconWithBadgeImageSource(
             size,
             std::move(get_color_provider_callback),
-            GetLayoutConstant(LOCATION_BAR_TRAILING_ICON_SIZE),
+            GetLayoutConstant(LayoutConstant::kLocationBarTrailingIconSize),
             kBraveActionLeftMarginExtra) {}
 
   void UseVerifiedIcon(bool verified_icon) {
@@ -206,10 +208,6 @@ BraveRewardsActionView::BraveRewardsActionView(
   auto* profile = browser_window_interface_->GetProfile();
 
   pref_change_registrar_.Init(profile->GetPrefs());
-  pref_change_registrar_.Add(
-      brave_rewards::prefs::kBadgeText,
-      base::BindRepeating(&BraveRewardsActionView::OnPreferencesChanged,
-                          base::Unretained(this)));
   pref_change_registrar_.Add(
       brave_rewards::prefs::kDeclaredGeo,
       base::BindRepeating(&BraveRewardsActionView::OnPreferencesChanged,
@@ -411,10 +409,6 @@ void BraveRewardsActionView::ToggleRewardsPanel() {
     return;
   }
 
-  // Clear the default-on-start badge text when the user opens the panel.
-  auto* prefs = browser_window_interface_->GetProfile()->GetPrefs();
-  prefs->SetString(brave_rewards::prefs::kBadgeText, "");
-
   bubble_manager_->ShowBubble();
 
   DCHECK(!bubble_observation_.IsObserving());
@@ -422,23 +416,26 @@ void BraveRewardsActionView::ToggleRewardsPanel() {
 }
 
 gfx::ImageSkia BraveRewardsActionView::GetRewardsIcon() {
+  auto icon_size =
+      GetLayoutConstant(LayoutConstant::kLocationBarTrailingIconSize);
+
+  auto* color_provider = GetColorProvider();
+  SkColor color = color_provider
+                      ? color_provider->GetColor(kColorToolbarButtonIcon)
+                      : kIconColor;
+
+  if (page_info::features::IsShowBraveShieldsInPageInfoEnabled()) {
+    return gfx::CreateVectorIcon(kLeoProductBatOutlineIcon, icon_size, color);
+  }
+
   // Since the BAT icon has color the actual color value here is not relevant,
   // but |CreateVectorIcon| requires one.
-  return gfx::CreateVectorIcon(
-      kBatIcon, GetLayoutConstant(LOCATION_BAR_TRAILING_ICON_SIZE), kIconColor);
+  return gfx::CreateVectorIcon(kBatIcon, icon_size, color);
 }
 
 std::pair<std::string, SkColor>
 BraveRewardsActionView::GetBadgeTextAndBackground() {
-  // 1. Display the default-on-start Rewards badge text, if specified.
-  std::string text_pref =
-      browser_window_interface_->GetProfile()->GetPrefs()->GetString(
-          brave_rewards::prefs::kBadgeText);
-  if (!text_pref.empty()) {
-    return {text_pref, brave::kBadgeNotificationBG};
-  }
-
-  // 2. Display the number of current notifications, if non-zero.
+  // Display the number of current notifications, if non-zero.
   size_t notifications = GetRewardsNotificationCount();
   if (notifications > 0) {
     std::string text =
@@ -447,7 +444,7 @@ BraveRewardsActionView::GetBadgeTextAndBackground() {
     return {text, brave::kBadgeNotificationBG};
   }
 
-  // 3. Display a verified checkmark for verified publishers.
+  // Display a verified checkmark for verified publishers.
   if (std::get<bool>(publisher_registered_)) {
     return {"", kBadgeVerifiedBG};
   }

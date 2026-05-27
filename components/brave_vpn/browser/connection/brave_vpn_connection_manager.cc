@@ -14,6 +14,7 @@
 #include "base/functional/callback.h"
 #include "base/logging.h"
 #include "base/memory/scoped_refptr.h"
+#include "base/task/single_thread_task_runner.h"
 #include "base/task/thread_pool.h"
 #include "brave/components/brave_vpn/browser/connection/connection_api_impl.h"
 #include "brave/components/brave_vpn/common/brave_vpn_utils.h"
@@ -75,6 +76,13 @@ void BraveVPNConnectionManager::NotifySelectedRegionChanged(
     const std::string& name) const {
   for (auto& obs : observers_) {
     obs.OnSelectedRegionChanged(name);
+  }
+}
+
+void BraveVPNConnectionManager::NotifyInstallSystemServicesCompleted(
+    bool success) const {
+  for (auto& obs : observers_) {
+    obs.OnInstallSystemServicesCompleted(success);
   }
 }
 
@@ -234,6 +242,7 @@ void BraveVPNConnectionManager::MaybeInstallSystemServices() {
 
 void BraveVPNConnectionManager::OnInstallSystemServicesCompleted(bool success) {
   VLOG(1) << "OnInstallSystemServicesCompleted: success=" << success;
+  NotifyInstallSystemServicesCompleted(success);
   if (success) {
 #if BUILDFLAG(IS_WIN)
     // Update prefs first before signaling the event because the event could

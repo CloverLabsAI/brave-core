@@ -1,5 +1,5 @@
 diff --git a/headless/lib/browser/headless_browser_impl.cc b/headless/lib/browser/headless_browser_impl.cc
-index f0c79ccd63e102c4ef51535f476ceddc6c5156a9..87dc4ec39a8a8baa16928a4a1d031a6e433db494 100644
+index eb1a52ac99254bac3219f072e859ba68d11f8c59..4851cb75eff4231b048b5669ebcc58293dd63c12 100644
 --- a/headless/lib/browser/headless_browser_impl.cc
 +++ b/headless/lib/browser/headless_browser_impl.cc
 @@ -101,27 +101,8 @@ std::string HeadlessBrowser::GetProductNameAndVersion() {

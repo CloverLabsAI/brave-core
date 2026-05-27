@@ -3,6 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#include "base/functional/callback_helpers.h"
 #include "base/test/bind.h"
 #include "base/test/mock_callback.h"
 #include "base/test/scoped_feature_list.h"
@@ -605,7 +606,7 @@ TEST_F(KeyringServiceMigrationsLegacyIterationsUnitTest,
   EXPECT_TRUE(service.IsLockedSync());
   testing::Mock::VerifyAndClearExpectations(&callback);
 
-  EXPECT_EQ(GetPrefs()->GetDict(kBraveWalletMnemonic), base::Value::Dict());
+  EXPECT_EQ(GetPrefs()->GetDict(kBraveWalletMnemonic), base::DictValue());
 
   EXPECT_CALL(callback, Run(true));
   service.ValidatePassword(kPassword, callback.Get());
@@ -794,7 +795,7 @@ TEST_F(KeyringServiceMigrationsLegacyMnemonicFormatUnitTest,
   EXPECT_TRUE(service.IsLockedSync());
   testing::Mock::VerifyAndClearExpectations(&callback);
 
-  EXPECT_EQ(GetPrefs()->GetDict(kBraveWalletMnemonic), base::Value::Dict());
+  EXPECT_EQ(GetPrefs()->GetDict(kBraveWalletMnemonic), base::DictValue());
 
   EXPECT_CALL(callback, Run(true));
   service.ValidatePassword(kPassword, callback.Get());

@@ -20,7 +20,6 @@
 
 #include "base/check.h"
 #include "base/containers/adapters.h"
-#include "base/containers/contains.h"
 #include "base/containers/fixed_flat_set.h"
 #include "base/functional/bind.h"
 #include "base/functional/callback_helpers.h"
@@ -158,6 +157,10 @@ AIChatService::AIChatService(
   pref_change_registrar_.Add(
       prefs::kBraveAIChatSkills,
       base::BindRepeating(&AIChatService::OnSkillsChanged,
+                          weak_ptr_factory_.GetWeakPtr()));
+  pref_change_registrar_.Add(
+      prefs::kBraveAIChatTabOrganizationModelKey,
+      base::BindRepeating(&AIChatService::OnTabOrganizationModelPrefChanged,
                           weak_ptr_factory_.GetWeakPtr()));
 
   MaybeInitStorage();
@@ -450,7 +453,7 @@ void AIChatService::OnOsCryptAsyncReady(os_crypt_async::Encryptor encryptor) {
   ai_chat_db_ = base::SequenceBound<std::unique_ptr<AIChatDatabase>>(
       base::ThreadPool::CreateSequencedTaskRunner(
           {base::MayBlock(), base::WithBaseSyncPrimitives(),
-           base::TaskPriority::BEST_EFFORT,
+           base::TaskPriority::USER_BLOCKING,
            base::TaskShutdownBehavior::BLOCK_SHUTDOWN}),
       std::make_unique<AIChatDatabase>(profile_path_.Append(kDBFileName),
                                        std::move(encryptor)));
@@ -671,7 +674,8 @@ void AIChatService::GetActionMenuList(GetActionMenuListCallback callback) {
   std::move(callback).Run(ai_chat::GetActionMenuList());
 }
 
-void AIChatService::GetPremiumStatus(GetPremiumStatusCallback callback) {
+void AIChatService::GetPremiumStatus(
+    mojom::Service::GetPremiumStatusCallback callback) {
   credential_manager_->GetPremiumStatus(
       base::BindOnce(&AIChatService::OnPremiumStatusReceived,
                      weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
@@ -862,6 +866,9 @@ mojom::ServiceStatePtr AIChatService::BuildState() {
 void AIChatService::OnStateChanged() {
   mojom::ServiceStatePtr state = BuildState();
   for (auto& remote : observer_remotes_) {
+    remote->OnStateChanged(state.Clone());
+  }
+  for (auto& remote : untrusted_service_observer_remotes_) {
     remote->OnStateChanged(state.Clone());
   }
 }
@@ -1118,9 +1125,21 @@ void AIChatService::BindMetrics(mojo::PendingReceiver<mojom::Metrics> metrics) {
 
 void AIChatService::BindObserver(
     mojo::PendingRemote<mojom::ServiceObserver> observer,
-    BindObserverCallback callback) {
+    mojom::Service::BindObserverCallback callback) {
   observer_remotes_.Add(std::move(observer));
   std::move(callback).Run(BuildState());
+}
+
+void AIChatService::BindObserver(
+    mojo::PendingRemote<mojom::UntrustedServiceObserver> observer,
+    mojom::UntrustedService::BindObserverCallback callback) {
+  untrusted_service_observer_remotes_.Add(std::move(observer));
+  std::move(callback).Run(BuildState());
+}
+
+void AIChatService::BindUntrustedService(
+    mojo::PendingReceiver<mojom::UntrustedService> receiver) {
+  untrusted_service_receivers_.Add(this, std::move(receiver));
 }
 
 bool AIChatService::GetIsContentAgentAllowed() const {
@@ -1256,6 +1275,11 @@ void AIChatService::GetSuggestedTopics(const std::vector<Tab>& tabs,
     return;
   }
 
+  if (tabs.empty()) {
+    std::move(callback).Run(base::unexpected(mojom::APIError::InternalError));
+    return;
+  }
+
   // First time engaging with tab focus, set up tab data observer.
   // tab_tracker_service_ can be nullptr in tests.
   if (tab_tracker_service_ && !tab_data_observer_receiver_.is_bound()) {
@@ -1263,19 +1287,26 @@ void AIChatService::GetSuggestedTopics(const std::vector<Tab>& tabs,
         tab_data_observer_receiver_.BindNewPipeAndPassRemote());
   }
 
-  GetEngineForTabOrganization(base::BindOnce(
-      &AIChatService::GetSuggestedTopicsWithEngine,
-      weak_ptr_factory_.GetWeakPtr(), tabs, std::move(callback)));
+  CreateTabOrganizationEngineIfNeeded();
+  tab_organization_engine_->GetSuggestedTopics(
+      tabs,
+      base::BindOnce(&AIChatService::OnSuggestedTopicsReceived,
+                     weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
 }
 
 void AIChatService::GetFocusTabs(const std::vector<Tab>& tabs,
                                  const std::string& topic,
                                  GetFocusTabsCallback callback) {
-  GetEngineForTabOrganization(base::BindOnce(
-      &AIChatService::GetFocusTabsWithEngine, weak_ptr_factory_.GetWeakPtr(),
+  if (tabs.empty()) {
+    std::move(callback).Run(base::unexpected(mojom::APIError::InternalError));
+    return;
+  }
+
+  CreateTabOrganizationEngineIfNeeded();
+  tab_organization_engine_->GetFocusTabs(
       tabs, topic,
       base::BindOnce(&AIChatService::OnGetFocusTabs,
-                     weak_ptr_factory_.GetWeakPtr(), std::move(callback))));
+                     weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
 }
 
 void AIChatService::OnGetFocusTabs(
@@ -1302,44 +1333,21 @@ AIChatService::CreateToolProvidersForNewConversation() {
   return tool_providers;
 }
 
-void AIChatService::GetEngineForTabOrganization(base::OnceClosure callback) {
-  GetPremiumStatus(
-      base::BindOnce(&AIChatService::ContinueGetEngineForTabOrganization,
-                     weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
-}
-
-void AIChatService::ContinueGetEngineForTabOrganization(
-    base::OnceClosure callback,
-    mojom::PremiumStatus status,
-    mojom::PremiumInfoPtr info) {
-  bool is_premium = IsPremiumStatus();
+void AIChatService::CreateTabOrganizationEngineIfNeeded() {
   if (tab_organization_engine_) {
-    // Check if model name matches the current premium status.
-    if ((is_premium &&
-         tab_organization_engine_->GetModelName() != kClaudeSonnetModelName) ||
-        (!is_premium &&
-         tab_organization_engine_->GetModelName() != kClaudeHaikuModelName)) {
-      tab_organization_engine_.reset();
-    }
+    return;
   }
 
-  if (!tab_organization_engine_) {
-    tab_organization_engine_ = GetEngineForModel(
-        is_premium ? kClaudeSonnetModelKey : kClaudeHaikuModelKey);
+  std::string target_key =
+      profile_prefs_->GetString(prefs::kBraveAIChatTabOrganizationModelKey);
+  if (!model_service_->GetModel(target_key)) {
+    target_key = kChatAutomaticModelKey;
   }
-
-  std::move(callback).Run();
+  tab_organization_engine_ = GetEngineForModel(target_key);
 }
 
-void AIChatService::GetSuggestedTopicsWithEngine(
-    const std::vector<Tab>& tabs,
-    GetSuggestedTopicsCallback callback) {
-  CHECK(tab_organization_engine_);
-  auto internal_callback =
-      base::BindOnce(&AIChatService::OnSuggestedTopicsReceived,
-                     weak_ptr_factory_.GetWeakPtr(), std::move(callback));
-  tab_organization_engine_->GetSuggestedTopics(tabs,
-                                               std::move(internal_callback));
+void AIChatService::OnTabOrganizationModelPrefChanged() {
+  tab_organization_engine_.reset();
 }
 
 void AIChatService::OnSuggestedTopicsReceived(
@@ -1354,13 +1362,6 @@ void AIChatService::OnSuggestedTopicsReceived(
 
 void AIChatService::TabDataChanged(std::vector<mojom::TabDataPtr> tab_data) {
   cached_focus_topics_.clear();
-}
-
-void AIChatService::GetFocusTabsWithEngine(const std::vector<Tab>& tabs,
-                                           const std::string& topic,
-                                           GetFocusTabsCallback callback) {
-  CHECK(tab_organization_engine_);
-  tab_organization_engine_->GetFocusTabs(tabs, topic, std::move(callback));
 }
 
 }  // namespace ai_chat

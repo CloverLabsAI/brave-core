@@ -2,10 +2,11 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+import BraveCore
 import Foundation
 import Shared
 import Storage
-import Web
+@_spi(ChromiumWebViewAccess) import Web
 import WebKit
 import os.log
 
@@ -22,54 +23,18 @@ extension TabDataValues {
 
 /// Value types representing a page's metadata
 struct PageMetadata: Decodable {
-  let siteURL: String
-  let mediaURL: String?
-  let title: String?
-  let description: String?
-  let type: String?
-  let providerName: String?
-  let faviconURL: String?
-  let largeIconURL: String?
-  let keywords: Set<String>?
   let search: Link?
   let feeds: [Link]
 
   enum CodingKeys: String, CodingKey {
-    case mediaURL = "image"
-    case siteURL = "url"
-    case title
-    case description
-    case type
-    case providerName = "provider"
-    case faviconURL = "icon"
-    case largeIconURL = "largeIcon"
-    case keywords
     case search
     case feeds
   }
 
   init(
-    siteURL: String,
-    mediaURL: String?,
-    title: String?,
-    description: String?,
-    type: String?,
-    providerName: String?,
-    faviconURL: String? = nil,
-    largeIconURL: String? = nil,
-    keywords: Set<String>? = nil,
     search: Link? = nil,
     feeds: [Link] = []
   ) {
-    self.siteURL = siteURL
-    self.mediaURL = mediaURL
-    self.title = title
-    self.description = description
-    self.type = type
-    self.providerName = providerName
-    self.faviconURL = faviconURL
-    self.largeIconURL = largeIconURL
-    self.keywords = keywords
     self.search = search
     self.feeds = feeds
   }
@@ -103,35 +68,59 @@ class PageMetadataTabHelper: TabObserver {
       return
     }
 
-    tab.evaluateJavaScript(
-      functionName: "__firefox__.metadata && __firefox__.metadata.getMetadata()",
-      contentWorld: .defaultClient,
-      asFunction: false
-    ) { [self] (result, error) in
-      guard error == nil else {
-        // TabEvent.post(.pageMetadataNotAvailable, for: tab)
+    if FeatureList.kUseProfileWebViewConfiguration.enabled {
+      guard let webView = BraveWebView.from(tab: tab) else {
         metadata = nil
         return
       }
-
-      guard let dict = result as? [String: Any],
-        let data = try? JSONSerialization.data(withJSONObject: dict, options: [])
-      else {
-        Logger.module.debug("Page contains no metadata!")
-        metadata = nil
-        return
+      webView.fetchMetadata { [weak self] json in
+        guard let self, let json else {
+          self?.metadata = nil
+          return
+        }
+        let data = Data(json.utf8)
+        do {
+          let pageMetadata = try JSONDecoder().decode(PageMetadata.self, from: data)
+          metadata = pageMetadata
+        } catch {
+          Logger.module.error(
+            "Failed to parse metadata: \(error.localizedDescription, privacy: .public)"
+          )
+          // To avoid issues where `pageMetadata` points to the last website to successfully
+          // parse metadata, set to nil
+          metadata = nil
+        }
       }
+    } else {
+      tab.evaluateJavaScript(
+        functionName: "__firefox__.metadata && __firefox__.metadata.getMetadata()",
+        contentWorld: .defaultClient,
+        asFunction: false
+      ) { [self] (result, error) in
+        guard error == nil else {
+          metadata = nil
+          return
+        }
 
-      do {
-        let pageMetadata = try JSONDecoder().decode(PageMetadata.self, from: data)
-        metadata = pageMetadata
-      } catch {
-        Logger.module.error(
-          "Failed to parse metadata: \(error.localizedDescription, privacy: .public)"
-        )
-        // To avoid issues where `pageMetadata` points to the last website to successfully
-        // parse metadata, set to nil
-        metadata = nil
+        guard let dict = result as? [String: Any],
+          let data = try? JSONSerialization.data(withJSONObject: dict, options: [])
+        else {
+          Logger.module.debug("Page contains no metadata!")
+          metadata = nil
+          return
+        }
+
+        do {
+          let pageMetadata = try JSONDecoder().decode(PageMetadata.self, from: data)
+          metadata = pageMetadata
+        } catch {
+          Logger.module.error(
+            "Failed to parse metadata: \(error.localizedDescription, privacy: .public)"
+          )
+          // To avoid issues where `pageMetadata` points to the last website to successfully
+          // parse metadata, set to nil
+          metadata = nil
+        }
       }
     }
   }

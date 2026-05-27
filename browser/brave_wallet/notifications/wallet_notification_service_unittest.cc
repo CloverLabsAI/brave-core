@@ -34,18 +34,15 @@ namespace brave_wallet {
 class WalletNotificationServiceUnitTest : public testing::Test {
  public:
   WalletNotificationServiceUnitTest()
-      : task_environment_(base::test::TaskEnvironment::TimeSource::MOCK_TIME),
-        shared_url_loader_factory_(
-            base::MakeRefCounted<network::WeakWrapperSharedURLLoaderFactory>(
-                &url_loader_factory_)) {}
+      : task_environment_(base::test::TaskEnvironment::TimeSource::MOCK_TIME) {}
 
   void SetUp() override {
     RegisterLocalStatePrefs(local_state_.registry());
     RegisterLocalStatePrefsForMigration(local_state_.registry());
 
     brave_wallet_service_ = std::make_unique<BraveWalletService>(
-        shared_url_loader_factory_, TestBraveWalletServiceDelegate::Create(),
-        prefs(), local_state());
+        url_loader_factory_.GetSafeWeakWrapper(),
+        TestBraveWalletServiceDelegate::Create(), prefs(), local_state());
 
     notification_service_ = std::make_unique<WalletNotificationService>(
         brave_wallet_service_.get(), profile());
@@ -71,14 +68,14 @@ class WalletNotificationServiceUnitTest : public testing::Test {
   bool WasNotificationDisplayedOnStatusChange(mojom::TransactionStatus status) {
     std::unique_ptr<EthTransaction> tx = std::make_unique<EthTransaction>(
         *EthTransaction::FromTxData(mojom::TxData::New(
-            "0x01", "0x4a817c800", "0x5208",
+            mojom::kMainnetChainId, "0x01", "0x4a817c800", "0x5208",
             "0x3535353535353535353535353535353535353535", "0x0de0b6b3a7640000",
             std::vector<uint8_t>(), false, std::nullopt)));
     EthTxMeta meta(EthAccount(0), std::move(tx));
     meta.set_status(status);
     notification_service_->OnTransactionStatusChanged(meta.ToTransactionInfo());
     auto notification = tester_->GetNotification(meta.id());
-    tester_->RemoveAllNotifications(NotificationHandler::Type::SEND_TAB_TO_SELF,
+    tester_->RemoveAllNotifications(NotificationHandler::Type::ANNOUNCEMENT,
                                     true /* by_user */);
     return notification.has_value();
   }
@@ -90,7 +87,6 @@ class WalletNotificationServiceUnitTest : public testing::Test {
   TestingProfile profile_;
   TestingPrefServiceSimple local_state_;
   network::TestURLLoaderFactory url_loader_factory_;
-  scoped_refptr<network::SharedURLLoaderFactory> shared_url_loader_factory_;
   std::unique_ptr<BraveWalletService> brave_wallet_service_;
   std::unique_ptr<WalletNotificationService> notification_service_;
 };

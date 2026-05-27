@@ -8,11 +8,14 @@
 
 #include <optional>
 
-#include "base/values.h"
 #include "brave/components/brave_ads/core/internal/common/challenge_bypass_ristretto/blinded_token.h"
 #include "brave/components/brave_ads/core/internal/common/challenge_bypass_ristretto/signed_token.h"
 #include "brave/components/brave_ads/core/internal/common/challenge_bypass_ristretto/token.h"
 #include "brave/components/brave_ads/core/internal/common/challenge_bypass_ristretto/unblinded_token.h"
+
+namespace base {
+class DictValue;
+}  // namespace base
 
 namespace brave_ads {
 
@@ -20,13 +23,13 @@ namespace cbr {
 class PublicKey;
 }  // namespace cbr
 
-std::optional<cbr::PublicKey> ParsePublicKey(const base::Value::Dict& dict);
+std::optional<cbr::PublicKey> ParsePublicKey(const base::DictValue& dict);
 
 std::optional<cbr::SignedTokenList> ParseSignedTokens(
-    const base::Value::Dict& dict);
+    const base::DictValue& dict);
 
 std::optional<cbr::UnblindedTokenList> ParseVerifyAndUnblindTokens(
-    const base::Value::Dict& dict,
+    const base::DictValue& dict,
     const cbr::TokenList& tokens,
     const cbr::BlindedTokenList& blinded_tokens,
     const cbr::PublicKey& public_key);

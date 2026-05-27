@@ -117,14 +117,11 @@ JSEthereumProvider::JSEthereumProvider(content::RenderFrame* render_frame)
     : RenderFrameObserver(render_frame) {
   uuid_ = base::Uuid::GenerateRandomV4().AsLowercaseString();
   EnsureConnected();
-  self_ = this;
 }
 
 JSEthereumProvider::~JSEthereumProvider() = default;
 
-void JSEthereumProvider::OnDestruct() {
-  self_.Clear();
-}
+void JSEthereumProvider::OnDestruct() {}
 
 void JSEthereumProvider::WillReleaseScriptContext(v8::Local<v8::Context>,
                                                   int32_t world_id) {
@@ -275,8 +272,10 @@ bool JSEthereumProvider::GetIsMetaMask() {
 }
 
 JSEthereumProvider::MetaMask::MetaMask(content::RenderFrame* render_frame)
-    : render_frame_(render_frame) {}
+    : RenderFrameObserver(render_frame) {}
 JSEthereumProvider::MetaMask::~MetaMask() = default;
+
+void JSEthereumProvider::MetaMask::OnDestruct() {}
 
 gin::ObjectTemplateBuilder
 JSEthereumProvider::MetaMask::GetObjectTemplateBuilder(v8::Isolate* isolate) {
@@ -290,8 +289,12 @@ const gin::WrapperInfo* JSEthereumProvider::MetaMask::wrapper_info() const {
 
 v8::Local<v8::Promise> JSEthereumProvider::MetaMask::IsUnlocked(
     v8::Isolate* isolate) {
+  if (!render_frame()) {
+    return v8::Local<v8::Promise>();
+  }
+
   if (!ethereum_provider_.is_bound()) {
-    render_frame_->GetBrowserInterfaceBroker().GetInterface(
+    render_frame()->GetBrowserInterfaceBroker().GetInterface(
         ethereum_provider_.BindNewPipeAndPassReceiver());
   }
 
@@ -453,7 +456,7 @@ v8::Local<v8::Promise> JSEthereumProvider::SendMethod(gin::Arguments* args) {
     return v8::Local<v8::Promise>();
   }
 
-  base::Value::List params;
+  base::ListValue params;
   if (args->Length() > 1) {
     v8::Local<v8::Value> arg2;
     if (!args->GetNext(&arg2)) {
@@ -637,7 +640,7 @@ void JSEthereumProvider::ConnectEvent() {
 }
 
 void JSEthereumProvider::OnGetChainId(const std::string& chain_id) {
-  base::Value::Dict event_args;
+  base::DictValue event_args;
   event_args.Set("chainId", chain_id);
   FireEvent(kConnectEvent, event_args);
   is_connected_ = true;
@@ -659,7 +662,7 @@ void JSEthereumProvider::ChainChangedEvent(const std::string& chain_id) {
 
 void JSEthereumProvider::AccountsChangedEvent(
     const std::vector<std::string>& accounts) {
-  base::Value::List event_args;
+  base::ListValue event_args;
   for (const std::string& account : accounts) {
     event_args.Append(base::Value(account));
   }
@@ -672,8 +675,8 @@ void JSEthereumProvider::AccountsChangedEvent(
 
 void JSEthereumProvider::MessageEvent(const std::string& subscription_id,
                                       base::Value result) {
-  base::Value::Dict event_args;
-  base::Value::Dict data;
+  base::DictValue event_args;
+  base::DictValue data;
   data.Set("subscription", subscription_id);
   data.Set("result", std::move(result));
   event_args.Set("type", "eth_subscription");
@@ -732,7 +735,7 @@ void JSEthereumProvider::AnnounceProvider() {
                                  v8::MicrotasksScope::kDoNotRunMicrotasks);
   v8::Context::Scope context_scope(context);
 
-  base::Value::Dict provider_info_value;
+  base::DictValue provider_info_value;
   provider_info_value.Set("rdns", "com.brave.wallet");
   provider_info_value.Set("uuid", uuid_);
   provider_info_value.Set(

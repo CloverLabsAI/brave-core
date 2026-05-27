@@ -11,14 +11,16 @@
 #include "base/check.h"
 #include "base/feature_list.h"
 #include "base/strings/strcat.h"
-#include "brave/browser/brave_rewards/rewards_util.h"
 #include "brave/browser/new_tab/new_tab_shows_options.h"
 #include "brave/browser/ntp_background/brave_ntp_custom_background_service_factory.h"
 #include "brave/browser/resources/brave_new_tab_page_refresh/grit/brave_new_tab_page_refresh_generated_map.h"
 #include "brave/browser/ui/brave_ui_features.h"
 #include "brave/browser/ui/webui/brave_sanitized_image_source.h"
 #include "brave/browser/ui/webui/brave_webui_source.h"
+#include "brave/components/ai_chat/core/common/buildflags/buildflags.h"
 #include "brave/components/brave_news/common/buildflags/buildflags.h"
+#include "brave/components/brave_rewards/core/buildflags/buildflags.h"
+#include "brave/components/brave_search_conversion/pref_names.h"
 #include "brave/components/brave_talk/buildflags/buildflags.h"
 #include "brave/components/brave_vpn/common/buildflags/buildflags.h"
 #include "brave/components/constants/pref_names.h"
@@ -48,9 +50,18 @@
 #include "ui/base/webui/web_ui_util.h"
 #include "ui/webui/webui_util.h"
 
+#if BUILDFLAG(ENABLE_AI_CHAT)
+#include "brave/components/ai_chat/core/browser/utils.h"
+#include "brave/components/ai_chat/core/common/features.h"
+#endif
+
 #if BUILDFLAG(ENABLE_BRAVE_NEWS)
 #include "brave/components/brave_news/common/features.h"
 #include "brave/components/brave_news/common/pref_names.h"
+#endif
+
+#if BUILDFLAG(ENABLE_BRAVE_REWARDS)
+#include "brave/browser/brave_rewards/rewards_util.h"
 #endif
 
 #if BUILDFLAG(ENABLE_BRAVE_VPN)
@@ -112,13 +123,41 @@ void NewTabPageInitializer::Initialize() {
   AddFaviconDataSource();
   AddCustomImageDataSource();
   AddSanitizedImageDataSource();
-  MaybeMigrateHideAllWidgetsPref();
 
   web_ui_->AddRequestableScheme(content::kChromeUIUntrustedScheme);
   web_ui_->OverrideTitle(l10n_util::GetStringUTF16(IDS_NEW_TAB_TITLE));
 
   content::URLDataSource::Add(GetProfile(),
                               std::make_unique<ThemeSource>(GetProfile()));
+}
+
+// static
+void NewTabPageInitializer::MigrateProfilePrefs(PrefService* prefs) {
+  // Added 2026-03: Migrate "hide all widgets" into individual widget prefs.
+  if (prefs->GetBoolean(kNewTabPageHideAllWidgets)) {
+    prefs->SetBoolean(kNewTabPageHideAllWidgets, false);
+    prefs->SetBoolean(kNewTabPageShowRewards, false);
+#if BUILDFLAG(ENABLE_BRAVE_TALK)
+    prefs->SetBoolean(brave_talk::prefs::kNewTabPageShowBraveTalk, false);
+#endif
+#if BUILDFLAG(ENABLE_BRAVE_VPN)
+    prefs->SetBoolean(kNewTabPageShowBraveVPN, false);
+#endif
+  }
+  prefs->ClearPref(kNewTabPageHideAllWidgets);
+
+  // Added 2026-04: Set chat input visibility to hidden if the user has
+  // explicitly hidden the search input.
+  using brave_search_conversion::prefs::kMigratedNTPChatInputFromSearch;
+  using brave_search_conversion::prefs::kShowNTPChatInput;
+  using brave_search_conversion::prefs::kShowNTPSearchBox;
+  if (!prefs->GetBoolean(kMigratedNTPChatInputFromSearch)) {
+    prefs->SetBoolean(kMigratedNTPChatInputFromSearch, true);
+    if (auto* user_value = prefs->GetUserPrefValue(kShowNTPSearchBox);
+        user_value && !user_value->GetBool()) {
+      prefs->SetBoolean(kShowNTPChatInput, false);
+    }
+  }
 }
 
 Profile* NewTabPageInitializer::GetProfile() {
@@ -157,8 +196,12 @@ void NewTabPageInitializer::AddLoadTimeValues() {
       GetSearchDefaultHost(
           RegionalCapabilitiesServiceFactory::GetForProfile(profile)));
 
+#if BUILDFLAG(ENABLE_BRAVE_REWARDS)
   source_->AddBoolean("rewardsFeatureEnabled",
                       brave_rewards::IsSupportedForProfile(profile));
+#else
+  source_->AddBoolean("rewardsFeatureEnabled", false);
+#endif
 
 #if BUILDFLAG(ENABLE_BRAVE_VPN)
   bool vpn_feature_enabled = brave_vpn::IsBraveVPNEnabled(prefs);
@@ -189,6 +232,23 @@ void NewTabPageInitializer::AddLoadTimeValues() {
 #endif  // BUILDFLAG(ENABLE_BRAVE_TALK)
 
   source_->AddInteger("maxCustomTopSites", ntp_tiles::kMaxNumCustomLinks);
+
+  bool ai_chat_input_enabled = false;
+
+#if BUILDFLAG(ENABLE_AI_CHAT)
+  ai_chat_input_enabled =
+      ai_chat::IsAIChatEnabled(profile->GetPrefs()) &&
+      ai_chat::features::IsShowAIChatInputOnNewTabPageEnabled();
+
+  // Required by Brave AI Chat UI.
+  source_->AddBoolean("isMobile", false);
+  source_->AddBoolean("isHistoryEnabled", false);
+  source_->AddBoolean("isAIChatAgentProfileFeatureEnabled",
+                      ai_chat::features::IsAIChatAgentProfileEnabled());
+  source_->AddBoolean("isAIChatAgentProfile", profile->IsAIChatAgent());
+#endif
+
+  source_->AddBoolean("aiChatInputEnabled", ai_chat_input_enabled);
 }
 
 void NewTabPageInitializer::AddStrings() {
@@ -196,6 +256,7 @@ void NewTabPageInitializer::AddStrings() {
   source_->AddLocalizedStrings(webui::kBraveNewsStrings);
   source_->AddLocalizedStrings(webui::kBraveRewardsStrings);
   source_->AddLocalizedStrings(webui::kBraveOmniboxStrings);
+  source_->AddLocalizedStrings(webui::kAiChatStrings);
 }
 
 void NewTabPageInitializer::AddPluralStrings() {
@@ -235,27 +296,6 @@ void NewTabPageInitializer::AddSanitizedImageDataSource() {
   auto* profile = GetProfile();
   content::URLDataSource::Add(
       profile, std::make_unique<BraveSanitizedImageSource>(profile));
-}
-
-void NewTabPageInitializer::MaybeMigrateHideAllWidgetsPref() {
-  // The "hide all widgets" toggle does not exist on this version of the NTP.
-  // If the user has enabled this pref, hide the individual widgets affected by
-  // that pref.
-  // TODO(https://github.com/brave/brave-browser/issues/49544): Deprecate the
-  // `kNewTabPageHideAllWidgets` pref and perform the migration in
-  // `MigrateObsoleteProfilePrefs`.
-  auto* prefs = GetProfile()->GetPrefs();
-  if (prefs->GetBoolean(kNewTabPageHideAllWidgets)) {
-    prefs->SetBoolean(kNewTabPageHideAllWidgets, false);
-
-    prefs->SetBoolean(kNewTabPageShowRewards, false);
-#if BUILDFLAG(ENABLE_BRAVE_TALK)
-    prefs->SetBoolean(brave_talk::prefs::kNewTabPageShowBraveTalk, false);
-#endif
-#if BUILDFLAG(ENABLE_BRAVE_VPN)
-    prefs->SetBoolean(kNewTabPageShowBraveVPN, false);
-#endif
-  }
 }
 
 }  // namespace brave_new_tab_page_refresh

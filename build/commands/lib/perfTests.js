@@ -3,10 +3,10 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 
-const util = require('../lib/util')
-const config = require('../lib/config')
-const path = require('path')
-const fs = require('fs')
+import util from './util.js'
+import config from './config.js'
+import path from 'node:path'
+import fs from 'node:fs'
 
 const runPerfTests = (
   passthroughArgs,
@@ -14,7 +14,7 @@ const runPerfTests = (
   targetBuildConfig,
   options,
 ) => {
-  args = [
+  const args = [
     path.join(config.braveCoreDir, 'tools', 'perf', 'run_perftests.py'),
     perfConfig,
   ]
@@ -32,7 +32,7 @@ const runPerfTests = (
     config.buildConfig = targetBuildConfig
     config.update(options)
 
-    binaryPath = path.join(config.outputDir, 'brave')
+    let binaryPath = path.join(config.outputDir, 'brave')
     if (process.platform === 'win32') {
       binaryPath += '.exe'
     } else if (process.platform === 'darwin') {
@@ -69,4 +69,4 @@ const runPerfTests = (
   util.run('vpython3', args, config.defaultOptions)
 }
 
-module.exports = { runPerfTests }
+export default { runPerfTests }

@@ -37,7 +37,7 @@ class WebcompatReportUploaderUnitTest : public testing::Test {
     return webcompat_report_uploader_.get();
   }
 
-  base::Value::Dict TestReportGeneration(
+  base::DictValue TestReportGeneration(
       webcompat_reporter::mojom::ReportInfoPtr report) {
     std::optional<std::string> request_payload;
     url_loader_factory_.SetInterceptor(base::BindLambdaForTesting(
@@ -64,7 +64,7 @@ class WebcompatReportUploaderUnitTest : public testing::Test {
 TEST_F(WebcompatReportUploaderUnitTest, GenerateReport) {
   auto report_empty = webcompat_reporter::mojom::ReportInfo::New();
   EXPECT_EQ(TestReportGeneration(std::move(report_empty)),
-            base::Value::Dict().Set("api_key", brave_stats::GetAPIKey()));
+            base::DictValue().Set("api_key", brave_stats::GetAPIKey()));
 
   std::vector<webcompat_reporter::mojom::ComponentInfoPtr> components;
   components.push_back(
@@ -72,12 +72,13 @@ TEST_F(WebcompatReportUploaderUnitTest, GenerateReport) {
 
   std::vector<std::string> webcompat_errors{"Could not create screenshot"};
   auto report = webcompat_reporter::mojom::ReportInfo::New(
-      "dev", "1.231.45", "https://abc.url/p1/p2", "true", "ad_block_setting",
+      "dev", "1.231.45", "https://abc.url/p1/p2", "true",
+      /*adblock_only_mode_enabled=*/"true", "ad_block_setting",
       "fp_block_setting", "ad_block_list_names", "languages", "true", "true",
       "category", "details", "contact", "block", "true", std::move(components),
       std::nullopt, webcompat_errors);
 
-  base::Value::List errors_list;
+  base::ListValue errors_list;
   for (const auto& error : webcompat_errors) {
     errors_list.Append(error);
   }
@@ -86,12 +87,12 @@ TEST_F(WebcompatReportUploaderUnitTest, GenerateReport) {
 
   EXPECT_EQ(
       TestReportGeneration(std::move(report)),
-      base::Value::Dict()
+      base::DictValue()
           .Set("adBlockComponentsInfo",
-               base::Value::List().Append(base::Value::Dict()
-                                              .Set("id", "id")
-                                              .Set("name", "name")
-                                              .Set("version", "version")))
+               base::ListValue().Append(base::DictValue()
+                                            .Set("id", "id")
+                                            .Set("name", "name")
+                                            .Set("version", "version")))
           .Set("adBlockLists", *report_copy->ad_block_list_names)
           .Set("adBlockSetting", *report_copy->ad_block_setting)
           .Set("additionalDetails", *report_copy->details)
@@ -110,6 +111,8 @@ TEST_F(WebcompatReportUploaderUnitTest, GenerateReport) {
                report_copy->language_farbling.has_value())
           .Set("languages", *report_copy->languages)
           .Set("shieldsEnabled", report_copy->shields_enabled.has_value())
+          .Set("adblockOnlyModeEnabled",
+               report_copy->adblock_only_mode_enabled.has_value())
           .Set("url", GURL(report_copy->report_url.value()).spec())
           .Set("version", *report_copy->brave_version)
           .Set("webcompatReportErrors", std::move(errors_list)));

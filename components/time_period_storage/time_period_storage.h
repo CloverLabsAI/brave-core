@@ -9,7 +9,6 @@
 #include <list>
 #include <memory>
 
-#include "base/memory/raw_ptr.h"
 #include "base/time/time.h"
 
 namespace base {
@@ -17,29 +16,42 @@ class Clock;
 }
 
 class PrefService;
+class TimePeriodStore;
 
 // Mostly used by various P3A recorders - allows to track a sum of some
 // values added from time to time via |AddDelta| over the last predefined time
-// period. Requires |pref_name| to be already registered.
+// period.
+// When using deprecated constructors, |pref_name| must be already registered.
 class TimePeriodStorage {
  public:
-  // Will use a list pref for storage.
-  TimePeriodStorage(PrefService* prefs,
-                    const char* pref_name,
-                    size_t period_days);
-  // Will use a list within a dictionary pref
-  // for storage.
-  TimePeriodStorage(PrefService* prefs,
-                    const char* pref_name,
-                    const char* dict_key,
-                    size_t period_days);
+  // Will use a TimePeriodStore for storage.
+  TimePeriodStorage(std::unique_ptr<TimePeriodStore> store,
+                    size_t period_days,
+                    bool should_offset_dst = true);
 
-  // For tests.
+  // Will use a list pref for storage. This is a deprecated constructor for
+  // backward compatibility. Use constructor with TimePeriodStore instead.
+  TimePeriodStorage(PrefService* prefs,
+                    const char* pref_name,
+                    size_t period_days,
+                    bool should_offset_dst = true);
+  // Will use a list within a dictionary pref for storage. This is a deprecated
+  // constructor for backward compatibility. Use constructor with
+  // TimePeriodStore instead.
   TimePeriodStorage(PrefService* prefs,
                     const char* pref_name,
                     const char* dict_key,
                     size_t period_days,
-                    std::unique_ptr<base::Clock> clock);
+                    bool should_offset_dst = true);
+
+  // For tests only. Deprecated constructor for backward compatibility. Use
+  // constructor with TimePeriodStore instead.
+  TimePeriodStorage(PrefService* prefs,
+                    const char* pref_name,
+                    const char* dict_key,
+                    size_t period_days,
+                    std::unique_ptr<base::Clock> clock,
+                    bool should_offset_dst = true);
   ~TimePeriodStorage();
 
   TimePeriodStorage(const TimePeriodStorage&) = delete;
@@ -55,6 +67,8 @@ class TimePeriodStorage {
   uint64_t GetHighestValueInPeriod() const;
   bool IsOnePeriodPassed() const;
 
+  void Clear();
+
  protected:
   std::unique_ptr<base::Clock> clock_;
 
@@ -63,14 +77,17 @@ class TimePeriodStorage {
     base::Time day;
     uint64_t value = 0ull;
   };
+  // Returns the midnight that starts the calendar day after `time`. Safe
+  // across DST transitions and does not require `time` to be at midnight.
+  base::Time NextMidnight(base::Time time) const;
+  base::TimeDelta GetDstOffset() const;
   void FilterToPeriod();
   void Load();
   void Save();
 
-  const raw_ptr<PrefService> prefs_;
-  const char* pref_name_ = nullptr;
-  const char* dict_key_ = nullptr;
+  std::unique_ptr<TimePeriodStore> store_;
   size_t period_days_;
+  const bool should_offset_dst_;
 
   std::list<DailyValue> daily_values_;
 };

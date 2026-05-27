@@ -11,7 +11,6 @@
 #include "base/check.h"
 #include "base/json/json_reader.h"
 #include "base/json/json_writer.h"
-#include "base/uuid.h"
 #include "brave/components/brave_rewards/core/engine/rewards_engine.h"
 #include "brave/components/brave_rewards/core/engine/util/environment_config.h"
 #include "brave/components/brave_rewards/core/engine/util/url_loader.h"
@@ -26,19 +25,13 @@ PostOauth::~PostOauth() = default;
 std::string PostOauth::GetUrl() {
   return engine_->Get<EnvironmentConfig>()
       .gemini_oauth_url()
-      .Resolve("/auth/token")
+      .Resolve("token")
       .spec();
 }
 
 std::string PostOauth::GeneratePayload(const std::string& external_account_id,
                                        const std::string& code) {
-  auto& config = engine_->Get<EnvironmentConfig>();
-  const std::string request_id =
-      base::Uuid::GenerateRandomV4().AsLowercaseString();
-
-  base::Value::Dict dict;
-  dict.Set("client_id", config.gemini_client_id());
-  dict.Set("client_secret", config.gemini_client_secret());
+  base::DictValue dict;
   dict.Set("code", code);
   dict.Set("redirect_uri", "rewards://gemini/authorization");
   dict.Set("grant_type", "authorization_code");
@@ -52,14 +45,14 @@ mojom::Result PostOauth::ParseBody(const std::string& body,
                                    std::string* token) {
   DCHECK(token);
 
-  std::optional<base::Value::Dict> value =
+  std::optional<base::DictValue> value =
       base::JSONReader::ReadDict(body, base::JSON_PARSE_CHROMIUM_EXTENSIONS);
   if (!value) {
     engine_->LogError(FROM_HERE) << "Invalid JSON";
     return mojom::Result::FAILED;
   }
 
-  const base::Value::Dict& dict = *value;
+  const base::DictValue& dict = *value;
   const auto* access_token = dict.FindString("access_token");
   if (!access_token) {
     engine_->LogError(FROM_HERE) << "Missing access token";
@@ -78,6 +71,8 @@ void PostOauth::Request(const std::string& external_account_id,
   request->content = GeneratePayload(external_account_id, code);
   request->content_type = "application/json";
   request->method = mojom::UrlMethod::POST;
+  request->headers.push_back(
+      engine_->Get<EnvironmentConfig>().BraveServicesKeyHeader());
 
   engine_->Get<URLLoader>().Load(
       std::move(request), URLLoader::LogLevel::kNone,

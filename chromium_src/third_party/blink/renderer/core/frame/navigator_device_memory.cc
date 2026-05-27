@@ -21,10 +21,15 @@ float FarbleDeviceMemory(blink::ExecutionContext* context) {
       BraveFarblingLevel::OFF);
   // If Brave Shields are down or anti-fingerprinting is off for this site,
   // return the true value.
-  if (farbling_level == BraveFarblingLevel::OFF)
+  if (farbling_level == BraveFarblingLevel::OFF) {
     return true_value;
+  }
 
+  // navigator.deviceMemory is spec-capped at 8 GiB (the JS-visible value is
+  // quantized to this set), so farble only within spec-valid values. Returning
+  // 16/32 would be a fingerprinting tell since real browsers never report it.
   std::vector<float> valid_values = {0.25, 0.5, 1.0, 2.0, 4.0, 8.0};
+
   size_t min_farbled_index;
   size_t max_farbled_index;
   if (farbling_level == BraveFarblingLevel::MAXIMUM) {
@@ -35,20 +40,24 @@ float FarbleDeviceMemory(blink::ExecutionContext* context) {
   } else {
     // If anti-fingerprinting is at default level, select a pseudo-random valid
     // value between 0.5 and the true value (unless the true value is 0.25 in
-    // which case just return that).
+    // which case just return that). If the true value exceeds the spec cap
+    // (e.g. 16 from the high-entropy approximation) it won't be found below and
+    // we fail closed to the max spec value (8.0).
     auto true_it = std::ranges::find(valid_values, true_value);
     size_t true_index;
     // Get index into |valid_values| of the true value. If it's not found,
     // assume the last index. (This should not happen, but it allows us to
     // fail closed instead of failing open.)
-    if (true_it != valid_values.end())
+    if (true_it != valid_values.end()) {
       true_index = std::distance(valid_values.begin(), true_it);
-    else
+    } else {
       true_index = valid_values.size() - 1;
+    }
     min_farbled_index = 1;
     max_farbled_index = true_index;
-    if (max_farbled_index <= min_farbled_index)
+    if (max_farbled_index <= min_farbled_index) {
       return valid_values[min_farbled_index];
+    }
   }
   FarblingPRNG prng =
       BraveSessionCache::From(*context).MakePseudoRandomGenerator(

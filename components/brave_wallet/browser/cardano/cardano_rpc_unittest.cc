@@ -30,7 +30,6 @@
 #include "brave/components/brave_wallet/common/test_utils.h"
 #include "components/sync_preferences/testing_pref_service_syncable.h"
 #include "net/http/http_status_code.h"
-#include "services/data_decoder/public/cpp/test_support/in_process_data_decoder.h"
 #include "services/network/public/cpp/weak_wrapper_shared_url_loader_factory.h"
 #include "services/network/test/test_url_loader_factory.h"
 #include "testing/gmock/include/gmock/gmock.h"
@@ -44,7 +43,7 @@ namespace brave_wallet {
 namespace {
 
 std::string LatestBlockPayload(int height, int slot, int epoch) {
-  base::Value::Dict result;
+  base::DictValue result;
   result.Set("height", height);
   result.Set("slot", slot);
   result.Set("epoch", epoch);
@@ -54,7 +53,7 @@ std::string LatestBlockPayload(int height, int slot, int epoch) {
 std::string LatestEpochParameters(int min_fee_a,
                                   int min_fee_b,
                                   int coins_per_utxo_size) {
-  base::Value::Dict result;
+  base::DictValue result;
   result.Set("min_fee_a", min_fee_a);
   result.Set("min_fee_b", min_fee_b);
   result.Set("coins_per_utxo_size", coins_per_utxo_size);
@@ -66,10 +65,7 @@ std::string LatestEpochParameters(int min_fee_a,
 class CardanoRpcUnitTest : public testing::Test {
  public:
   CardanoRpcUnitTest()
-      : task_environment_(base::test::TaskEnvironment::TimeSource::MOCK_TIME),
-        shared_url_loader_factory_(
-            base::MakeRefCounted<network::WeakWrapperSharedURLLoaderFactory>(
-                &url_loader_factory_)) {}
+      : task_environment_(base::test::TaskEnvironment::TimeSource::MOCK_TIME) {}
 
   ~CardanoRpcUnitTest() override = default;
 
@@ -85,9 +81,11 @@ class CardanoRpcUnitTest : public testing::Test {
             ->GetNetworkURL(mojom::kCardanoTestnet, mojom::CoinType::ADA)
             .spec();
     cardano_mainnet_rpc_ = std::make_unique<cardano_rpc::CardanoRpc>(
-        mojom::kCardanoMainnet, *network_manager_, shared_url_loader_factory_);
+        mojom::kCardanoMainnet, *network_manager_,
+        url_loader_factory_.GetSafeWeakWrapper());
     cardano_testnet_rpc_ = std::make_unique<cardano_rpc::CardanoRpc>(
-        mojom::kCardanoTestnet, *network_manager_, shared_url_loader_factory_);
+        mojom::kCardanoTestnet, *network_manager_,
+        url_loader_factory_.GetSafeWeakWrapper());
   }
 
   std::string GetResponseString() const {
@@ -107,11 +105,9 @@ class CardanoRpcUnitTest : public testing::Test {
   base::test::TaskEnvironment task_environment_;
   sync_preferences::TestingPrefServiceSyncable prefs_;
   network::TestURLLoaderFactory url_loader_factory_;
-  scoped_refptr<network::SharedURLLoaderFactory> shared_url_loader_factory_;
   std::unique_ptr<NetworkManager> network_manager_;
   std::unique_ptr<cardano_rpc::CardanoRpc> cardano_mainnet_rpc_;
   std::unique_ptr<cardano_rpc::CardanoRpc> cardano_testnet_rpc_;
-  data_decoder::test::InProcessDataDecoder in_process_data_decoder_;
 };
 
 TEST_F(CardanoRpcUnitTest, Throttling) {
@@ -305,15 +301,13 @@ TEST_F(CardanoRpcUnitTest, GetUtxoList) {
   ])";
 
   cardano_rpc::UnspentOutputs utxos;
-  utxos.emplace_back();
-  utxos.back().address_to = address;
+  utxos.emplace_back(address);
   utxos.back().tx_hash = test::HexToArray<32>(
       "1fca84164f59606710ff4cf0fd660753bd299e30bb2c8194117fdb965ace67b9");
   utxos.back().output_index = 2;
   utxos.back().lovelace_amount = 406560;
 
-  utxos.emplace_back();
-  utxos.back().address_to = address;
+  utxos.emplace_back(address);
   utxos.back().tx_hash = test::HexToArray<32>(
       "f80875bfaa0726fadc0068cca851f3252762670df345e6c7a483fe841af98e98");
   utxos.back().output_index = 1;

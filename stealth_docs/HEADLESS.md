@@ -114,6 +114,31 @@ document.addEventListener('mousemove', (e) => {
 - Real users have cursor near center or random position
 - Combined with other signals, strong automation indicator
 
+### 6. CSS System Colors (ActiveText resolves to red)
+
+**Headless / no-provider Default:** `getComputedStyle(el).color` for
+`color: ActiveText` returns `rgb(255, 0, 0)` (Blink's `DefaultSystemColor`
+fallback when no native `ui::ColorProvider` is available).
+**Real Browser:** the OS-theme value from the color provider (not the bare red).
+
+```javascript
+const s = document.createElement('span');
+s.style.color = 'ActiveText';
+document.body.appendChild(s);
+if (getComputedStyle(s).color === 'rgb(255, 0, 0)') {
+  console.log("Likely headless / automation (no native color provider)!");
+}
+```
+
+**Why Detectable:**
+- The `0xFFFF0000` fallback only appears when there is no desktop theme/provider
+- Real headful browsers report a themed value
+- Flagged by neo-brave-tester as **STEALTH-1**
+
+**Fix:** see [SYSTEM_COLORS.md](SYSTEM_COLORS.md) — `ConvertStyleColor()` override
+spoofs `ActiveText` to a realistic color-provider value under a per-context
+master seed.
+
 ---
 
 ## Patches Overview

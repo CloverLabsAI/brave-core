@@ -165,7 +165,7 @@ class RewardsPageBrowserTest : public InProcessBrowserTest {
   }
 
   void GivenUserIsConnected() {
-    base::Value::Dict wallet;
+    base::DictValue wallet;
     wallet.Set("token", "token");
     wallet.Set("address", "abe5f454-fedd-4ea9-9203-470ae7315bb3");
     wallet.Set("status", static_cast<int>(mojom::WalletStatus::kConnected));
@@ -327,6 +327,25 @@ IN_PROC_BROWSER_TEST_F(RewardsPageBrowserTest, EnableRewards) {
   // Finally, perform any desired assertions on browser/profile state.
   ASSERT_FALSE(GetPrefs().GetString(prefs::kWalletBrave).empty());
   ASSERT_EQ(GetPrefs().GetString(prefs::kDeclaredGeo), "US");
+
+  // The TOS version pref will be unset (zero) until the parameters have been
+  // saved.
+  ASSERT_EQ(GetPrefs().GetInteger(prefs::kTosVersion), 0);
+  auto params =
+      base::test::ParseJsonDict(R"({ "rate": 0.25, "tos_version": 2 })");
+  GetPrefs().SetDict(prefs::kParameters, std::move(params));
+  ASSERT_EQ(GetPrefs().GetInteger(prefs::kTosVersion), 2);
+}
+
+IN_PROC_BROWSER_TEST_F(RewardsPageBrowserTest, TOSVersionRace) {
+  auto params =
+      base::test::ParseJsonDict(R"({ "rate": 0.25, "tos_version": 2 })");
+  GetPrefs().SetDict(prefs::kParameters, std::move(params));
+  SetRequestHandler(base::BindRepeating(HandleEnableRewardsRequest));
+  NavigateToRewardsPage("/");
+  LoadScript("enable_rewards_test.js");
+  RunTests();
+  ASSERT_EQ(GetPrefs().GetInteger(prefs::kTosVersion), 2);
 }
 
 IN_PROC_BROWSER_TEST_F(RewardsPageBrowserTest, EnableRewardsFromPanel) {
@@ -360,18 +379,25 @@ IN_PROC_BROWSER_TEST_F(RewardsPageBrowserTest, ConnectAccount) {
   std::string state;
   WaitForFinishNavigation([&state](const GURL& url) {
     std::string url_spec = url.spec();
-    if (url_spec.find("/authorize/") == std::string::npos) {
+    if (url_spec.find("/api/oauth/uphold/sandbox/auth") == std::string::npos &&
+        url_spec.find("/api/oauth/uphold/production/auth") ==
+            std::string::npos) {
       return false;
     }
-    if (auto pos = url_spec.find("&state="); pos != std::string::npos) {
-      state = url_spec.substr(pos);
+    if (auto pos = url_spec.find("state="); pos != std::string::npos) {
+      pos += 6;
+      size_t end = url_spec.find('&', pos);
+      state = url_spec.substr(
+          pos, end != std::string::npos ? end - pos : std::string::npos);
     }
     return true;
   });
 
   SetRequestHandler(base::BindLambdaForTesting(
       [](const GURL& url, const std::string& method) -> RequestHandlerResult {
-        if (url.path() == "/oauth2/token" && method == "POST") {
+        if ((url.path() == "/api/oauth/uphold/sandbox/token" ||
+             url.path() == "/api/oauth/uphold/production/token") &&
+            method == "POST") {
           return std::pair{200, R"({ "access_token": "abc123" })"};
         }
         if (url.path() == "/v0/me" && method == "GET") {

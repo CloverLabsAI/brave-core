@@ -17,6 +17,14 @@ export const style = scoped.css`
   & {
     --search-transition-duration: 120ms;
     --top-controls-text-shadow: rgba(0, 0, 0, 0.33) 0 1px 2px;
+
+    /* As of CR146, scrollbars for elements slotted into shadow DOM trees
+     * sometimes do not respect the user's color scheme. Adding a rule for
+     * "color-scheme" ensures that scrollbars are consistent.
+     */
+    @media (prefers-color-scheme: dark) {
+      color-scheme: dark;
+    }
   }
 
   @keyframes background-scroll-fade {
@@ -86,15 +94,34 @@ export const style = scoped.css`
     color: #fff;
     opacity: .9;
 
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+
+    .day-period {
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 14px;
+      margin-top: 7px;
+    }
+
     .ntp-top-sites-wide & {
       @container (width < ${topControlsWideBreakpoint}) {
         font-size: 16px;
+
+        .day-period {
+          display: none;
+        }
       }
     }
 
     @container (width < ${topControlsNarrowBreakpoint}) {
       margin: 12px;
       font-size: 16px;
+
+      .day-period {
+        display: none;
+      }
     }
   }
 
@@ -119,7 +146,7 @@ export const style = scoped.css`
     container-type: inline-size;
     view-timeline-name: --ntp-main-view-timeline;
     position: relative;
-    z-index: 1;
+    z-index: 2;
     display: flex;
     flex-direction: column;
     align-items: center;

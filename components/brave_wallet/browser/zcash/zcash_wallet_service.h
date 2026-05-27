@@ -19,17 +19,13 @@
 #include "brave/components/brave_wallet/browser/zcash/zcash_action_context.h"
 #include "brave/components/brave_wallet/browser/zcash/zcash_complete_transaction_task.h"
 #include "brave/components/brave_wallet/browser/zcash/zcash_rpc.h"
+#include "brave/components/brave_wallet/browser/zcash/zcash_shield_sync_service.h"
 #include "brave/components/brave_wallet/browser/zcash/zcash_transaction.h"
 #include "brave/components/brave_wallet/common/brave_wallet.mojom.h"
 #include "brave/components/brave_wallet/common/buildflags/buildflags.h"
 #include "brave/components/brave_wallet/common/zcash_utils.h"
 #include "brave/components/services/brave_wallet/public/mojom/zcash_decoder.mojom.h"
 #include "third_party/abseil-cpp/absl/container/flat_hash_set.h"
-
-#if BUILDFLAG(ENABLE_ORCHARD)
-#include "brave/components/brave_wallet/browser/internal/orchard_sync_state.h"
-#include "brave/components/brave_wallet/browser/zcash/zcash_shield_sync_service.h"
-#endif
 
 namespace brave_wallet {
 
@@ -46,9 +42,7 @@ class ZCashResolveTransactionStatusTask;
 class ZCashTxMeta;
 
 class ZCashWalletService : public mojom::ZCashWalletService,
-#if BUILDFLAG(ENABLE_ORCHARD)
                            public ZCashShieldSyncService::Observer,
-#endif
                            KeyringServiceObserverBase {
  public:
   enum class ResolveTransactionStatusResult {
@@ -73,18 +67,14 @@ class ZCashWalletService : public mojom::ZCashWalletService,
   using DiscoverNextUnusedAddressCallback = base::OnceCallback<void(
       base::expected<mojom::ZCashAddressPtr, std::string>)>;
 
-  ZCashWalletService(
-      base::FilePath zcash_data_path,
-      KeyringService& keyring_service,
-      NetworkManager* network_manager,
-      scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory);
-
-  // Constructor for tests
-  ZCashWalletService(base::FilePath zcash_data_path,
-                     KeyringService& keyring_service,
+  ZCashWalletService(KeyringService& keyring_service,
                      std::unique_ptr<ZCashRpc> zcash_rpc);
-
   ~ZCashWalletService() override;
+
+  // Bind `sync_state` with `sequence` into `sync_state_`. Must be called after
+  // service is constructed.
+  virtual void SetupSyncState(scoped_refptr<base::SequencedTaskRunner> sequence,
+                              std::unique_ptr<OrchardSyncState> sync_state);
 
   void Bind(mojo::PendingReceiver<mojom::ZCashWalletService> receiver);
 
@@ -154,7 +144,6 @@ class ZCashWalletService : public mojom::ZCashWalletService,
                                          uint64_t amount,
                                          CreateTransactionCallback callback);
 
-#if BUILDFLAG(ENABLE_ORCHARD)
   void CreateOrchardToOrchardTransaction(mojom::AccountIdPtr account_id,
                                          const std::string& address_to,
                                          uint64_t amount,
@@ -171,7 +160,6 @@ class ZCashWalletService : public mojom::ZCashWalletService,
       const std::string& address_to,
       uint64_t amount,
       CreateTransactionCallback callback);
-#endif
 
   void GetTransactionStatus(const mojom::AccountIdPtr& account_id,
                             std::unique_ptr<ZCashTxMeta> tx_meta,
@@ -184,9 +172,12 @@ class ZCashWalletService : public mojom::ZCashWalletService,
                               const ZCashTransaction& zcash_transaction,
                               SignAndPostTransactionCallback callback);
 
-  void SetZCashRpcForTesting(std::unique_ptr<ZCashRpc> zcash_rpc);
-
   void Reset();
+
+ protected:
+  OrchardSyncState::SequenceBound& sync_state();
+  ZCashRpc& zcash_rpc();
+  ZCashActionContext CreateActionContext(const mojom::AccountIdPtr& account_id);
 
  private:
   template <typename T>
@@ -263,7 +254,6 @@ class ZCashWalletService : public mojom::ZCashWalletService,
       SignAndPostTransactionCallback callback,
       base::expected<ZCashTransaction, std::string> result);
 
-#if BUILDFLAG(ENABLE_ORCHARD)
   void MaybeInitAutoSyncManagers();
 
   void OnCreateTransparentToOrchardTransactionTaskDone(
@@ -332,23 +322,13 @@ class ZCashWalletService : public mojom::ZCashWalletService,
       ResetSyncStateCallback callback,
       base::expected<OrchardStorage::Result, OrchardStorage::Error> result);
 
-  base::SequenceBound<OrchardSyncState>& sync_state();
-
-  void OverrideSyncStateForTesting(
-      base::SequenceBound<OrchardSyncState> sync_state);
-#endif
-
-  ZCashActionContext CreateActionContext(const mojom::AccountIdPtr& account_id);
-
   void UpdateNextUnusedAddressForAccount(const mojom::AccountIdPtr& account_id,
                                          const mojom::ZCashAddressPtr& address);
 
-  ZCashRpc& zcash_rpc();
   KeyringService& keyring_service();
 
   base::PassKey<ZCashWalletService> CreatePassKeyForTesting();
 
-  base::FilePath zcash_data_path_;
   raw_ref<KeyringService> keyring_service_;
   std::unique_ptr<ZCashRpc> zcash_rpc_;
 
@@ -359,8 +339,7 @@ class ZCashWalletService : public mojom::ZCashWalletService,
   TaskContainer<ZCashResolveTransactionStatusTask>
       resolve_transaction_status_tasks_;
 
-#if BUILDFLAG(ENABLE_ORCHARD)
-  base::SequenceBound<OrchardSyncState> sync_state_;
+  OrchardSyncState::SequenceBound sync_state_;
   TaskContainer<ZCashCreateTransparentToOrchardTransactionTask>
       create_shield_transaction_tasks_;
   TaskContainer<ZCashCreateOrchardToOrchardTransactionTask>
@@ -373,7 +352,6 @@ class ZCashWalletService : public mojom::ZCashWalletService,
       auto_sync_managers_;
   TaskContainer<ZCashGetZCashChainTipStatusTask>
       get_zcash_chain_tip_status_tasks_;
-#endif
 
   mojo::RemoteSet<mojom::ZCashWalletServiceObserver> observers_;
   mojo::ReceiverSet<mojom::ZCashWalletService> receivers_;

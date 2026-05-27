@@ -14,6 +14,7 @@
 #include "base/json/json_reader.h"
 #include "base/logging.h"
 #include "base/types/expected.h"
+#include "base/values.h"
 #include "components/prefs/pref_service.h"
 #include "extensions/common/url_pattern.h"
 #include "net/base/url_util.h"
@@ -90,7 +91,7 @@ RequestOTRRule::ParseRules(std::string_view contents) {
   if (contents.empty()) {
     return base::unexpected("Could not obtain request_otr configuration");
   }
-  std::optional<base::Value::List> root = base::JSONReader::ReadList(
+  std::optional<base::ListValue> root = base::JSONReader::ReadList(
       contents, base::JSON_PARSE_CHROMIUM_EXTENSIONS);
   if (!root) {
     return base::unexpected("Failed to parse request_otr configuration");

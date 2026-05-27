@@ -11,12 +11,13 @@ import android.content.Intent;
 import org.chromium.base.BravePreferenceKeys;
 import org.chromium.base.Log;
 import org.chromium.build.annotations.NullMarked;
-import org.chromium.build.annotations.Nullable;
 import org.chromium.chrome.browser.ChromeTabbedActivity;
 import org.chromium.chrome.browser.app.BraveActivity;
+import org.chromium.chrome.browser.multiwindow.MultiInstanceManager.PersistedInstanceType;
 import org.chromium.chrome.browser.preferences.ChromeSharedPreferences;
 import org.chromium.chrome.browser.tabmodel.TabModelSelector;
 
+import java.util.Collections;
 import java.util.List;
 
 @NullMarked
@@ -28,17 +29,28 @@ public class BraveMultiWindowUtils extends MultiWindowUtils {
         super();
     }
 
-    public boolean shouldShowEnableWindow(@Nullable Activity activity) {
-        return super.isOpenInOtherWindowSupported(activity) || super.canEnterMultiWindowMode();
+    public boolean shouldShowEnableWindow(Activity activity) {
+        return super.isLinkNavigationToOtherWindowSupported(activity)
+                || MultiWindowUtils.canEnterMultiWindowMode();
     }
 
     public static boolean shouldShowManageWindowsMenu() {
         return shouldEnableMultiWindows() && MultiWindowUtils.shouldShowManageWindowsMenu();
     }
 
+    public static boolean isLinkNavigationToNewWindowSupported() {
+        return shouldEnableMultiWindows()
+                && MultiWindowUtils.isLinkNavigationToNewWindowSupported();
+    }
+
+    public static boolean isLinkNavigationToIncognitoWindowSupported() {
+        return shouldEnableMultiWindows()
+                && MultiWindowUtils.isLinkNavigationToIncognitoWindowSupported();
+    }
+
     @Override
-    public boolean isOpenInOtherWindowSupported(@Nullable Activity activity) {
-        return shouldEnableMultiWindows() && super.isOpenInOtherWindowSupported(activity);
+    public boolean isLinkNavigationToOtherWindowSupported(Activity activity) {
+        return shouldEnableMultiWindows() && super.isLinkNavigationToOtherWindowSupported(activity);
     }
 
     @Override
@@ -48,9 +60,8 @@ public class BraveMultiWindowUtils extends MultiWindowUtils {
                 && super.isMoveToOtherWindowSupported(activity, tabModelSelector);
     }
 
-    @Override
-    public boolean canEnterMultiWindowMode() {
-        return shouldEnableMultiWindows() && super.canEnterMultiWindowMode();
+    public static boolean canEnterMultiWindowMode() {
+        return shouldEnableMultiWindows() && MultiWindowUtils.canEnterMultiWindowMode();
     }
 
     public static boolean shouldEnableMultiWindows() {
@@ -102,11 +113,13 @@ public class BraveMultiWindowUtils extends MultiWindowUtils {
                 if (multiInstanceManager instanceof MultiInstanceManagerApi31) {
                     MultiInstanceManagerApi31 multiInstanceManagerApi31 =
                             ((MultiInstanceManagerApi31) multiInstanceManager);
-                    List<InstanceInfo> allInstances = multiInstanceManagerApi31.getInstanceInfo();
+                    List<InstanceInfo> allInstances =
+                            multiInstanceManagerApi31.getInstanceInfo(PersistedInstanceType.ANY);
                     if (allInstances != null && allInstances.size() > 1) {
                         for (int i = 1; i < allInstances.size(); i++) {
-                            multiInstanceManagerApi31.closeWindow(
-                                    allInstances.get(i).instanceId, allInstances.get(i).taskId);
+                            multiInstanceManagerApi31.closeWindows(
+                                    Collections.singletonList(allInstances.get(i).instanceId),
+                                    allInstances.get(i).taskId);
                         }
                     }
                 }

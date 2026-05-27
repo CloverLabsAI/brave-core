@@ -9,6 +9,7 @@
 #include <utility>
 
 #include "base/check.h"
+#include "base/functional/callback_helpers.h"
 #include "base/types/expected.h"
 #include "brave/components/brave_wallet/browser/brave_wallet_utils.h"
 #include "brave/components/brave_wallet/browser/permission_utils.h"
@@ -45,9 +46,8 @@ void ClearWalletStoragePartition(content::BrowserContext* context,
                                  const GURL& url) {
   CHECK(context);
   auto* partition = context->GetDefaultStoragePartition();
-  partition->ClearDataForOrigin(
-      StoragePartition::REMOVE_DATA_MASK_ALL,
-      StoragePartition::QUOTA_MANAGED_STORAGE_MASK_ALL, url, base::DoNothing());
+  partition->ClearDataForOrigin(StoragePartition::REMOVE_DATA_MASK_ALL, url,
+                                base::DoNothing());
 }
 
 }  // namespace
@@ -160,11 +160,10 @@ void BraveWalletServiceDelegateImpl::OnTabStripModelChanged(
   FireActiveOriginChanged();
 }
 
-void BraveWalletServiceDelegateImpl::TabChangedAt(
-    content::WebContents* contents,
-    int index,
-    TabChangeType change_type) {
-  if (!contents || contents != GetActiveWebContents()) {
+void BraveWalletServiceDelegateImpl::OnTabChangedAt(tabs::TabInterface* tab,
+                                                    int index,
+                                                    TabChangeType change_type) {
+  if (!tab || tab->GetContents() != GetActiveWebContents()) {
     return;
   }
 

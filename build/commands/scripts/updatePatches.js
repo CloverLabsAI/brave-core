@@ -3,15 +3,16 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // you can obtain one at https://mozilla.org/MPL/2.0/.
 
-const fs = require('fs')
-const path = require('path')
-const config = require('../lib/config')
-const updatePatches = require('../lib/updatePatches')
+import fs from 'node:fs'
+import path from 'node:path'
+import config from '../lib/config.js'
+import updatePatches from '../lib/updatePatches.js'
 
 function loadChromiumPathFilter(filePath) {
   const configLines = fs
     .readFileSync(filePath, 'utf-8')
     .split('\n')
+    // @ts-ignore
     .map((line) => line.split('#')[0].trim()) // Removing comments.
     .filter((line) => line.length > 0)
 
@@ -49,11 +50,11 @@ function loadChromiumPathFilter(filePath) {
   }
 }
 
-chromiumPathFilter = loadChromiumPathFilter(
+const chromiumPathFilter = loadChromiumPathFilter(
   path.join(config.braveCoreDir, 'build', 'update_patches_exclusions.cfg'),
 )
 
-module.exports = function RunCommand(filePaths, options) {
+export default function RunCommand(filePaths, options) {
   config.update(options)
 
   const chromiumDir = config.srcDir

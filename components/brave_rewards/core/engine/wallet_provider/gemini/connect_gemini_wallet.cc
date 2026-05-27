@@ -45,20 +45,17 @@ const char* ConnectGeminiWallet::WalletType() const {
 std::string ConnectGeminiWallet::GetOAuthLoginURL() const {
   auto& config = engine_->Get<EnvironmentConfig>();
 
-  auto url = config.gemini_oauth_url().Resolve("/auth");
-
-  url = AppendOrReplaceQueryParameters(
-      url, {{"client_id", config.gemini_client_id()},
-            {"scope",
-             "balances:read,"
-             "history:read,"
-             "crypto:send,"
-             "account:read,"
-             "payments:create,"
-             "payments:send,"},
-            {"redirect_uri", "rewards://gemini/authorization"},
-            {"state", oauth_info_.one_time_string},
-            {"response_type", "code"}});
+  auto url = config.gemini_oauth_url().Resolve("auth");
+  url = AppendOrReplaceQueryParameters(url,
+                                       {{"scope",
+                                         "balances:read,"
+                                         "history:read,"
+                                         "crypto:send,"
+                                         "account:read,"
+                                         "payments:create,"
+                                         "payments:send,"},
+                                        {"state", oauth_info_.one_time_string},
+                                        {"response_type", "code"}});
 
   return url.spec();
 }
@@ -74,8 +71,7 @@ void ConnectGeminiWallet::Authorize(ConnectExternalWalletCallback callback) {
 
   const std::string hashed_payment_id =
       crypto::SHA256HashString(rewards_wallet->payment_id);
-  const std::string external_account_id =
-      base::HexEncode(hashed_payment_id.data(), hashed_payment_id.size());
+  const std::string external_account_id = base::HexEncode(hashed_payment_id);
 
   gemini_server_.post_oauth().Request(
       external_account_id, oauth_info_.code,

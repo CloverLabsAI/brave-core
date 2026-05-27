@@ -1,16 +1,16 @@
 diff --git a/chrome/browser/ui/android/toolbar/BUILD.gn b/chrome/browser/ui/android/toolbar/BUILD.gn
-index 08a3f92edb9d446da7a8a064c66df84831904c70..cca7c819750078289099fa277f0e1bd0b6c6658d 100644
+index 1f1f8c256a61d000e289e2034db966ac3835588d..652bb6fa918ef217f41bad5b9b9299d79e0053a5 100644
 --- a/chrome/browser/ui/android/toolbar/BUILD.gn
 +++ b/chrome/browser/ui/android/toolbar/BUILD.gn
-@@ -142,6 +142,7 @@ android_library("java") {
-     "java/src/org/chromium/chrome/browser/toolbar/top/tab_strip/StripVisibilityState.java",
+@@ -138,6 +138,7 @@ android_library("core_java") {
+     "java/src/org/chromium/chrome/browser/toolbar/top/tab_strip/HeightTransitionHandler.java",
      "java/src/org/chromium/chrome/browser/toolbar/top/tab_strip/TabStripTransitionCoordinator.java",
    ]
 +  sources += brave_browser_ui_android_toolbar_sources
  
    deps = [
      ":java_resources",
-@@ -392,6 +393,7 @@ android_resources("java_resources") {
+@@ -353,6 +354,7 @@ android_resources("java_resources") {
      "//components/browser_ui/styles/android:java_resources",
      "//ui/android:ui_java_resources",
    ]

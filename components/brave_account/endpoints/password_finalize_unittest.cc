@@ -15,14 +15,14 @@
 
 namespace brave_account::endpoints {
 
-bool operator==(const PasswordFinalize::Response::SuccessBody& lhs,
-                const PasswordFinalize::Response::SuccessBody& rhs) {
+bool operator==(const PasswordFinalize::Response::SuccessBody&,
+                const PasswordFinalize::Response::SuccessBody&) {
   return true;
 }
 
-using PasswordFinalizeTestCase = EndpointTestCase<PasswordFinalize>;
-
 namespace {
+
+using PasswordFinalizeTestCase = EndpointTestCase<PasswordFinalize>;
 
 const PasswordFinalizeTestCase* Success() {
   static const base::NoDestructor<PasswordFinalizeTestCase> kSuccess(

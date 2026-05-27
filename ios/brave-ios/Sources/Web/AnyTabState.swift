@@ -3,6 +3,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 
+import BraveCore
 import FaviconModels
 import Foundation
 import UIKit
@@ -22,7 +23,7 @@ public class AnyTabState: TabState {
   }
 
   public var id: ID { tab.id }
-  public var isPrivate: Bool { tab.isPrivate }
+  public var profile: any Profile { tab.profile }
   public var data: TabDataValues {
     get { tab.data }
     set { tab.data = newValue }
@@ -73,11 +74,7 @@ public class AnyTabState: TabState {
 
   public var visibleSecureContentState: SecureContentState { tab.visibleSecureContentState }
   public var serverTrust: SecTrust? { tab.serverTrust }
-  public var favicon: Favicon? {
-    get { tab.favicon }
-    set { tab.favicon = newValue }
-  }
-
+  public var faviconStatus: FaviconStatus? { tab.faviconStatus }
   public var url: URL? { tab.url }
   public var visibleURL: URL? { tab.visibleURL }
   public var lastCommittedURL: URL? { tab.lastCommittedURL }
@@ -185,12 +182,8 @@ public class AnyTabState: TabState {
     tab.loadHTMLString(htmlString, baseURL: baseURL)
   }
 
-  public var configuration: WKWebViewConfiguration {
+  public var configuration: WKWebViewConfiguration? {
     tab.configuration
-  }
-
-  public var viewPrintFormatter: UIViewPrintFormatter? {
-    tab.viewPrintFormatter
   }
 
   public var dataForDisplayedPDF: Data? {

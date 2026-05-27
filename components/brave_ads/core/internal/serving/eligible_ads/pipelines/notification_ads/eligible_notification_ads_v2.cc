@@ -15,6 +15,7 @@
 #include "brave/components/brave_ads/core/internal/ads_client/ads_client_util.h"
 #include "brave/components/brave_ads/core/internal/common/logging_util.h"
 #include "brave/components/brave_ads/core/internal/segments/segment_alias.h"
+#include "brave/components/brave_ads/core/internal/serving/eligible_ads/active_campaigns_filter.h"
 #include "brave/components/brave_ads/core/internal/serving/eligible_ads/eligible_ads_feature.h"
 #include "brave/components/brave_ads/core/internal/serving/eligible_ads/exclusion_rules/exclusion_rules_util.h"
 #include "brave/components/brave_ads/core/internal/serving/eligible_ads/exclusion_rules/notification_ads/notification_ad_exclusion_rules.h"
@@ -136,6 +137,11 @@ void EligibleNotificationAdsV2::FilterAndMaybePredictCreativeAd(
               "creative_ads", creative_ad_count, "ad_events", ad_events.size(),
               "site_history", site_history.size());
 
+  // The SQLite query captures `now` at query time, so campaigns can expire
+  // before this callback runs (e.g., after a sleep/wake cycle). Drop any that
+  // are no longer within their start/end window.
+  FilterInactiveCampaignCreativeAds(creative_ads);
+
   if (creative_ads.empty()) {
     BLOG(1, "No eligible ads");
     return std::move(callback).Run(/*eligible_ads=*/{});
@@ -145,6 +151,13 @@ void EligibleNotificationAdsV2::FilterAndMaybePredictCreativeAd(
       ad_events, *subdivision_targeting_, *anti_targeting_resource_,
       site_history);
   ApplyExclusionRules(creative_ads, last_served_ad_, &exclusion_rules);
+
+  // Round-robin must run after exclusion rules but before pacing. Pacing is a
+  // rate limiter, not an eligibility filter, so it should not influence which
+  // ads the rotation considers unseen. Running before pacing ensures rotation
+  // resets are driven by which ads have actually been shown, not pacing
+  // randomness.
+  creative_ad_round_robin_.Filter(creative_ads);
 
   PaceCreativeAds(creative_ads);
 
@@ -167,6 +180,8 @@ void EligibleNotificationAdsV2::FilterAndMaybePredictCreativeAd(
     BLOG(1, "Predicted ad with creative instance id "
                 << predicted_creative_ad->creative_instance_id
                 << " and a priority of " << priority);
+
+    creative_ad_round_robin_.MarkAsSeen(*predicted_creative_ad);
 
     return std::move(callback).Run({*predicted_creative_ad});
   }

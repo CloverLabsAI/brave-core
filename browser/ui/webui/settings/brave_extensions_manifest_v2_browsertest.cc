@@ -13,7 +13,6 @@
 #include "brave/browser/ui/webui/brave_settings_ui.h"
 #include "brave/components/constants/brave_paths.h"
 #include "chrome/browser/extensions/chrome_content_verifier_delegate.h"
-#include "chrome/browser/extensions/crx_installer.h"
 #include "chrome/browser/extensions/extension_service.h"
 #include "chrome/browser/ui/browser.h"
 #include "chrome/test/base/in_process_browser_test.h"
@@ -23,6 +22,7 @@
 #include "content/public/test/browser_test.h"
 #include "content/public/test/browser_test_utils.h"
 #include "extensions/browser/crx_file_info.h"
+#include "extensions/browser/crx_installer.h"
 #include "extensions/browser/disable_reason.h"
 #include "extensions/browser/extension_dialog_auto_confirm.h"
 #include "extensions/browser/extension_system.h"
@@ -231,6 +231,8 @@ class BraveExtensionsManifestV2InstallerBrowserTest
   }
 
   void SetUpOnMainThread() override {
+    host_resolver()->AddRule("*", "127.0.0.1");
+
     auto get_extension = [](const net::test_server::HttpRequest& request)
         -> std::unique_ptr<net::test_server::HttpResponse> {
       if (request.GetURL().path() != "/extensions") {
@@ -248,7 +250,6 @@ class BraveExtensionsManifestV2InstallerBrowserTest
     https_server_.ServeFilesFromDirectory(
         base::PathService::CheckedGet(brave::DIR_TEST_DATA));
     https_server_.StartAcceptingConnections();
-    host_resolver()->AddRule("*", "127.0.0.1");
   }
 
   void SetUpCommandLine(base::CommandLine* command_line) override {
@@ -258,7 +259,7 @@ class BraveExtensionsManifestV2InstallerBrowserTest
                                     "url-source=https://a.test/extensions");
     command_line->AppendSwitchASCII(
         network::switches::kHostResolverRules,
-        "MAP *:443 " + https_server_.host_port_pair().ToString());
+        "MAP a.test:443 " + https_server_.host_port_pair().ToString());
   }
 
   void TearDown() override {

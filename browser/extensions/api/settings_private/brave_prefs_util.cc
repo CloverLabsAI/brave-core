@@ -153,6 +153,8 @@ const PrefsUtil::TypedPrefMap& BravePrefsUtil::GetAllowlistedKeys() {
   (*s_brave_allowlist)[kTabsSearchShow] = settings_api::PrefType::kBoolean;
   (*s_brave_allowlist)[brave_tabs::kTabHoverMode] =
       settings_api::PrefType::kNumber;
+  (*s_brave_allowlist)[brave_tabs::kTabMinWidthMode] =
+      settings_api::PrefType::kNumber;
   (*s_brave_allowlist)[kTabMuteIndicatorNotClickable] =
       settings_api::PrefType::kBoolean;
 #if BUILDFLAG(IS_MAC)
@@ -240,6 +242,8 @@ const PrefsUtil::TypedPrefMap& BravePrefsUtil::GetAllowlistedKeys() {
       settings_api::PrefType::kBoolean;
   (*s_brave_allowlist)[kWebViewRoundedCorners] =
       settings_api::PrefType::kBoolean;
+  (*s_brave_allowlist)[kBraveSubtleAppMenuLogo] =
+      settings_api::PrefType::kBoolean;
 
 #if BUILDFLAG(ENABLE_BRAVE_WALLET)
   // Brave Wallet pref
@@ -279,6 +283,8 @@ const PrefsUtil::TypedPrefMap& BravePrefsUtil::GetAllowlistedKeys() {
       settings_api::PrefType::kBoolean;
   (*s_brave_allowlist)[ai_chat::prefs::kBraveAIChatTabOrganizationEnabled] =
       settings_api::PrefType::kBoolean;
+  (*s_brave_allowlist)[ai_chat::prefs::kBraveAIChatTabOrganizationModelKey] =
+      settings_api::PrefType::kString;
   (*s_brave_allowlist)[ai_chat::prefs::kBraveAIChatUserCustomizationEnabled] =
       settings_api::PrefType::kBoolean;
   (*s_brave_allowlist)[ai_chat::prefs::kBraveAIChatUserMemoryEnabled] =
@@ -355,6 +361,8 @@ const PrefsUtil::TypedPrefMap& BravePrefsUtil::GetAllowlistedKeys() {
   (*s_brave_allowlist)[brave_tabs::kAlwaysHideTabCloseButton] =
       settings_api::PrefType::kBoolean;
   (*s_brave_allowlist)[brave_tabs::kMiddleClickCloseTabEnabled] =
+      settings_api::PrefType::kBoolean;
+  (*s_brave_allowlist)[brave_tabs::kScrollableHorizontalTabStrip] =
       settings_api::PrefType::kBoolean;
 #endif
 

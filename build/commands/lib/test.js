@@ -3,21 +3,20 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 
-const fs = require('fs-extra')
-const path = require('path')
-
-const Config = require('../lib/config')
-const Log = require('../lib/logging')
-const util = require('../lib/util')
-const assert = require('assert')
-
-const { getAffectedTests } = require('./affectedTests')
-const {
+import fs from 'fs-extra'
+import path from 'node:path'
+import Config from './config.js'
+import Log from './logging.js'
+import util from './util.js'
+import assert from 'node:assert'
+import { getAffectedTests } from './affectedTests.js'
+import {
   getTestBinary,
   getTestsToRun,
   getApplicableFilters,
   getChromiumTestsSuites,
-} = require('./testUtils')
+} from './testUtils.js'
+import { isCI, isTeamcity } from './ciDetect.ts'
 
 const test = async (
   passthroughArgs,
@@ -42,7 +41,7 @@ const test = async (
     return
   }
 
-  await buildTests(testsToRun, Config, options)
+  await buildTests(testsToRun, Config)
   await runTests(passthroughArgs, { suite, testsToRun }, Config, options)
 }
 
@@ -55,7 +54,6 @@ const deleteFile = (filePath) => {
 const buildTests = async (testsToRun, config) => {
   config.buildTargets = testsToRun
   util.touchOverriddenFiles()
-  util.touchGsutilChangeLogFile()
 
   await util.buildTargets(config.buildTargets, config.defaultOptions)
 }
@@ -125,7 +123,7 @@ const runTests = async (
     }
   }
 
-  if (suite === 'brave_unit_tests' && config.isTeamcity && !config.isMobile()) {
+  if (suite === 'brave_unit_tests' && isTeamcity && !config.isMobile()) {
     runChromiumTestLauncherTeamcityReporterIntegrationTests(Config)
   }
 
@@ -136,12 +134,35 @@ const runTests = async (
     let runArgs = braveArgs.slice()
     let runOptions = config.defaultOptions
 
+    // Upstream tests expect to be run from the output directory
+    runOptions.cwd = config.outputDir
+
+    // Set ASAN_OPTIONS (if not already set) only for test launching.
+    // Note: other stages (like build) shouldn't set ASAN_OPTIONS to avoid
+    // LSAN failures. Chromium uses the same approach.
+    if (config.isAsan() && !runOptions.env.ASAN_OPTIONS) {
+      let asanOptions = ['detect_odr_violation=0']
+      if (config.isLsan()) {
+        asanOptions.push('detect_leaks=1')
+      }
+      runOptions.env.ASAN_OPTIONS = asanOptions.join(' ')
+    }
+    if (config.isLsan() && !runOptions.env.LSAN_OPTIONS) {
+      const suppressionsFilePath = path.join(
+        config.braveCoreDir,
+        'test',
+        'sanitizers',
+        'lsan_suppressions.cfg',
+      )
+      runOptions.env.LSAN_OPTIONS = `suppressions=${suppressionsFilePath}`
+    }
+
     // Filter out upstream tests that are known to fail for Brave
     const filterFilePaths = getApplicableFilters(Config, testSuite)
     if (filterFilePaths.length > 0) {
       runArgs.push(`--test-launcher-filter-file=${filterFilePaths.join(';')}`)
     }
-    if (config.isTeamcity && !config.isIOS()) {
+    if (isTeamcity && !config.isIOS()) {
       if (upstreamTestSuites.includes(testSuite)) {
         const ignorePreliminaryFailures =
           '--test-launcher-teamcity-reporter-ignore-preliminary-failures'
@@ -154,7 +175,7 @@ const runTests = async (
     let convertJSONToXML = false
     let outputFilename = path.join(config.srcDir, testSuite)
 
-    if (config.isCI || options.output_xml) {
+    if (isCI || options.output_xml) {
       // When test results are saved to a file, callers (such as CI) generate
       // and analyze test reports as a next step. These callers are typically
       // not interested in the exit code of running the tests, because they
@@ -188,18 +209,21 @@ const runTests = async (
       )
 
       if (!options.manual_android_test_device) {
-        runArgs.push(
-          `--avd-config=tools/android/avd/proto/${options.android_test_emulator_name}.textpb`,
+        const avdConfigPath = path.join(
+          config.srcDir,
+          'tools/android/avd/proto',
+          `${options.android_test_emulator_name}.textpb`,
         )
+        runArgs.push(`--avd-config=${avdConfigPath}`)
       }
     }
 
-    if (config.isTeamcity) {
+    if (isTeamcity) {
       // Stdout and stderr must be separate for a test launcher.
       runOptions.stdio = 'inherit'
     }
 
-    let progStatus = 0
+    let progStatus = undefined
 
     if (config.isIOS()) {
       const outputDir = path.join(config.outputDir, `run_${testSuite}_out`)
@@ -442,4 +466,4 @@ const checkTeamcityReporterOutput = (outputLines, expectedTeamcityLines) => {
   }
 }
 
-module.exports = test
+export default test

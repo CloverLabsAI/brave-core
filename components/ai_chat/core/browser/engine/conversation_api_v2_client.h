@@ -56,10 +56,9 @@ class ConversationAPIV2Client {
 
   virtual void PerformRequest(
       std::vector<OAIMessage> messages,
-      const std::string& selected_language,
-      std::optional<base::Value::List> oai_tool_definitions,
+      std::optional<base::ListValue> oai_tool_definitions,
       const std::optional<std::string>& preferred_tool_name,
-      mojom::ConversationCapability conversation_capability,
+      const ConversationCapabilitySet& conversation_capabilities,
       GenerationDataCallback data_received_callback,
       GenerationCompletedCallback completed_callback,
       const std::optional<std::string>& model_name = std::nullopt);
@@ -77,26 +76,35 @@ class ConversationAPIV2Client {
 
   std::string CreateJSONRequestBody(
       std::vector<OAIMessage> messages,
-      const std::string& selected_language,
-      std::optional<base::Value::List> oai_tool_definitions,
+      std::optional<base::ListValue> oai_tool_definitions,
       const std::optional<std::string>& preferred_tool_name,
-      mojom::ConversationCapability conversation_capability,
+      const ConversationCapabilitySet& conversation_capabilities,
       const std::optional<std::string>& model_name,
       const bool is_sse_enabled);
 
-  static base::Value::List SerializeOAIMessages(
-      std::vector<OAIMessage> messages);
+  static base::ListValue SerializeOAIMessages(std::vector<OAIMessage> messages);
 
  private:
   FRIEND_TEST_ALL_PREFIXES(ConversationAPIV2ClientUnitTest_ContentBlocks,
                            SerializeOAIMessages_ContentBlocks);
+  FRIEND_TEST_ALL_PREFIXES(ConversationAPIV2ClientUnitTest,
+                           OnQueryDataReceived_ContentReceipt);
+  FRIEND_TEST_ALL_PREFIXES(ConversationAPIV2ClientUnitTest,
+                           OnQueryDataReceived_CompletionChunk);
+  FRIEND_TEST_ALL_PREFIXES(ConversationAPIV2ClientUnitTest,
+                           OnQueryDataReceived_ToolStart);
+  FRIEND_TEST_ALL_PREFIXES(ConversationAPIV2ClientUnitTest,
+                           OnQueryDataReceived_InlineSearch);
+  FRIEND_TEST_ALL_PREFIXES(ConversationAPIV2ClientUnitTest,
+                           OnQueryDataReceived_ToolCallRequest);
+  FRIEND_TEST_ALL_PREFIXES(ConversationAPIV2ClientUnitTest,
+                           OnQueryDataReceived_ToolCallResult);
 
   void PerformRequestWithCredentials(
       std::vector<OAIMessage> messages,
-      const std::string& selected_language,
-      std::optional<base::Value::List> oai_tool_definitions,
+      std::optional<base::ListValue> oai_tool_definitions,
       const std::optional<std::string>& preferred_tool_name,
-      mojom::ConversationCapability conversation_capability,
+      const ConversationCapabilitySet& conversation_capabilities,
       const std::optional<std::string>& model_name,
       GenerationDataCallback data_received_callback,
       GenerationCompletedCallback completed_callback,
@@ -107,6 +115,9 @@ class ConversationAPIV2Client {
                         api_request_helper::APIRequestResult result);
   void OnQueryDataReceived(GenerationDataCallback callback,
                            base::expected<base::Value, std::string> result);
+
+  std::optional<std::string> GetLeoModelKeyFromResponse(
+      const base::DictValue& response);
 
   const std::string model_name_;
   std::unique_ptr<api_request_helper::APIRequestHelper> api_request_helper_;

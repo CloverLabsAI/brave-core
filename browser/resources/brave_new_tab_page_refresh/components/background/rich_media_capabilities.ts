@@ -3,8 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { NewTabPageAdEventType } from '../../state/background_state'
-import { AutocompleteMatch } from '../../state/search_state'
+import { NewTabPageAdEventType } from '../../state/background_store'
+import { AutocompleteMatch } from '../../state/search_store'
 
 // This module defines the protocol for exchanging messages between the NTP and
 // a rich media background iframe. Messages should only be sent to the iframe
@@ -26,8 +26,6 @@ interface SafeRectMessage {
 
 interface SearchMatchesMessage {
   type: 'richMediaSearchMatches'
-  // TODO(https://github.com/brave/brave-browser/issues/50424): This should be
-  // a type defined by the protocol.
   value: AutocompleteMatch[]
 }
 
@@ -36,6 +34,7 @@ export type RichMediaIncomingMessage =
   | AdEventMessage
   | SearchAutocompleteMessage
   | OpenSearchMessage
+  | HideBraveSearchBoxMessage
 
 interface AdEventMessage {
   type: 'richMediaEvent'
@@ -52,6 +51,10 @@ interface OpenSearchMessage {
   value: string
 }
 
+interface HideBraveSearchBoxMessage {
+  type: 'richMediaHideBraveSearchBox'
+}
+
 // The interface through which messages can be sent to a rich media background
 // frame.
 export interface RichMediaFrameHandle {
@@ -65,6 +68,7 @@ export interface RichMediaCapabilities {
   openDestinationUrl: () => void
   openBraveSearch: (pathAndQuery: string) => void
   queryBraveSearchAutocomplete: (query: string) => void
+  hideBraveSearchBox: () => void
 }
 
 // Takes a raw incoming rich media message and executes the appropriate
@@ -100,6 +104,9 @@ export function readIncomingMessage(
     }
     case 'richMediaOpenBraveSearchWithQuery': {
       return data.value ? { type, value: String(data.value) } : null
+    }
+    case 'richMediaHideBraveSearchBox': {
+      return { type }
     }
   }
   return null
@@ -142,6 +149,10 @@ export function dispatchIncomingMessage(
     }
     case 'richMediaQueryBraveSearchAutocomplete': {
       capabilities.queryBraveSearchAutocomplete(message.value)
+      break
+    }
+    case 'richMediaHideBraveSearchBox': {
+      capabilities.hideBraveSearchBox()
       break
     }
   }

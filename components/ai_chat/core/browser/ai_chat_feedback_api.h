@@ -23,8 +23,6 @@ class SharedURLLoaderFactory;
 
 namespace ai_chat {
 
-using api_request_helper::APIRequestResult;
-
 class AIChatFeedbackAPI {
  public:
   AIChatFeedbackAPI(
@@ -40,7 +38,6 @@ class AIChatFeedbackAPI {
       bool is_premium,
       const base::span<const mojom::ConversationTurnPtr>& history,
       const std::string& model_name,
-      const std::string& selected_language,
       api_request_helper::APIRequestHelper::ResultCallback
           on_complete_callback);
 
@@ -48,7 +45,6 @@ class AIChatFeedbackAPI {
                     const std::string& feedback,
                     const std::string& rating_id,
                     const std::optional<std::string>& hostname,
-                    const std::string& selected_language,
                     api_request_helper::APIRequestHelper::ResultCallback
                         on_complete_callback);
 

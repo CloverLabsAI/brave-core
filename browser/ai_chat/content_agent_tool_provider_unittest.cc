@@ -15,8 +15,10 @@
 #include "brave/components/ai_chat/core/common/mojom/common.mojom.h"
 #include "chrome/browser/actor/actor_keyed_service.h"
 #include "chrome/browser/actor/actor_task.h"
-#include "chrome/browser/actor/ui/mocks/mock_actor_ui_state_manager.h"
+#include "chrome/browser/actor/actor_test_util.h"
+#include "chrome/browser/actor/ui/test_support/mock_actor_ui_state_manager.h"
 #include "chrome/common/actor/action_result.h"
+#include "chrome/common/chrome_features.h"
 #include "chrome/test/base/testing_browser_process.h"
 #include "chrome/test/base/testing_profile.h"
 #include "chrome/test/base/testing_profile_manager.h"
@@ -52,7 +54,6 @@ class ContentAgentToolProviderTest : public testing::Test {
   ContentAgentToolProviderTest()
       : task_environment_(base::test::TaskEnvironment::TimeSource::MOCK_TIME),
         testing_profile_manager_(TestingBrowserProcess::GetGlobal()) {
-    // Enable the AI Chat Agent Profile feature
     scoped_feature_list_.InitAndEnableFeature(
         ai_chat::features::kAIChatAgentProfile);
   }
@@ -134,10 +135,14 @@ TEST_F(ContentAgentToolProviderTest, StopAllTasks) {
 
   tool_provider_->StopAllTasks();
 
-  // Verify task is now in inactive tasks
+  // Tasks are deleted asynchronously.
+  EXPECT_TRUE(task);
+  EXPECT_EQ(task->GetState(), actor::ActorTask::State::kFinished);
+  actor::WaitForPostedTask();
+
+  // Verify task is now not in inactive tasks.
   EXPECT_EQ(actor_service_->GetActiveTasks().count(task_id), 0u);
-  // With kActorDoNotStoreCompletedTasks feature turned on by default upstream,
-  // completed tasks aren't stored in inactive tasks.
+  // Inactive tasks aren't stored.
   ASSERT_FALSE(task);
 }
 
@@ -149,14 +154,15 @@ TEST_F(ContentAgentToolProviderTest, StopAllTasks) {
 // Test ExecuteActions with empty action sequence is handled from result
 // of ActorKeyedService::PerformActions.
 TEST_F(ContentAgentToolProviderTest, ExecuteActions_EmptyActionSequence) {
-  base::test::TestFuture<std::vector<mojom::ContentBlockPtr>> result_future;
+  base::test::TestFuture<Tool::ToolResult, Tool::ToolArtifacts> result_future;
 
   optimization_guide::proto::Actions actions;
   actions.set_task_id(tool_provider_->GetTaskId().value());
 
   tool_provider_->ExecuteActions(actions, result_future.GetCallback());
 
-  auto result = result_future.Take();
+  auto [result, artifacts] = result_future.Take();
+  EXPECT_TRUE(artifacts.empty());
 
   ASSERT_GT(result.size(), 0u);
   EXPECT_TRUE(result[0]->is_text_content_block());
@@ -167,7 +173,7 @@ TEST_F(ContentAgentToolProviderTest, ExecuteActions_EmptyActionSequence) {
 // Text ExecuteActions with an invalid action is handled before sending to
 // ActorKeyedService::PerformActions.
 TEST_F(ContentAgentToolProviderTest, ExecuteActions_InvalidAction) {
-  base::test::TestFuture<std::vector<mojom::ContentBlockPtr>> result_future;
+  base::test::TestFuture<Tool::ToolResult, Tool::ToolArtifacts> result_future;
 
   // Create an Actions proto with an invalid action (no target)
   optimization_guide::proto::Actions actions;
@@ -179,7 +185,8 @@ TEST_F(ContentAgentToolProviderTest, ExecuteActions_InvalidAction) {
 
   tool_provider_->ExecuteActions(actions, result_future.GetCallback());
 
-  auto result = result_future.Take();
+  auto [result, artifacts] = result_future.Take();
+  EXPECT_TRUE(artifacts.empty());
 
   ASSERT_GT(result.size(), 0u);
   EXPECT_TRUE(result[0]->is_text_content_block());

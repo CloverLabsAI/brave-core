@@ -9,14 +9,15 @@
 #include "base/test/gmock_callback_support.h"
 #include "base/test/mock_callback.h"
 #include "base/test/scoped_feature_list.h"
+#include "base/test/test_future.h"
 #include "base/test/values_test_util.h"
 #include "base/types/optional_ref.h"
 #include "brave/components/brave_ads/core/internal/ad_units/ad_test_constants.h"
 #include "brave/components/brave_ads/core/internal/common/test/test_base.h"
 #include "brave/components/brave_ads/core/internal/common/test/time_test_util.h"
 #include "brave/components/brave_ads/core/internal/serving/new_tab_page_ad_serving_feature.h"
-#include "brave/components/brave_ads/core/internal/serving/permission_rules/permission_rules_test_util.h"
-#include "brave/components/brave_ads/core/internal/settings/settings_test_util.h"
+#include "brave/components/brave_ads/core/internal/serving/permission_rules/test/permission_rules_test_util.h"
+#include "brave/components/brave_ads/core/internal/settings/test/settings_test_util.h"
 #include "brave/components/brave_ads/core/mojom/brave_ads.mojom.h"
 #include "brave/components/brave_ads/core/public/ad_units/new_tab_page_ad/new_tab_page_ad_info.h"
 #include "brave/components/brave_ads/core/public/ads.h"
@@ -110,14 +111,11 @@ class BraveAdsNewTabPageAdIntegrationTest : public test::TestBase {
       }
     )JSON";
 
-    base::RunLoop run_loop;
-    base::MockCallback<ParseAndSaveNewTabPageAdsCallback> callback;
-    EXPECT_CALL(callback, Run(/*success=*/true))
-        .WillOnce(base::test::RunOnceClosure(run_loop.QuitClosure()));
-
-    base::Value::Dict dict = base::test::ParseJsonDict(json);
-    GetAds().ParseAndSaveNewTabPageAds(std::move(dict), callback.Get());
-    run_loop.Run();
+    base::test::TestFuture<bool> test_future;
+    base::DictValue dict = base::test::ParseJsonDict(json);
+    GetAds().ParseAndSaveNewTabPageAds(std::move(dict),
+                                       test_future.GetCallback());
+    EXPECT_TRUE(test_future.Get());
   }
 
   void TriggerNewTabPageAdEventAndVerifiyExpectations(

@@ -9,18 +9,24 @@
 
 #include "brave/browser/ui/browser_commands.h"
 #include "brave/browser/ui/tabs/brave_tab_menu_model_factory.h"
+#include "brave/browser/ui/tabs/brave_tab_prefs.h"
 #include "brave/browser/ui/tabs/brave_tab_strip_model.h"
 #include "brave/browser/ui/tabs/tree_tab_model.h"
+#include "brave/browser/ui/views/tabs/brave_tab.h"
 #include "brave/browser/ui/views/tabs/brave_tab_strip.h"
 #include "brave/browser/ui/views/tabs/vertical_tab_utils.h"
+#include "brave/components/tabs/public/tree_tab_node.h"
 #include "chrome/browser/defaults.h"
+#include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/sessions/tab_restore_service_factory.h"
 #include "chrome/browser/ui/browser_commands.h"
 #include "chrome/browser/ui/tabs/features.h"
 #include "chrome/browser/ui/tabs/tab_muted_utils.h"
 #include "chrome/browser/ui/views/tabs/tab_strip.h"
+#include "components/prefs/pref_service.h"
 #include "components/sessions/core/tab_restore_service.h"
 #include "components/tabs/public/tab_interface.h"
+#include "ui/views/view_utils.h"
 
 BraveBrowserTabStripController::BraveBrowserTabStripController(
     TabStripModel* model,
@@ -35,16 +41,47 @@ BraveBrowserTabStripController::BraveBrowserTabStripController(
 
 BraveBrowserTabStripController::~BraveBrowserTabStripController() = default;
 
-void BraveBrowserTabStripController::EnterTabRenameModeAt(int index) {
-  CHECK(base::FeatureList::IsEnabled(tabs::kBraveRenamingTabs));
-  return static_cast<BraveTabStrip*>(tabstrip_)->EnterTabRenameModeAt(index);
+int BraveBrowserTabStripController::GetTreeHeight(
+    const tree_tab::TreeTabNodeId& id) const {
+  return static_cast<BraveTabStripModel*>(model_.get())
+      ->tree_model()
+      ->GetTreeHeight(id);
 }
 
-void BraveBrowserTabStripController::SetCustomTitleForTab(
-    int index,
-    const std::optional<std::u16string>& title) {
+const tabs::TreeTabNode* BraveBrowserTabStripController::GetTreeTabNode(
+    const tree_tab::TreeTabNodeId& id) const {
+  const auto* node =
+      static_cast<BraveTabStripModel*>(model_.get())->tree_model()->GetNode(id);
+  return node;
+}
+
+void BraveBrowserTabStripController::SetTreeTabNodeCollapsed(
+    const tree_tab::TreeTabNodeId& id,
+    bool collapsed) {
   static_cast<BraveTabStripModel*>(model_.get())
-      ->SetCustomTitleForTab(index, title);
+      ->SetTreeTabNodeCollapsed(id, collapsed);
+}
+
+bool BraveBrowserTabStripController::IsInCollapsedTreeTabNode(
+    const tree_tab::TreeTabNodeId& id) const {
+  return static_cast<BraveTabStripModel*>(model_.get())
+      ->tree_model()
+      ->DoesBelongToCollapsedNode(id);
+}
+
+const tree_tab::TreeTabNodeId*
+BraveBrowserTabStripController::GetClosestCollapsedAncestor(
+    const tree_tab::TreeTabNodeId& id) const {
+  return static_cast<BraveTabStripModel*>(model_.get())
+      ->tree_model()
+      ->GetClosestCollapsedAncestor(id);
+}
+
+const tree_tab::TreeTabNodeId*
+BraveBrowserTabStripController::GetTreeTabNodeIdForGroup(
+    tab_groups::TabGroupId group_id) const {
+  return static_cast<BraveTabStripModel*>(model_.get())
+      ->GetTreeTabNodeIdForGroup(group_id);
 }
 
 bool BraveBrowserTabStripController::IsCommandEnabledForTab(
@@ -135,11 +172,6 @@ void BraveBrowserTabStripController::ExecuteContextMenuCommand(
     return;
   }
 
-  if (command_id == TabStripModel::CommandRenameTab) {
-    EnterTabRenameModeAt(index);
-    return;
-  }
-
   BrowserTabStripController::ExecuteContextMenuCommand(index, command_id,
                                                        event_flags);
 }
@@ -187,10 +219,12 @@ bool BraveBrowserTabStripController::IsContextMenuCommandEnabled(
     return brave::HasDuplicateTabs(browser());
   }
 
-  if (command_id == TabStripModel::CommandShowVerticalTabs ||
-      command_id == TabStripModel::CommandBringAllTabsToThisWindow ||
-      command_id == TabStripModel::CommandOpenInContainer ||
-      command_id == TabStripModel::CommandRenameTab) {
+  if (command_id == TabStripModel::CommandShowVerticalTabs) {
+    return tabs::utils::IsVerticalTabToggleEnabled(browser());
+  }
+
+  if (command_id == TabStripModel::CommandBringAllTabsToThisWindow ||
+      command_id == TabStripModel::CommandOpenInContainer) {
     return true;
   }
 
@@ -198,26 +232,126 @@ bool BraveBrowserTabStripController::IsContextMenuCommandEnabled(
                                                                 command_id);
 }
 
+void BraveBrowserTabStripController::OnTabStripModelChanged(
+    TabStripModel* tab_strip_model,
+    const TabStripModelChange& change,
+    const TabStripSelectionChange& selection) {
+  BrowserTabStripController::OnTabStripModelChanged(tab_strip_model, change,
+                                                    selection);
+
+  if (!ShouldShowTreeTabs()) {
+    return;
+  }
+
+  if (selection.selection_changed()) {
+    for (const auto& index : selection.new_model.selected_indices()) {
+      auto node = tabstrip_->tab_at(index)->tree_tab_node();
+      if (!node) {
+        // If newly selected tabs are newly created, they don't have a tree tab
+        // node yet, so we skip it here. In this case, OnTreeTabChanged will be
+        // called later with kNodeCreated type.
+        continue;
+      }
+
+      if (IsInCollapsedTreeTabNode(*node)) {
+        ExpandAllCollapsedAncestors(*node);
+      }
+    }
+  }
+}
+
 void BraveBrowserTabStripController::OnTreeTabChanged(
     const TreeTabChange& change) {
   switch (change.type) {
     case TreeTabChange::Type::kNodeCreated: {
       const auto& created_change = change.GetCreatedChange();
-      auto index = model_->GetIndexOfTab(created_change.node->GetTab());
-      CHECK_NE(index, TabStripModel::kNoTab);
-      tabstrip_->tab_at(index)->set_tree_tab_node(change.id);
-      break;
-    }
-    case TreeTabChange::Type::kNodeWillBeDestroyed: {
-      auto* tab = change.GetWillBeDestroyedChange().node->GetTab();
-      CHECK(tab);
-      auto index = model_->GetIndexOfTab(tab);
-      // The tab might have already been removed from the model when the
-      // TreeTabNode is being destroyed (e.g., during group removal).
-      if (index != TabStripModel::kNoTab) {
-        tabstrip_->tab_at(index)->set_tree_tab_node(std::nullopt);
+      std::vector<const tabs::TabInterface*> tabs =
+          created_change.node->GetTabs();
+      for (const tabs::TabInterface* tab : tabs) {
+        auto index = model_->GetIndexOfTab(tab);
+        // The tab may not yet have a model index when the deferred
+        // kNodeCreated notification fires during pin/unpin operations
+        // (e.g., the tab is still being moved between collections).
+        if (index == TabStripModel::kNoTab) {
+          continue;
+        }
+        auto* tab_view = tabstrip_->tab_at(index);
+        tab_view->set_tree_tab_node(change.id);
+
+        if (IsActiveTab(index) && IsInCollapsedTreeTabNode(change.id)) {
+          ExpandAllCollapsedAncestors(change.id);
+        }
+
+        if (auto* tab_container =
+                views::AsViewClass<BraveTabContainer>(tab_view->parent())) {
+          tab_container->InvalidateIdealBounds();
+          tab_container->InvalidateLayout();
+        }
       }
       break;
     }
+    case TreeTabChange::Type::kNodeWillBeDestroyed: {
+      std::vector<const tabs::TabInterface*> tabs =
+          change.GetWillBeDestroyedChange().node->GetTabs();
+      for (const tabs::TabInterface* tab : tabs) {
+        auto index = model_->GetIndexOfTab(tab);
+        // The tab might have already been removed from the model when the
+        // TreeTabNode is being destroyed (e.g., during group removal).
+        // Or tab could be in detached state during group creation. In this
+        // case, the BraeTabStrip::AddTabToGroup() will clear the node id by
+        // itself, as this controller have multiple places to clear the node id.
+        if (index == TabStripModel::kNoTab) {
+          continue;
+        }
+
+        auto* tab_view = tabstrip_->tab_at(index);
+        tab_view->set_tree_tab_node(std::nullopt);
+        if (auto* tab_container =
+                views::AsViewClass<BraveTabContainer>(tab_view->parent())) {
+          tab_container->InvalidateIdealBounds();
+          tab_container->InvalidateLayout();
+        }
+      }
+      break;
+    }
+    case TreeTabChange::Type::kNodeCollapsedStateChanged: {
+      const auto& collapsed_state_changed_change =
+          change.GetCollapsedStateChangedChange();
+      for (const tabs::TabInterface* tab :
+           collapsed_state_changed_change.node->GetTabs()) {
+        auto index = model_->GetIndexOfTab(tab);
+        CHECK_NE(index, TabStripModel::kNoTab);
+        static_cast<BraveTab*>(tabstrip_->tab_at(index))
+            ->UpdateTreeToggleButtonIcon();
+      }
+      tabstrip_->InvalidateLayout();
+      break;
+    }
+  }
+}
+
+bool BraveBrowserTabStripController::ShouldShowTreeTabs() {
+  if (!base::FeatureList::IsEnabled(tabs::kBraveTreeTab)) {
+    return false;
+  }
+
+  if (!tabs::utils::ShouldShowBraveVerticalTabs(browser())) {
+    return false;
+  }
+
+  return GetBrowserWindowInterface()->GetProfile()->GetPrefs()->GetBoolean(
+      brave_tabs::kTreeTabsEnabled);
+}
+
+void BraveBrowserTabStripController::ExpandAllCollapsedAncestors(
+    const tree_tab::TreeTabNodeId& id) {
+  while (IsInCollapsedTreeTabNode(id)) {
+    const auto* collapsed_ancestor = GetClosestCollapsedAncestor(id);
+    CHECK(collapsed_ancestor);
+
+    // Note that we need to copy the ancestor ID as |collapsed_ancestor| is
+    // going to be invalidated after SetTreeTabNodeCollapsed(false).
+    auto target_ancestor = *collapsed_ancestor;
+    SetTreeTabNodeCollapsed(target_ancestor, false);
   }
 }

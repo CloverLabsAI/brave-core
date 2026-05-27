@@ -8,12 +8,16 @@ import ButtonMenu from '@brave/leo/react/buttonMenu'
 import Button from '@brave/leo/react/button'
 import Icon from '@brave/leo/react/icon'
 import Toggle from '@brave/leo/react/toggle'
+import { showAlert } from '@brave/leo/react/alertCenter'
 import classnames from '$web-common/classnames'
 import { getLocale } from '$web-common/locale'
 import { useAIChat } from '../../state/ai_chat_context'
 import { useConversation } from '../../state/conversation_context'
 import styles from './style.module.scss'
 import useHasConversationStarted from '../../hooks/useHasConversationStarted'
+import {
+  formatConversationForClipboard, //
+} from '../../../common/conversation_history_utils'
 
 export interface Props {
   setIsConversationsListOpen?: (value: boolean) => unknown
@@ -24,7 +28,7 @@ export default function FeatureMenu(props: Props) {
   const conversationContext = useConversation()
 
   const handleSettingsClick = () => {
-    aiChatContext.uiHandler?.openAIChatSettings()
+    aiChatContext.api.uiHandler.openAIChatSettings()
   }
 
   // If conversation has been started, then it has been committed
@@ -33,8 +37,24 @@ export default function FeatureMenu(props: Props) {
     conversationContext.conversationUuid,
   )
 
+  const isTemporaryChat = conversationContext.api.useGetStateData().temporary
+
   const handleTemporaryChatToggle = (detail: { checked: boolean }) => {
     conversationContext.setTemporary(detail.checked)
+  }
+
+  const copyEntireConversation = async () => {
+    const conversationHistory =
+      conversationContext.api.getConversationHistory.current()
+    const formattedConversation =
+      formatConversationForClipboard(conversationHistory)
+    navigator.clipboard.writeText(formattedConversation).then(() => {
+      showAlert({
+        type: 'info',
+        content: getLocale(S.CHAT_UI_CONVERSATION_COPIED),
+        actions: [],
+      })
+    })
   }
 
   return (
@@ -52,9 +72,7 @@ export default function FeatureMenu(props: Props) {
         <leo-menu-item
           data-is-interactive='true'
           onClick={() =>
-            handleTemporaryChatToggle({
-              checked: !conversationContext.isTemporaryChat,
-            })
+            handleTemporaryChatToggle({ checked: !isTemporaryChat })
           }
         >
           <div
@@ -70,8 +88,24 @@ export default function FeatureMenu(props: Props) {
             <Toggle
               size='small'
               onChange={handleTemporaryChatToggle}
-              checked={conversationContext.isTemporaryChat}
+              checked={isTemporaryChat}
             ></Toggle>
+          </div>
+        </leo-menu-item>
+      )}
+
+      {hasConversationStarted && (
+        <leo-menu-item onClick={() => copyEntireConversation()}>
+          <div
+            className={classnames(
+              styles.menuItemWithIcon,
+              styles.menuItemMainItem,
+            )}
+          >
+            <Icon name='copy' />
+            <span className={styles.menuText}>
+              {getLocale(S.CHAT_UI_MENU_COPY_CONVERSATION)}
+            </span>
           </div>
         </leo-menu-item>
       )}
@@ -81,7 +115,7 @@ export default function FeatureMenu(props: Props) {
           <leo-menu-item
             onClick={() =>
               aiChatContext.setEditingConversationId(
-                conversationContext.conversationUuid!,
+                conversationContext.conversationUuid,
               )
             }
           >
@@ -100,7 +134,7 @@ export default function FeatureMenu(props: Props) {
           <leo-menu-item
             onClick={() =>
               aiChatContext.setDeletingConversationId(
-                conversationContext.conversationUuid!,
+                conversationContext.conversationUuid,
               )
             }
           >
@@ -140,7 +174,7 @@ export default function FeatureMenu(props: Props) {
       )}
       {!aiChatContext.isMobile && (
         <leo-menu-item
-          onClick={() => aiChatContext.uiHandler?.openMemorySettings()}
+          onClick={() => aiChatContext.api.uiHandler.openMemorySettings()}
         >
           <div
             className={classnames(

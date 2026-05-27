@@ -6,11 +6,15 @@
 #ifndef BRAVE_COMPONENTS_BRAVE_WALLET_BROWSER_JSON_KEYSTORE_PARSER_H_
 #define BRAVE_COMPONENTS_BRAVE_WALLET_BROWSER_JSON_KEYSTORE_PARSER_H_
 
+#include <stdint.h>
+
 #include <optional>
 #include <string>
 #include <vector>
 
-#include "base/values.h"
+namespace base {
+class DictValue;
+}  // namespace base
 
 namespace brave_wallet {
 
@@ -18,7 +22,7 @@ namespace brave_wallet {
 // https://github.com/web3/web3.js/blob/ae994346a656688b8e9b907e1ab4731be8c5736e/packages/web3-eth-accounts/src/account.ts#L769
 std::optional<std::vector<uint8_t>> DecryptPrivateKeyFromJsonKeystore(
     const std::string& password,
-    const base::Value::Dict& json);
+    const base::DictValue& json);
 
 }  // namespace brave_wallet
 

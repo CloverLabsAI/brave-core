@@ -12,11 +12,12 @@ const eventTemplate: Mojom.ConversationEntryEvent = {
   completionEvent: undefined,
   searchQueriesEvent: undefined,
   searchStatusEvent: undefined,
-  selectedLanguageEvent: undefined,
   conversationTitleEvent: undefined,
   sourcesEvent: undefined,
   contentReceiptEvent: undefined,
   toolUseEvent: undefined,
+  inlineSearchEvent: undefined,
+  deepResearchEvent: undefined,
 }
 
 export function getEventTemplate() {
@@ -31,13 +32,18 @@ export function getCompletionEvent(text: string): Mojom.ConversationEntryEvent {
 }
 
 export function getToolUseEvent(
-  toolUseEvent: UndefinedToOptional<Mojom.ToolUseEvent>,
+  toolUseEvent: Omit<
+    UndefinedToOptional<Mojom.ToolUseEvent>,
+    'isServerResult'
+  > & { isServerResult?: boolean },
 ): Mojom.ConversationEntryEvent {
   return {
     ...eventTemplate,
     toolUseEvent: {
       output: undefined,
+      artifacts: undefined,
       permissionChallenge: undefined,
+      isServerResult: false, // default value
       ...toolUseEvent,
     },
   }
@@ -50,6 +56,15 @@ export function getWebSourcesEvent(
   return {
     ...eventTemplate,
     sourcesEvent: { sources, richResults: richResults ?? [] },
+  }
+}
+
+export function getSearchQueriesEvent(
+  queries: string[],
+): Mojom.ConversationEntryEvent {
+  return {
+    ...eventTemplate,
+    searchQueriesEvent: { searchQueries: queries },
   }
 }
 

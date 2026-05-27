@@ -55,8 +55,14 @@ gfx::Size BravePageInfoBubbleView::CalculatePreferredSize(
     const views::SizeBounds& available_size) const {
   gfx::Size size = PageInfoBubbleView::CalculatePreferredSize(available_size);
 
-  if (customize_view_) {
-    // This bubble needs to be larger than the parent class in order to show the
+  if (shields_page_view_) {
+    // If the shields panel is visible, use its preferred width, which can vary
+    // depending on the user's "page zoom" setting.
+    if (shields_page_view_->GetVisible()) {
+      auto shields_size = shields_page_view_->GetPreferredSize(available_size);
+      size.set_width(shields_size.width());
+    }
+    // This bubble needs to be wider than the parent class in order to show the
     // full tab switcher and Shields content.
     constexpr int kMinBubbleWidth = 388;
     size.set_width(std::max(size.width(), kMinBubbleWidth));

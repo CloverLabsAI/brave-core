@@ -6,19 +6,21 @@
 #ifndef BRAVE_COMPONENTS_BRAVE_ADS_CORE_INTERNAL_HISTORY_AD_HISTORY_VALUE_UTIL_INTERNAL_H_
 #define BRAVE_COMPONENTS_BRAVE_ADS_CORE_INTERNAL_HISTORY_AD_HISTORY_VALUE_UTIL_INTERNAL_H_
 
-#include "base/values.h"
+namespace base {
+class DictValue;
+}  // namespace base
 
 namespace brave_ads {
 
 struct AdHistoryItemInfo;
 
-void ParseCreatedAt(const base::Value::Dict& dict,
+void ParseCreatedAt(const base::DictValue& dict,
                     AdHistoryItemInfo& ad_history_item);
 
-void ParseAdContent(const base::Value::Dict& dict,
+void ParseAdContent(const base::DictValue& dict,
                     AdHistoryItemInfo& ad_history_item);
 
-void ParseSegmentContent(const base::Value::Dict& dict,
+void ParseSegmentContent(const base::DictValue& dict,
                          AdHistoryItemInfo& ad_history_item);
 
 }  // namespace brave_ads

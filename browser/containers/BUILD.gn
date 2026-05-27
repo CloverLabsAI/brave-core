@@ -7,13 +7,35 @@ import("//brave/components/containers/buildflags/buildflags.gni")
 
 assert(enable_containers)
 
+source_set("containers") {
+  sources = [
+    "container_tab_tracker.cc",
+    "container_tab_tracker.h",
+    "containers_service_factory.cc",
+    "containers_service_factory.h",
+  ]
+
+  deps = [
+    "//brave/components/containers/content/browser",
+    "//brave/components/containers/core/browser",
+    "//brave/components/containers/core/common",
+    "//chrome/browser/profiles:profile",
+    "//chrome/browser/ui/tabs",
+    "//content/public/browser",
+  ]
+}
+
 source_set("browser_tests") {
   testonly = true
 
   sources = [ "containers_browsertest.cc" ]
 
   deps = [
+    ":containers",
+    "//brave/components/containers/content/browser",
+    "//brave/components/containers/core/browser",
     "//brave/components/containers/core/common:features",
+    "//brave/components/containers/core/mojom",
     "//chrome/browser",
     "//chrome/test:test_support",
   ]

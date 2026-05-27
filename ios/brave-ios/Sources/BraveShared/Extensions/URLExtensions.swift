@@ -24,15 +24,21 @@ extension URL {
     .init(url: self)
   }
 
+  public var isNewTabURL: Bool {
+    // For now also include the prior legacy URL in the check
+    if InternalURL.isValid(url: self) && path.contains("about/home") {
+      return true
+    }
+    return scheme == "about" && host == "newtab"
+  }
+
   /// Obtains a clean stripped url from the current Internal URL
   ///
   /// Returns the original url without  internal parameters
   public var strippedInternalURL: URL? {
     if let internalURL = InternalURL(self) {
       switch internalURL.urlType {
-      case .errorPage:
-        return internalURL.originalURLFromErrorPage
-      case .web3Page, .aboutHomePage:
+      case .web3Page:
         return internalURL.extractedUrlParam
       case .blockedPage:
         return decodeEmbeddedInternalURL(for: .blocked)
@@ -63,10 +69,6 @@ extension URL {
         .havingRemovedAuthorisationComponents()
     }
 
-    if let internalUrl = InternalURL(self), internalUrl.isErrorPage {
-      return internalUrl.originalURLFromErrorPage?.displayURL
-    }
-
     if let internalUrl = InternalURL(self),
       internalUrl.isWeb3URL || internalUrl.isHTTPBlockedPage
         || internalUrl.isBlockedPage
@@ -78,12 +80,8 @@ extension URL {
       return self
     }
 
-    if !InternalURL.isValid(url: self) {
-      let url = self.havingRemovedAuthorisationComponents()
-      if let internalUrl = InternalURL(url), internalUrl.isErrorPage {
-        return internalUrl.originalURLFromErrorPage?.displayURL
-      }
-      return url
+    if !isNewTabURL, !InternalURL.isValid(url: self) {
+      return self.havingRemovedAuthorisationComponents()
     }
 
     return nil
@@ -363,9 +361,7 @@ extension InternalURL {
   enum URLType {
     case blockedPage
     case httpBlockedPage
-    case errorPage
     case readerModePage
-    case aboutHomePage
     case web3Page
     case other
   }
@@ -382,20 +378,12 @@ extension InternalURL {
       return .blockedPage
     }
 
-    if isErrorPage {
-      return .errorPage
-    }
-
     if isWeb3URL {
       return .web3Page
     }
 
     if isReaderModePage {
       return .readerModePage
-    }
-
-    if isAboutHomeURL {
-      return .aboutHomePage
     }
 
     return .other

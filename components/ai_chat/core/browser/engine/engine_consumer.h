@@ -44,7 +44,7 @@ class EngineConsumer {
 
   struct GenerationResultData {
     GenerationResultData(mojom::ConversationEntryEventPtr event,
-                         std::optional<std::string>&& model_key,
+                         std::optional<std::string> model_key,
                          std::optional<bool> is_near_verified = std::nullopt);
     ~GenerationResultData();
 
@@ -85,24 +85,21 @@ class EngineConsumer {
 
   virtual void GenerateQuestionSuggestions(
       PageContents page_contents,
-      const std::string& selected_language,
       SuggestedQuestionsCallback callback) = 0;
 
   virtual void GenerateAssistantResponse(
       PageContentsMap&& page_contents,
       const ConversationHistory& conversation_history,
-      const std::string& selected_language,
       bool is_temporary_chat,
       const std::vector<base::WeakPtr<Tool>>& tools,
       std::optional<std::string_view> preferred_tool_name,
-      mojom::ConversationCapability conversation_capability,
+      const ConversationCapabilitySet& conversation_capabilities,
       GenerationDataCallback data_received_callback,
       GenerationCompletedCallback completed_callback) = 0;
 
   virtual void GenerateRewriteSuggestion(
       const std::string& text,
       mojom::ActionType action_type,
-      const std::string& selected_language,
       GenerationDataCallback received_callback,
       GenerationCompletedCallback completed_callback) {}
 
@@ -113,7 +110,6 @@ class EngineConsumer {
   virtual void GenerateConversationTitle(
       const PageContentsMap& page_contents,
       const ConversationHistory& conversation_history,
-      const std::string& selected_language,
       GenerationCompletedCallback completed_callback) {}
 
   // Prevent indirect prompt injections being sent to the AI model.
@@ -170,6 +166,18 @@ class EngineConsumer {
   void OnConversationTitleGenerated(
       GenerationCompletedCallback completion_callback,
       GenerationResult api_result);
+
+  // Merges the result from multiple GetSuggestedTopics requests, which would
+  // then trigger DedupeTopics below to get the final topic list with an emoji
+  // appended to each topic.
+  void MergeSuggestTopicsResults(GetSuggestedTopicsCallback callback,
+                                 std::vector<GenerationResult> results);
+
+  // Given a list of results from GetSuggestedTopics, send another request to
+  // the server to dedupe the topics.
+  virtual void DedupeTopics(
+      base::expected<std::vector<std::string>, mojom::APIError> topics_result,
+      GetSuggestedTopicsCallback callback) = 0;
 
   uint32_t max_associated_content_length_ = 0;
   std::string model_name_ = "";

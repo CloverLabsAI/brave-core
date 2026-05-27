@@ -15,12 +15,11 @@
 #include <utility>
 #include <vector>
 
-#include "base/memory/weak_ptr.h"
 #include "base/observer_list_types.h"
 #include "base/sequence_checker.h"
 #include "base/values.h"
 #include "brave/components/brave_component_updater/browser/dat_file_util.h"
-#include "brave/components/brave_shields/core/browser/adblock/rs/src/lib.rs.h"
+#include "brave/components/brave_shields/core/common/adblock/rs/src/lib.rs.h"
 #include "third_party/blink/public/mojom/loader/resource_load_info.mojom-shared.h"
 #include "third_party/rust/cxx/v1/cxx.h"
 #include "url/gurl.h"
@@ -42,8 +41,6 @@ class AdBlockEngine {
   AdBlockEngine& operator=(const AdBlockEngine&) = delete;
   ~AdBlockEngine();
 
-  bool IsDefaultEngine() { return is_default_engine_; }
-
   adblock::BlockerResult ShouldStartRequest(
       const GURL& url,
       blink::mojom::ResourceType resource_type,
@@ -59,12 +56,12 @@ class AdBlockEngine {
   void EnableTag(const std::string& tag, bool enabled);
   bool TagExists(const std::string& tag);
 
-  base::Value::Dict GetDebugInfo();
+  base::DictValue GetDebugInfo();
   void DiscardRegex(uint64_t regex_id);
   void SetupDiscardPolicy(const adblock::RegexManagerDiscardPolicy& policy);
 
-  base::Value::Dict UrlCosmeticResources(const std::string& url);
-  base::Value::List HiddenClassIdSelectors(
+  base::DictValue UrlCosmeticResources(const std::string& url);
+  base::ListValue HiddenClassIdSelectors(
       const std::vector<std::string>& classes,
       const std::vector<std::string>& ids,
       const std::vector<std::string>& exceptions);
@@ -82,8 +79,6 @@ class AdBlockEngine {
 
   void AddObserverForTest(TestObserver* observer);
   void RemoveObserverForTest();
-
-  base::WeakPtr<AdBlockEngine> AsWeakPtr();
 
  protected:
   void AddKnownTagsToAdBlockInstance();
@@ -115,7 +110,6 @@ class AdBlockEngine {
   bool is_default_engine_;
 
   SEQUENCE_CHECKER(sequence_checker_);
-  base::WeakPtrFactory<AdBlockEngine> weak_ptr_factory_{this};
 };
 
 }  // namespace brave_shields

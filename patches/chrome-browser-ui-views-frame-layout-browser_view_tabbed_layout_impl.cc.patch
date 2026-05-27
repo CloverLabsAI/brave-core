@@ -1,0 +1,13 @@
+diff --git a/chrome/browser/ui/views/frame/layout/browser_view_tabbed_layout_impl.cc b/chrome/browser/ui/views/frame/layout/browser_view_tabbed_layout_impl.cc
+index c6c9977ab68f8bd0cbd8382f24638c15317d731d..aa4772e945af95261b8034beeb915f7287b82d88 100644
+--- a/chrome/browser/ui/views/frame/layout/browser_view_tabbed_layout_impl.cc
++++ b/chrome/browser/ui/views/frame/layout/browser_view_tabbed_layout_impl.cc
+@@ -628,7 +628,7 @@ BrowserViewTabbedLayoutImpl::CalculateProposedLayout(
+   }
+ 
+   BrowserLayoutParams params = browser_params;
+-  bool needs_exclusion = true;
++  bool needs_exclusion = !delegate().ShouldShowVerticalTabs();
+   const TabStripType tab_strip_type = GetTabStripType();
+   HorizontalLayout horizontal_layout = CalculateHorizontalLayout(params);
+ 

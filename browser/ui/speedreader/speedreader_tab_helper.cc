@@ -14,6 +14,7 @@
 #include "base/check_is_test.h"
 #include "base/feature_list.h"
 #include "base/functional/bind.h"
+#include "base/functional/callback_helpers.h"
 #include "base/json/json_writer.h"
 #include "base/no_destructor.h"
 #include "base/strings/strcat.h"
@@ -23,7 +24,6 @@
 #include "brave/browser/brave_browser_process.h"
 #include "brave/browser/speedreader/page_distiller.h"
 #include "brave/browser/speedreader/speedreader_service_factory.h"
-#include "brave/browser/ui/page_action/brave_page_action_icon_type.h"
 #include "brave/browser/ui/speedreader/speedreader_bubble_view.h"
 #include "brave/components/speedreader/common/features.h"
 #include "brave/components/speedreader/speedreader_extended_info_handler.h"
@@ -59,7 +59,7 @@ namespace speedreader {
 
 std::u16string GetSpeedreaderData(
     std::initializer_list<std::pair<std::string_view, int>> resources) {
-  base::Value::Dict sr_data;
+  base::DictValue sr_data;
   sr_data.Set("ttsEnabled", features::kSpeedreaderTTS.Get());
   for (const auto& r : resources) {
     sr_data.Set(r.first, l10n_util::GetStringUTF16(r.second));

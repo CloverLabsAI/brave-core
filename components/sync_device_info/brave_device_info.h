@@ -26,7 +26,7 @@ class BraveDeviceInfo : public DeviceInfo {
       const std::string& client_name,
       const std::string& chrome_version,
       const std::string& sync_user_agent,
-      const sync_pb::SyncEnums::DeviceType device_type,
+      const DeviceType device_type,
       const OsType os_type,
       const FormFactor form_factor,
       const std::string& signin_scoped_device_id,
@@ -36,12 +36,13 @@ class BraveDeviceInfo : public DeviceInfo {
       base::Time last_updated_timestamp,
       base::TimeDelta pulse_interval,
       bool send_tab_to_self_receiving_enabled,
-      sync_pb::SyncEnums_SendTabReceivingType send_tab_to_self_receiving_type,
+      SendTabReceivingType send_tab_to_self_receiving_type,
       const std::optional<DeviceInfo::SharingInfo>& sharing_info,
       const std::optional<PhoneAsASecurityKeyInfo>& paask_info,
       const std::string& fcm_registration_token,
       const DataTypeSet& interested_data_types,
       std::optional<base::Time> floating_workspace_last_signin_timestamp,
+      bool desktop_to_ios_promo_receiving_enabled,
       bool is_self_delete_supported);
   BraveDeviceInfo(const BraveDeviceInfo&) = delete;
   BraveDeviceInfo& operator=(const BraveDeviceInfo&) = delete;
@@ -58,7 +59,7 @@ class BraveDeviceInfo : public DeviceInfo {
 
   // Converts the |DeviceInfo| values to a JS friendly DictionaryValue,
   // which extension APIs can expose to third party apps.
-  base::Value::Dict ToValue() const;
+  base::DictValue ToValue() const;
 
  private:
   bool is_self_delete_supported_;

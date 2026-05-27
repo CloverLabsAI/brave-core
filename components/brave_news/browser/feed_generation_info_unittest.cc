@@ -12,9 +12,6 @@
 #include <utility>
 #include <vector>
 
-#include "base/containers/contains.h"
-#include "base/containers/flat_map.h"
-#include "base/functional/bind.h"
 #include "base/strings/string_number_conversions.h"
 #include "brave/components/brave_news/browser/channels_controller.h"
 #include "brave/components/brave_news/browser/feed_fetcher.h"
@@ -23,6 +20,7 @@
 #include "brave/components/brave_news/browser/topics_fetcher.h"
 #include "brave/components/brave_news/common/brave_news.mojom.h"
 #include "testing/gtest/include/gtest/gtest.h"
+#include "third_party/abseil-cpp/absl/container/flat_hash_map.h"
 
 namespace brave_news {
 
@@ -104,7 +102,7 @@ class BraveNewsFeedGenerationInfoTest : public testing::Test {
     return info.article_infos_.has_value();
   }
 
-  base::flat_map<std::string, size_t>& GetAvailableCounts(
+  absl::flat_hash_map<NameId, size_t>& GetAvailableCounts(
       FeedGenerationInfo& info) {
     return info.available_counts_;
   }
@@ -134,9 +132,13 @@ TEST_F(BraveNewsFeedGenerationInfoTest, CanCreateFeedGenerationInfo) {
   // There are only 3 items because PublisherTwo is not explicitly subscribed.
   EXPECT_EQ(3u, content_groups.size());
 
-  auto has_group = [&content_groups](const std::string& group) {
-    return base::Contains(content_groups, group,
-                          [](const auto& other) { return other.first; });
+  auto has_group = [&content_groups, &info](const std::string& name) {
+    auto name_id = info.name_table().Find(name);
+    if (!name_id) {
+      return false;
+    }
+    return std::ranges::contains(content_groups, name_id,
+                                 [](const auto& other) { return other.first; });
   };
   EXPECT_TRUE(has_group(kTopNewsChannel));
   EXPECT_TRUE(has_group(kFooChannel));
@@ -157,15 +159,14 @@ TEST_F(BraveNewsFeedGenerationInfoTest,
 
   // Removing the article from publisher1 should remove everything from p1 and
   // kTopNews.
-  PickArticles pickP1 = base::BindRepeating(
-      [](const ArticleInfos& articles) -> std::optional<size_t> {
-        for (size_t i = 0; i < articles.size(); ++i) {
-          if (std::get<0>(articles[i])->publisher_id == kPublisher1) {
-            return std::make_optional(i);
-          }
-        }
-        return std::nullopt;
-      });
+  auto pickP1 = [](const ArticleInfos& articles) -> std::optional<size_t> {
+    for (size_t i = 0; i < articles.size(); ++i) {
+      if (std::get<0>(articles[i])->publisher_id == kPublisher1) {
+        return std::make_optional(i);
+      }
+    }
+    return std::nullopt;
+  };
   info.PickAndConsume(pickP1);
   EXPECT_EQ(1u, info.GetEligibleContentGroups().size());
 }
@@ -184,22 +185,25 @@ TEST_F(BraveNewsFeedGenerationInfoTest,
   EXPECT_EQ(2u, info.EligibleChannels().size());
 
   // Pick top news
-  PickArticles pick_top_news = base::BindRepeating(
-      [](const ArticleInfos& articles) -> std::optional<size_t> {
-        for (size_t i = 0; i < articles.size(); ++i) {
-          if (base::Contains(std::get<1>(articles[i]).channels,
-                             kTopNewsChannel)) {
-            return std::make_optional(i);
-          }
-        }
-        return std::nullopt;
-      });
+  const NameId top_news_id = info.name_table().Find(kTopNewsChannel);
+  ASSERT_FALSE(top_news_id.is_null());
+  auto pick_top_news =
+      [top_news_id](const ArticleInfos& articles) -> std::optional<size_t> {
+    for (size_t i = 0; i < articles.size(); ++i) {
+      if (std::get<1>(articles[i]).channels.contains(top_news_id)) {
+        return std::make_optional(i);
+      }
+    }
+    return std::nullopt;
+  };
   info.PickAndConsume(pick_top_news);
   EXPECT_EQ(1u, info.GetEligibleContentGroups().size());
 
   auto channels = info.EligibleChannels();
   EXPECT_EQ(1u, channels.size());
-  EXPECT_TRUE(base::Contains(channels, kFooChannel));
+  const NameId foo_channel_id = info.name_table().Find(kFooChannel);
+  ASSERT_FALSE(foo_channel_id.is_null());
+  EXPECT_TRUE(std::ranges::contains(channels, foo_channel_id));
 }
 
 TEST(BraveNewsFeedSampling, GetArticleInfosSkipsNull) {

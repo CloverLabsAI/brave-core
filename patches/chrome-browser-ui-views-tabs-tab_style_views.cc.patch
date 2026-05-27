@@ -1,8 +1,8 @@
 diff --git a/chrome/browser/ui/views/tabs/tab_style_views.cc b/chrome/browser/ui/views/tabs/tab_style_views.cc
-index fe66c423ab24852c67e596154ec2e1556c5b7b12..1de94b517122085aa1b3abe657dff8e928d5c8d5 100644
+index f5155d8e3d0e79cf6a75b48d163b85fcb2f99d96..9122703351127d10f02a383d3ca51d160514a5c3 100644
 --- a/chrome/browser/ui/views/tabs/tab_style_views.cc
 +++ b/chrome/browser/ui/views/tabs/tab_style_views.cc
-@@ -133,6 +133,7 @@ class TabStyleViewsImpl : public TabStyleViews {
+@@ -123,6 +123,7 @@ class TabStyleViewsImpl : public TabStyleViews {
    TabStyle::TabSelectionState GetSelectionState() const;
  
   private:
@@ -10,7 +10,15 @@ index fe66c423ab24852c67e596154ec2e1556c5b7b12..1de94b517122085aa1b3abe657dff8e9
    // Gets the bounds for the leading and trailing separators for a tab.
    TabStyle::SeparatorBounds GetSeparatorBounds(float scale) const;
  
-@@ -367,6 +368,7 @@ SkPath TabStyleViewsImpl::GetPath(TabStyle::PathType path_type,
+@@ -132,6 +133,7 @@ class TabStyleViewsImpl : public TabStyleViews {
+   TabStyle::SeparatorOpacities GetSeparatorOpacities(bool for_layout) const;
+ 
+   // Returns whether the mouse is currently hovering this tab.
++  virtual
+   bool IsHovering() const;
+ 
+   // Returns whether the hover animation is being shown.
+@@ -362,6 +364,7 @@ SkPath TabStyleViewsImpl::GetPath(TabStyle::PathType path_type,
      extension_corner_radius -= 0.5f * stroke_adjustment;
    }
    const bool compact_left_to_bottom = ShouldCompactLeadingEdge(path_type);
@@ -18,7 +26,7 @@ index fe66c423ab24852c67e596154ec2e1556c5b7b12..1de94b517122085aa1b3abe657dff8e9
  
    float left_extension_corner_radius = extension_corner_radius;
    if (compact_left_to_bottom) {
-@@ -1061,14 +1063,18 @@ void TabStyleViewsImpl::PaintSeparators(gfx::Canvas* canvas) const {
+@@ -1039,14 +1042,18 @@ void TabStyleViewsImpl::PaintSeparators(gfx::Canvas* canvas) const {
                                                     SK_AlphaOPAQUE));
    };
  

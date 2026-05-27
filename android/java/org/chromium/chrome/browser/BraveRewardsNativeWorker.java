@@ -62,7 +62,10 @@ public class BraveRewardsNativeWorker {
             if (sInstance == null) {
                 sInstance = new BraveRewardsNativeWorker();
                 sInstance.init();
-          }
+                if (sInstance.mNativeBraveRewardsNativeWorker == 0) {
+                    sInstance = null;
+                }
+            }
         }
         return sInstance;
     }
@@ -120,9 +123,9 @@ public class BraveRewardsNativeWorker {
     }
 
     public void onNotifyFrontTabUrlChanged(int tabId, String url) {
-        boolean chromeUrl = url.startsWith(UrlConstants.CHROME_SCHEME);
+        boolean internalUrl = url.startsWith(UrlConstants.CHROME_SCHEME);
         boolean newUrl = (mFrontTabUrl == null || !mFrontTabUrl.equals(url));
-        if (chromeUrl) {
+        if (internalUrl) {
             // Don't query 'GetPublisherInfo' and post response now.
             sHandler.post(
                     new Runnable() {

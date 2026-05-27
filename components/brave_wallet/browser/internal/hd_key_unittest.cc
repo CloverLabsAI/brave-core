@@ -7,6 +7,7 @@
 
 #include <array>
 #include <optional>
+#include <utility>
 
 #include "base/containers/span.h"
 #include "base/containers/to_vector.h"
@@ -14,15 +15,14 @@
 #include "base/strings/string_number_conversions.h"
 #include "base/strings/string_split.h"
 #include "base/strings/string_util.h"
-#include "base/types/cxx23_to_underlying.h"
 #include "brave/components/brave_wallet/browser/bip39.h"
 #include "brave/components/brave_wallet/browser/bitcoin/bitcoin_test_utils.h"
 #include "brave/components/brave_wallet/browser/internal/hd_key_common.h"
 #include "brave/components/brave_wallet/browser/test_utils.h"
 #include "brave/components/brave_wallet/common/bitcoin_utils.h"
 #include "brave/components/brave_wallet/common/encoding_utils.h"
-#include "brave/components/brave_wallet/common/eth_address.h"
 #include "brave/components/brave_wallet/common/hash_utils.h"
+#include "brave/components/brave_wallet/common/test_utils.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
 namespace brave_wallet {
@@ -320,7 +320,7 @@ TEST(HDKeyUnitTest, GenerateFromExtendedKey) {
       "xprvA2nrNbFZABcdryreWet9Ea4LvTJcGsqrMzxHx98MMrotbir7yrKCEXw7nadnHM8Dq38E"
       "GfSh6dqA9QWTyefMLEcBYJUuekgW4BYPJcr9E7j");
   EXPECT_EQ(parsed_xprv->version,
-            base::to_underlying(ExtendedKeyVersion::kXprv));
+            std::to_underlying(ExtendedKeyVersion::kXprv));
   auto* hdkey_from_pri = parsed_xprv->hdkey.get();
   EXPECT_EQ(hdkey_from_pri->depth_, 5u);
   EXPECT_EQ(base::HexEncodeLower(hdkey_from_pri->parent_fingerprint_),
@@ -341,7 +341,7 @@ TEST(HDKeyUnitTest, GenerateFromExtendedKey) {
       "xpub6FnCn6nSzZAw5Tw7cgR9bi15UV96gLZhjDstkXXxvCLsUXBGXPdSnLFbdpq8p9HmGsAp"
       "ME5hQTZ3emM2rnY5agb9rXpVGyy3bdW6EEgAtqt");
   EXPECT_EQ(parsed_xpub->version,
-            base::to_underlying(ExtendedKeyVersion::kXpub));
+            std::to_underlying(ExtendedKeyVersion::kXpub));
   auto* hdkey_from_pub = parsed_xpub->hdkey.get();
   EXPECT_EQ(hdkey_from_pub->depth_, 5u);
   EXPECT_EQ(base::HexEncodeLower(hdkey_from_pub->parent_fingerprint_),
@@ -358,7 +358,7 @@ TEST(HDKeyUnitTest, GenerateFromExtendedKey) {
 
   auto parsed_zprv = HDKey::GenerateFromExtendedKey(kBtcMainnetImportAccount0);
   EXPECT_EQ(parsed_zprv->version,
-            base::to_underlying(ExtendedKeyVersion::kZprv));
+            std::to_underlying(ExtendedKeyVersion::kZprv));
   auto* hdkey_from_zprv = parsed_zprv->hdkey.get();
   EXPECT_EQ(hdkey_from_zprv->depth_, 3u);
   EXPECT_EQ(base::HexEncodeLower(hdkey_from_zprv->parent_fingerprint_),
@@ -377,7 +377,7 @@ TEST(HDKeyUnitTest, GenerateFromExtendedKey) {
 
   auto parsed_vprv = HDKey::GenerateFromExtendedKey(kBtcTestnetImportAccount0);
   EXPECT_EQ(parsed_vprv->version,
-            base::to_underlying(ExtendedKeyVersion::kVprv));
+            std::to_underlying(ExtendedKeyVersion::kVprv));
   auto* hdkey_from_vprv = parsed_vprv->hdkey.get();
   EXPECT_EQ(hdkey_from_vprv->depth_, 3u);
   EXPECT_EQ(base::HexEncodeLower(hdkey_from_vprv->parent_fingerprint_),
@@ -456,9 +456,21 @@ TEST(HDKeyUnitTest, SignAndVerifyAndRecover) {
 
 TEST(HDKeyUnitTest, SetPrivateKey) {
   HDKey key;
-  key.SetPrivateKey(std::array<uint8_t, 32>{1, 2, 3});
+  EXPECT_TRUE(key.SetPrivateKey(std::array<uint8_t, 32>{1, 2, 3}));
   EXPECT_FALSE(key.GetPrivateKeyBytes().empty());
   EXPECT_TRUE(!IsPublicKeyEmpty(key.public_key_));
+
+  // https://en.bitcoin.it/wiki/Secp256k1
+  // https://en.bitcoin.it/wiki/Private_key "Range of valid ECDSA private keys"
+  constexpr std::string_view kInvalidPrivateKeys[] = {
+      "0000000000000000000000000000000000000000000000000000000000000000",
+      "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141",
+      "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  };
+  for (auto& test_case : kInvalidPrivateKeys) {
+    HDKey invalid_key;
+    EXPECT_FALSE(invalid_key.SetPrivateKey(test::HexToArray<32>(test_case)));
+  }
 }
 
 TEST(HDKeyUnitTest, SetPublicKey) {

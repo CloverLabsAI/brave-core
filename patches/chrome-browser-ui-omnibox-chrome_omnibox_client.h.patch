@@ -1,8 +1,8 @@
 diff --git a/chrome/browser/ui/omnibox/chrome_omnibox_client.h b/chrome/browser/ui/omnibox/chrome_omnibox_client.h
-index c83e92627a9a80a64d279d26c0c0d468b948cd95..261d42017f7fb6d05524256d88a54e845a67034c 100644
+index aa3b72b84cd214c8afbab42372462f87518214b6..bac1f2376d9124b17cbb79da71dc2b12f75f8362 100644
 --- a/chrome/browser/ui/omnibox/chrome_omnibox_client.h
 +++ b/chrome/browser/ui/omnibox/chrome_omnibox_client.h
-@@ -27,7 +27,7 @@ namespace omnibox {
+@@ -32,7 +32,7 @@ namespace omnibox {
  class OmniboxPopupCloser;
  }  // namespace omnibox
  

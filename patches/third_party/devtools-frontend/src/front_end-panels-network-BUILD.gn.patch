@@ -1,8 +1,8 @@
 diff --git a/front_end/panels/network/BUILD.gn b/front_end/panels/network/BUILD.gn
-index 5d05422138291eafb3f41124f9f7b5461f2735ef..42d931f961cf388c43bd588ce930b2e6a15bd58c 100644
+index fbcc1ad4b6b95d9f579cc10860dea00b85fcfada..6da6002fa71b07b49622881617e9bf1e3144a2c6 100644
 --- a/front_end/panels/network/BUILD.gn
 +++ b/front_end/panels/network/BUILD.gn
-@@ -103,6 +103,7 @@ devtools_ui_module("network") {
+@@ -116,6 +116,7 @@ devtools_ui_module("network") {
      "./components:bundle",
      "./forward:bundle",
    ]

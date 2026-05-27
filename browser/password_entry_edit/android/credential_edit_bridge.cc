@@ -87,8 +87,8 @@ void CredentialEditBridge::GetExistingUsernames(JNIEnv* env) {
 }
 
 void CredentialEditBridge::SaveChanges(JNIEnv* env,
-                                       std::u16string& username,
-                                       std::u16string& password) {
+                                       const std::u16string& username,
+                                       const std::u16string& password) {
   password_manager::CredentialUIEntry updated_credential = credential_;
   updated_credential.username = username;
   updated_credential.password = password;
@@ -142,3 +142,5 @@ std::u16string CredentialEditBridge::GetDisplayFederationOrigin() {
                    base::UnescapeRule::SPACES, nullptr, nullptr, nullptr)
              : std::u16string();
 }
+
+DEFINE_JNI(CredentialEditBridge)

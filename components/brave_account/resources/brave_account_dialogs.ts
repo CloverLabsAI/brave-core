@@ -4,6 +4,10 @@
  * You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { CrLitElement } from '//resources/lit/v3_0/lit.rollup.js'
+// <if expr="not is_android and not is_ios">
+import { EventTracker } from '//resources/js/event_tracker.js'
+import { hasKeyModifiers } from '//resources/js/util.js'
+// </if>
 
 import {
   BraveAccountBrowserProxy,
@@ -13,10 +17,10 @@ import { getHtml } from './brave_account_dialogs.html.js'
 import { Error } from './brave_account_common.js'
 
 export type Dialog =
-  | { type: 'CREATE' | 'ENTRY' | 'FORGOT_PASSWORD' | 'SIGN_IN' }
+  | { type: 'CREATE' | 'ENTRY' | 'FORGOT_PASSWORD' | 'OTP' | 'SIGN_IN' }
   | { type: 'ERROR'; error: Error }
 
-export class BraveAccountDialogs extends CrLitElement {
+export class BraveAccountDialogsElement extends CrLitElement {
   static get is() {
     return 'brave-account-dialogs'
   }
@@ -28,6 +32,7 @@ export class BraveAccountDialogs extends CrLitElement {
   static override get properties() {
     return {
       dialog: { type: Object },
+      isCapsLockOn: { type: Boolean, state: true },
     }
   }
 
@@ -46,12 +51,65 @@ export class BraveAccountDialogs extends CrLitElement {
     BraveAccountBrowserProxyImpl.getInstance()
 
   protected accessor dialog: Dialog = { type: 'ENTRY' }
+  protected accessor isCapsLockOn: boolean = false
+
+  // <if expr="not is_android and not is_ios">
+  override connectedCallback() {
+    super.connectedCallback()
+    this.eventTracker.add(document, 'keydown', this.onKeyDown)
+    this.eventTracker.add(document, 'keyup', this.onKeyUp)
+  }
+
+  override disconnectedCallback() {
+    super.disconnectedCallback()
+    this.eventTracker.removeAll()
+  }
+
+  private onKeyDown = (e: KeyboardEvent) => {
+    this.isCapsLockOn = e.getModifierState('CapsLock')
+
+    // Ignore keys pressed with modifiers (Ctrl, Shift, etc.).
+    if (hasKeyModifiers(e)) {
+      return
+    }
+
+    switch (e.key) {
+      // Clicks the action button (only if there's exactly one enabled).
+      case 'Enter': {
+        const dialog = [...(this.shadowRoot?.children ?? [])].find(
+          (el) => el instanceof HTMLElement && el.shadowRoot,
+        )
+
+        const buttons = dialog?.shadowRoot?.querySelectorAll<HTMLElement>(
+          'leo-button[slot="buttons"]:not([isDisabled])',
+        )
+
+        if (buttons?.length === 1) {
+          buttons[0]!.click()
+          e.preventDefault()
+        }
+        break
+      }
+      // Closes the dialog.
+      case 'Escape':
+        this.onCloseDialog()
+        e.preventDefault()
+        break
+    }
+  }
+
+  private onKeyUp = (e: KeyboardEvent) => {
+    this.isCapsLockOn = e.getModifierState('CapsLock')
+  }
+
+  private eventTracker = new EventTracker()
+  // </if>
 }
 
 declare global {
   interface HTMLElementTagNameMap {
-    'brave-account-dialogs': BraveAccountDialogs
+    'brave-account-dialogs': BraveAccountDialogsElement
   }
 }
 
-customElements.define(BraveAccountDialogs.is, BraveAccountDialogs)
+customElements.define(BraveAccountDialogsElement.is, BraveAccountDialogsElement)

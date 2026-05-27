@@ -5,9 +5,13 @@
 
 package org.chromium.chrome.browser.toolbar.bottom;
 
-import org.chromium.base.supplier.ObservableSupplier;
-import org.chromium.base.supplier.ObservableSupplierImpl;
+import org.chromium.base.supplier.MonotonicObservableSupplier;
+import org.chromium.base.supplier.NonNullObservableSupplier;
+import org.chromium.base.supplier.ObservableSuppliers;
+import org.chromium.base.supplier.OneshotSupplier;
+import org.chromium.base.supplier.SettableNonNullObservableSupplier;
 import org.chromium.chrome.browser.browser_controls.BottomControlsStacker;
+import org.chromium.chrome.browser.browser_controls.BottomControlsStacker.LayerType;
 import org.chromium.chrome.browser.browser_controls.BrowserStateBrowserControlsVisibilityDelegate;
 import org.chromium.chrome.browser.fullscreen.FullscreenManager;
 import org.chromium.chrome.browser.tab.TabObscuringHandler;
@@ -23,10 +27,10 @@ class BraveBottomControlsMediator extends BottomControlsMediator {
     private BottomControlsStacker mBottomControlsStacker;
 
     // Own members.
-    private final ObservableSupplierImpl<Boolean> mTabGroupUiVisibleSupplier =
-            new ObservableSupplierImpl<>();
-    private final ObservableSupplierImpl<Boolean> mBottomToolbarVisibleSupplier =
-            new ObservableSupplierImpl<>();
+    private final SettableNonNullObservableSupplier<Boolean> mTabGroupUiVisibleSupplier =
+            ObservableSuppliers.createNonNull(false);
+    private final SettableNonNullObservableSupplier<Boolean> mBottomToolbarVisibleSupplier =
+            ObservableSuppliers.createNonNull(false);
     private final int mBottomControlsHeightSingle;
     private final int mBottomControlsHeightDouble;
 
@@ -36,11 +40,13 @@ class BraveBottomControlsMediator extends BottomControlsMediator {
             BottomControlsStacker controlsStacker,
             BrowserStateBrowserControlsVisibilityDelegate browserControlsVisibilityDelegate,
             FullscreenManager fullscreenManager,
+            @LayerType int layerType,
+            OneshotSupplier<BottomControlsContentDelegate> contentDelegateSupplier,
             TabObscuringHandler tabObscuringHandler,
             int bottomControlsHeight,
             int bottomControlsShadowHeight,
-            ObservableSupplier<Boolean> overlayPanelVisibilitySupplier,
-            ObservableSupplier<EdgeToEdgeController> edgeToEdgeControllerSupplier,
+            NonNullObservableSupplier<Boolean> overlayPanelVisibilitySupplier,
+            MonotonicObservableSupplier<EdgeToEdgeController> edgeToEdgeControllerSupplier,
             Supplier<Boolean> readAloudRestoringSupplier) {
         super(
                 windowAndroid,
@@ -48,6 +54,8 @@ class BraveBottomControlsMediator extends BottomControlsMediator {
                 controlsStacker,
                 browserControlsVisibilityDelegate,
                 fullscreenManager,
+                layerType,
+                contentDelegateSupplier,
                 tabObscuringHandler,
                 bottomControlsHeight,
                 bottomControlsShadowHeight,
@@ -55,8 +63,6 @@ class BraveBottomControlsMediator extends BottomControlsMediator {
                 edgeToEdgeControllerSupplier,
                 readAloudRestoringSupplier);
 
-        mTabGroupUiVisibleSupplier.set(false);
-        mBottomToolbarVisibleSupplier.set(false);
         mBottomControlsHeightSingle = bottomControlsHeight;
         mBottomControlsHeightDouble = bottomControlsHeight * 2;
     }
@@ -76,11 +82,11 @@ class BraveBottomControlsMediator extends BottomControlsMediator {
         updateYOffset();
     }
 
-    public ObservableSupplierImpl<Boolean> getBottomToolbarVisibleSupplier() {
+    public NonNullObservableSupplier<Boolean> getBottomToolbarVisibleSupplier() {
         return mBottomToolbarVisibleSupplier;
     }
 
-    public ObservableSupplierImpl<Boolean> getTabGroupUiVisibleSupplier() {
+    public NonNullObservableSupplier<Boolean> getTabGroupUiVisibleSupplier() {
         return mTabGroupUiVisibleSupplier;
     }
 

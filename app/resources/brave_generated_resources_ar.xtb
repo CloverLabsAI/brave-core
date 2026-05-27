@@ -19,6 +19,7 @@
 <translation id="1544192797660353713">المحفظة</translation>
 <translation id="2361906291514218784">Leo الذكاء الاصطناعي</translation>
 <translation id="8275068909952022340">المزيد …</translation>
+<translation id="71316462802471551">المعرفات البديلة للبريد الإلكتروني</translation>
 <translation id="1990886731975529483">قم بتثبيت برنامج Google Widevine وتشغيله</translation>
 <translation id="8926389886865778422">عدم السؤال مرة أخرى</translation>
 <translation id="4900351245762303149">تثبيت برنامج Google Widevine</translation>
@@ -130,17 +131,12 @@
 <translation id="8184318863960255706">مزيد من المعلومات</translation>
 <translation id="780301667611848630">لا، شكرًا</translation>
 <translation id="1162706247109707219">بالنقر فوق "موافق"، فإنك تقر بأن تثبيت Brave لن يتلقى إصلاحات أمان مهمة حتى تقوم بالتحديث إلى Windows 10 أو إصدار أحدث. لن يظهر هذا التحذير مرة أخرى.</translation>
-<translation id="9164786361657554526">بالنقر فوق "موافق"، فإنك تقر بأن تثبيت Brave لن يتلقى إصلاحات أمان مهمة حتى تقوم بالتحديث إلى macOS 10.15 أو إصدار أحدث. لن يظهر هذا التحذير مرة أخرى.</translation>
-<translation id="2770465223704140727">إزالة من القائمة</translation>
+<translation id="2971591422768125177">بالنقر فوق "موافق"، فإنك تقر بأن تثبيت Brave لن يتلقى إصلاحات أمان مهمة حتى تقوم بالتحديث إلى macOS 10.15 أو إصدار أحدث. لن يظهر هذا التحذير مرة أخرى.</translation>
 <translation id="6020553119523541665">علامة التبويب هذه نشطة في نافذة أخرى</translation>
 <translation id="4987392683074136770">سيؤدي النقر فوق علامة التبويب هذه إلى إحضار محتوياتها إلى هذه النافذة</translation>
 <translation id="8355523213948477234">زر قائمة العرض المُقسم</translation>
 <translation id="6040143037577758943">إغلاق</translation>
 <translation id="6665472986740899785">إعلان إشعارات Brave</translation>
-<translation id="5582087890067572966">🎉 تبدأ الآن في الربح!</translation>
-<translation id="4364336119478610380">تربح كلما ظهر إشعار مثل هذا على شاشتك. لا تحتاج إلى النقر للربح.</translation>
-<translation id="5893017172751072752">تربح عندما يظهر إشعار Brave Ads</translation>
-<translation id="3447730462826640312">لا تحتاج إلى النقر للربح، ولكن انقر إذا كنت مهتمًا!</translation>
 <translation id="5253166205743627564">شكراً لدعمك Brave Search بالنقر على إعلان خاص. على عكس شركات التكنولوجيا الكبرى، نقيس أداء الإعلانات بكل سريّة للحفاظ على خصوصيتك.</translation>
 <translation id="8748471354357836070">معرفة المزيد / خيارات إلغاء الاشتراك</translation>
 <translation id="5927196110206824867">تدعم صور الخلفية المدعومة Brave في مهمتها المتمثلة في بناء شبكة ويب مستقلة ترتكز على المستخدم أولًا. وعلى عكس شركات التكنولوجيا الكبرى، نقيس أداء الإعلانات بشكل مجهول للحفاظ على خصوصيتكم.</translation>
@@ -205,7 +201,6 @@
 <translation id="253980346046488815">إغلاق علامات التبويب المكررة</translation>
 <translation id="8670218546624422041">فتح في حاوية</translation>
 <translation id="8638526693050780542">إدارة الحاويات</translation>
-<translation id="7302999361397024774">إعادة تسمية علامة التبويب</translation>
 <translation id="2336228925368920074">وضع إشارة على جميع علامات التبويب...</translation>
 <translation id="2523967823495420116">استخدام علامات تبويب عمودية</translation>
 <translation id="3785071023202624850">{NUM_TABS,plural, =1{كتم صوت علامة تبويب واحدة}zero{كتم صوت علامات التبويب}two{كتم صوت علامتيِّ التبويب}few{كتم صوت علامات التبويب}many{كتم صوت علامات التبويب}other{كتم صوت علامات التبويب}}</translation>
@@ -216,7 +211,6 @@
 <translation id="2703180365855369896">إغلاق علامات التبويب المكررة</translation>
 <translation id="1987871867023021397">فتح في حاوية</translation>
 <translation id="6745991613881384719">إدارة الحاويات</translation>
-<translation id="3917844427669888979">إعادة تسمية علامة التبويب</translation>
 <translation id="3704707436873245822">نسخ النص من الصورة</translation>
 <translation id="5268098808165185458">جارٍ نسخ النص من الصورة...</translation>
 <translation id="4046485130884276245">تم نسخ النص من الصورة</translation>
@@ -224,6 +218,8 @@
 <translation id="3960619311638643872">Brave VPN</translation>
 <translation id="2506438154311626334">استخدم بروتوكول WireGuard في Brave VPN</translation>
 <translation id="8519170191215826548">لا يمكن تغيير هذا الإعداد أثناء اتصال Brave VPN.</translation>
+<translation id="1177917174080821247">إظهار رمز علبة VPN</translation>
+<translation id="3747459938663420752">عند التفعيل، سيعرض شريط مهام Windows أيقونة Brave VPN في منطقة الإشعارات.</translation>
 <translation id="4235920711083356755">إظهار زر VPN</translation>
 <translation id="4070612712151038707">يُظهر زر VPN في شريط الأدوات</translation>
 <translation id="7705524343798198388">VPN</translation>
@@ -235,7 +231,6 @@
 <translation id="8030169304546394654">قُطع الاتصال</translation>
 <translation id="1863950594388384201">إظهار زر VPN في شريط الأدوات</translation>
 <translation id="5187139277471084437">إخفاء زر VPN في شريط الأدوات</translation>
-<translation id="1177917174080821247">إظهار رمز علبة VPN</translation>
 <translation id="8041089156583427627">إرسال تعليقات</translation>
 <translation id="4049186905514157504">إدارة خطتي</translation>
 <translation id="7570585565843385325">إظهار زر VPN في شريط الأدوات</translation>
@@ -325,6 +320,8 @@
 <translation id="8813509417421129632">صفحة مضمنة في <ph name="SITE"/> تريد الحفظ</translation>
 <translation id="7700010743463174379">هذه الصفحة تريد الحفظ</translation>
 <translation id="6774238875569752630">تريد صفحة مضمنة في هذه الصفحة الحفظ</translation>
+<translation id="1383876407941801731">البحث</translation>
+<translation id="5496587651328244253">تنظيم</translation>
 <translation id="1233913566967531780">تركيز علامات التبويب</translation>
 <translation id="4034992002364254340">اجمع كل علامات التبويب ذات الصلة في نافذة جديدة</translation>
 <translation id="8012125596344613514">المواضيع المقترحة</translation>
@@ -337,11 +334,14 @@
 <translation id="7557539689487606886">الاشتراك الحصري (Premium)</translation>
 <translation id="1035309871698658326">عند استخدامها، سيؤدي ذلك تلقائيًا إلى إرسال عناوين وأصل جميع علامات التبويب غير الخاصة إلى Leo لتصنيفها.</translation>
 <translation id="3435896845095436175">تمكين</translation>
+<translation id="9031526219709160683">يمكن لـ Brave مساعدتك في تحسين إعدادات الخصوصية لهذا الموقع. هل تريد مراجعة اقتراحات Brave؟</translation>
+<translation id="5739953050957336013">اقتراحات البحث</translation>
 <translation id="9082792303833649978">يتم إدارة هذا الإعداد من قبل المسؤول الخاص بك أو بواسطة سياسة Brave أخرى.</translation>
 <translation id="1940221956626514677">تخصيص شريط الأدوات</translation>
 <translation id="6501807887341963552">النسق والألوان</translation>
 <translation id="6724227215236550330">ستظهر كلمات المرور هنا. لاستيراد كلمات المرور إلى <ph name="BRAND"/> على هذا الجهاز، <ph name="BEGIN_LINK"/> اختر ملف CSV<ph name="END_LINK"/></translation>
 <translation id="3575561030014162610">لاستيراد كلمات المرور إلى <ph name="BRAND"/> على هذا الجهاز، اختر ملف CSV</translation>
+<translation id="8570228839666486945">الذكاء الاصطناعي المحلي</translation>
 <translation id="9156965752763025780">‏ستسري التغييرات في المرة التالية التي تعيد فيها تشغيل Brave.</translation>
 <translation id="7179921470347911571">أعد التشغيل الآن</translation>
 <translation id="1426410128494586442">نعم</translation>
@@ -382,6 +382,7 @@
 <translation id="5860254591544742609">عرض شريط العناوين</translation>
 <translation id="4691131445504068802">الإخفاء التام عند التصغير</translation>
 <translation id="6763346436728173884">إخفاء زر إغلاق علامة التبويب دائمًا</translation>
+<translation id="8082625757059443808">السماح باستخدام الزر الأوسط لإغلاق علامات التبويب</translation>
 <translation id="4909269867860362936">التوسيع التلقائي عند التمرير أثناء التصغير</translation>
 <translation id="3367129510799209147">وضع المرور فوق علامة التبويب</translation>
 <translation id="8925055964134259461">توسيع علامات التبويب الرأسية بشكل مستقل لكل نافذة</translation>
@@ -391,8 +392,15 @@
 <translation id="2113977810652731515">بطاقة</translation>
 <translation id="4096343215397759358">بطاقة مع معاينة</translation>
 <translation id="5297085818601043899">تعريف الأدوات</translation>
+<translation id="1033676453210290920">الحد الأدنى لعرض التبويب</translation>
+<translation id="562967218762447012">الحد الأدنى (الافتراضي)</translation>
+<translation id="574392208103952083">متوسط</translation>
+<translation id="4209092469652827314">كبير</translation>
+<translation id="2658845370685508484">العرض الكامل</translation>
+<translation id="1215972473274650670">استخدام شريط التبويب الأفقي القابل للتمرير</translation>
 <translation id="5219886318310413094">إظهار علامات التبويب المُثبّتة في جميع النوافذ</translation>
 <translation id="2396127686705429331">عرض زر الإشارات المرجعية</translation>
+<translation id="443318149139185498">استخدام شعار بسيط على زر القائمة الرئيسية</translation>
 <translation id="2814998458708016836">استخدام شريط عناوين عريض</translation>
 <translation id="4749586705247636385">إظهار الزوايا المستديرة في مناطق المحتوى الرئيسية</translation>
 <translation id="4109670531935487117">عرض اقتراحات الإكمال التلقائي في شريط العنوان</translation>
@@ -513,16 +521,20 @@
 <translation id="1199170151481311646">تحليلات الحفاظ على الخصوصية</translation>
 <translation id="5990642573624858459">إعداد التقارير الإحصائية</translation>
 <translation id="2441719842399509963">إعادة التعيين إلى الإعدادات الافتراضية</translation>
+<translation id="4530494379350999373">الأصل</translation>
+<translation id="2964215604640804042">Brave Origin هي نسخة مدفوعة من المتصفح للمستخدمين الذين لا يحتاجون إلى جميع الميزات التي تدعم Brave كعمل تجاري، لكنهم لا يزالون يريدون الخصوصية التي يوفرها Brave فقط. سيستمر مستخدمو Brave Origin في الاستفادة من خصوصيتنا الرائدة في الصناعة وحظر الإعلانات والسرعة (عبر Brave Shields)، بالإضافة إلى تحديثات البرامج العادية وتصحيحات Chromium وتحسينات الأمان والخصوصية. سيتمكنون أيضًا من فتح خيار تعطيل الميزات مثل AI و مكافىت و محفظة و VPN و Web3 domains والمزيد.</translation>
+<translation id="9130916892338379417">Brave Origin متاح عبر شراء لمرة واحدة. على الأجهزة المحمولة (Android و iOS) و سطح المكتب، يمكن شراء Origin كترقية لإصدار الإفراج الحالي. على سطح المكتب، Origin متاح أيضًا كتطبيق منفصل مستقل. سيرى مستخدمو Origin لوحة تحكم جديدة في قائمة الإعدادات. ستظهر الميزات الموجودة - بالإضافة إلى أي ميزات جديدة سننشرها في المستقبل - هنا، وسيتم تعطيلها بشكل افتراضي.</translation>
+<translation id="7984508421152399880">شراء الآن</translation>
 <translation id="5567412479632285879">تم تعطيل Brave Rewards</translation>
 <translation id="413570371620795359">فتح لوحة المكافآت للتمكين والبدء</translation>
 <translation id="1051600834033686945">فتح إعدادات Brave Rewards بالكامل</translation>
 <translation id="8826461509529116322">إظهار زر مكافآت Brave</translation>
-<translation id="3328713589982547433">وضع حظر الإعلانات فقط</translation>
-<translation id="1574253307550419595">استخدام وضع حظر الإعلانات فقط</translation>
-<translation id="738717058053657696">يحتفظ وضع حظر الإعلانات فقط بقواعد حظر الإعلانات الأساسية في Brave Shields. تحذير: يزيل جميع وسائل حماية الخصوصية. يُرجى ملاحظة أنه بالنسبة لمواقع الويب الفردية التي تعطلها حماية الخصوصية في Brave، يمكنك ضبط الدروع على "أسفل". هذا هو الوضع التجريبي. <ph name="BEGIN_LINK"/>تعرف على المزيد<ph name="END_LINK"/></translation>
+<translation id="4859866966646365361">وضع حظر الإعلانات فقط</translation>
+<translation id="4146834954839563870">استخدام وضع حظر الإعلانات فقط</translation>
+<translation id="420732343671200734">يحتفظ وضع حظر الإعلانات فقط بقواعد حظر الإعلانات الأساسية في Brave Shields. تحذير: يزيل جميع وسائل حماية الخصوصية. يُرجى ملاحظة أنه بالنسبة لمواقع الويب الفردية التي تعطلها حماية الخصوصية في Brave، يمكنك ضبط الدروع على "أسفل". هذا هو الوضع التجريبي. <ph name="BEGIN_LINK"/>تعرف على المزيد<ph name="END_LINK"/></translation>
 <translation id="3055675200351793825">خيارات الدروع معطلة حالياً.</translation>
-<translation id="516439939408671102">يحتفظ وضع حظر الإعلانات فقط بقواعد حظر الإعلانات الأساسية لدروع Brave Shields ويوقف تشغيل حماية الخصوصية. إذا كنت ترغب في تمكين الدروع القياسية، يُرجى تعطيل هذا الوضع.</translation>
-<translation id="177233004755519660">إيقاف تشغيل وضع حظر الإعلانات فقط</translation>
+<translation id="2687830906359353344">يحتفظ وضع حظر الإعلانات فقط بقواعد حظر الإعلانات الأساسية لدروع Brave Shields ويوقف تشغيل حماية الخصوصية. إذا كنت ترغب في تمكين الدروع القياسية، يُرجى تعطيل هذا الوضع.</translation>
+<translation id="3809423899581611047">إيقاف تشغيل وضع حظر الإعلانات فقط</translation>
 <translation id="9185018653595759199">حجب وسائل التواصل الاجتماعي</translation>
 <translation id="863171915776379000">السماح بتسجيل الدخول إلى فيسبوك والمشاركات المدمجة</translation>
 <translation id="7791141927430186653">السماح بتضمين X (Twitter سابقًا) للتغريدات المضمنة</translation>
@@ -542,7 +554,7 @@
 <translation id="509873765238158442">حظر Microsoft Recall</translation>
 <translation id="4763421121695677716">منع ميزة Recall على حواسيب Microsoft Windows من التقاط لقطات شاشة تلقائيًا لأي علامات تبويب Brave مفتوحة.</translation>
 <translation id="1968895725257436430">جمع البيانات</translation>
-<translation id="4846154056248462491">عند الخروج</translation>
+<translation id="1700052872056357670">حذف البيانات عند الخروج</translation>
 <translation id="216468847346280584">مسح بيانات إعلانات Brave Ads</translation>
 <translation id="2808630562319398131">إعادة تعيين بيانات مكافآت Brave...</translation>
 <translation id="6438096877646138757">المواقع التي تقوم بمسح ملفات تعريف الارتباط بمجرد إغلاقها</translation>
@@ -555,7 +567,6 @@
 <translation id="5747552184818312860">تاريخ انتهاء الصلاحية</translation>
 <translation id="3858860766373142691">الاسم</translation>
 <translation id="361106536627977100">بيانات فلاش</translation>
-<translation id="4530494379350999373">الأصل</translation>
 <translation id="8195027750202970175">الحجم على القرص</translation>
 <translation id="9116465289595958864">آخر تعديل</translation>
 <translation id="4590324241397107707">تخزين قاعدة البيانات</translation>
@@ -588,11 +599,6 @@
 <translation id="2903783737778379345">عدم السماح بتسجيل الدخول القديم إلى Google عبر ملفات تعريف الارتباط التابعة للجهات الخارجية</translation>
 <translation id="2570833232754279153">لا يُسمح باستخدام ملفات تعريف الارتباط التابعة للجهات الخارجية لتسجيل الدخول القديم إلى Google</translation>
 <translation id="6880817299303842099">يُسمح باستخدام ملفات تعريف الارتباط التابعة للجهات الخارجية لتسجيل الدخول القديم إلى Google</translation>
-<translation id="2136412236435693622">الوصول إلى المضيف المحلي (Localhost)</translation>
-<translation id="4172219483893066798">يمكن للمواقع طلب الوصول إلى موارد Localhost</translation>
-<translation id="7181706637590665047">عدم السماح بالوصول إلى موارد Localhost</translation>
-<translation id="1336116824874668514">غير مسموح بالوصول إلى موارد Localhost</translation>
-<translation id="1485435696620658073">يُسمح بالوصول إلى موارد Localhost</translation>
 <translation id="5794692721727586076">الدردشة مع Leo AI</translation>
 <translation id="8115153008662981040">يمكن للمواقع أن تطلب فتح الدردشة مع Leo AI</translation>
 <translation id="1145070115730668595">عدم السماح لأي موقع بأن يفتح الدردشة مع Leo AI</translation>
@@ -666,8 +672,6 @@
 <translation id="7029809446516969842">كلمات المرور</translation>
 <translation id="6011308810877101166">تحسين اقتراحات البحث</translation>
 <translation id="2332576387809612040">عند التفعيل، ترسل Brave ما تكتبه في شريط العنوان أو مربع البحث إلى محرك البحث الافتراضي للحصول على اقتراحات أفضل. عند الإيقاف،يعرض Brave فقط الاقتراحات التي يتم إنشاؤها على جهازك. يكون هذا الخِيار دائمًا متوقفًا في النوافذ الخاصة.</translation>
-<translation id="6285118765755298263">فهرسة محركات البحث الأخرى</translation>
-<translation id="5526883767168905185">يقوم تلقائيًا بفهرسة مواقع الويب التي تتبع مواصفات OpenSearch</translation>
 <translation id="5522403133543437426">تم استخدام محرك البحث في شريط العنوان.</translation>
 <translation id="280472502078788655">تم استخدام محرك البحث في شريط العنوان للنوافذ الخاصة.</translation>
 <translation id="7232120595886556478">نافذة عادية</translation>
@@ -797,6 +801,7 @@
 <translation id="1529674267267221673">سيظهر مساعد Leo في قائمة السياقات عندما تنقر بزر الماوس الأيمن على موقع الويب. وسيؤدي ذلك إلى إرسال السياق من صفحة الويب الحالية إلى مساعد Leo.</translation>
 <translation id="5226020406479918122">وضع تركيز علامات التبويب</translation>
 <translation id="3705539672403311123">تمكين تنظيم علامات التبويب في صفحة البحث عن علامات التبويب. عند استخدام هذه الميزة، سيؤدي ذلك تلقائيًا إلى إرسال عناوين وأصول جميع علامات التبويب غير الخاصة إلى Leo لتصنيفها. <ph name="BEGIN_LINK"/>تعرف على المزيد<ph name="END_LINK"/></translation>
+<translation id="9049433973274198706">النموذج التلقائي للمحادثات الجديدة</translation>
 <translation id="8172263161008556851">إظهار المطالبات المقترحة في المحادثة</translation>
 <translation id="5781842473834867765">تخزين سجل محادثاتي</translation>
 <translation id="1082960401708055995">سيؤدي تعطيل تخزين المحادثات إلى مسح جميع المحادثات المخزنة مسبقًا بشكل دائم. لا يمكن التراجع عن هذا الإجراء.</translation>
@@ -821,6 +826,8 @@ Leo AI في المستقبل وستقوم أيضًا بمحو سجل الدرد�
 <translation id="6374563306438145841">مفتاح API</translation>
 <translation id="3295756655687327124">دعم Vision</translation>
 <translation id="1415432774589088566">إذا كان هذا النموذج يأخذ الصورة كمدخل، على سبيل المثال llama 3.2b vision</translation>
+<translation id="5718897035062884425">دعم الأداة</translation>
+<translation id="2120046556683363911">إذا كان هذا النموذج يدعم استدعاء الدوال / استخدام الأدوات</translation>
 <translation id="8008271349880309090">اسم النموذج كما سيظهر في قائمة اختيار النموذج</translation>
 <translation id="1355326130503900056">اسم النموذج كما يجب أن يظهر في الطلب المُقدم إلى إطار عمل العرض، على سبيل المثال phi-3 (لاحظ أنه إذا لم يتطابق هذا الاسم تمامًا مع ما يتوقعه إطار عمل العرض، فلن يعمل الدمج)</translation>
 <translation id="3213787232304349732">عنوان URL حيث يستمع إطار عمل العرض الخاص بك للطلبات. إذا لم تكن متأكدًا، فتحقق من وثائق إطار عمل العرض. على سبيل المثال بالنسبة لـ Ollama، يكون هذا دائمًا http://localhost:11434/v1/chat/completions</translation>
@@ -873,6 +880,8 @@ Leo AI في المستقبل وستقوم أيضًا بمحو سجل الدرد�
 <translation id="7311244614769792472">لم يتم العثور على نتائج</translation>
 <translation id="1838374766361614909">مسح البحث</translation>
 <translation id="5126255551970171328">البحث عن ذكرى</translation>
+<translation id="7402116145895962069">مزامنة نماذج Ollama المحلية الخاصة بك</translation>
+<translation id="4835154437390745810">تُدار بواسطة Ollama</translation>
 <translation id="5985516785067818307">مشارك في استطلاع الرأي</translation>
 <translation id="8347743943525229984">السماح لاستطلاعات الرأي لـ Brave</translation>
 <translation id="3204080538332044581">السماح لـ Brave بإظهار الروابط لاستطلاعات الرأي الخاصة في صفحة علامة التبويب الجديدة. تساعدنا استطلاعات الرأي على إنشاء ميزات أفضل وقياس فعالية الحملات الإعلانية المستندة إلى المتصفح. <ph name="BEGIN_LINK"/>معرفة المزيد<ph name="END_LINK"/></translation>

@@ -140,6 +140,10 @@ interface NewTabPageHandler {
   GetShowSearchBox() => (bool show_search_box);
   SetShowSearchBox(bool show_search_box) => ();
 
+  // Gets or sets whether the AI chat input is displayed on the NTP.
+  GetShowChatInput() => (bool show_chat_input);
+  SetShowChatInput(bool show_chat_input) => ();
+
   // Gets or sets whether search suggestions are enabled.
   GetSearchSuggestionsEnabled() => (bool enabled);
   SetSearchSuggestionsEnabled(bool enabled) => ();
@@ -200,6 +204,9 @@ interface NewTabPageHandler {
   // Includes a site in the "most visited" top sites list, after it was excluded
   // by a call to `ExcludeMostVisitedTopSite`.
   IncludeMostVisitedTopSite(string url) => ();
+
+  // Reports a top site tile click for navigation source metrics.
+  RecordTopSiteClick() => ();
 
   // Gets or sets whether the clock is displayed on the new tab page.
   GetShowClock() => (bool show_clock);

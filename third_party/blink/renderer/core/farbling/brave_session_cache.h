@@ -32,6 +32,7 @@ using blink::DOMWindow;
 using blink::ExecutionContext;
 using blink::GarbageCollected;
 using blink::MakeGarbageCollected;
+using blink::Supplement;
 
 enum FarbleKey : uint64_t {
   kNone,
@@ -49,7 +50,7 @@ enum FarbleKey : uint64_t {
   kKeyCount
 };
 
-typedef absl::randen_engine<uint64_t> FarblingPRNG;
+using FarblingPRNG = absl::random_internal::randen_engine<uint64_t>;
 
 CORE_EXPORT blink::WebContentSettingsClient* GetContentSettingsClientFor(
     ExecutionContext* context);
@@ -76,8 +77,10 @@ CORE_EXPORT int FarbledPointerScreenCoordinate(const DOMWindow* view,
 
 class CORE_EXPORT BraveSessionCache final
     : public GarbageCollected<BraveSessionCache>,
-      public blink::GarbageCollectedMixin {
+      public Supplement<ExecutionContext> {
  public:
+  static const char kSupplementName[];
+
   explicit BraveSessionCache(ExecutionContext&);
   ~BraveSessionCache() = default;
 
@@ -122,14 +125,11 @@ class CORE_EXPORT BraveSessionCache final
   bool HasTimezoneOverride() const { return has_timezone_override_; }
   const blink::String& GetTimezoneOverride() const { return timezone_id_; }
 
-  void Trace(blink::Visitor* visitor) const override;
-
  private:
   void PerturbPixelsInternal(base::span<uint8_t> data);
   base::Token DeriveTokenFromSeed(uint64_t master_seed, const GURL& url);
   blink::String ExtractETLDPlusOne(const GURL& url);
 
-  blink::Member<blink::ExecutionContext> execution_context_;
   blink::HashMap<FarbleKey, int> farbled_integers_;
   brave_shields::mojom::ShieldsSettingsPtr default_shields_settings_;
   std::optional<blink::BraveAudioFarblingHelper> audio_farbling_helper_;

@@ -16,7 +16,6 @@
 
 #include "base/barrier_closure.h"
 #include "base/check.h"
-#include "base/containers/contains.h"
 #include "base/containers/fixed_flat_set.h"
 #include "base/feature_list.h"
 #include "base/files/file_util.h"
@@ -71,6 +70,7 @@
 #include "services/network/public/cpp/simple_url_loader.h"
 #include "services/network/public/mojom/url_response_head.mojom.h"
 #include "third_party/icu/source/common/unicode/locid.h"
+#include "third_party/skia/include/core/SkBitmap.h"
 #include "ui/base/resource/resource_bundle.h"
 #include "ui/gfx/image/image.h"
 #include "url/gurl.h"
@@ -266,22 +266,20 @@ bool RewardsServiceImpl::IsInitialized() {
   return Connected() && ready_->is_signaled();
 }
 
-void RewardsServiceImpl::Init(
-    std::unique_ptr<RewardsServiceObserver> extension_observer) {
+void RewardsServiceImpl::Init() {
   AddObserver(notification_service_.get());
-
-  if (extension_observer) {
-    extension_observer_ = std::move(extension_observer);
-    AddObserver(extension_observer_.get());
-  }
-
   CheckPreferences();
   InitPrefChangeRegistrar();
 }
 
 void RewardsServiceImpl::InitPrefChangeRegistrar() {
-#if BUILDFLAG(ENABLE_BRAVE_ADS)
   profile_pref_change_registrar_.Init(prefs_);
+  profile_pref_change_registrar_.Add(
+      prefs::kParameters,
+      base::BindRepeating(&RewardsServiceImpl::OnPreferenceChanged,
+                          base::Unretained(this)));
+
+#if BUILDFLAG(ENABLE_BRAVE_ADS)
   profile_pref_change_registrar_.Add(
       brave_ads::prefs::kOptedInToNotificationAds,
       base::BindRepeating(&RewardsServiceImpl::OnPreferenceChanged,
@@ -299,6 +297,16 @@ void RewardsServiceImpl::InitPrefChangeRegistrar() {
 }
 
 void RewardsServiceImpl::OnPreferenceChanged(const std::string& key) {
+  if (key == prefs::kParameters) {
+    // Set the user's current ToS version if not already set.
+    if (prefs_->GetUserPrefValue(prefs::kEnabled) &&
+        !prefs_->GetInteger(prefs::kTosVersion)) {
+      if (auto params = RewardsParametersFromPrefs(*prefs_)) {
+        prefs_->SetInteger(prefs::kTosVersion, params->tos_version);
+      }
+    }
+  }
+
 #if BUILDFLAG(ENABLE_BRAVE_ADS)
   if (key == ntp_background_images::prefs::
                  kNewTabPageShowSponsoredImagesBackgroundImage ||
@@ -440,12 +448,12 @@ void RewardsServiceImpl::CreateRewardsWallet(
         self->prefs_->SetBoolean(brave_ads::prefs::kOptedInToNotificationAds,
                                  true);
 #endif  // BUILDFLAG(ENABLE_BRAVE_ADS)
-
-        // Set the user's current ToS version.
-        self->prefs_->SetInteger(
-            prefs::kTosVersion,
-            RewardsParametersFromPrefs(*(self->prefs_))->tos_version);
       }
+
+      // Set the user's current ToS version.
+      self->prefs_->SetInteger(
+          prefs::kTosVersion,
+          RewardsParametersFromPrefs(*(self->prefs_))->tos_version);
 
       // Notify observers that the Rewards wallet has been created.
       for (auto& observer : self->observers_) {
@@ -491,7 +499,7 @@ bool RewardsServiceImpl::IsTermsOfServiceUpdateRequired() {
   }
   int params_version = RewardsParametersFromPrefs(*prefs_)->tos_version;
   int user_version = prefs_->GetInteger(prefs::kTosVersion);
-  return user_version < params_version;
+  return user_version > 0 && user_version < params_version;
 }
 
 void RewardsServiceImpl::AcceptTermsOfServiceUpdate() {
@@ -815,7 +823,7 @@ void RewardsServiceImpl::OnURLLoaderComplete(
   }
 
   if (response_body && !response_body->empty() && loader->ResponseInfo() &&
-      base::Contains(loader->ResponseInfo()->mime_type, "json")) {
+      loader->ResponseInfo()->mime_type.contains("json")) {
     json_sanitizer_task_runner_->PostTask(
         FROM_HERE,
         base::BindOnce(
@@ -1115,11 +1123,8 @@ void RewardsServiceImpl::NotifyPublisherPageVisit(
   engine_->NotifyPublisherPageVisit(tab_id, std::move(visit_data), "");
 }
 
-void RewardsServiceImpl::NotifyPublisherPageVisit(
-    uint64_t tab_id,
-    const std::string& url,
-    const std::string& favicon_url,
-    const std::string& publisher_blob) {
+void RewardsServiceImpl::NotifyPublisherPageVisit(uint64_t tab_id,
+                                                  const std::string& url) {
   GURL parsed_url(url);
   if (!parsed_url.is_valid()) {
     return;
@@ -1149,10 +1154,8 @@ void RewardsServiceImpl::NotifyPublisherPageVisit(
   visit_data->path = parsed_url.has_path() ? parsed_url.PathForRequest() : "";
   visit_data->url =
       base::StrCat({parsed_url.scheme(), "://", *publisher_domain, "/"});
-  visit_data->favicon_url = favicon_url;
 
-  engine_->NotifyPublisherPageVisit(tab_id, std::move(visit_data),
-                                    publisher_blob);
+  engine_->NotifyPublisherPageVisit(tab_id, std::move(visit_data), "");
 }
 
 void RewardsServiceImpl::OnPanelPublisherInfo(mojom::Result result,
@@ -1206,7 +1209,7 @@ void RewardsServiceImpl::FetchFavIcon(const std::string& url,
 void RewardsServiceImpl::OnFetchFavIconCompleted(FetchFavIconCallback callback,
                                                  const std::string& favicon_key,
                                                  const GURL& url,
-                                                 const SkBitmap& image) {
+                                                 SkBitmap image) {
   GURL favicon_url(favicon_key);
   gfx::Image gfx_image = gfx::Image::CreateFrom1xBitmap(image);
 

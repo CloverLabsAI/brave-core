@@ -8,7 +8,7 @@
 
 #include "base/containers/flat_map.h"
 #include "base/containers/to_vector.h"
-#include "base/feature_list.h"
+#include "base/functional/callback_helpers.h"
 #include "base/memory/weak_ptr.h"
 #include "base/path_service.h"
 #include "base/strings/strcat.h"
@@ -23,7 +23,6 @@
 #include "brave/components/brave_wallet/common/brave_wallet.mojom.h"
 #include "brave/components/brave_wallet/common/brave_wallet_constants.h"
 #include "brave/components/brave_wallet/common/encoding_utils.h"
-#include "brave/components/brave_wallet/common/features.h"
 #include "brave/components/brave_wallet/renderer/resource_helper.h"
 #include "brave/components/constants/brave_paths.h"
 #include "build/build_config.h"
@@ -322,7 +321,7 @@ class TestSolanaProvider final : public brave_wallet::mojom::SolanaProvider {
       events_listener_.Bind(std::move(events_listener));
     }
   }
-  void Connect(std::optional<base::Value::Dict> arg,
+  void Connect(std::optional<base::DictValue> arg,
                ConnectCallback callback) override {
     if (error_ == SolanaProviderError::kSuccess) {
       std::move(callback).Run(SolanaProviderError::kSuccess, "",
@@ -388,14 +387,14 @@ class TestSolanaProvider final : public brave_wallet::mojom::SolanaProvider {
   }
   void SignAndSendTransaction(
       brave_wallet::mojom::SolanaSignTransactionParamPtr param,
-      std::optional<base::Value::Dict> send_options,
+      std::optional<base::DictValue> send_options,
       SignAndSendTransactionCallback callback) override {
     EXPECT_EQ(param->encoded_serialized_msg,
               brave_wallet::Base58Encode(kSerializedMessage));
 
     EXPECT_EQ(send_options, send_options_);
 
-    base::Value::Dict result;
+    base::DictValue result;
     if (error_ == SolanaProviderError::kSuccess) {
       result.Set("publicKey", kTestPublicKey);
       result.Set("signature", kTestSignature);
@@ -410,7 +409,7 @@ class TestSolanaProvider final : public brave_wallet::mojom::SolanaProvider {
                    const std::optional<std::string>& display_encoding,
                    SignMessageCallback callback) override {
     EXPECT_EQ(blob_msg, base::ToVector(kMessageToSign));
-    base::Value::Dict result;
+    base::DictValue result;
     if (error_ == SolanaProviderError::kSuccess) {
       result.Set("publicKey", kTestPublicKey);
       result.Set("signature", kTestSignature);
@@ -421,8 +420,8 @@ class TestSolanaProvider final : public brave_wallet::mojom::SolanaProvider {
       ClearError();
     }
   }
-  void Request(base::Value::Dict arg, RequestCallback callback) override {
-    base::Value::Dict result;
+  void Request(base::DictValue arg, RequestCallback callback) override {
+    base::DictValue result;
     if (error_ == SolanaProviderError::kSuccess) {
       result.Set("publicKey", kTestPublicKey);
       result.Set("signature", kTestSignature);
@@ -439,7 +438,7 @@ class TestSolanaProvider final : public brave_wallet::mojom::SolanaProvider {
     error_message_ = error_message;
   }
 
-  void SetSendOptions(std::optional<base::Value::Dict> options) {
+  void SetSendOptions(std::optional<base::DictValue> options) {
     send_options_ = std::move(options);
   }
 
@@ -455,7 +454,7 @@ class TestSolanaProvider final : public brave_wallet::mojom::SolanaProvider {
   SolanaProviderError error_ = SolanaProviderError::kSuccess;
   std::string error_message_;
   bool emit_empty_account_changed_ = false;
-  std::optional<base::Value::Dict> send_options_;
+  std::optional<base::DictValue> send_options_;
   mojo::Remote<brave_wallet::mojom::SolanaEventsListener> events_listener_;
 };
 
@@ -568,9 +567,6 @@ class SolanaProviderRendererTest : public InProcessBrowserTest {
     GURL url = embedded_test_server()->GetURL("/empty.html");
     ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), url));
 
-    ASSERT_TRUE(base::FeatureList::IsEnabled(
-        brave_wallet::features::kNativeBraveWalletFeature));
-
     // load solana web3 script
     if (g_provider_solana_web3_script->empty()) {
       *g_provider_solana_web3_script = brave_wallet::LoadDataResource(
@@ -659,7 +655,7 @@ IN_PROC_BROWSER_TEST_F(SolanaProviderRendererTest,
   EXPECT_TRUE(content::EvalJs(web_contents(browser())->GetPrimaryMainFrame(),
                               kEvalIsBraveWallet)
                   .ExtractBool());
-  EXPECT_EQ(browser()->tab_strip_model()->GetTabCount(), 1);
+  EXPECT_EQ(browser()->tab_strip_model()->count(), 1);
 }
 
 IN_PROC_BROWSER_TEST_F(SolanaProviderRendererTest, AttachIfWalletCreated) {
@@ -674,7 +670,7 @@ IN_PROC_BROWSER_TEST_F(SolanaProviderRendererTest, AttachIfWalletCreated) {
   EXPECT_TRUE(content::EvalJs(web_contents(browser())->GetPrimaryMainFrame(),
                               kEvalIsBraveWallet)
                   .ExtractBool());
-  EXPECT_EQ(browser()->tab_strip_model()->GetTabCount(), 1);
+  EXPECT_EQ(browser()->tab_strip_model()->count(), 1);
 }
 IN_PROC_BROWSER_TEST_F(SolanaProviderRendererTest, NonWritable) {
   for (const std::string& provider : {"braveSolana", "solana"}) {
@@ -917,7 +913,7 @@ IN_PROC_BROWSER_TEST_F(SolanaProviderRendererTest, SignAndSendTransaction) {
   }
 
   // allow extra parameters
-  provider->SetSendOptions(base::Value::Dict());
+  provider->SetSendOptions(base::DictValue());
   const std::string tx2 = base::StrCat({"(", tx, ", {}, {})"});
   auto result2 =
       EvalJs(web_contents(browser()), SignAndSendTransactionScript(tx2));

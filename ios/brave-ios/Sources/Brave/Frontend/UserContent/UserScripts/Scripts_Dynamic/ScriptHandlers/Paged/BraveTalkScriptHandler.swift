@@ -13,19 +13,7 @@ import WebKit
 import os.log
 
 class BraveTalkScriptHandler: TabContentScript {
-  private weak var rewards: BraveRewards?
-  private var rewardsEnabledReplyHandler: ((Any?, String?) -> Void)?
-  private let launchNativeBraveTalk:
-    (_ tab: (any TabState)?, _ room: String, _ token: String) -> Void
-
-  required init(
-    rewards: BraveRewards,
-    launchNativeBraveTalk: @escaping (_ tab: (any TabState)?, _ room: String, _ token: String) ->
-      Void
-  ) {
-    self.rewards = rewards
-    self.launchNativeBraveTalk = launchNativeBraveTalk
-  }
+  init() {}
 
   static let scriptName = "BraveTalkScript"
   static let scriptId = UUID().uuidString
@@ -49,7 +37,6 @@ class BraveTalkScriptHandler: TabContentScript {
 
   private struct Payload: Decodable {
     enum Kind: Decodable {
-      case braveRequestAdsEnabled
       case launchNativeBraveTalk(String)
     }
     var kind: Kind
@@ -63,7 +50,6 @@ class BraveTalkScriptHandler: TabContentScript {
 
     init(from decoder: Decoder) throws {
       enum RawKindKey: String, Decodable {
-        case braveRequestAdsEnabled
         case launchNativeBraveTalk
       }
       let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -73,8 +59,6 @@ class BraveTalkScriptHandler: TabContentScript {
       case .launchNativeBraveTalk:
         let url = try container.decode(String.self, forKey: .url)
         self.kind = .launchNativeBraveTalk(url)
-      case .braveRequestAdsEnabled:
-        self.kind = .braveRequestAdsEnabled
       }
     }
   }
@@ -107,8 +91,6 @@ class BraveTalkScriptHandler: TabContentScript {
     }
 
     switch payload.kind {
-    case .braveRequestAdsEnabled:
-      handleBraveRequestAdsEnabled(tab: tab, replyHandler)
     case .launchNativeBraveTalk(let url):
       guard let components = URLComponents(string: url),
         case let room = String(components.path.dropFirst(1)),
@@ -116,31 +98,8 @@ class BraveTalkScriptHandler: TabContentScript {
       else {
         return
       }
-      launchNativeBraveTalk(tab, room, jwt)
+      tab.braveTalk?.launchBraveTalk(withRoom: room, jwtKey: jwt)
       replyHandler(nil, nil)
     }
-  }
-
-  private func handleBraveRequestAdsEnabled(
-    tab: some TabState,
-    _ replyHandler: @escaping (Any?, String?) -> Void
-  ) {
-    guard let rewards = rewards, tab.isPrivate != true else {
-      replyHandler(false, nil)
-      return
-    }
-
-    if rewards.isEnabled {
-      replyHandler(true, nil)
-      return
-    }
-
-    // If rewards are disabled we show a Rewards panel,
-    // The `rewardsEnabledReplyHandler` will be called from other place.
-    rewardsEnabledReplyHandler = replyHandler
-    tab.rewardsEnabledCallback = { [weak self] success in
-      self?.rewardsEnabledReplyHandler?(success, nil)
-    }
-    tab.miscDelegate?.showRequestRewardsPanel(tab)
   }
 }

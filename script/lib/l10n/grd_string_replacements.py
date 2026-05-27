@@ -64,6 +64,8 @@ fixup_replacements = [
     (r'Brave Root Program', r'Chrome Root Program'),
     (r'BraveVox', r'ChromeVox'),
     (r'powered by Brave AI', r'powered by Google AI'),
+    (r'Brave Extension developer documentation',
+     r'Google Extension developer documentation'),
 ]
 
 
@@ -72,4 +74,13 @@ main_text_only_replacements = [
     # By converting it back first, it makes this idempotent
     ('Copyright \xa9', 'Copyright'),
     ('Copyright', 'Copyright \xa9'),
+]
+
+
+# Replacements for strings in brave_strings.grd for situations where using a
+# different GRD would be impractical. These need to be translated in Crowdin.
+brave_strings_grd_replacements = [
+    ('IDS_LOCAL_NETWORK_ACCESS_PERMISSION_DESC', r'''
+          This will allow you to share content from Brave to your local devices, such as a TV or speaker.
+        '''),
 ]

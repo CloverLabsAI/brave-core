@@ -62,16 +62,17 @@ class MockBraveWalletProviderDelegate : public BraveWalletProviderDelegate {
   ~MockBraveWalletProviderDelegate() override {}
 
   MOCK_METHOD0(IsTabVisible, bool());
-  MOCK_METHOD0(ShowPanel, void());
+  MOCK_METHOD1(ShowPanel, void(const url::Origin&));
   MOCK_METHOD0(ShowWalletBackup, void());
   MOCK_METHOD0(UnlockWallet, void());
   MOCK_METHOD0(WalletInteractionDetected, void());
-  MOCK_METHOD0(ShowWalletOnboarding, void());
-  MOCK_METHOD1(ShowAccountCreation, void(mojom::CoinType type));
-  MOCK_CONST_METHOD0(GetOrigin, url::Origin());
-  MOCK_METHOD3(RequestPermissions,
+  MOCK_METHOD1(ShowWalletOnboarding, void(const url::Origin&));
+  MOCK_METHOD2(ShowAccountCreation,
+               void(mojom::CoinType type, const url::Origin& origin));
+  MOCK_METHOD4(RequestPermissions,
                void(mojom::CoinType type,
                     const std::vector<std::string>& accounts,
+                    const url::Origin& origin,
                     RequestPermissionsCallback));
   MOCK_METHOD2(IsAccountAllowed,
                bool(mojom::CoinType type, const std::string& account));
@@ -89,10 +90,7 @@ class MockBraveWalletProviderDelegate : public BraveWalletProviderDelegate {
 
 class CardanoApiImplTest : public testing::Test {
  public:
-  CardanoApiImplTest()
-      : shared_url_loader_factory_(
-            base::MakeRefCounted<network::WeakWrapperSharedURLLoaderFactory>(
-                &url_loader_factory_)) {}
+  CardanoApiImplTest() = default;
   ~CardanoApiImplTest() override = default;
 
   void SetUp() override {
@@ -100,18 +98,16 @@ class CardanoApiImplTest : public testing::Test {
     RegisterProfilePrefs(prefs_.registry());
     RegisterProfilePrefsForMigration(prefs_.registry());
     brave_wallet_service_ = std::make_unique<BraveWalletService>(
-        shared_url_loader_factory_, TestBraveWalletServiceDelegate::Create(),
-        &prefs_, &local_state_);
+        url_loader_factory_.GetSafeWeakWrapper(),
+        TestBraveWalletServiceDelegate::Create(), &prefs_, &local_state_);
     auto delegate =
         std::make_unique<testing::NiceMock<MockBraveWalletProviderDelegate>>();
-    ON_CALL(*delegate, GetOrigin).WillByDefault([&]() {
-      return url::Origin::Create(GURL("https://brave.com"));
-    });
     provider_ = std::make_unique<CardanoApiImpl>(
         *brave_wallet_service_, std::move(delegate),
         MakeIndexBasedAccountId(mojom::CoinType::ADA,
                                 mojom::KeyringId::kCardanoMainnet,
-                                mojom::AccountKind::kDerived, 0));
+                                mojom::AccountKind::kDerived, 0),
+        url::Origin::Create(GURL("https://brave.com")));
     cardano_test_rpc_server_ = std::make_unique<CardanoTestRpcServer>(
         *(brave_wallet_service_->GetCardanoWalletService()));
   }
@@ -173,7 +169,8 @@ class CardanoApiImplTest : public testing::Test {
           "a7b4c1021fa375a4fccb1ac1b3bb01743b3989b5eb732cc6240add8c71edb925",
           "0", "34451133");
 
-      CardanoTransaction::TxInput input;
+      CardanoTransaction::TxInput input(
+          *CardanoAddress::FromString(input_address_1->address_string));
       input.utxo_outpoint.txid = test::HexToArray<32>(
           "a7b4c1021fa375a4fccb1ac1b3bb01743b3989b5eb732cc6240add8c71edb925");
       input.utxo_outpoint.index = 0;
@@ -187,7 +184,8 @@ class CardanoApiImplTest : public testing::Test {
           "a7b4c1021fa375a4fccb1ac1b3bb01743b3989b5eb732cc6240add8c71edb925",
           "10", "5000000");
 
-      CardanoTransaction::TxInput input;
+      CardanoTransaction::TxInput input(
+          *CardanoAddress::FromString(input_address_1->address_string));
       input.utxo_outpoint.txid = test::HexToArray<32>(
           "a7b4c1021fa375a4fccb1ac1b3bb01743b3989b5eb732cc6240add8c71edb925");
       input.utxo_outpoint.index = 10;
@@ -201,7 +199,8 @@ class CardanoApiImplTest : public testing::Test {
           "a7b4c1021fa375a4fccb1ac1b3bb01743b3989b5eb732cc6240add8c71edb925",
           "1", "34451133");
 
-      CardanoTransaction::TxInput input;
+      CardanoTransaction::TxInput input(
+          *CardanoAddress::FromString(input_address_2->address_string));
       input.utxo_outpoint.txid = test::HexToArray<32>(
           "a7b4c1021fa375a4fccb1ac1b3bb01743b3989b5eb732cc6240add8c71edb925");
       input.utxo_outpoint.index = 1;
@@ -210,27 +209,24 @@ class CardanoApiImplTest : public testing::Test {
     }
 
     // External
-    CardanoTransaction::TxOutput output1;
-    output1.address = *CardanoAddress::FromString(
+    CardanoTransaction::TxOutput output1(*CardanoAddress::FromString(
         "addr1q9zwt6rfn2e3mc63hesal6muyg807cwjnkwg3j5azkvmxm0tyqeyc8eu034zzmj4z"
         "53"
-        "l7lh5u7z08l0rvp49ht88s5uskl6tsl");
+        "l7lh5u7z08l0rvp49ht88s5uskl6tsl"));
     output1.amount = 10000000;
     tx.AddOutput(std::move(output1));
 
-    CardanoTransaction::TxOutput output2;
-    output2.address = *CardanoAddress::FromString(
+    CardanoTransaction::TxOutput output2(*CardanoAddress::FromString(
         "addr1q8s90ehlgwwkq637d3r6qzuxwu6qnprphqadn9pjg2mtcp9hkfmyv4zfhyefvjmpw"
         "w7"
-        "f7w9gwem3x6gcm3ulw3kpcgws9sgrhg");
+        "f7w9gwem3x6gcm3ulw3kpcgws9sgrhg"));
     output2.amount = 24282816;
     output2.type = CardanoTransaction::TxOutputType::kChange;
     tx.AddOutput(std::move(output2));
 
     // Change
-    CardanoTransaction::TxOutput output3;
-    output3.address =
-        *CardanoAddress::FromString(input_address_1->address_string);
+    CardanoTransaction::TxOutput output3(
+        *CardanoAddress::FromString(input_address_1->address_string));
     output3.amount = 24282816;
     output3.type = CardanoTransaction::TxOutputType::kChange;
     tx.AddOutput(std::move(output3));
@@ -247,7 +243,6 @@ class CardanoApiImplTest : public testing::Test {
   sync_preferences::TestingPrefServiceSyncable prefs_;
   sync_preferences::TestingPrefServiceSyncable local_state_;
   network::TestURLLoaderFactory url_loader_factory_;
-  scoped_refptr<network::SharedURLLoaderFactory> shared_url_loader_factory_;
   std::unique_ptr<BraveWalletService> brave_wallet_service_;
   std::unique_ptr<CardanoTestRpcServer> cardano_test_rpc_server_;
 
@@ -385,7 +380,7 @@ TEST_F(CardanoApiImplTest, SignData_Approved) {
 
   SignMessageRequestWaiter waiter(brave_wallet_service());
 
-  TestFuture<std::optional<base::Value::Dict>,
+  TestFuture<std::optional<base::DictValue>,
              mojom::CardanoProviderErrorBundlePtr>
       future;
 
@@ -397,7 +392,7 @@ TEST_F(CardanoApiImplTest, SignData_Approved) {
   auto& signature = future.Get<0>();
   auto& error = future.Get<1>();
 
-  base::Value::Dict expected_signature;
+  base::DictValue expected_signature;
   expected_signature.Set(
       "key",
       "a50101025839010fdc780023d8be7c9ff3a6bdc0d8d3b263bd0cc12448c40948efbf42e5"
@@ -437,7 +432,7 @@ TEST_F(CardanoApiImplTest, SignData_Rejected) {
 
   SignMessageRequestWaiter waiter(brave_wallet_service());
 
-  TestFuture<std::optional<base::Value::Dict>,
+  TestFuture<std::optional<base::DictValue>,
              mojom::CardanoProviderErrorBundlePtr>
       future;
 
@@ -1350,7 +1345,8 @@ TEST_F(CardanoApiImplTest, SignTx_DeclinedByPartialSignError) {
   SetupUnsignedReferenceTransaction(added_account, tx);
 
   // Add an external input.
-  CardanoTransaction::TxInput input;
+  CardanoTransaction::TxInput input(
+      *CardanoAddress::FromString(kMockCardanoAddress1));
   input.utxo_outpoint.txid.fill(55u);
   input.utxo_outpoint.index = 0;
   input.utxo_value = 34451133;
@@ -1574,7 +1570,8 @@ TEST_F(CardanoApiImplTest, SignTx_PartialSign) {
   CardanoTransaction unsigned_tx;
   SetupUnsignedReferenceTransaction(added_account, unsigned_tx);
   // Add an external input.
-  CardanoTransaction::TxInput input;
+  CardanoTransaction::TxInput input(
+      *CardanoAddress::FromString(kMockCardanoAddress1));
   input.utxo_outpoint.txid.fill(55u);
   input.utxo_outpoint.index = 0;
   input.utxo_value = 34451133;

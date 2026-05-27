@@ -34,7 +34,6 @@
 #include "brave/components/brave_wallet/common/test_utils.h"
 #include "components/grit/brave_components_strings.h"
 #include "components/sync_preferences/testing_pref_service_syncable.h"
-#include "services/data_decoder/public/cpp/test_support/in_process_data_decoder.h"
 #include "services/network/public/cpp/weak_wrapper_shared_url_loader_factory.h"
 #include "services/network/test/test_url_loader_factory.h"
 #include "testing/gmock/include/gmock/gmock.h"
@@ -47,34 +46,27 @@ namespace brave_wallet {
 
 class SimulationServiceUnitTest : public testing::Test {
  public:
-  SimulationServiceUnitTest()
-      : shared_url_loader_factory_(
-            base::MakeRefCounted<network::WeakWrapperSharedURLLoaderFactory>(
-                &url_loader_factory_)) {
+  SimulationServiceUnitTest() {
     brave_wallet::RegisterLocalStatePrefs(local_state_.registry());
     brave_wallet::RegisterLocalStatePrefsForMigration(local_state_.registry());
     RegisterProfilePrefs(prefs_.registry());
     RegisterProfilePrefsForMigration(prefs_.registry());
     brave_wallet_service_ = std::make_unique<BraveWalletService>(
-        shared_url_loader_factory_, TestBraveWalletServiceDelegate::Create(),
-        &prefs_, &local_state_);
+        url_loader_factory_.GetSafeWeakWrapper(),
+        TestBraveWalletServiceDelegate::Create(), &prefs_, &local_state_);
     network_manager_ = brave_wallet_service_->network_manager();
     json_rpc_service_ = brave_wallet_service_->json_rpc_service();
 
     GetAccountUtils().CreateWallet(kMnemonicDivideCruise, kTestWalletPassword);
 
     simulation_service_ = std::make_unique<SimulationService>(
-        shared_url_loader_factory_, brave_wallet_service_.get());
+        url_loader_factory_.GetSafeWeakWrapper(), brave_wallet_service_.get());
 
     SetTransactionSimulationOptInStatus(&prefs_,
                                         mojom::BlowfishOptInStatus::kAllowed);
   }
 
   ~SimulationServiceUnitTest() override = default;
-
-  scoped_refptr<network::SharedURLLoaderFactory> shared_url_loader_factory() {
-    return shared_url_loader_factory_;
-  }
 
   AccountUtils GetAccountUtils() {
     return AccountUtils(brave_wallet_service_->keyring_service());
@@ -137,23 +129,20 @@ class SimulationServiceUnitTest : public testing::Test {
       bool eip1559,
       const std::string& chain_id) {
     auto base_tx_data = mojom::TxData::New(
-        "0x09", "0x4a817c800", "0x5208",
+        chain_id, "0x09", "0x4a817c800", "0x5208",
         "0x3535353535353535353535353535353535353535", "0x0de0b6b3a7640000",
         std::vector<uint8_t>(), false, std::nullopt);
 
     if (eip1559) {
       std::unique_ptr<Eip1559Transaction> tx =
-          std::make_unique<Eip1559Transaction>(
-              *Eip1559Transaction::FromTxData(mojom::TxData1559::New(
-                  std::move(base_tx_data), "0x3", "0x1E", "0x32", nullptr)));
+          std::make_unique<Eip1559Transaction>(*Eip1559Transaction::FromTxData(
+              mojom::TxData1559::New(std::move(base_tx_data), "0x1E", "0x32")));
       EthTxMeta meta(EthAccountId(0), std::move(tx));
-      meta.set_chain_id(chain_id);
       return meta.ToTransactionInfo();
     } else {
       std::unique_ptr<EthTransaction> tx = std::make_unique<EthTransaction>(
           *EthTransaction::FromTxData(std::move(base_tx_data)));
       EthTxMeta meta(EthAccountId(0), std::move(tx));
-      meta.set_chain_id(chain_id);
       return meta.ToTransactionInfo();
     }
   }
@@ -247,8 +236,6 @@ class SimulationServiceUnitTest : public testing::Test {
 
  private:
   network::TestURLLoaderFactory url_loader_factory_;
-  scoped_refptr<network::SharedURLLoaderFactory> shared_url_loader_factory_;
-  data_decoder::test::InProcessDataDecoder in_process_data_decoder_;
 };
 
 TEST_F(SimulationServiceUnitTest, GetScanTransactionURL) {
@@ -447,21 +434,6 @@ TEST_F(SimulationServiceUnitTest, ScanEVMTransactionUnsupportedNetwork) {
   ScanEVMTransaction(
       GetCannedScanEVMTransactionParams(false, mojom::kNeonEVMMainnetChainId),
       "en-US", callback.Get());
-
-  task_environment_.RunUntilIdle();
-  testing::Mock::VerifyAndClearExpectations(&callback);
-}
-
-TEST_F(SimulationServiceUnitTest, ScanEVMTransactionEmptyNetwork) {
-  base::MockCallback<mojom::SimulationService::ScanEVMTransactionCallback>
-      callback;
-  EXPECT_CALL(
-      callback,
-      Run(EqualsMojo(mojom::EVMSimulationResponsePtr()), "",
-          l10n_util::GetStringUTF8(IDS_BRAVE_WALLET_UNSUPPORTED_NETWORK)));
-
-  ScanEVMTransaction(GetCannedScanEVMTransactionParams(false, ""), "en-US",
-                     callback.Get());
 
   task_environment_.RunUntilIdle();
   testing::Mock::VerifyAndClearExpectations(&callback);

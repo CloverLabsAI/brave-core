@@ -56,7 +56,7 @@ User: "Tell me about dinosaurs"; Assistant: "[detailed answer]"
 The key is to avoid overusing the tool. It should supplement your responses, not replace your ability to have a natural conversation flow. *Do not* use it to hide multiple sections of your answer, since the user can only choose one option. Use it for exploring different kinds of answers, do *not* use it for making your answer cover less ground. At the same time we want to keep the user engaged and learning so you can use it when you have clear next steps to offer the user, but only after you've completed your full response.)";
   }
 
-  std::optional<base::Value::Dict> InputProperties() const override {
+  std::optional<base::DictValue> InputProperties() const override {
     return CreateInputProperties(
         {{"choices",
           ArrayProperty(
@@ -114,28 +114,30 @@ class AssistantDetailStorageTool : public Tool {
            "information is gleamed from a web content output.";
   }
 
-  std::optional<base::Value::Dict> InputProperties() const override {
+  std::optional<base::DictValue> InputProperties() const override {
     return CreateInputProperties(
         {{"information",
           StringProperty(
               "Useful information from an immediately-previous tool call")}});
   }
 
-  bool SupportsConversation(
-      bool is_temporary,
-      bool has_untrusted_content,
-      mojom::ConversationCapability conversation_capability) const override {
+  bool SupportsConversation(bool is_temporary,
+                            bool has_untrusted_content,
+                            const ConversationCapabilitySet&
+                                conversation_capabilities) const override {
     // This tool is only useful for multi-step agentic tasks especially when
     // other tools might have their output truncated from the context.
-    return conversation_capability ==
-           mojom::ConversationCapability::CONTENT_AGENT;
+    return conversation_capabilities.contains(
+        mojom::ConversationCapability::CONTENT_AGENT);
   }
 
   void UseTool(const std::string& input_json,
                Tool::UseToolCallback callback) override {
-    std::move(callback).Run(CreateContentBlocksForText(
-        "Look at the function input for the information the assistant needed "
-        "to remember"));
+    std::move(callback).Run(
+        CreateContentBlocksForText("Look at the function input for the "
+                                   "information the assistant needed "
+                                   "to remember"),
+        {});
   }
 };
 

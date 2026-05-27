@@ -219,19 +219,6 @@ extension URL {
     return scheme?.contains("https") ?? false
   }
 
-  // This helps find local urls that we do not want to show loading bars on.
-  // These utility pages should be invisible to the user
-  public var isLocalUtility: Bool {
-    guard self.isLocal else {
-      return false
-    }
-    let utilityURLs = [
-      "/\(InternalURL.Path.errorpage.rawValue)",
-      "/about/home", "/\(InternalURL.Path.readermode.rawValue)",
-    ]
-    return utilityURLs.contains { self.path.hasPrefix($0) }
-  }
-
   public var isLocal: Bool {
     guard isWebPage(includeDataURIs: false) else {
       return false
@@ -363,7 +350,6 @@ public struct InternalURL {
   public static let baseUrl = "\(scheme)://\(host)"
 
   public enum Path: String {
-    case errorpage
     case readermode = "reader-mode"
     case blocked
     case httpBlocked = "http-blocked"
@@ -419,10 +405,6 @@ public struct InternalURL {
       .replacingQueryParameter(key: Param.uuidkey.rawValue, value: InternalURL.uuid)
   }
 
-  public var isErrorPage: Bool {
-    return InternalURL.Path.errorpage.matches(url.path)
-  }
-
   public var isBlockedPage: Bool {
     return InternalURL.Path.blocked.matches(url.path)
   }
@@ -439,44 +421,9 @@ public struct InternalURL {
     return InternalURL.Path.basicAuth.matches(url.path)
   }
 
-  public var originalURLFromErrorPage: URL? {
-    if isErrorPage {
-      return extractedUrlParam
-    }
-
-    if let urlParam = extractedUrlParam, let nested = InternalURL(urlParam), nested.isErrorPage {
-      return nested.extractedUrlParam
-    }
-    return nil
-  }
-
   public var extractedUrlParam: URL? {
     if let nestedUrl = url.getQuery()[InternalURL.Param.url.rawValue]?.unescape() {
       return URL(string: nestedUrl)
-    }
-    return nil
-  }
-
-  public var isAboutHomeURL: Bool {
-    if let urlParam = extractedUrlParam, let internalUrlParam = InternalURL(urlParam) {
-      return internalUrlParam.aboutComponent?.hasPrefix("home") ?? false
-    }
-    return aboutComponent?.hasPrefix("home") ?? false
-  }
-
-  public var isAboutURL: Bool {
-    return aboutComponent != nil
-  }
-
-  /// Return the path after "about/" in the URI.
-  public var aboutComponent: String? {
-    let aboutPath = "/about/"
-    guard let url = URL(string: stripAuthorization) else {
-      return nil
-    }
-
-    if url.path.hasPrefix(aboutPath) {
-      return String(url.path.dropFirst(aboutPath.count))
     }
     return nil
   }
@@ -499,9 +446,7 @@ public struct InternalURL {
   }
 
   public var displayURL: URL? {
-    if isErrorPage {
-      return originalURLFromErrorPage
-    } else if isReaderModePage {
+    if isReaderModePage {
       return extractedUrlParam
     }
     return nil

@@ -13,7 +13,6 @@
 #include "base/metrics/histogram_macros.h"
 #include "base/notreached.h"
 #include "base/strings/utf_string_conversions.h"
-#include "base/types/cxx23_to_underlying.h"
 #include "brave/browser/brave_shields/brave_shields_settings_service_factory.h"
 #include "brave/browser/brave_shields/brave_shields_web_contents_observer.h"
 #include "brave/browser/ephemeral_storage/ephemeral_storage_service_factory.h"
@@ -34,6 +33,7 @@
 #include "content/public/browser/navigation_controller.h"
 #include "content/public/browser/navigation_handle.h"
 #include "content/public/browser/reload_type.h"
+#include "content/public/browser/security_principal.h"
 #include "content/public/browser/web_contents.h"
 #include "net/base/features.h"
 #include "net/base/url_util.h"
@@ -370,7 +370,7 @@ mojom::CookieBlockMode BraveShieldsTabHelper::GetCookieBlockMode() {
       break;
   }
   NOTREACHED() << "Unexpected value for control_type: "
-               << base::to_underlying(control_type);
+               << std::to_underlying(control_type);
 }
 
 mojom::HttpsUpgradeMode BraveShieldsTabHelper::GetHttpsUpgradeMode() {
@@ -489,7 +489,7 @@ void BraveShieldsTabHelper::EnforceSiteDataCleanup() {
   // Start manual cleanup.
   ephemeral_storage_service_->CleanupTLDFirstPartyStorage(
       web_contents()->GetLastCommittedURL(),
-      site_instance->GetStoragePartitionConfig(), true);
+      site_instance->GetSecurityPrincipal().GetStoragePartitionConfig(), true);
 }
 
 void BraveShieldsTabHelper::AllowScriptsOnce(

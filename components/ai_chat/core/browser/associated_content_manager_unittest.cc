@@ -16,7 +16,6 @@
 #include "brave/components/ai_chat/core/common/pref_names.h"
 #include "components/os_crypt/async/browser/test_utils.h"
 #include "components/sync_preferences/testing_pref_service_syncable.h"
-#include "services/data_decoder/public/cpp/test_support/in_process_data_decoder.h"
 #include "services/network/public/cpp/shared_url_loader_factory.h"
 #include "services/network/public/cpp/weak_wrapper_shared_url_loader_factory.h"
 #include "services/network/test/test_url_loader_factory.h"
@@ -94,7 +93,6 @@ class AssociatedContentManagerUnitTest : public testing::Test {
   std::unique_ptr<os_crypt_async::OSCryptAsync> os_crypt_;
   network::TestURLLoaderFactory url_loader_factory_;
   scoped_refptr<network::SharedURLLoaderFactory> shared_url_loader_factory_;
-  data_decoder::test::InProcessDataDecoder in_process_data_decoder_;
   mojom::ConversationPtr conversation_;
 
   std::unique_ptr<ConversationHandler> conversation_handler_;
@@ -241,11 +239,11 @@ TEST_F(AssociatedContentManagerUnitTest,
   // associated turns.
   auto contents_map = conversation_handler_->associated_content_manager()
                           ->GetCachedContentsMap();
-  EXPECT_TRUE(base::Contains(contents_map, "turn-1"));
+  EXPECT_TRUE(contents_map.contains("turn-1"));
   ASSERT_EQ(1u, contents_map.at("turn-1").size());
   EXPECT_EQ("Page 1 content", contents_map.at("turn-1")[0].get().content);
 
-  EXPECT_TRUE(base::Contains(contents_map, "turn-2"));
+  EXPECT_TRUE(contents_map.contains("turn-2"));
   ASSERT_EQ(1u, contents_map.at("turn-2").size());
   EXPECT_EQ("Page 2 content", contents_map.at("turn-2")[0].get().content);
 }

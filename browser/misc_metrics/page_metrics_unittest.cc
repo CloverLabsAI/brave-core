@@ -16,6 +16,7 @@
 #include "chrome/browser/bookmarks/bookmark_model_factory.h"
 #include "chrome/browser/content_settings/host_content_settings_map_factory.h"
 #include "chrome/browser/history/history_service_factory.h"
+#include "chrome/browser/search_engines/template_url_service_factory.h"
 #include "chrome/test/base/testing_profile_manager.h"
 #include "components/bookmarks/browser/bookmark_model.h"
 #include "components/bookmarks/browser/bookmark_utils.h"
@@ -23,6 +24,7 @@
 #include "components/history/core/browser/history_service.h"
 #include "components/keyed_service/core/service_access_type.h"
 #include "components/prefs/testing_pref_service.h"
+#include "components/search_engines/template_url_service.h"
 #include "content/public/test/browser_task_environment.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
@@ -43,6 +45,9 @@ class PageMetricsUnitTest : public testing::Test {
                               HistoryServiceFactory::GetDefaultFactory());
     builder.AddTestingFactory(BookmarkModelFactory::GetInstance(),
                               BookmarkModelFactory::GetDefaultFactory());
+    builder.AddTestingFactory(
+        TemplateURLServiceFactory::GetInstance(),
+        base::BindRepeating(&TemplateURLServiceFactory::BuildInstanceFor));
 
     profile_ = builder.Build();
 
@@ -52,6 +57,9 @@ class PageMetricsUnitTest : public testing::Test {
 
     history_service_ = HistoryServiceFactory::GetForProfile(
         profile_.get(), ServiceAccessType::EXPLICIT_ACCESS);
+
+    TemplateURLService* template_url_service =
+        TemplateURLServiceFactory::GetForProfile(profile_.get());
 
     PageMetrics::RegisterPrefs(local_state_.registry());
     first_run_time_ = base::Time::Now();
@@ -70,6 +78,7 @@ class PageMetricsUnitTest : public testing::Test {
         &local_state_, profile_->GetPrefs(),
         HostContentSettingsMapFactory::GetForProfile(profile_.get()),
         history_service_, bookmark_model_, default_browser_monitor_.get(),
+        template_url_service,
         base::BindLambdaForTesting([&]() { return first_run_time_; }));
   }
 
@@ -189,7 +198,7 @@ TEST_F(PageMetricsUnitTest, PagesLoadedCount) {
   histogram_tester_.ExpectUniqueSample(kPagesReloadedHistogramName, 0, 1);
 
   for (size_t i = 0; i < 6; i++) {
-    page_metrics_service_->IncrementPagesLoadedCount(false);
+    page_metrics_service_->IncrementPagesLoadedCount(false, false);
   }
 
   task_environment_.FastForwardBy(base::Minutes(30));
@@ -198,10 +207,10 @@ TEST_F(PageMetricsUnitTest, PagesLoadedCount) {
   histogram_tester_.ExpectUniqueSample(kPagesReloadedHistogramName, 0, 2);
 
   for (size_t i = 0; i < 30; i++) {
-    page_metrics_service_->IncrementPagesLoadedCount(false);
+    page_metrics_service_->IncrementPagesLoadedCount(false, false);
   }
   for (size_t i = 0; i < 9; i++) {
-    page_metrics_service_->IncrementPagesLoadedCount(true);
+    page_metrics_service_->IncrementPagesLoadedCount(true, false);
   }
 
   task_environment_.FastForwardBy(base::Minutes(30));
@@ -225,7 +234,7 @@ TEST_F(PageMetricsUnitTest, PagesLoadedCount) {
                                   "uphold");
 
   for (size_t i = 0; i < 30; i++) {
-    page_metrics_service_->IncrementPagesLoadedCount(false);
+    page_metrics_service_->IncrementPagesLoadedCount(false, false);
   }
 
   task_environment_.FastForwardBy(base::Minutes(30));
@@ -269,12 +278,12 @@ TEST_F(PageMetricsUnitTest, FirstPageLoadTimeImmediate) {
   task_environment_.FastForwardBy(base::Minutes(1));
   histogram_tester_.ExpectTotalCount(kFirstPageLoadTimeHistogramName, 0);
 
-  page_metrics_service_->IncrementPagesLoadedCount(false);
+  page_metrics_service_->IncrementPagesLoadedCount(false, false);
   histogram_tester_.ExpectUniqueSample(kFirstPageLoadTimeHistogramName, 1, 1);
 
   task_environment_.FastForwardBy(base::Hours(2));
 
-  page_metrics_service_->IncrementPagesLoadedCount(false);
+  page_metrics_service_->IncrementPagesLoadedCount(false, false);
   histogram_tester_.ExpectUniqueSample(kFirstPageLoadTimeHistogramName, 1, 1);
 }
 
@@ -289,16 +298,16 @@ TEST_F(PageMetricsUnitTest, FirstPageLoadTimeLater) {
   task_environment_.FastForwardBy(base::Minutes(30));
   histogram_tester_.ExpectTotalCount(kFirstPageLoadTimeHistogramName, 0);
 
-  page_metrics_service_->IncrementPagesLoadedCount(false);
+  page_metrics_service_->IncrementPagesLoadedCount(false, false);
   histogram_tester_.ExpectUniqueSample(kFirstPageLoadTimeHistogramName, 2, 1);
 
   task_environment_.FastForwardBy(base::Days(2));
 
-  page_metrics_service_->IncrementPagesLoadedCount(false);
+  page_metrics_service_->IncrementPagesLoadedCount(false, false);
   histogram_tester_.ExpectUniqueSample(kFirstPageLoadTimeHistogramName, 2, 1);
 
   task_environment_.FastForwardBy(base::Days(8));
-  page_metrics_service_->IncrementPagesLoadedCount(false);
+  page_metrics_service_->IncrementPagesLoadedCount(false, false);
   histogram_tester_.ExpectUniqueSample(kFirstPageLoadTimeHistogramName, 2, 1);
 }
 
@@ -313,22 +322,8 @@ TEST_F(PageMetricsUnitTest, FirstPageLoadTimeTooLate) {
   task_environment_.FastForwardBy(base::Days(7));
   histogram_tester_.ExpectTotalCount(kFirstPageLoadTimeHistogramName, 0);
 
-  page_metrics_service_->IncrementPagesLoadedCount(false);
+  page_metrics_service_->IncrementPagesLoadedCount(false, false);
   histogram_tester_.ExpectTotalCount(kFirstPageLoadTimeHistogramName, 0);
-}
-
-TEST_F(PageMetricsUnitTest, BraveSearchDaily) {
-  // Test with non-default browser
-  page_metrics_service_->ReportBraveQuery();
-  histogram_tester_.ExpectUniqueSample(kSearchBraveDailyHistogramName, false,
-                                       1);
-
-  // Switch to default browser
-  SetMockedDefaultBrowserStatus(true);
-
-  page_metrics_service_->ReportBraveQuery();
-  histogram_tester_.ExpectBucketCount(kSearchBraveDailyHistogramName, true, 1);
-  histogram_tester_.ExpectTotalCount(kSearchBraveDailyHistogramName, 2);
 }
 
 }  // namespace misc_metrics

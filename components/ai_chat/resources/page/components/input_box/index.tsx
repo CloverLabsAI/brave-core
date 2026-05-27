@@ -12,7 +12,7 @@ import { getLocale, formatLocale } from '$web-common/locale'
 import { Url } from 'gen/url/mojom/url.mojom.m.js'
 import ActionTypeLabel from '../../../common/components/action_type_label'
 import * as Mojom from '../../../common/mojom'
-import { AIChatContext } from '../../state/ai_chat_context'
+import { AIChatContext, useAIChat } from '../../state/ai_chat_context'
 import { ConversationContext } from '../../state/conversation_context'
 import styles from './style.module.scss'
 import AttachmentButtonMenu from '../attachment_button_menu'
@@ -73,15 +73,16 @@ type Props = Pick<
     | 'isAIChatAgentProfile'
     | 'hasAcceptedAgreement'
     | 'getPluralString'
+    | 'processImageFile'
     | 'openAIChatAgentProfile'
     | 'skills'
-    | 'uiHandler'
   >
 
 export interface InputBoxProps {
   context: Props
   conversationStarted: boolean
   maybeShowSoftKeyboard?: (querySubmitted: boolean) => unknown
+  renderInputToggle?: () => React.ReactNode
 }
 
 function usePlaceholderText(
@@ -105,6 +106,7 @@ function usePlaceholderText(
 }
 
 function InputBox(props: InputBoxProps) {
+  const aiChatContext = useAIChat()
   const querySubmitted = React.useRef(false)
   const attachmentWrapperRef = React.useRef<HTMLDivElement>(null)
   const [attachmentWrapperHeight, setAttachmentWrapperHeight] =
@@ -161,7 +163,9 @@ function InputBox(props: InputBoxProps) {
 
     try {
       const uploadedFiles = await Promise.all(
-        files.map((file) => convertFileToUploadedFile(file)),
+        files.map((file) =>
+          convertFileToUploadedFile(file, props.context.processImageFile),
+        ),
       )
       props.context.attachImages(uploadedFiles)
     } catch (error) {
@@ -220,8 +224,8 @@ function InputBox(props: InputBoxProps) {
   const handleLearnMoreClicked = React.useCallback(() => {
     const mojomUrl = new Url()
     mojomUrl.url = LEARN_MORE_CONTENT_AGENT_URL
-    props.context.uiHandler?.openURL(mojomUrl)
-  }, [props.context.uiHandler])
+    aiChatContext.api.uiHandler.openURL(mojomUrl)
+  }, [aiChatContext.api.uiHandler])
 
   return (
     <form
@@ -380,6 +384,7 @@ function InputBox(props: InputBoxProps) {
               props.context.setIsToolsMenuOpen(!props.context.isToolsMenuOpen)
             }}
             title={getLocale(S.AI_CHAT_LEO_TOOLS_BUTTON_LABEL)}
+            data-test-id='quick-action-button'
           >
             <Icon
               className={classnames({
@@ -438,6 +443,7 @@ function InputBox(props: InputBoxProps) {
         </div>
         <div className={styles.modelSelectorAndSendButton}>
           <ModelSelector />
+          {props.renderInputToggle?.()}
           {props.context.isGenerating ? (
             <Button
               fab
@@ -465,6 +471,7 @@ function InputBox(props: InputBoxProps) {
               onClick={handleSubmit}
               disabled={isSendButtonDisabled}
               title={getLocale(S.CHAT_UI_SEND_CHAT_BUTTON_LABEL)}
+              data-test-id='leo-submit-button'
             >
               <Icon
                 className={classnames({

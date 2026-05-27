@@ -44,13 +44,13 @@
 #include "brave/components/brave_wallet/common/test_utils.h"
 #include "brave/components/brave_wallet/common/value_conversion_utils.h"
 #include "brave/components/constants/webui_url_constants.h"
-#include "brave/components/permissions/brave_permission_manager.h"
 #include "brave/components/permissions/contexts/brave_wallet_permission_context.h"
 #include "build/build_config.h"
 #include "chrome/browser/permissions/permission_manager_factory.h"
 #include "chrome/browser/prefs/browser_prefs.h"
 #include "chrome/test/base/testing_profile.h"
 #include "components/grit/brave_components_strings.h"
+#include "components/permissions/permission_manager.h"
 #include "components/prefs/pref_service.h"
 #include "components/prefs/scoped_user_pref_update.h"
 #include "components/prefs/testing_pref_service.h"
@@ -58,7 +58,6 @@
 #include "components/sync_preferences/testing_pref_service_syncable.h"
 #include "content/public/browser/storage_partition.h"
 #include "content/public/test/browser_task_environment.h"
-#include "services/data_decoder/public/cpp/test_support/in_process_data_decoder.h"
 #include "services/network/public/cpp/weak_wrapper_shared_url_loader_factory.h"
 #include "services/network/test/test_url_loader_factory.h"
 #include "testing/gtest/include/gtest/gtest.h"
@@ -302,8 +301,7 @@ class TestBraveWalletServiceObserver
 class BraveWalletServiceUnitTest : public testing::Test {
  public:
   BraveWalletServiceUnitTest()
-      : task_environment_(base::test::TaskEnvironment::TimeSource::MOCK_TIME),
-        shared_url_loader_factory_(url_loader_factory_.GetSafeWeakWrapper()) {}
+      : task_environment_(base::test::TaskEnvironment::TimeSource::MOCK_TIME) {}
 
   ~BraveWalletServiceUnitTest() override = default;
 
@@ -347,7 +345,7 @@ class BraveWalletServiceUnitTest : public testing::Test {
                   BraveWalletServiceDelegate::Create(profile),
                   profile->GetPrefs(), local_state);
             },
-            shared_url_loader_factory_, &local_state_));
+            url_loader_factory_.GetSafeWeakWrapper(), &local_state_));
     profile_ = builder.Build();
     service_ = brave_wallet::BraveWalletServiceFactory::GetServiceForContext(
         profile_.get());
@@ -363,7 +361,7 @@ class BraveWalletServiceUnitTest : public testing::Test {
     service_->AddObserver(observer_->GetReceiver());
 
     profile_->SetPermissionControllerDelegate(
-        base::WrapUnique(static_cast<permissions::BravePermissionManager*>(
+        base::WrapUnique(static_cast<permissions::PermissionManager*>(
             PermissionManagerFactory::GetInstance()
                 ->BuildServiceInstanceForBrowserContext(profile_.get())
                 .release())));
@@ -885,7 +883,6 @@ class BraveWalletServiceUnitTest : public testing::Test {
 
   content::BrowserTaskEnvironment task_environment_;
   network::TestURLLoaderFactory url_loader_factory_;
-  scoped_refptr<network::SharedURLLoaderFactory> shared_url_loader_factory_;
   TestingPrefServiceSimple local_state_;
   std::unique_ptr<TestingProfile> profile_;
   std::unique_ptr<base::HistogramTester> histogram_tester_;
@@ -909,8 +906,6 @@ class BraveWalletServiceUnitTest : public testing::Test {
   mojom::BlockchainTokenPtr sol_usdc_;
   mojom::BlockchainTokenPtr sol_tsla_;
   mojom::BlockchainTokenPtr fil_token_;
-
-  data_decoder::test::InProcessDataDecoder in_process_data_decoder_;
 };
 
 TEST_F(BraveWalletServiceUnitTest, GetUserAssets) {
@@ -996,7 +991,7 @@ TEST_F(BraveWalletServiceUnitTest, GetUserAssets) {
 }
 
 TEST_F(BraveWalletServiceUnitTest, GetUserAssetsAlwaysHasNativeTokensForDot) {
-  GetPrefs()->SetList(kBraveWalletUserAssetsList, base::Value::List());
+  GetPrefs()->SetList(kBraveWalletUserAssetsList, base::ListValue());
 
   auto dot_mainnet_token = GetPolkadotNativeToken(mojom::kPolkadotMainnet);
   auto dot_testnet_token = GetPolkadotNativeToken(mojom::kPolkadotTestnet);
@@ -1019,7 +1014,7 @@ TEST_F(BraveWalletServiceUnitTest, GetUserAssetsAlwaysHasNativeTokensForDot) {
 }
 
 TEST_F(BraveWalletServiceUnitTest, GetUserAssetsAlwaysHasNativeTokensForBtc) {
-  GetPrefs()->SetList(kBraveWalletUserAssetsList, base::Value::List());
+  GetPrefs()->SetList(kBraveWalletUserAssetsList, base::ListValue());
 
   auto btc_mainnet_token = GetBitcoinNativeToken(mojom::kBitcoinMainnet);
   auto btc_testnet_token = GetBitcoinNativeToken(mojom::kBitcoinTestnet);
@@ -1047,7 +1042,7 @@ TEST_F(BraveWalletServiceUnitTest, GetUserAssetsAlwaysHasNativeTokensForZec) {
         features::kBraveWalletZCashFeature,
         {{"zcash_shielded_transactions_enabled", "false"}});
 
-    GetPrefs()->SetList(kBraveWalletUserAssetsList, base::Value::List());
+    GetPrefs()->SetList(kBraveWalletUserAssetsList, base::ListValue());
 
     auto zec_mainnet_token = GetZcashNativeToken(mojom::kZCashMainnet);
     auto zec_testnet_token = GetZcashNativeToken(mojom::kZCashTestnet);
@@ -1070,11 +1065,17 @@ TEST_F(BraveWalletServiceUnitTest, GetUserAssetsAlwaysHasNativeTokensForZec) {
 
   {
     base::test::ScopedFeatureList feature_list;
-    feature_list.InitAndEnableFeatureWithParameters(
-        features::kBraveWalletZCashFeature,
-        {{"zcash_shielded_transactions_enabled", "true"}});
+    feature_list.InitWithFeaturesAndParameters(
+        {{features::kBraveWalletZCashFeature,
+          {{"zcash_shielded_transactions_enabled", "true"}}},
+#if BUILDFLAG(IS_IOS)
+         {features::kBraveWalletWebUIFeature, {}}
+#endif
+        },
+        {}  // disabled features
+    );
 
-    GetPrefs()->SetList(kBraveWalletUserAssetsList, base::Value::List());
+    GetPrefs()->SetList(kBraveWalletUserAssetsList, base::ListValue());
 
     auto zec_mainnet_token = GetZcashNativeToken(mojom::kZCashMainnet);
     auto zec_testnet_token = GetZcashNativeToken(mojom::kZCashTestnet);
@@ -1658,7 +1659,7 @@ TEST_F(BraveWalletServiceUnitTest, NetworkListChangedEvent) {
   observer_->Reset();
   {
     ScopedDictPrefUpdate update(GetPrefs(), kBraveWalletCustomNetworks);
-    base::Value::List* list = update->FindList(kEthereumPrefKey);
+    base::ListValue* list = update->FindList(kEthereumPrefKey);
     list->EraseIf([&](const base::Value& v) {
       auto* chain_id_value = v.GetDict().FindString("chainId");
       if (!chain_id_value) {
@@ -1717,7 +1718,7 @@ TEST_F(BraveWalletServiceUnitTest,
 TEST_F(BraveWalletServiceUnitTest, AddCustomNetwork) {
   json_rpc_service_->SetSkipEthChainIdValidationForTesting(true);
 
-  GetPrefs()->SetList(kBraveWalletUserAssetsList, base::Value::List());
+  GetPrefs()->SetList(kBraveWalletUserAssetsList, base::ListValue());
 
   mojom::NetworkInfo chain1 = GetTestNetworkInfo1();
   mojom::NetworkInfo chain2 = GetTestNetworkInfo2();

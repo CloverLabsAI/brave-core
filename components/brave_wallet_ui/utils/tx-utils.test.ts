@@ -6,6 +6,7 @@ import { getLocale } from '../../common/locale'
 import {
   getMockedTransactionInfo,
   mockAccount,
+  mockCardanoAccount,
   mockNetwork,
   mockSolanaAccount,
 } from '../common/constants/mocks'
@@ -37,6 +38,7 @@ import {
   mockTransactionInfo,
   mockZecSendTransaction,
 } from '../stories/mock-data/mock-transaction-info'
+import { mockCardanoMainnetNetwork } from '../stories/mock-data/mock-networks'
 import { mockEthAccount } from '../stories/mock-data/mock-wallet-accounts'
 import Amount from './amount'
 import {
@@ -45,13 +47,80 @@ import {
   findTransactionToken,
   getIsRevokeApprovalTx,
   getIsSolanaAssociatedTokenAccountCreation,
+  getTransactionFormattedSendCurrencyTotal,
   getTransactionGas,
+  getTransactionMemo,
   getTransactionStatusString,
+  getTransactionTokenSymbol,
+  getTransactionTransferredToken,
+  getTransactionTransferredValue,
   getTransactionTypeName,
   isCancelTransaction,
   parseSwapInfo,
   toTxDataUnion,
 } from './tx-utils'
+
+const mockCardanoMinswapTokenIdHex = 'deadbeefcafe'
+
+const mockCardanoMinswapToken = {
+  contractAddress: mockCardanoMinswapTokenIdHex,
+  name: 'Minswap',
+  symbol: 'MIN',
+  decimals: 6,
+  visible: true,
+  tokenId: '',
+  coingeckoId: '',
+  chainId: mockCardanoMainnetNetwork.chainId,
+  coin: BraveWallet.CoinType.ADA,
+  isCompressed: false,
+  isErc20: false,
+  isErc721: false,
+  isErc1155: false,
+  splTokenProgram: BraveWallet.SPLTokenProgram.kUnsupported,
+  isNft: false,
+  isSpam: false,
+  isShielded: false,
+  logo: '',
+} as BraveWallet.BlockchainToken
+
+const mockCardanoSendTokenTransaction: SerializableTransactionInfo = {
+  id: 'cardano-send-min-tx',
+  chainId: mockCardanoMainnetNetwork.chainId,
+  fromAccountId: mockCardanoAccount.accountId,
+  txHash: '',
+  txStatus: BraveWallet.TransactionStatus.Confirmed,
+  txType: BraveWallet.TransactionType.CardanoSendToken,
+  txParams: [],
+  txArgs: [],
+  createdTime: { microseconds: 0 },
+  submittedTime: { microseconds: 0 },
+  confirmedTime: { microseconds: 0 },
+  originInfo: undefined,
+  effectiveRecipient: '',
+  isRetriable: false,
+  swapInfo: undefined,
+  swapInfoDeprecated: undefined,
+  txDataUnion: {
+    ethTxData1559: undefined,
+    ethTxData: undefined,
+    solanaTxData: undefined,
+    filTxData: undefined,
+    btcTxData: undefined,
+    zecTxData: undefined,
+    polkadotTxData: undefined,
+    cardanoTxData: {
+      to: 'addr1qxytest',
+      sendingLovelace: BigInt(0),
+      sendingToken: {
+        tokenIdHex: mockCardanoMinswapTokenIdHex,
+        value: BigInt(1_000_000),
+      },
+      fee: BigInt(170_000),
+      inputs: [],
+      outputs: [],
+    },
+  },
+}
 
 describe('Check Transaction Status Strings Value', () => {
   test('Transaction ID 0 should return Unapproved', () => {
@@ -808,6 +877,62 @@ describe('findTransactionToken', () => {
         )?.symbol,
       ).toBe('BAT')
     })
+
+    it('should detect sent Cardano tokens', () => {
+      expect(
+        findTransactionToken(mockCardanoSendTokenTransaction, [
+          mockCardanoMinswapToken,
+        ])?.symbol,
+      ).toBe('MIN')
+    })
+  })
+})
+
+describe('Cardano send token transfer formatting', () => {
+  it('getTransactionTransferredToken returns the token, not native ADA', () => {
+    expect(
+      getTransactionTransferredToken({
+        tx: mockCardanoSendTokenTransaction,
+        txNetwork: mockCardanoMainnetNetwork,
+        token: mockCardanoMinswapToken,
+        sourceToken: undefined,
+      }),
+    ).toBe(mockCardanoMinswapToken)
+  })
+
+  it('getTransactionTransferredValue uses token decimals', () => {
+    const { normalized, wei } = getTransactionTransferredValue({
+      tx: mockCardanoSendTokenTransaction,
+      token: mockCardanoMinswapToken,
+      sourceToken: undefined,
+      txAccount: mockCardanoAccount,
+      txNetwork: mockCardanoMainnetNetwork,
+    })
+    expect(wei.format()).toBe('1000000')
+    expect(normalized.format(6)).toBe('1')
+  })
+
+  it('getTransactionFormattedSendCurrencyTotal uses the token symbol', () => {
+    expect(
+      getTransactionFormattedSendCurrencyTotal({
+        normalizedTransferredValue: '1',
+        tx: mockCardanoSendTokenTransaction,
+        token: mockCardanoMinswapToken,
+        sourceToken: undefined,
+        txNetwork: mockCardanoMainnetNetwork,
+      }),
+    ).toBe('1 MIN')
+  })
+
+  it('getTransactionTokenSymbol returns the token ticker', () => {
+    expect(
+      getTransactionTokenSymbol({
+        tx: mockCardanoSendTokenTransaction,
+        token: mockCardanoMinswapToken,
+        sourceToken: undefined,
+        txNetwork: { symbol: 'ADA' },
+      }),
+    ).toBe('MIN')
   })
 })
 
@@ -1166,7 +1291,6 @@ describe('isCancelTransaction', () => {
             chainId: '0x1',
             maxPriorityFeePerGas: '0x0',
             maxFeePerGas: '0x0',
-            gasEstimation: undefined,
           },
         },
       }
@@ -1187,7 +1311,6 @@ describe('isCancelTransaction', () => {
             chainId: '0x1',
             maxPriorityFeePerGas: '0x0',
             maxFeePerGas: '0x0',
-            gasEstimation: undefined,
           },
         },
         txStatus: BraveWallet.TransactionStatus.Submitted,
@@ -1235,7 +1358,6 @@ describe('isCancelTransaction', () => {
           chainId: '0x1',
           maxPriorityFeePerGas: '0x0',
           maxFeePerGas: '0x0',
-          gasEstimation: undefined,
         },
       },
     }
@@ -1285,5 +1407,192 @@ describe('isCancelTransaction', () => {
       id: 'submitted-tx',
     }
     expect(isCancelTransaction(cancelTx, [submittedTx])).toBe(true)
+  })
+})
+
+// Test vectors based on Zcash ZIP 302 memo field format specification
+// https://zips.z.cash/zip-0302
+describe('getTransactionMemo', () => {
+  it('should return empty string for undefined transaction', () => {
+    expect(getTransactionMemo(undefined)).toBe('')
+  })
+
+  it('should return empty string for non-ZCash transaction', () => {
+    expect(getTransactionMemo(mockEthSendTransaction)).toBe('')
+    expect(getTransactionMemo(mockSolanaTransactionInfo)).toBe('')
+    expect(getTransactionMemo(mockBtcSendTransaction)).toBe('')
+    expect(getTransactionMemo(mockFilSendTransaction)).toBe('')
+  })
+
+  it('should return empty string for ZCash transaction without memo', () => {
+    expect(getTransactionMemo(mockZecSendTransaction)).toBe('')
+  })
+
+  it('should return empty string for ZCash transaction with undefined memo', () => {
+    const tx: SerializableTransactionInfo = {
+      ...mockZecSendTransaction,
+      txDataUnion: {
+        zecTxData: {
+          ...mockZecSendTransaction.txDataUnion.zecTxData,
+          memo: undefined,
+        },
+      },
+    }
+    expect(getTransactionMemo(tx)).toBe('')
+  })
+
+  // ZIP 302: UTF-8 text (first byte ≤ 0xF4) padded with trailing zeros
+  it('should decode UTF-8 memo and strip trailing zeros', () => {
+    // "Hello, Zcash!" encoded as UTF-8 with trailing zeros (simulating 512-byte memo)
+    const memoText = 'Hello, Zcash!'
+    const memoBytes = new TextEncoder().encode(memoText)
+    const paddedMemo = new Uint8Array(512)
+    paddedMemo.set(memoBytes)
+
+    const tx: SerializableTransactionInfo = {
+      ...mockZecSendTransaction,
+      txDataUnion: {
+        zecTxData: {
+          ...mockZecSendTransaction.txDataUnion.zecTxData,
+          memo: Array.from(paddedMemo),
+        },
+      },
+    }
+    expect(getTransactionMemo(tx)).toBe('Hello, Zcash!')
+  })
+
+  it('should handle memo without trailing zeros', () => {
+    const memoText = 'No padding needed'
+    const memoBytes = Array.from(new TextEncoder().encode(memoText))
+
+    const tx: SerializableTransactionInfo = {
+      ...mockZecSendTransaction,
+      txDataUnion: {
+        zecTxData: {
+          ...mockZecSendTransaction.txDataUnion.zecTxData,
+          memo: memoBytes,
+        },
+      },
+    }
+    expect(getTransactionMemo(tx)).toBe('No padding needed')
+  })
+
+  it('should handle memo with embedded zeros followed by more text', () => {
+    // "Hello" + null byte + "World" - should only return "Hello"
+    const memo = [
+      0x48,
+      0x65,
+      0x6c,
+      0x6c,
+      0x6f, // "Hello"
+      0x00, // null terminator
+      0x57,
+      0x6f,
+      0x72,
+      0x6c,
+      0x64, // "World" (should be ignored)
+    ]
+
+    const tx: SerializableTransactionInfo = {
+      ...mockZecSendTransaction,
+      txDataUnion: {
+        zecTxData: {
+          ...mockZecSendTransaction.txDataUnion.zecTxData,
+          memo,
+        },
+      },
+    }
+    expect(getTransactionMemo(tx)).toBe('Hello')
+  })
+
+  // ZIP 302: 0xF6 followed by zeros indicates "no memo"
+  // Note: Since TextDecoder doesn't throw by default, 0xF6 decodes to
+  // replacement character. However, if the memo is 0xF6 followed by zeros,
+  // we only slice up to the first zero, leaving just 0xF6.
+  it('should handle "no memo" marker (0xF6)', () => {
+    const noMemoMarker = new Uint8Array(512)
+    noMemoMarker[0] = 0xf6 // "no memo" marker, followed by zeros
+
+    const tx: SerializableTransactionInfo = {
+      ...mockZecSendTransaction,
+      txDataUnion: {
+        zecTxData: {
+          ...mockZecSendTransaction.txDataUnion.zecTxData,
+          memo: Array.from(noMemoMarker),
+        },
+      },
+    }
+    // 0xF6 is invalid UTF-8, TextDecoder returns replacement character
+    expect(getTransactionMemo(tx)).toBe('\uFFFD')
+  })
+
+  // ZIP 302: First byte ≥ 0xF5 indicates arbitrary data
+  it('should handle arbitrary data marker (0xFF)', () => {
+    // 0xFF followed by non-zero data (no null terminator)
+    const arbitraryData = [0xff, 0x01, 0x02, 0x03]
+
+    const tx: SerializableTransactionInfo = {
+      ...mockZecSendTransaction,
+      txDataUnion: {
+        zecTxData: {
+          ...mockZecSendTransaction.txDataUnion.zecTxData,
+          memo: arbitraryData,
+        },
+      },
+    }
+    // Invalid UTF-8 bytes produce replacement characters
+    expect(getTransactionMemo(tx)).toContain('\uFFFD')
+  })
+
+  it('should return empty string for all zeros (empty memo)', () => {
+    const emptyMemo = new Uint8Array(512) // all zeros
+
+    const tx: SerializableTransactionInfo = {
+      ...mockZecSendTransaction,
+      txDataUnion: {
+        zecTxData: {
+          ...mockZecSendTransaction.txDataUnion.zecTxData,
+          memo: Array.from(emptyMemo),
+        },
+      },
+    }
+    // First byte is 0, so slice is empty
+    expect(getTransactionMemo(tx)).toBe('')
+  })
+
+  it('should handle Unicode characters correctly', () => {
+    // Test with emojis and multi-byte UTF-8 characters
+    const memoText = '🦓 Zcash: こんにちは'
+    const memoBytes = new TextEncoder().encode(memoText)
+    const paddedMemo = new Uint8Array(512)
+    paddedMemo.set(memoBytes)
+
+    const tx: SerializableTransactionInfo = {
+      ...mockZecSendTransaction,
+      txDataUnion: {
+        zecTxData: {
+          ...mockZecSendTransaction.txDataUnion.zecTxData,
+          memo: Array.from(paddedMemo),
+        },
+      },
+    }
+    expect(getTransactionMemo(tx)).toBe('🦓 Zcash: こんにちは')
+  })
+
+  it('should handle invalid UTF-8 sequences with replacement characters', () => {
+    // Invalid UTF-8: continuation bytes without start byte
+    const invalidUtf8 = [0x80, 0x81, 0x82]
+
+    const tx: SerializableTransactionInfo = {
+      ...mockZecSendTransaction,
+      txDataUnion: {
+        zecTxData: {
+          ...mockZecSendTransaction.txDataUnion.zecTxData,
+          memo: invalidUtf8,
+        },
+      },
+    }
+    // TextDecoder replaces invalid bytes with U+FFFD
+    expect(getTransactionMemo(tx)).toBe('\uFFFD\uFFFD\uFFFD')
   })
 })

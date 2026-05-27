@@ -5,6 +5,7 @@
 
 package org.chromium.chrome.browser.toolbar.top;
 
+import static org.chromium.build.NullUtil.assertNonNull;
 import static org.chromium.ui.base.ViewUtils.dpToPx;
 
 import android.animation.Animator;
@@ -49,7 +50,7 @@ import org.chromium.base.BraveReflectionUtil;
 import org.chromium.base.Log;
 import org.chromium.base.MathUtils;
 import org.chromium.base.ThreadUtils;
-import org.chromium.base.supplier.ObservableSupplier;
+import org.chromium.base.supplier.MonotonicObservableSupplier;
 import org.chromium.base.task.AsyncTask;
 import org.chromium.chrome.R;
 import org.chromium.chrome.browser.BraveRewardsHelper;
@@ -58,6 +59,7 @@ import org.chromium.chrome.browser.BraveRewardsObserver;
 import org.chromium.chrome.browser.BraveRewardsPolicy;
 import org.chromium.chrome.browser.app.BraveActivity;
 import org.chromium.chrome.browser.brave_stats.BraveStatsUtil;
+import org.chromium.chrome.browser.crypto_wallet.BraveWalletPolicy;
 import org.chromium.chrome.browser.crypto_wallet.controller.DAppsWalletController;
 import org.chromium.chrome.browser.custom_layout.popup_window_tooltip.PopupWindowTooltip;
 import org.chromium.chrome.browser.customtabs.FullScreenCustomTabActivity;
@@ -99,12 +101,13 @@ import org.chromium.chrome.browser.toolbar.ToolbarTabController;
 import org.chromium.chrome.browser.toolbar.back_button.BackButtonCoordinator;
 import org.chromium.chrome.browser.toolbar.bottom.BottomToolbarConfiguration;
 import org.chromium.chrome.browser.toolbar.bottom.BottomToolbarVariationManager;
-import org.chromium.chrome.browser.toolbar.extensions.ExtensionToolbarCoordinator;
 import org.chromium.chrome.browser.toolbar.forward_button.ForwardButtonCoordinator;
 import org.chromium.chrome.browser.toolbar.home_button.HomeButton;
+import org.chromium.chrome.browser.toolbar.home_button.HomeButtonCoordinator;
 import org.chromium.chrome.browser.toolbar.menu_button.BraveMenuButtonCoordinator;
 import org.chromium.chrome.browser.toolbar.menu_button.MenuButtonCoordinator;
 import org.chromium.chrome.browser.toolbar.reload_button.ReloadButtonCoordinator;
+import org.chromium.chrome.browser.toolbar.signin_button.SigninButtonCoordinator;
 import org.chromium.chrome.browser.toolbar.top.NavigationPopup.HistoryDelegate;
 import org.chromium.chrome.browser.user_education.UserEducationHelper;
 import org.chromium.chrome.browser.util.BraveConstants;
@@ -377,7 +380,10 @@ public abstract class BraveToolbarLayoutImpl extends ToolbarLayout
             }
         }
 
-        if (BraveReflectionUtil.equalTypes(this.getClass(), CustomTabToolbar.class)) {
+        if (BraveReflectionUtil.equalTypes(this.getClass(), CustomTabToolbar.class)
+                && !ChromeFeatureList.sCctToolbarRefactor.isEnabled()) {
+            // Non-refactored CCT toolbar: reserve space for the shields button beside
+            // action_buttons.
             LinearLayout customActionButtons = findViewById(R.id.action_buttons);
             assert customActionButtons != null : "Something has changed in the upstream!";
             if (customActionButtons != null && mBraveShieldsButton != null) {
@@ -385,8 +391,9 @@ public abstract class BraveToolbarLayoutImpl extends ToolbarLayout
                         (ViewGroup.MarginLayoutParams) mBraveShieldsButton.getLayoutParams();
                 ViewGroup.MarginLayoutParams actionButtonsLayout =
                         (ViewGroup.MarginLayoutParams) customActionButtons.getLayoutParams();
-                actionButtonsLayout.setMarginEnd(actionButtonsLayout.getMarginEnd()
-                        + braveShieldsButtonLayout.getMarginEnd());
+                actionButtonsLayout.setMarginEnd(
+                        actionButtonsLayout.getMarginEnd()
+                                + braveShieldsButtonLayout.getMarginEnd());
                 customActionButtons.setLayoutParams(actionButtonsLayout);
             }
         }
@@ -411,7 +418,10 @@ public abstract class BraveToolbarLayoutImpl extends ToolbarLayout
 
     public boolean isUrlBarFocused() {
         if (getLocationBar() instanceof BraveLocationBarCoordinator) {
-            return ((BraveLocationBarCoordinator) getLocationBar()).isUrlBarFocused();
+            BraveLocationBarCoordinator coordinator =
+                    (BraveLocationBarCoordinator) getLocationBar();
+            assertNonNull(coordinator.getLocationBarMediator());
+            return coordinator.getLocationBarMediator().isUrlBarFocused();
         }
         return false;
     }
@@ -614,6 +624,13 @@ public abstract class BraveToolbarLayoutImpl extends ToolbarLayout
                     @Override
                     public void didSelectTab(Tab tab, @TabSelectionType int type, int lastId) {
                         showYouTubePipIcon(tab);
+                        // Reset verified publisher checkmark immediately on tab
+                        // switch. The correct state will be restored asynchronously
+                        // by onFrontTabPublisherChanged once the publisher query
+                        // for the new tab completes.
+                        mIsPublisherVerified = false;
+                        mPublisherId = "";
+                        updateVerifiedPublisherMark();
                         if (mBraveRewardsNativeWorker != null && !tab.isIncognito()) {
                             mBraveRewardsNativeWorker.onNotifyFrontTabUrlChanged(
                                     tab.getId(), tab.getUrl().getSpec());
@@ -1126,7 +1143,7 @@ public abstract class BraveToolbarLayoutImpl extends ToolbarLayout
                 return;
             }
         }
-        if (show) {
+        if (show && !BraveWalletPolicy.isDisabledByPolicy(currentTab.getProfile())) {
             mWalletLayout.setVisibility(View.VISIBLE);
             mTabsWithWalletIcon.add(currentTab.getId());
         } else {
@@ -1600,13 +1617,13 @@ public abstract class BraveToolbarLayoutImpl extends ToolbarLayout
             @Nullable ToggleTabStackButtonCoordinator tabSwitcherButtonCoordinator,
             HistoryDelegate historyDelegate,
             UserEducationHelper userEducationHelper,
-            ObservableSupplier<Tracker> trackerSupplier,
+            MonotonicObservableSupplier<Tracker> trackerSupplier,
             ToolbarProgressBar progressBar,
             @Nullable ReloadButtonCoordinator reloadButtonCoordinator,
             @Nullable BackButtonCoordinator backButtonCoordinator,
             @Nullable ForwardButtonCoordinator forwardButtonCoordinator,
-            @Nullable HomeButtonDisplay homeButtonDisplay,
-            @Nullable ExtensionToolbarCoordinator extensionToolbarCoordinator,
+            HomeButtonCoordinator homeButtonCoordinator,
+            @Nullable SigninButtonCoordinator signinButtonCoordinator,
             ThemeColorProvider themeColorProvider,
             IncognitoStateProvider incognitoStateProvider,
             @Nullable Supplier<Integer> incognitoWindowCountSupplier) {
@@ -1622,8 +1639,8 @@ public abstract class BraveToolbarLayoutImpl extends ToolbarLayout
                 reloadButtonCoordinator,
                 backButtonCoordinator,
                 forwardButtonCoordinator,
-                homeButtonDisplay,
-                extensionToolbarCoordinator,
+                homeButtonCoordinator,
+                signinButtonCoordinator,
                 themeColorProvider,
                 incognitoStateProvider,
                 incognitoWindowCountSupplier);

@@ -30,49 +30,39 @@ static_library("features") {
     "features.h",
   ]
 
-  public_deps = [
-    "//base",
-    "//brave/components/brave_account:features",
-  ]
-}
-
-source_set("auth") {
-  sources = [
-    "email_aliases_auth.cc",
-    "email_aliases_auth.h",
-  ]
-
-  deps = [
-    "//base",
-    "//brave/components/brave_account",
-    "//components/os_crypt/async/common",
-    "//components/prefs",
-  ]
+  public_deps = [ "//base" ]
 }
 
 static_library("service") {
   sources = [
+    "email_aliases_auth.cc",
+    "email_aliases_auth.h",
+    "email_aliases_endpoints.h",
+    "email_aliases_notes.cc",
+    "email_aliases_notes.h",
     "email_aliases_service.cc",
     "email_aliases_service.h",
+    "pref_names.h",
   ]
   deps = [
     ":email_aliases_api_types",
     ":mojom",
     "//base",
     "//brave/brave_domains",
+    "//brave/components/brave_account",
+    "//brave/components/brave_account/endpoint_client",
+    "//brave/components/brave_account/mojom",
     "//brave/components/constants",
     "//brave/components/email_aliases:features",
     "//brave/components/resources:strings_grit",
     "//components/keyed_service/core",
-    "//components/os_crypt/async/browser",
-    "//components/os_crypt/async/common",
+    "//components/pref_registry",
+    "//components/prefs",
     "//mojo/public/cpp/bindings",
     "//net",
     "//services/network/public/cpp",
     "//ui/base",
   ]
-
-  public_deps = [ ":auth" ]
 }
 
 source_set("test_utils") {
@@ -87,20 +77,25 @@ source_set("test_utils") {
     ":service",
     "//base/test:test_support",
     "//brave/components/email_aliases:mojom",
-    "//components/os_crypt/async/browser",
     "//mojo/public/cpp/bindings",
+    "//url",
   ]
 }
 
 source_set("unit_tests") {
   testonly = true
-  sources = [ "email_aliases_service_unittest.cc" ]
+  sources = [
+    "email_aliases_notes_unittest.cc",
+    "email_aliases_service_unittest.cc",
+  ]
   deps = [
     ":features",
     ":service",
     ":test_utils",
     "//base/test:test_support",
     "//brave/components/brave_account",
+    "//brave/components/brave_account:features",
+    "//brave/components/brave_account:test_support",
     "//brave/components/constants",
     "//brave/components/resources:strings_grit",
     "//components/os_crypt/async/browser:test_support",

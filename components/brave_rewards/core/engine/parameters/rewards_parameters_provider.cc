@@ -8,6 +8,7 @@
 #include <utility>
 
 #include "base/check.h"
+#include "base/functional/callback_helpers.h"
 #include "base/json/values_util.h"
 #include "brave/components/brave_rewards/core/engine/endpoints/request_for.h"
 #include "brave/components/brave_rewards/core/engine/util/callback_helpers.h"
@@ -32,8 +33,8 @@ constexpr base::TimeDelta kErrorRetryInterval = base::Seconds(30);
 constexpr base::TimeDelta kRandomDelay = base::Minutes(10);
 
 template <typename T>
-base::Value::List VectorToList(const std::vector<T>& values) {
-  base::Value::List list;
+base::ListValue VectorToList(const std::vector<T>& values) {
+  base::ListValue list;
   for (auto& value : values) {
     list.Append(value);
   }
@@ -41,8 +42,8 @@ base::Value::List VectorToList(const std::vector<T>& values) {
 }
 
 template <typename T>
-base::Value::Dict MapToDict(const T& map) {
-  base::Value::Dict dict;
+base::DictValue MapToDict(const T& map) {
+  base::DictValue dict;
   for (auto& [key, value] : map) {
     dict.Set(key, value);
   }
@@ -75,7 +76,7 @@ void RewardsParametersProvider::GetParameters(GetParametersCallback callback) {
 }
 
 mojom::RewardsParametersPtr RewardsParametersProvider::DictToParameters(
-    const base::Value::Dict& dict) {
+    const base::DictValue& dict) {
   auto parameters = mojom::RewardsParameters::New();
 
   if (auto rate = dict.FindDouble(kRateKey)) {
@@ -198,7 +199,7 @@ void RewardsParametersProvider::SetRefreshTimer(base::TimeDelta delay) {
 
 void RewardsParametersProvider::StoreParameters(
     const mojom::RewardsParameters& parameters) {
-  base::Value::Dict dict;
+  base::DictValue dict;
 
   dict.Set(kRateKey, parameters.rate);
   dict.SetByDottedPath(kTipChoicesPath, VectorToList(parameters.tip_choices));
@@ -206,10 +207,10 @@ void RewardsParametersProvider::StoreParameters(
                        VectorToList(parameters.monthly_tip_choices));
   dict.Set(kPayoutStatusKey, MapToDict(parameters.payout_status));
 
-  base::Value::Dict wallet_provider_regions_dict;
+  base::DictValue wallet_provider_regions_dict;
   for (auto& [wallet_provider, regions] : parameters.wallet_provider_regions) {
     wallet_provider_regions_dict.Set(
-        wallet_provider, base::Value::Dict()
+        wallet_provider, base::DictValue()
                              .Set("allow", VectorToList(regions->allow))
                              .Set("block", VectorToList(regions->block)));
   }

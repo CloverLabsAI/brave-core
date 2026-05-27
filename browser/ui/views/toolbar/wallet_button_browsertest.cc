@@ -5,11 +5,7 @@
 
 #include "brave/browser/ui/views/toolbar/wallet_button.h"
 
-#include "base/feature_list.h"
-#include "base/run_loop.h"
-#include "base/test/scoped_feature_list.h"
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
-#include "brave/components/brave_wallet/common/features.h"
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/test/test_browser_dialog.h"
 #include "chrome/browser/ui/views/bubble/webui_bubble_manager.h"
@@ -28,13 +24,6 @@ namespace brave_wallet {
 
 class WalletButtonButtonBrowserTest : public InProcessBrowserTest {
  public:
-  // InProcessBrowserTest:
-  void SetUp() override {
-    scoped_feature_list_.InitAndEnableFeature(
-        features::kNativeBraveWalletFeature);
-    InProcessBrowserTest::SetUp();
-  }
-
   BrowserView* browser_view() {
     return BrowserView::GetBrowserViewForBrowser(browser());
   }
@@ -42,10 +31,33 @@ class WalletButtonButtonBrowserTest : public InProcessBrowserTest {
   WalletButton* wallet_button() {
     return static_cast<BraveBrowserView*>(browser_view())->GetWalletButton();
   }
-
- private:
-  base::test::ScopedFeatureList scoped_feature_list_;
 };
+
+// Regression test: SetBraveButtonFlexBehavior previously used the two-argument
+// FlexSpecification constructor which applies kPreferredSnapToZero to both the
+// width and height axes. When the wallet badge image is shown its preferred
+// height exceeds the toolbar's cross-axis budget, causing height to snap to
+// zero (width=44, height=0) and the button to become invisible. The fix uses
+// the orientation-aware constructor so only the width axis can snap to zero.
+IN_PROC_BROWSER_TEST_F(WalletButtonButtonBrowserTest,
+                       SizeIsNotEmptyWithAndWithoutBadge) {
+  // counter = 0: no badge, button should be visible with normal size.
+  ASSERT_TRUE(wallet_button()->GetVisible());
+  EXPECT_FALSE(wallet_button()->size().IsEmpty())
+      << "Wallet button has empty size with no badge";
+
+  // counter > 0: badge image is taller than the base icon, which previously
+  // caused the flex rule to snap height to zero.
+  wallet_button()->OnNotificationUpdate(false, 99);
+  RunScheduledLayouts();
+  EXPECT_FALSE(wallet_button()->size().IsEmpty())
+      << "Wallet button has empty size when badge is shown";
+
+  wallet_button()->OnNotificationUpdate(false, 0);
+  RunScheduledLayouts();
+  EXPECT_FALSE(wallet_button()->size().IsEmpty())
+      << "Wallet button has empty size with no badge";
+}
 
 IN_PROC_BROWSER_TEST_F(WalletButtonButtonBrowserTest,
                        ButtonClickCreatesBubble) {
@@ -60,19 +72,12 @@ IN_PROC_BROWSER_TEST_F(WalletButtonButtonBrowserTest,
 class WalletButtonBrowserUITest : public DialogBrowserTest {
  public:
   // DialogBrowserTest:
-  void SetUp() override {
-    feature_list_.InitAndEnableFeature(features::kNativeBraveWalletFeature);
-    DialogBrowserTest::SetUp();
-  }
   void ShowUi(const std::string& name) override {
     auto* wallet_button = static_cast<BraveBrowserView*>(
                               BrowserView::GetBrowserViewForBrowser(browser()))
                               ->GetWalletButton();
     views::test::ButtonTestApi(wallet_button).NotifyClick(GetDummyEvent());
   }
-
- private:
-  base::test::ScopedFeatureList feature_list_;
 };
 
 // Invokes a wallet panel bubble.

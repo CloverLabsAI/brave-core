@@ -12,15 +12,20 @@ import android.view.View.OnLongClickListener;
 import androidx.annotation.ColorInt;
 
 import org.chromium.base.BraveReflectionUtil;
-import org.chromium.base.supplier.ObservableSupplier;
+import org.chromium.base.supplier.MonotonicObservableSupplier;
+import org.chromium.base.supplier.NonNullObservableSupplier;
+import org.chromium.base.supplier.NullableObservableSupplier;
 import org.chromium.base.supplier.OneshotSupplier;
 import org.chromium.build.annotations.Nullable;
+import org.chromium.cc.input.BrowserControlsState;
 import org.chromium.chrome.R;
-import org.chromium.chrome.browser.browser_controls.BrowserControlsStateProvider;
+import org.chromium.chrome.browser.browser_controls.BrowserControlsVisibilityManager;
 import org.chromium.chrome.browser.browser_controls.BrowserStateBrowserControlsVisibilityDelegate;
 import org.chromium.chrome.browser.browser_controls.TopControlsStacker;
 import org.chromium.chrome.browser.fullscreen.FullscreenManager;
 import org.chromium.chrome.browser.layouts.LayoutStateProvider;
+import org.chromium.chrome.browser.omnibox.OmniboxStub;
+import org.chromium.chrome.browser.profiles.Profile;
 import org.chromium.chrome.browser.tab.Tab;
 import org.chromium.chrome.browser.tab.TabObscuringHandler;
 import org.chromium.chrome.browser.tabmodel.IncognitoStateProvider;
@@ -29,16 +34,24 @@ import org.chromium.chrome.browser.toolbar.ToolbarDataProvider;
 import org.chromium.chrome.browser.toolbar.ToolbarProgressBar;
 import org.chromium.chrome.browser.toolbar.ToolbarTabController;
 import org.chromium.chrome.browser.toolbar.back_button.BackButtonCoordinator;
-import org.chromium.chrome.browser.toolbar.extensions.ExtensionToolbarCoordinator;
 import org.chromium.chrome.browser.toolbar.forward_button.ForwardButtonCoordinator;
+import org.chromium.chrome.browser.toolbar.home_button.HomeButtonCoordinator;
 import org.chromium.chrome.browser.toolbar.menu_button.MenuButton;
 import org.chromium.chrome.browser.toolbar.menu_button.MenuButtonCoordinator;
 import org.chromium.chrome.browser.toolbar.optional_button.ButtonDataProvider;
 import org.chromium.chrome.browser.toolbar.top.NavigationPopup.HistoryDelegate;
 import org.chromium.chrome.browser.toolbar.top.tab_strip.TabStripTransitionCoordinator.TabStripTransitionDelegate;
+import org.chromium.chrome.browser.toolbar.top.tab_strip.TabStripTransitionCoordinator.TabStripTransitionHandler;
 import org.chromium.chrome.browser.ui.appmenu.AppMenuButtonHelper;
+import org.chromium.chrome.browser.ui.messages.snackbar.SnackbarManager;
+import org.chromium.chrome.browser.ui.signin.SigninAndHistorySyncActivityLauncher;
 import org.chromium.chrome.browser.user_education.UserEducationHelper;
+import org.chromium.components.browser_ui.bottomsheet.BottomSheetController;
 import org.chromium.components.browser_ui.desktop_windowing.DesktopWindowStateManager;
+import org.chromium.components.browser_ui.device_lock.DeviceLockActivityLauncher;
+import org.chromium.ui.base.ActivityResultTracker;
+import org.chromium.ui.base.WindowAndroid;
+import org.chromium.ui.modaldialog.ModalDialogManager;
 import org.chromium.ui.resources.ResourceManager;
 import org.chromium.ui.util.ColorUtils;
 
@@ -53,7 +66,7 @@ public class BraveTopToolbarCoordinator extends TopToolbarCoordinator {
     private final ToolbarLayout mBraveToolbarLayout;
     private final MenuButtonCoordinator mBraveMenuButtonCoordinator;
     private boolean mIsBottomControlsVisible;
-    private final ObservableSupplier<Integer> mConstraintsProxy;
+    private final NullableObservableSupplier<@BrowserControlsState Integer> mConstraintsProxy;
     private final ToolbarControlContainer mControlContainer;
     private boolean mInTabSwitcherMode;
 
@@ -68,33 +81,41 @@ public class BraveTopToolbarCoordinator extends TopToolbarCoordinator {
             ThemeColorProvider normalThemeColorProvider,
             IncognitoStateProvider incognitoStateProvider,
             MenuButtonCoordinator browsingModeMenuButtonCoordinator,
-            ObservableSupplier<AppMenuButtonHelper> appMenuButtonHelperSupplier,
+            MonotonicObservableSupplier<AppMenuButtonHelper> appMenuButtonHelperSupplier,
             @Nullable ToggleTabStackButtonCoordinator tabSwitcherButtonCoordinator,
-            ObservableSupplier<Integer> tabCountSupplier,
-            ObservableSupplier<Boolean> homepageEnabledSupplier,
-            ObservableSupplier<Boolean> homepageNonNtpSupplier,
+            MonotonicObservableSupplier<Integer> tabCountSupplier,
+            NonNullObservableSupplier<Boolean> homepageEnabledSupplier,
             Supplier<ResourceManager> resourceManagerSupplier,
             HistoryDelegate historyDelegate,
             boolean initializeWithIncognitoColors,
-            ObservableSupplier<@Nullable Integer> constraintsSupplier,
-            ObservableSupplier<Boolean> compositorInMotionSupplier,
+            NullableObservableSupplier<@BrowserControlsState Integer> constraintsSupplier,
+            NonNullObservableSupplier<Boolean> compositorInMotionSupplier,
             BrowserStateBrowserControlsVisibilityDelegate
                     browserStateBrowserControlsVisibilityDelegate,
             FullscreenManager fullscreenManager,
             TabObscuringHandler tabObscuringHandler,
             @Nullable DesktopWindowStateManager desktopWindowStateManager,
             OneshotSupplier<TabStripTransitionDelegate> tabStripTransitionDelegateSupplier,
+            TabStripTransitionHandler tabStripTransitionHandler,
             @Nullable OnLongClickListener onLongClickListener,
             ToolbarProgressBar progressBar,
-            ObservableSupplier<@Nullable Tab> tabSupplier,
-            ObservableSupplier<Boolean> toolbarNavControlsEnabledSupplier,
+            NullableObservableSupplier<Tab> tabSupplier,
+            NonNullObservableSupplier<Boolean> toolbarNavControlsEnabledSupplier,
             @Nullable BackButtonCoordinator backButtonCoordinator,
             @Nullable ForwardButtonCoordinator forwardButtonCoordinator,
-            @Nullable HomeButtonDisplay homeButtonDisplay,
-            @Nullable ExtensionToolbarCoordinator extensionToolbarCoordinator,
+            HomeButtonCoordinator homeButtonCoordinator,
             TopControlsStacker topControlsStacker,
-            BrowserControlsStateProvider browserControlsStateProvider,
-            Supplier<Integer> incognitoWindowCountSupplier) {
+            BrowserControlsVisibilityManager browserControlsVisibilityManager,
+            Supplier<Integer> incognitoWindowCountSupplier,
+            MonotonicObservableSupplier<Profile> profileSupplier,
+            OneshotSupplier<OmniboxStub> omniboxStubSupplier,
+            SigninAndHistorySyncActivityLauncher signinAndHistorySyncActivityLauncher,
+            WindowAndroid windowAndroid,
+            ActivityResultTracker activityResultTracker,
+            DeviceLockActivityLauncher deviceLockActivityLauncher,
+            BottomSheetController bottomSheetController,
+            ModalDialogManager modalDialogManager,
+            SnackbarManager snackbarManager) {
         super(
                 controlContainer,
                 toolbarLayout,
@@ -110,7 +131,6 @@ public class BraveTopToolbarCoordinator extends TopToolbarCoordinator {
                 tabSwitcherButtonCoordinator,
                 tabCountSupplier,
                 homepageEnabledSupplier,
-                homepageNonNtpSupplier,
                 resourceManagerSupplier,
                 historyDelegate,
                 initializeWithIncognitoColors,
@@ -121,17 +141,26 @@ public class BraveTopToolbarCoordinator extends TopToolbarCoordinator {
                 tabObscuringHandler,
                 desktopWindowStateManager,
                 tabStripTransitionDelegateSupplier,
+                tabStripTransitionHandler,
                 onLongClickListener,
                 progressBar,
                 tabSupplier,
                 toolbarNavControlsEnabledSupplier,
                 backButtonCoordinator,
                 forwardButtonCoordinator,
-                homeButtonDisplay,
-                extensionToolbarCoordinator,
+                homeButtonCoordinator,
                 topControlsStacker,
-                browserControlsStateProvider,
-                incognitoWindowCountSupplier);
+                browserControlsVisibilityManager,
+                incognitoWindowCountSupplier,
+                profileSupplier,
+                omniboxStubSupplier,
+                signinAndHistorySyncActivityLauncher,
+                windowAndroid,
+                activityResultTracker,
+                deviceLockActivityLauncher,
+                bottomSheetController,
+                modalDialogManager,
+                snackbarManager);
 
         mBraveToolbarLayout = toolbarLayout;
         mBraveMenuButtonCoordinator = browsingModeMenuButtonCoordinator;
@@ -204,7 +233,7 @@ public class BraveTopToolbarCoordinator extends TopToolbarCoordinator {
         return mIsBottomControlsVisible ? null : mBraveMenuButtonCoordinator.getMenuButton();
     }
 
-    public ObservableSupplier<Integer> getConstraintsProxy() {
+    public NullableObservableSupplier<@BrowserControlsState Integer> getConstraintsProxy() {
         return mConstraintsProxy;
     }
 

@@ -5,26 +5,57 @@
 
 #include "brave/browser/ui/views/tabs/brave_tab.h"
 
-#include <optional>
-#include <string>
+#include <algorithm>
 
 #include "base/test/scoped_feature_list.h"
+#include "brave/browser/ui/tabs/brave_tab_prefs.h"
+#include "brave/browser/ui/views/tabs/brave_tab_strip_layout_helper.h"
+#include "brave/components/tabs/public/tree_tab_node.h"
+#include "brave/components/tabs/public/tree_tab_node_id.h"
+#include "brave/components/tabs/public/tree_tab_node_tab_collection.h"
+#include "chrome/browser/ui/browser_window/test/mock_browser_window_interface.h"
 #include "chrome/browser/ui/layout_constants.h"
 #include "chrome/browser/ui/tabs/features.h"
 #include "chrome/browser/ui/tabs/tab_style.h"
 #include "chrome/browser/ui/views/tabs/fake_tab_slot_controller.h"
-#include "chrome/browser/ui/views/tabs/tab_close_button.h"
+#include "chrome/browser/ui/views/tabs/tab/tab_close_button.h"
 #include "chrome/browser/ui/views/tabs/tab_style_views.h"
+#include "chrome/test/base/testing_profile.h"
 #include "chrome/test/views/chrome_views_test_base.h"
+#include "components/split_tabs/split_tab_visual_data.h"
+#include "components/sync_preferences/testing_pref_service_syncable.h"
+#include "components/tabs/public/mock_tab_interface.h"
 #include "testing/gmock/include/gmock/gmock.h"
 #include "testing/gtest/include/gtest/gtest.h"
 #include "third_party/skia/include/core/SkPath.h"
 #include "third_party/skia/include/core/SkRegion.h"
-#include "ui/events/base_event_utils.h"
 #include "ui/gfx/geometry/insets.h"
 #include "ui/gfx/geometry/rect.h"
 #include "ui/gfx/geometry/skia_conversions.h"
 #include "ui/views/test/views_test_utils.h"
+
+class MockTabSlotController : public FakeTabSlotController {
+ public:
+  MockTabSlotController() = default;
+  ~MockTabSlotController() override = default;
+
+  // FakeTabSlotController overrides:
+  MOCK_METHOD(void, CloseTab, (Tab * tab, CloseTabSource source), (override));
+  MOCK_METHOD(bool, IsVerticalTabsFloating, (), (const, override));
+  MOCK_METHOD(bool,
+              IsVerticalTabsAnimatingButNotFinalState,
+              (),
+              (const, override));
+  MOCK_METHOD(BrowserWindowInterface*,
+              GetBrowserWindowInterface,
+              (),
+              (override));
+
+  MOCK_METHOD(const tabs::TreeTabNode*,
+              GetTreeTabNode,
+              (const tree_tab::TreeTabNodeId& id),
+              (const, override));
+};
 
 class BraveTabTest : public ChromeViewsTestBase {
  public:
@@ -35,16 +66,57 @@ class BraveTabTest : public ChromeViewsTestBase {
     tab->SetBoundsRect(bounds);
     views::test::RunScheduledLayout(tab);
 
-    auto insets = tab->tab_style_views()->GetContentsInsets();
+    auto insets = tab->tab_style()->GetContentsInsets();
     int left_inset = insets.left();
     left_inset += BraveTab::kExtraLeftPadding;
     EXPECT_EQ(left_inset, tab->GetInsets().left());
+  }
+
+  void TestIconVisibilityAcrossWidths(
+      MockTabSlotController& tab_slot_controller,
+      int tab_handle_id,
+      bool is_pinned,
+      bool expect_centered,
+      const std::string& description_prefix) {
+    constexpr int kMaxWidth = 240;  // Typical max width for vertical tabs
+    constexpr int kMinWidth = tabs::kVerticalTabMinWidth;  // 32px
+    constexpr int kStep = 20;
+
+    auto widget =
+        CreateTestWidget(views::Widget::InitParams::CLIENT_OWNS_WIDGET);
+    auto tab = std::make_unique<BraveTab>(tabs::TabHandle(tab_handle_id),
+                                          &tab_slot_controller);
+    if (is_pinned) {
+      tab_slot_controller.set_active_tab(nullptr);
+    } else {
+      tab_slot_controller.set_active_tab(tab.get());
+    }
+    widget->SetContentsView(std::move(tab));
+    auto* tab_ptr = static_cast<BraveTab*>(widget->GetContentsView());
+
+    if (is_pinned) {
+      tabs::TabData data;
+      data.pinned = true;
+      tab_ptr->SetDataForTesting(std::move(data));
+    }
+
+    for (int width = kMaxWidth; width > kMinWidth; width -= kStep) {
+      tab_ptr->SetBoundsRect({0, 0, width, 50});
+      tab_ptr->UpdateIconVisibility();
+
+      EXPECT_TRUE(tab_ptr->showing_icon())
+          << description_prefix << " icon should be visible at width " << width;
+      EXPECT_EQ(expect_centered, tab_ptr->center_icon_for_test())
+          << description_prefix << " icon centering should be "
+          << (expect_centered ? "enabled" : "disabled") << " at width "
+          << width;
+    }
   }
 };
 
 TEST_F(BraveTabTest, ExtraPaddingLayoutTest) {
   FakeTabSlotController tab_slot_controller;
-  BraveTab tab(&tab_slot_controller);
+  BraveTab tab(tabs::TabHandle(1), &tab_slot_controller);
 
   // Our tab should have extra padding always.
   // See the comment at BraveTab::GetInsets().
@@ -58,10 +130,11 @@ TEST_F(BraveTabTest, ExtraPaddingLayoutTest) {
 // Check tab's region inside of vertical padding.
 TEST_F(BraveTabTest, TabHeightTest) {
   FakeTabSlotController tab_slot_controller;
-  BraveTab tab(&tab_slot_controller);
-  tab.SetBoundsRect({0, 0, 100, GetLayoutConstant(TAB_STRIP_HEIGHT)});
+  BraveTab tab(tabs::TabHandle(1), &tab_slot_controller);
+  tab.SetBoundsRect(
+      {0, 0, 100, GetLayoutConstant(LayoutConstant::kTabStripHeight)});
   EXPECT_EQ(tab.GetLocalBounds().height() -
-                GetLayoutConstant(TABSTRIP_TOOLBAR_OVERLAP),
+                GetLayoutConstant(LayoutConstant::kTabstripToolbarOverlap),
             tab.GetContentsBounds().height());
 
   SkPath mask = tab.tab_style_views()->GetPath(
@@ -75,25 +148,25 @@ TEST_F(BraveTabTest, TabHeightTest) {
   // Check outside of tab region.
   gfx::Rect rect(50, 0, 1, 1);
   EXPECT_FALSE(mask_region.intersects(RectToSkIRect(rect)));
-  rect.set_y(GetLayoutConstant(TAB_STRIP_PADDING) - 1);
+  rect.set_y(GetLayoutConstant(LayoutConstant::kTabStripPadding) - 1);
   EXPECT_FALSE(mask_region.intersects(RectToSkIRect(rect)));
 
   // Check inside of tab region.
-  rect.set_y(GetLayoutConstant(TAB_STRIP_PADDING));
+  rect.set_y(GetLayoutConstant(LayoutConstant::kTabStripPadding));
   EXPECT_TRUE(mask_region.intersects(RectToSkIRect(rect)));
-  rect.set_y(GetLayoutConstant(TAB_STRIP_PADDING) +
-             GetLayoutConstant(TAB_HEIGHT) - 1);
+  rect.set_y(GetLayoutConstant(LayoutConstant::kTabStripPadding) +
+             GetLayoutConstant(LayoutConstant::kTabHeight) - 1);
   EXPECT_TRUE(mask_region.intersects(RectToSkIRect(rect)));
 
   // Check outside of tab region.
-  rect.set_y(GetLayoutConstant(TAB_STRIP_PADDING) +
-             GetLayoutConstant(TAB_HEIGHT));
+  rect.set_y(GetLayoutConstant(LayoutConstant::kTabStripPadding) +
+             GetLayoutConstant(LayoutConstant::kTabHeight));
   EXPECT_FALSE(mask_region.intersects(RectToSkIRect(rect)));
 }
 
 TEST_F(BraveTabTest, TabStyleTest) {
   FakeTabSlotController tab_slot_controller;
-  BraveTab tab(&tab_slot_controller);
+  BraveTab tab(tabs::TabHandle(1), &tab_slot_controller);
 
   // We use same width for split and non-split tab.
   auto* tab_style = tab.tab_style();
@@ -103,179 +176,9 @@ TEST_F(BraveTabTest, TabStyleTest) {
             tab_style->GetMinimumActiveWidth(/*is_split*/ false));
 }
 
-class BraveTabRenamingUnitTest : public BraveTabTest {
- public:
-  class MockTabSlotController : public FakeTabSlotController {
-   public:
-    MockTabSlotController() = default;
-    ~MockTabSlotController() override = default;
-
-    // FakeTabSlotController overrides:
-    MOCK_METHOD(void,
-                SetCustomTitleForTab,
-                (Tab * tab, const std::optional<std::u16string>& title),
-                (override));
-    MOCK_METHOD(void, CloseTab, (Tab * tab, CloseTabSource source), (override));
-  };
-
-  BraveTabRenamingUnitTest() = default;
-  ~BraveTabRenamingUnitTest() override = default;
-
- protected:
-  BraveTab* tab() { return tab_.get(); }
-
-  views::Label* title() { return tab_->title_for_test(); }
-  views::Textfield& rename_textfield() { return *tab_->rename_textfield_; }
-  void UpdateRenameTextfieldBounds() { tab_->UpdateRenameTextfieldBounds(); }
-  bool in_renaming_mode() const { return tab_->in_renaming_mode(); }
-  void CommitRename() { tab_->CommitRename(); }
-  void ExitingRenameMode() { tab_->ExitRenameMode(); }
-
-  testing::NiceMock<MockTabSlotController>* tab_slot_controller() {
-    return &tab_slot_controller_;
-  }
-
-  void SetUp() override {
-    BraveTabTest::SetUp();
-    tab_ = std::make_unique<BraveTab>(&tab_slot_controller_);
-    LayoutAndCheckBorder(tab_.get(), {0, 0, 100, 50});
-  }
-
-  void TearDown() override {
-    tab_.reset();
-    BraveTabTest::TearDown();
-  }
-
- private:
-  base::test::ScopedFeatureList feature_list_{tabs::kBraveRenamingTabs};
-  std::unique_ptr<BraveTab> tab_;
-  testing::NiceMock<MockTabSlotController> tab_slot_controller_;
-};
-
-TEST_F(BraveTabRenamingUnitTest, EnterRenameMode) {
-  constexpr char16_t kTestTitle[] = u"Test Title";
-  title()->SetText(kTestTitle);
-  tab()->EnterRenameMode();
-  EXPECT_TRUE(in_renaming_mode());
-  EXPECT_TRUE(rename_textfield().GetVisible());
-  EXPECT_FALSE(title()->GetVisible());
-
-  // Check that the textfield is filled with the current title.
-  EXPECT_EQ(rename_textfield().GetText(), kTestTitle);
-
-  // Check that the all text in textfield is selected.
-  EXPECT_TRUE(rename_textfield().HasSelection());
-  EXPECT_EQ(rename_textfield().GetSelectedText(), kTestTitle);
-
-  // Check that the textfield bounds are updated.
-  LayoutAndCheckBorder(tab(), {0, 0, 50, 50});
-  UpdateRenameTextfieldBounds();
-  EXPECT_EQ(rename_textfield().bounds().width(), title()->bounds().width());
-  EXPECT_EQ(rename_textfield().bounds().x(), title()->bounds().x());
-}
-
-TEST_F(BraveTabRenamingUnitTest, CommitRename) {
-  constexpr char16_t kNewTitle[] = u"New Title";
-  tab()->EnterRenameMode();
-  rename_textfield().SetText(kNewTitle);
-
-  // Check that the custom title is set.
-  EXPECT_CALL(*tab_slot_controller(),
-              SetCustomTitleForTab(
-                  tab(), std::make_optional(std::u16string(kNewTitle))));
-  CommitRename();
-
-  EXPECT_FALSE(in_renaming_mode());
-  EXPECT_FALSE(rename_textfield().GetVisible());
-  EXPECT_TRUE(title()->GetVisible());
-}
-
-TEST_F(BraveTabRenamingUnitTest, ExitRenameMode) {
-  constexpr char16_t kOriginalTitle[] = u"Original Title";
-  title()->SetText(kOriginalTitle);
-
-  tab()->EnterRenameMode();
-  rename_textfield().SetText(u"Some other title");
-
-  // Check that exiting rename mode without committing does not change the
-  // title.
-  EXPECT_CALL(*tab_slot_controller(), SetCustomTitleForTab(tab(), testing::_))
-      .Times(0);
-  ExitingRenameMode();
-
-  // Exiting rename mode should hide the textfield and show the title.
-  EXPECT_FALSE(in_renaming_mode());
-  EXPECT_FALSE(rename_textfield().GetVisible());
-  EXPECT_TRUE(rename_textfield().GetText().empty());
-  EXPECT_TRUE(title()->GetVisible());
-
-  EXPECT_EQ(title()->GetText(), kOriginalTitle);
-}
-
-TEST_F(BraveTabRenamingUnitTest, EnterKeyCommitsRename) {
-  constexpr char16_t kNewTitle[] = u"New Title";
-  tab()->EnterRenameMode();
-  rename_textfield().SetText(kNewTitle);
-
-  // Check that the custom title is set.
-  EXPECT_CALL(*tab_slot_controller(),
-              SetCustomTitleForTab(
-                  tab(), std::make_optional(std::u16string(kNewTitle))));
-  // Simulate pressing Enter key to commit the rename.
-  rename_textfield().OnEvent(new ui::KeyEvent(ui::EventType::kKeyPressed,
-                                              ui::VKEY_RETURN, ui::EF_NONE));
-
-  EXPECT_FALSE(in_renaming_mode());
-  EXPECT_FALSE(rename_textfield().GetVisible());
-  EXPECT_TRUE(title()->GetVisible());
-}
-
-TEST_F(BraveTabRenamingUnitTest, EscapeKeyExitsRenameMode) {
-  constexpr char16_t kOriginalTitle[] = u"Original Title";
-  title()->SetText(kOriginalTitle);
-
-  tab()->EnterRenameMode();
-  rename_textfield().SetText(u"Some other title");
-
-  // Check that exiting rename mode without committing does not change the
-  // title.
-  EXPECT_CALL(*tab_slot_controller(), SetCustomTitleForTab(tab(), testing::_))
-      .Times(0);
-  // Simulate pressing Escape key to exit rename mode.
-  rename_textfield().OnEvent(new ui::KeyEvent(ui::EventType::kKeyPressed,
-                                              ui::VKEY_ESCAPE, ui::EF_NONE));
-
-  EXPECT_FALSE(in_renaming_mode());
-  EXPECT_FALSE(rename_textfield().GetVisible());
-  EXPECT_TRUE(title()->GetVisible());
-
-  EXPECT_EQ(title()->GetText(), kOriginalTitle);
-}
-
-TEST_F(BraveTabRenamingUnitTest, ClickingOutsideRenamingTabCommitsRename) {
-  tab()->EnterRenameMode();
-  ASSERT_TRUE(in_renaming_mode());
-
-  constexpr char16_t kNewTitle[] = u"New Title";
-  rename_textfield().SetText(kNewTitle);
-
-  // Check that the custom title is set.
-  EXPECT_CALL(*tab_slot_controller(),
-              SetCustomTitleForTab(
-                  tab(), std::make_optional(std::u16string(kNewTitle))));
-
-  // Simulate clicking outside the textfield to commit the rename.
-  static_cast<BraveTab::RenameTextfield*>(&rename_textfield())
-      ->MouseMovedOutOfHost();
-
-  EXPECT_FALSE(in_renaming_mode());
-  EXPECT_FALSE(rename_textfield().GetVisible());
-  EXPECT_TRUE(title()->GetVisible());
-}
-
 TEST_F(BraveTabTest, ShouldAlwaysHideTabCloseButton) {
   FakeTabSlotController tab_slot_controller;
-  BraveTab tab(&tab_slot_controller);
+  BraveTab tab(tabs::TabHandle(1), &tab_slot_controller);
   tab_slot_controller.set_active_tab(&tab);
 
   ASSERT_FALSE(tab_slot_controller.ShouldAlwaysHideCloseButton());
@@ -290,9 +193,9 @@ TEST_F(BraveTabTest, ShouldAlwaysHideTabCloseButton) {
 }
 
 TEST_F(BraveTabTest, CanCloseTabViaMiddleButtonClick) {
-  testing::NiceMock<BraveTabRenamingUnitTest::MockTabSlotController>
-      tab_slot_controller;
-  auto tab = std::make_unique<BraveTab>(&tab_slot_controller);
+  testing::NiceMock<MockTabSlotController> tab_slot_controller;
+  auto tab =
+      std::make_unique<BraveTab>(tabs::TabHandle(2), &tab_slot_controller);
   tab_slot_controller.set_active_tab(tab.get());
 
   // Create a widget to host the tab
@@ -343,4 +246,306 @@ TEST_F(BraveTabTest, CanCloseTabViaMiddleButtonClick) {
       .Times(1);
   tab_ptr->OnMousePressed(press_event);
   tab_ptr->OnMouseReleased(release_event);
+}
+
+// Tests that a pinned vertical tab's icon is centered when floating from
+// "completely hidden" collapsed mode. This is the regression fix: before the
+// fix, the floating check ran first and set center_icon_ = false, even though
+// the icon should remain centered in this mode.
+//
+// The center_icon_ = true block only fires when:
+//   (showing_icon_ || showing_alert_indicator_) && !ShouldRenderAsNormalTab()
+// Tab widths are derived from GetTabSizeInfo().pinned_tab_width and
+// kPinnedTabExtraWidthToRenderAsNormal (30, from tab.cc) to straddle the exact
+// boundary of ShouldRenderAsNormalTab().
+//
+// See: UpdateIconVisibility() in brave_tab.cc
+TEST_F(BraveTabTest,
+       PinnedTabIconCenteredWhenFloatingFromCompletelyHiddenMode) {
+  // kBraveVerticalTabHideCompletely is FEATURE_ENABLED_BY_DEFAULT, so
+  // kVerticalTabsHideCompletelyWhenCollapsed is already registered.
+  TestingProfile profile;
+  profile.GetPrefs()->SetBoolean(brave_tabs::kVerticalTabsEnabled, true);
+  profile.GetPrefs()->SetBoolean(
+      brave_tabs::kVerticalTabsHideCompletelyWhenCollapsed, true);
+
+  testing::NiceMock<MockBrowserWindowInterface> mock_browser_window;
+  EXPECT_CALL(mock_browser_window, GetProfile())
+      .WillRepeatedly(testing::Return(&profile));
+  EXPECT_CALL(testing::Const(mock_browser_window), GetProfile())
+      .WillRepeatedly(testing::Return(&profile));
+  EXPECT_CALL(mock_browser_window, GetType())
+      .WillRepeatedly(testing::Return(BrowserWindowInterface::TYPE_NORMAL));
+
+  testing::NiceMock<MockTabSlotController> tab_slot_controller;
+  EXPECT_CALL(tab_slot_controller, GetBrowserWindowInterface())
+      .WillRepeatedly(testing::Return(&mock_browser_window));
+  // Tab is floating (user hovered over the completely-hidden collapsed
+  // sidebar).
+  EXPECT_CALL(tab_slot_controller, IsVerticalTabsFloating())
+      .WillRepeatedly(testing::Return(true));
+  EXPECT_CALL(tab_slot_controller, IsVerticalTabsAnimatingButNotFinalState())
+      .WillRepeatedly(testing::Return(false));
+
+  auto widget = CreateTestWidget(views::Widget::InitParams::CLIENT_OWNS_WIDGET);
+  auto tab =
+      std::make_unique<BraveTab>(tabs::TabHandle(1), &tab_slot_controller);
+
+  BraveTab* tab_ptr = static_cast<BraveTab*>(tab.get());
+  widget->SetContentsView(std::move(tab));
+
+  // data().show_icon defaults to true, so Tab::UpdateIconVisibility() sets
+  // showing_icon_ = true for this pinned tab.
+  tabs::TabData data;
+  data.pinned = true;
+  tab_ptr->SetDataForTesting(std::move(data));
+
+  // Compute the exact boundary used by Tab::ShouldRenderAsNormalTab():
+  //   width >= pinned_tab_width + kPinnedTabExtraWidthToRenderAsNormal
+  // kPinnedTabExtraWidthToRenderAsNormal is defined as 30 in tab.cc.
+  const int pinned_tab_width = tab_ptr->GetTabSizeInfo().pinned_tab_width;
+  constexpr int kPinnedTabExtraWidthToRenderAsNormal = 30;
+  const int render_as_normal_threshold =
+      pinned_tab_width + kPinnedTabExtraWidthToRenderAsNormal;
+
+  // One pixel below the threshold: ShouldRenderAsNormalTab() == false, so the
+  // center_icon_ = true block fires and the completely-hidden early return
+  // preserves it.
+  tab_ptr->SetBoundsRect({0, 0, render_as_normal_threshold - 1, 50});
+
+  ASSERT_FALSE(tab_ptr->ShouldRenderAsNormalTab())
+      << "Precondition failed: width " << render_as_normal_threshold - 1
+      << " should be below the render-as-normal threshold "
+      << render_as_normal_threshold;
+
+  tab_ptr->UpdateIconVisibility();
+
+  // After the fix: center_icon_ is set to true before the early return for
+  // completely-hidden floating, so the "floating → center_icon_ = false"
+  // block is never reached.
+  EXPECT_TRUE(tab_ptr->center_icon_for_test())
+      << "Pinned tab icon should be centered when floating from "
+         "completely-hidden mode";
+
+  // Exactly at the threshold: ShouldRenderAsNormalTab() == true, so the
+  // center_icon_ = true block is skipped and center_icon_ stays false.
+  tab_ptr->SetBoundsRect({0, 0, render_as_normal_threshold, 50});
+
+  ASSERT_TRUE(tab_ptr->ShouldRenderAsNormalTab())
+      << "Precondition failed: width " << render_as_normal_threshold
+      << " should be at or above the render-as-normal threshold";
+
+  tab_ptr->UpdateIconVisibility();
+
+  EXPECT_FALSE(tab_ptr->center_icon_for_test())
+      << "center_icon_ should remain false when ShouldRenderAsNormalTab() "
+         "is true, since the center_icon_ = true block is guarded by "
+         "!ShouldRenderAsNormalTab()";
+}
+
+// Test that icon visibility is correctly set when vertical tabs are animating
+// to collapsed state across various tab widths. This prevents icon flickering
+// when the collapse animation occurs during the transition from max to min
+// width.
+// See: UpdateIconVisibility() in brave_tab.cc
+TEST_F(BraveTabTest, IconVisibilityWhenVerticalTabsAnimating) {
+  // Set up a profile with vertical tabs enabled
+  TestingProfile profile;
+  profile.GetPrefs()->SetBoolean(brave_tabs::kVerticalTabsEnabled, true);
+
+  // Set up mock browser window interface
+  testing::NiceMock<MockBrowserWindowInterface> mock_browser_window;
+  // Mock both const and non-const overloads of GetProfile()
+  EXPECT_CALL(mock_browser_window, GetProfile())
+      .WillRepeatedly(testing::Return(&profile));
+  EXPECT_CALL(testing::Const(mock_browser_window), GetProfile())
+      .WillRepeatedly(testing::Return(&profile));
+  EXPECT_CALL(mock_browser_window, GetType())
+      .WillRepeatedly(testing::Return(BrowserWindowInterface::TYPE_NORMAL));
+
+  // Set up mock tab slot controller
+  testing::NiceMock<MockTabSlotController> tab_slot_controller;
+  EXPECT_CALL(tab_slot_controller, GetBrowserWindowInterface())
+      .WillRepeatedly(testing::Return(&mock_browser_window));
+  EXPECT_CALL(tab_slot_controller, IsVerticalTabsAnimatingButNotFinalState())
+      .WillRepeatedly(testing::Return(true));
+
+  // Test unpinned tab: icon visible but not centered during animation
+  TestIconVisibilityAcrossWidths(tab_slot_controller, /*tab_handle_id=*/1,
+                                 /*is_pinned=*/false,
+                                 /*expect_centered=*/false, "Unpinned tab");
+
+  // Test pinned tab during floating animation: icon visible but not centered
+  EXPECT_CALL(tab_slot_controller, IsVerticalTabsFloating())
+      .WillRepeatedly(testing::Return(true));
+  TestIconVisibilityAcrossWidths(tab_slot_controller, /*tab_handle_id=*/2,
+                                 /*is_pinned=*/true,
+                                 /*expect_centered=*/false,
+                                 "Pinned tab (floating)");
+
+  // Test pinned tab during non-floating animation: icon visible and centered
+  EXPECT_CALL(tab_slot_controller, IsVerticalTabsFloating())
+      .WillRepeatedly(testing::Return(false));
+  TestIconVisibilityAcrossWidths(tab_slot_controller, /*tab_handle_id=*/3,
+                                 /*is_pinned=*/true,
+                                 /*expect_centered=*/true,
+                                 "Pinned tab (non-floating)");
+}
+
+class BraveTabTestWithTreeTab : public BraveTabTest {
+ public:
+  BraveTabTestWithTreeTab() {
+    feature_list_.InitAndEnableFeature(tabs::kBraveTreeTab);
+  }
+  ~BraveTabTestWithTreeTab() override = default;
+
+ private:
+  base::test::ScopedFeatureList feature_list_;
+};
+
+TEST_F(BraveTabTestWithTreeTab, TreeToggleButtonVisibleInsteadOfCloseButton) {
+  testing::NiceMock<MockTabSlotController> tab_slot_controller;
+  auto node_id = tree_tab::TreeTabNodeId::GenerateNew();
+
+  // Create a dummy SplitTabCollection with a new ID and default visual data
+  split_tabs::SplitTabId dummy_id = split_tabs::SplitTabId::GenerateNew();
+  split_tabs::SplitTabVisualData dummy_visual_data;
+  auto split_collection =
+      std::make_unique<tabs::SplitTabCollection>(dummy_id, dummy_visual_data);
+
+  tabs::TreeTabNodeTabCollection collection(
+      node_id, std::move(split_collection), base::DoNothing(),
+      base::DoNothing());
+
+  ASSERT_EQ(collection.node().height(), 0);
+
+  // When tree tab has descendants, the tree toggle button should be visible.
+  EXPECT_CALL(tab_slot_controller, GetTreeTabNode(testing::_))
+      .WillRepeatedly(testing::Return(&collection.node()));
+
+  BraveTab tab(tabs::TabHandle(1), &tab_slot_controller);
+  tab.set_tree_tab_node(node_id);
+  tab_slot_controller.set_active_tab(&tab);
+  ASSERT_TRUE(tab.GetTreeTabNode());
+  ASSERT_EQ(tab.GetTreeTabNode()->id(), node_id);
+  ASSERT_EQ(tab.GetTreeTabNode()->height(), 0);
+
+  // Tab has no tree_tab_node (FakeTabSlotController returns empty node and
+  // height 0), so the tree toggle button should be hidden.
+  tab.SetBoundsRect({0, 0, 200, 50});
+  views::test::RunScheduledLayout(&tab);
+
+  // Close button should remain visible when tree toggle is hidden.
+  ASSERT_TRUE(tab.showing_close_button_for_test());
+  EXPECT_FALSE(tab.tree_toggle_button_->GetVisible());
+  EXPECT_TRUE(tab.close_button_for_test()->GetVisible());
+
+  // Now tree tab has descendants, so the tree toggle button should be visible.
+  collection.node().set_height_for_test(100);
+  tab.UpdateIconVisibility();
+  tab.LayoutTreeToggleButton();
+
+  ASSERT_TRUE(tab.showing_close_button_for_test());
+  EXPECT_TRUE(tab.tree_toggle_button_->GetVisible());
+  EXPECT_FALSE(tab.close_button_for_test()->GetVisible());
+}
+
+TEST_F(BraveTabTestWithTreeTab,
+       TreeToggleButtonAlwaysVisibleWhenCollapsedAndHasDescendants) {
+  testing::NiceMock<MockTabSlotController> tab_slot_controller;
+  auto node_id = tree_tab::TreeTabNodeId::GenerateNew();
+
+  // Create a dummy SplitTabCollection with a new ID and default visual data
+  split_tabs::SplitTabId dummy_id = split_tabs::SplitTabId::GenerateNew();
+  split_tabs::SplitTabVisualData dummy_visual_data;
+  auto split_collection =
+      std::make_unique<tabs::SplitTabCollection>(dummy_id, dummy_visual_data);
+
+  tabs::TreeTabNodeTabCollection collection(
+      node_id, std::move(split_collection), base::DoNothing(),
+      base::DoNothing());
+  ASSERT_EQ(collection.node().height(), 0);
+
+  // When tree tab has descendants, the tree toggle button should be visible.
+  EXPECT_CALL(tab_slot_controller, GetTreeTabNode(testing::_))
+      .WillRepeatedly(testing::Return(&collection.node()));
+
+  BraveTab tab(tabs::TabHandle(1), &tab_slot_controller);
+  tab.set_tree_tab_node(node_id);
+  ASSERT_TRUE(tab.GetTreeTabNode());
+  ASSERT_EQ(tab.GetTreeTabNode()->id(), node_id);
+  ASSERT_EQ(tab.GetTreeTabNode()->height(), 0);
+  ASSERT_FALSE(tab.GetTreeTabNode()->collapsed());
+
+  // Set narrow width so that show_close_button_ = false.
+  tab.SetBoundsRect({0, 0, 10, 50});
+  views::test::RunScheduledLayout(&tab);
+  ASSERT_FALSE(tab.IsActive());
+  ASSERT_FALSE(tab.showing_close_button_for_test());
+
+  // When there's no descendants, the tree toggle button should be hidden.
+  EXPECT_FALSE(tab.tree_toggle_button_->GetVisible());
+
+  // Now tree tab has descendants. But not collapsed. So the button is still
+  // hidden.
+  collection.node().set_height_for_test(100);
+  tab.UpdateIconVisibility();
+  tab.LayoutTreeToggleButton();
+  ASSERT_FALSE(tab.showing_close_button_for_test());
+  EXPECT_FALSE(tab.tree_toggle_button_->GetVisible());
+
+  // Now tree tab is collapsed. So the button should be visible.
+  collection.node().set_collapsed(true);
+  tab.UpdateIconVisibility();
+  tab.LayoutTreeToggleButton();
+  ASSERT_FALSE(tab.showing_close_button_for_test());
+  EXPECT_TRUE(tab.tree_toggle_button_->GetVisible());
+}
+
+TEST_F(BraveTabTest, TabMinWidthFloorPixels) {
+  EXPECT_EQ(10, BraveTab::GetTabMinWidthForMode(
+                    brave_tabs::TabMinWidthMode::kDefault, 10, 100));
+  EXPECT_EQ(10, BraveTab::GetTabMinWidthForMode(
+                    brave_tabs::TabMinWidthMode::kMinimum, 10, 100));
+  EXPECT_EQ(76, BraveTab::GetTabMinWidthForMode(
+                    brave_tabs::TabMinWidthMode::kMedium, 10, 100));
+  EXPECT_EQ(50, BraveTab::GetTabMinWidthForMode(
+                    brave_tabs::TabMinWidthMode::kLarge, 10, 100));
+  EXPECT_EQ(100, BraveTab::GetTabMinWidthForMode(
+                     brave_tabs::TabMinWidthMode::kFull, 10, 100));
+}
+
+TEST_F(BraveTabTest, GetTabSizeInfoFullMinWidthModeUsesStandardWidth) {
+  FakeTabSlotController controller;
+  BraveTab tab(tabs::TabHandle(1), &controller);
+  tab.SetBoundsRect({0, 0, 240, 40});
+  views::test::RunScheduledLayout(&tab);
+
+  const int std_w = tab.tab_style()->GetStandardWidth(false);
+  controller.set_tab_min_width_mode(brave_tabs::TabMinWidthMode::kFull);
+  const TabSizeInfo info = tab.GetTabSizeInfo();
+  EXPECT_EQ(info.min_active_width, std_w);
+  EXPECT_EQ(info.min_inactive_width, std_w);
+}
+
+// When TabSlotController::IsHorizontalScrollingEnabled() is true, inactive tab
+// minimum width is at least tab_style()->GetMinimumActiveWidth(false) (wider
+// inactive tabs in scrollable strip). When false, the boost is not applied.
+TEST_F(BraveTabTest,
+       GetTabSizeInfo_MinInactiveBoostedWhenHorizontalScrollingEnabled) {
+  FakeTabSlotController controller;
+  BraveTab tab(tabs::TabHandle(1), &controller);
+  tab.SetBoundsRect({0, 0, 240, 40});
+  views::test::RunScheduledLayout(&tab);
+
+  const int style_min_active = tab.tab_style()->GetMinimumActiveWidth(false);
+  ASSERT_GT(style_min_active, 0);
+
+  controller.set_horizontal_scrolling_enabled(false);
+  const int min_inactive_off = tab.GetTabSizeInfo().min_inactive_width;
+
+  controller.set_horizontal_scrolling_enabled(true);
+  const int min_inactive_on = tab.GetTabSizeInfo().min_inactive_width;
+
+  EXPECT_EQ(min_inactive_on, (std::max)(min_inactive_off, style_min_active));
 }

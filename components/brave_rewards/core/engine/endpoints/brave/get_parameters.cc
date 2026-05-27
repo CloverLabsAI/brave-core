@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "base/json/json_reader.h"
+#include "base/values.h"
 #include "brave/components/brave_rewards/core/engine/rewards_engine.h"
 #include "brave/components/brave_rewards/core/engine/util/environment_config.h"
 #include "net/http/http_status_code.h"
@@ -150,7 +151,7 @@ GetParameters::ValueToWalletProviderRegions(const base::Value& value) {
     return std::nullopt;
   }
 
-  auto get_list = [](const std::string& name, const base::Value::Dict& dict) {
+  auto get_list = [](const std::string& name, const base::DictValue& dict) {
     std::vector<std::string> countries;
     if (auto* list = dict.FindList(name)) {
       for (auto& country : *list) {

@@ -12,6 +12,7 @@
 #include <utility>
 
 #include "base/strings/string_util.h"
+#include "base/values.h"
 #include "brave/components/brave_ads/core/internal/targeting/behavioral/purchase_intent/keyphrase/purchase_intent_keyphrase_parser.h"
 #include "url/gurl.h"
 
@@ -34,7 +35,7 @@ constexpr std::string_view kFunnelSitesKey = "sites";
 constexpr int kDefaultFunnelSiteWeight = 1;
 
 std::optional<SegmentList> ParseFunnelSegments(const SegmentList& segments,
-                                               const base::Value::Dict& dict) {
+                                               const base::DictValue& dict) {
   const auto* const funnel_segment_list = dict.FindList(kFunnelSegmentsKey);
   if (!funnel_segment_list) {
     return std::nullopt;
@@ -59,11 +60,11 @@ std::optional<SegmentList> ParseFunnelSegments(const SegmentList& segments,
 
 }  // namespace
 
-std::optional<int> ParseVersion(const base::Value::Dict& dict) {
+std::optional<int> ParseVersion(const base::DictValue& dict) {
   return dict.FindInt(kVersionKey);
 }
 
-std::optional<SegmentList> ParseSegments(const base::Value::Dict& dict) {
+std::optional<SegmentList> ParseSegments(const base::DictValue& dict) {
   const auto* const segment_list = dict.FindList(kSegmentsKey);
   if (!segment_list) {
     return std::nullopt;
@@ -86,7 +87,7 @@ std::optional<SegmentList> ParseSegments(const base::Value::Dict& dict) {
 
 std::optional<PurchaseIntentSegmentKeyphraseList> ParseSegmentKeyphrases(
     const SegmentList& segments,
-    const base::Value::Dict& dict) {
+    const base::DictValue& dict) {
   const auto* const segment_keyphrases_dict =
       dict.FindDict(kSegmentKeyphrasesKey);
   if (!segment_keyphrases_dict) {
@@ -124,7 +125,7 @@ std::optional<PurchaseIntentSegmentKeyphraseList> ParseSegmentKeyphrases(
 }
 
 std::optional<PurchaseIntentFunnelKeyphraseList> ParseFunnelKeyphrases(
-    const base::Value::Dict& dict) {
+    const base::DictValue& dict) {
   const auto* const funnel_keyphrases_dict =
       dict.FindDict(kFunnelKeyphrasesKey);
   if (!funnel_keyphrases_dict) {
@@ -153,7 +154,7 @@ std::optional<PurchaseIntentFunnelKeyphraseList> ParseFunnelKeyphrases(
 
 std::optional<PurchaseIntentFunnelSiteMap> ParseFunnelSites(
     const SegmentList& segments,
-    const base::Value::Dict& dict) {
+    const base::DictValue& dict) {
   const auto* const funnel_list = dict.FindList(kFunnelsKey);
   if (!funnel_list) {
     return std::nullopt;

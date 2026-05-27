@@ -6,138 +6,40 @@
 #include "brave/browser/ui/views/tabs/brave_tab.h"
 
 #include <algorithm>
-#include <memory>
 #include <optional>
-#include <string>
 #include <utility>
 
 #include "base/check.h"
-#include "base/check_is_test.h"
 #include "base/feature_list.h"
-#include "base/functional/callback_forward.h"
-#include "base/notimplemented.h"
-#include "brave/browser/ui/tabs/brave_tab_prefs.h"
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
 #include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_region_view.h"
 #include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_widget_delegate_view.h"
 #include "brave/browser/ui/views/tabs/vertical_tab_utils.h"
+#include "brave/components/tabs/public/tree_tab_node.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/layout_constants.h"
+#include "chrome/browser/ui/tabs/alert/tab_alert_controller.h"
 #include "chrome/browser/ui/tabs/features.h"
-#include "chrome/browser/ui/views/tabs/alert_indicator_button.h"
-#include "chrome/browser/ui/views/tabs/tab_close_button.h"
+#include "chrome/browser/ui/views/tabs/tab/alert_indicator_button.h"
+#include "chrome/browser/ui/views/tabs/tab/tab_close_button.h"
 #include "chrome/browser/ui/views/tabs/tab_slot_controller.h"
-#include "ui/base/metadata/metadata_impl_macros.h"
+#include "components/vector_icons/vector_icons.h"
+#include "ui/base/models/image_model.h"
 #include "ui/gfx/favicon_size.h"
 #include "ui/views/animation/ink_drop.h"
+#include "ui/views/controls/button/image_button.h"
 #include "ui/views/controls/label.h"
-#include "ui/views/controls/textfield/textfield.h"
 #include "ui/views/view_class_properties.h"
 
-namespace {
-
-// MouseWatcherHost implementation that tells whether mouse clicks outside
-// of tracked area.
-class ClickWatcherHost : public views::MouseWatcherHost {
- public:
-  explicit ClickWatcherHost(views::Textfield& textfield)
-      : textfield_(textfield) {}
-  ~ClickWatcherHost() override = default;
-
-  bool Contains(const gfx::Point& screen_point, EventType type) override {
-    if (type != EventType::kPress) {
-      // We only tracks mouse press events
-      return true;
-    }
-
-    auto bounds = textfield_->GetLocalBounds();
-    views::View::ConvertRectToScreen(base::to_address(textfield_), &bounds);
-    return bounds.Contains(screen_point);
+BraveTab::BraveTab(tabs::TabHandle handle, TabSlotController* controller)
+    : Tab(handle, controller) {
+  if (base::FeatureList::IsEnabled(tabs::kBraveTreeTab)) {
+    InitTreeToggleButton();
   }
-
- private:
-  raw_ref<views::Textfield> textfield_;
-};
-
-}  // namespace
-
-BraveTab::RenameTextfield::RenameTextfield(
-    base::RepeatingClosure on_click_outside_callback)
-    : on_click_outside_callback_(std::move(on_click_outside_callback)),
-      mouse_watcher_(std::make_unique<ClickWatcherHost>(*this), this) {
-  SetBorder(nullptr);
-  SetBackgroundEnabled(false);
-}
-
-BraveTab::RenameTextfield::~RenameTextfield() = default;
-
-// views::Textfield:
-void BraveTab::RenameTextfield::VisibilityChanged(views::View* starting_from,
-                                                  bool is_visible) {
-  if (starting_from != this) {
-    return;
-  }
-
-  // We start or stop mouse watcher based on visibility of the textfield.
-  if (is_visible) {
-    auto* widget = GetWidget();
-    if (!widget) {
-      CHECK_IS_TEST();
-      return;
-    }
-
-    mouse_watcher_.Start(widget->GetNativeWindow());
-  } else {
-    mouse_watcher_.Stop();
-  }
-}
-
-// views::MouseWatcherListener:
-void BraveTab::RenameTextfield::MouseMovedOutOfHost() {
-  CHECK(on_click_outside_callback_);
-  on_click_outside_callback_.Run();
-}
-
-BEGIN_METADATA(BraveTab, RenameTextfield)
-END_METADATA
-
-BraveTab::BraveTab(TabSlotController* controller) : Tab(controller) {
-  if (!base::FeatureList::IsEnabled(tabs::kBraveRenamingTabs)) {
-    return;
-  }
-  rename_textfield_ =
-      AddChildView(std::make_unique<RenameTextfield>(base::BindRepeating(
-          // This is safe to pass base::Unretained(this), as BraveTab is the
-          // owner of RenameTextfield and outlives it.
-          &BraveTab::CommitRename, base::Unretained(this))));
-  rename_textfield_->SetVisible(false);
-  rename_textfield_->set_controller(this);
-  rename_textfield_->SetBorder(nullptr);
-  rename_textfield_->SetBackgroundEnabled(false);
 }
 
 BraveTab::~BraveTab() = default;
-
-void BraveTab::EnterRenameMode() {
-  if (!rename_textfield_) {
-    return;
-  }
-
-  if (in_renaming_mode()) {
-    return;  // Already in rename mode.
-  }
-
-  // Fill the textfield with the current title of the tab and select all text.
-  if (rename_textfield_->GetText().empty()) {
-    rename_textfield_->SetText(title_->GetText());
-  }
-  rename_textfield_->SelectAll(/*reversed=*/false);
-  UpdateRenameTextfieldBounds();
-  rename_textfield_->SetVisible(true);
-  title_->SetVisible(false);
-  rename_textfield_->RequestFocus();
-}
 
 void BraveTab::UpdateTabStyle() {
   ResetTabStyle(TabStyleViews::CreateForTab(this));
@@ -145,12 +47,27 @@ void BraveTab::UpdateTabStyle() {
   InvalidateLayout();
 }
 
+const tabs::TreeTabNode* BraveTab::GetTreeTabNode() const {
+  if (tree_tab_node().has_value()) {
+    return controller_->GetTreeTabNode(*tree_tab_node());
+  }
+
+  return nullptr;
+}
+
+int BraveTab::GetTreeHeight() const {
+  if (tree_tab_node().has_value()) {
+    return controller_->GetTreeHeight(*tree_tab_node());
+  }
+
+  return 0;
+}
+
 std::u16string BraveTab::GetRenderedTooltipText(const gfx::Point& p) const {
-  auto* browser = controller_->GetBrowser();
+  auto* browser = controller_->GetBrowserWindowInterface();
   if (browser &&
-      brave_tabs::AreTooltipsEnabled(browser->profile()->GetPrefs())) {
-    return Tab::GetTooltipText(data_.title,
-                               GetAlertStateToShow(data_.alert_state));
+      brave_tabs::AreTooltipsEnabled(browser->GetProfile()->GetPrefs())) {
+    return Tab::GetTooltipText(data_.title, data_.alert_state);
   }
   return TabSlotView::GetTooltipText();
 }
@@ -168,6 +85,10 @@ int BraveTab::GetWidthOfLargestSelectableRegion() const {
     selectable_width -= close_button_->width();
   }
 
+  if (tree_toggle_button_ && tree_toggle_button_->GetVisible()) {
+    selectable_width -= tree_toggle_button_->width();
+  }
+
   return std::max(0, selectable_width);
 }
 
@@ -182,7 +103,8 @@ void BraveTab::ActiveStateChanged() {
 
 std::optional<SkColor> BraveTab::GetGroupColor() const {
   // Hide tab border with group color as it doesn't go well with vertical tabs.
-  if (tabs::utils::ShouldShowBraveVerticalTabs(controller()->GetBrowser())) {
+  if (tabs::utils::ShouldShowBraveVerticalTabs(
+          controller()->GetBrowserWindowInterface())) {
     return {};
   }
 
@@ -196,18 +118,19 @@ std::optional<SkColor> BraveTab::GetGroupColor() const {
 
 void BraveTab::UpdateIconVisibility() {
   Tab::UpdateIconVisibility();
-  if (!tabs::utils::ShouldShowBraveVerticalTabs(controller()->GetBrowser())) {
+  if (!tabs::utils::ShouldShowBraveVerticalTabs(
+          controller()->GetBrowserWindowInterface())) {
     return;
   }
 
   const auto is_at_min_width = IsAtMinWidthForVerticalTabStrip();
-
   if (data().pinned) {
     if (is_at_min_width) {
       // When pinned vertical tab is at min width, we show only icon.
       center_icon_ = true;
       showing_icon_ = !showing_alert_indicator_;
       showing_close_button_ = false;
+      return;
     }
 
     // When we show only icon for pinned vertical tab, we want to keep it
@@ -216,6 +139,52 @@ void BraveTab::UpdateIconVisibility() {
         !ShouldRenderAsNormalTab()) {
       center_icon_ = true;
     }
+
+    // Don't optimize icon visibility when floating with completely hidden mode.
+    // When floating from completely hidden, icon position could be changed
+    // between centered and non-centered per tab width.
+    // As it's shown from hidden and vice versa, it's hard to see
+    // flickering, but flickering optimization is complicated, so just skip it.
+    const bool is_floating = controller()->IsVerticalTabsFloating();
+    if (is_floating &&
+        tabs::utils::ShouldHideVerticalTabsCompletelyWhenCollapsed(
+            controller()->GetBrowserWindowInterface())) {
+      return;
+    }
+
+    // To prevent flickering during the floating animation,
+    // disable centering the icon.
+    if (is_floating) {
+      if (!showing_alert_indicator_) {
+        showing_icon_ = true;
+      }
+      center_icon_ = false;
+      showing_close_button_ = false;
+      return;
+    }
+
+    // To prevent flickering during the collaps/expand animation,
+    // put icon at center always.
+    if (controller()->IsVerticalTabsAnimatingButNotFinalState()) {
+      if (!showing_alert_indicator_) {
+        showing_icon_ = true;
+      }
+      center_icon_ = true;
+      showing_close_button_ = false;
+      return;
+    }
+
+    return;
+  }
+
+  // To prevent flickering duing the toggle animation,
+  // disable centering the icon.
+  if (controller()->IsVerticalTabsAnimatingButNotFinalState()) {
+    if (!showing_alert_indicator_) {
+      showing_icon_ = true;
+    }
+    center_icon_ = false;
+    showing_close_button_ = false;
     return;
   }
 
@@ -224,17 +193,106 @@ void BraveTab::UpdateIconVisibility() {
 
     const bool is_active = IsActive();
     const bool can_enter_floating_mode =
-        tabs::utils::IsFloatingVerticalTabsEnabled(controller()->GetBrowser());
+        tabs::utils::IsFloatingVerticalTabsEnabled(
+            controller()->GetBrowserWindowInterface());
+    const bool should_show_tree_toggle_button = tree_toggle_button_ &&
+                                                IsTreeNodeCollapsed() &&
+                                                HasTreeTabNodeDescendants();
+
     // When floating mode enabled, we don't show close button as the tab strip
     // will be expanded as soon as mouse hovers onto the tab.
     showing_close_button_ =
         !showing_alert_indicator_ && !can_enter_floating_mode && is_active;
-    showing_icon_ = !showing_alert_indicator_ && !showing_close_button_;
+    showing_icon_ = !showing_alert_indicator_ && !showing_close_button_ &&
+                    !should_show_tree_toggle_button;
+  }
+
+  if (tree_toggle_button_ && HasTreeTabNodeDescendants() &&
+      showing_close_button_) {
+    // We show tree toggle button instead of close button when there are
+    // descendants. We need to update the icon to show the correct collapsed
+    // state, here. The toggle button's visibility is updated in Layout().
+    UpdateTreeToggleButtonIcon();
   }
 }
 
+bool BraveTab::HasTreeTabNodeDescendants() const {
+  if (auto* node = GetTreeTabNode()) {
+    return node->height() > 0;
+  }
+
+  return false;
+}
+
+void BraveTab::LayoutTreeToggleButton() {
+  if (!tree_toggle_button_) {
+    return;
+  }
+
+  auto* node = GetTreeTabNode();
+  if (!node) {
+    tree_toggle_button_->SetVisible(false);
+    return;
+  }
+
+  const bool has_descendants = HasTreeTabNodeDescendants();
+  if (showing_close_button_ && has_descendants) {
+    // In case of tree tab node has descendants, we show tree toggle button
+    // instead of close button.
+    tree_toggle_button_->SetBoundsRect(close_button_->bounds());
+    close_button_->SetVisible(false);
+    tree_toggle_button_->SetVisible(true);
+  } else if (has_descendants && node->collapsed()) {
+    // In this case, we always show tree toggle button in order to indicate that
+    // this tab has descendants hidden by collapsed state.
+    // Here, showing_close_button_ is false and the bounds of the close button
+    // is incorrect, as upstream code skips close button when
+    // showing_close_button_ is false. So we need to decide toggle button
+    // bounds manually. This routine is simplified version of upstream code.
+    // note that setting showing_close_button_ = true won't guarantee the
+    // boolean value of showing_close_button_ to be true, as we wrapped it in
+    // ControllableCloseButtonState, which considers the preference,
+    // active/hovered state and etc.
+    const gfx::Rect contents_rect = GetContentsBounds();
+    int close_button_visible_size =
+        GetLayoutConstant(LayoutConstant::kTabCloseButtonSize);
+    const gfx::Size close_button_actual_size =
+        close_button_->GetPreferredSize();
+    const int x = std::max(
+        contents_rect.right() - close_button_visible_size -
+            (close_button_actual_size.width() - close_button_visible_size) / 2,
+        contents_rect.CenterPoint().x() -
+            (close_button_actual_size.width() / 2));
+    const int y = contents_rect.CenterPoint().y() -
+                  (close_button_actual_size.height() / 2);
+    tree_toggle_button_->SetBoundsRect(
+        gfx::Rect(x, y, close_button_actual_size.width(),
+                  close_button_actual_size.height()));
+    tree_toggle_button_->SetVisible(true);
+  } else {
+    //  Otherwise, hide the button.
+    tree_toggle_button_->SetVisible(false);
+  }
+}
+
+bool BraveTab::IsTreeNodeCollapsed() const {
+  if (auto* node = GetTreeTabNode()) {
+    return node->collapsed();
+  }
+
+  return false;
+}
+
 void BraveTab::Layout(PassKey) {
+  // Try update insets - this might not be the best place to update insets.
+  // This is too frequent. Storage partition config was set to a contents
+  // explicitly, we should migrate these to the the notification.
+  if (GetInsets().left() != tab_style_views()->GetContentsInsets().left()) {
+    UpdateInsets();
+  }
+
   LayoutSuperclass<Tab>(this);
+
   if (IsAtMinWidthForVerticalTabStrip()) {
     if (showing_close_button_) {
       close_button_->SetX(GetLocalBounds().CenterPoint().x() -
@@ -247,25 +305,13 @@ void BraveTab::Layout(PassKey) {
     }
   }
 
-  if (in_renaming_mode()) {
-    UpdateRenameTextfieldBounds();
-    title_->SetVisible(false);
-  }
-}
-
-gfx::Insets BraveTab::GetInsets() const {
-  // As close button has more padding, it seems favicon is too close to the left
-  // edge of the tab left border comppared with close button. Give additional
-  // left padding to make both visible with same space from tab border.
-  // See https://www.github.com/brave/brave-browser/issues/30469.
-  auto insets = Tab::GetInsets();
-  insets.set_left(insets.left() + kExtraLeftPadding);
-  return insets;
+  LayoutTreeToggleButton();
 }
 
 void BraveTab::MaybeAdjustLeftForPinnedTab(gfx::Rect* bounds,
                                            int visual_width) const {
-  if (!tabs::utils::ShouldShowBraveVerticalTabs(controller()->GetBrowser())) {
+  if (!tabs::utils::ShouldShowBraveVerticalTabs(
+          controller()->GetBrowserWindowInterface())) {
     Tab::MaybeAdjustLeftForPinnedTab(bounds, visual_width);
     return;
   }
@@ -273,6 +319,32 @@ void BraveTab::MaybeAdjustLeftForPinnedTab(gfx::Rect* bounds,
   // We keep favicon on fixed position so that it won't move left and right
   // during animation.
   bounds->set_x((tabs::kVerticalTabMinWidth - gfx::kFaviconSize) / 2);
+  if (ShouldPaintTabAccent() && ShouldShowLargeAccentIcon()) {
+    bounds->set_x(bounds->x() + kTabAccentIconAreaWidth);
+  }
+}
+
+bool BraveTab::ShouldShowLargeAccentIcon() const {
+  if (!ShouldPaintTabAccent()) {
+    return false;
+  }
+
+  if (data().pinned) {
+    return false;
+  }
+
+  if (tabs::utils::ShouldShowBraveVerticalTabs(
+          controller()->GetBrowserWindowInterface())) {
+    return width() >= tabs::kVerticalTabMinWidth + kTabAccentIconAreaWidth;
+  }
+
+  if (IsActive()) {
+    return width() >= tab_style()->GetMinimumActiveWidth(split().has_value()) +
+                          kTabAccentIconAreaWidth;
+  }
+
+  return width() >= tab_style()->GetPinnedWidth(split().has_value()) +
+                        kTabAccentIconAreaWidth;
 }
 
 bool BraveTab::ShouldRenderAsNormalTab() const {
@@ -281,7 +353,8 @@ bool BraveTab::ShouldRenderAsNormalTab() const {
     return false;
   }
 
-  if (tabs::utils::ShouldShowBraveVerticalTabs(controller()->GetBrowser()) &&
+  if (tabs::utils::ShouldShowBraveVerticalTabs(
+          controller()->GetBrowserWindowInterface()) &&
       data().pinned && !controller_->IsVerticalTabsFloating()) {
     // In cased of pinned vertical tabs, we never render as normal tab, i.e.
     // always show only icon.
@@ -292,13 +365,15 @@ bool BraveTab::ShouldRenderAsNormalTab() const {
 }
 
 bool BraveTab::IsAtMinWidthForVerticalTabStrip() const {
-  return tabs::utils::ShouldShowBraveVerticalTabs(controller()->GetBrowser()) &&
+  return tabs::utils::ShouldShowBraveVerticalTabs(
+             controller()->GetBrowserWindowInterface()) &&
          width() <= tabs::kVerticalTabMinWidth;
 }
 
-void BraveTab::SetData(TabRendererData data) {
-  const bool data_changed = data != data_;
-  Tab::SetData(std::move(data));
+void BraveTab::OnTabDataChanged(TabChangeType tab_change_type,
+                                const tabs::TabData& tab_data) {
+  const bool data_changed = tab_data != data_;
+  Tab::OnTabDataChanged(tab_change_type, std::move(tab_data));
 
   // Our vertical tab uses CompoundTabContainer.
   // When tab is moved from the group by pinning, it's moved to
@@ -307,7 +382,8 @@ void BraveTab::SetData(TabRendererData data) {
   // has assumption that it's not included in any group.
   // So, clear in-advance when tab enters to pinned TabContainerImpl.
   if (data_changed &&
-      tabs::utils::ShouldShowBraveVerticalTabs(controller()->GetBrowser()) &&
+      tabs::utils::ShouldShowBraveVerticalTabs(
+          controller()->GetBrowserWindowInterface()) &&
       data_.pinned) {
     SetGroup(std::nullopt);
   }
@@ -319,53 +395,130 @@ bool BraveTab::IsActive() const {
   return controller_->IsActiveTab(this);
 }
 
-bool BraveTab::HandleKeyEvent(views::Textfield* sender,
-                              const ui::KeyEvent& key_event) {
-  if (key_event.type() != ui::EventType::kKeyPressed) {
+TabSizeInfo BraveTab::GetTabSizeInfo() const {
+  if (tabs::utils::ShouldShowBraveVerticalTabs(
+          controller()->GetBrowserWindowInterface())) {
+    return Tab::GetTabSizeInfo();
+  }
+
+  auto size_info = Tab::GetTabSizeInfo();
+  const auto mode = controller()->GetTabMinWidthMode();
+  size_info.min_active_width = GetTabMinWidthForMode(
+      mode, size_info.min_active_width, size_info.standard_width);
+  size_info.min_inactive_width = GetTabMinWidthForMode(
+      mode, size_info.min_inactive_width, size_info.standard_width);
+
+  if (controller()->IsHorizontalScrollingEnabled()) {
+    // When horizontal scrollable tab strip is active (feature + pref), we
+    // can have wider inactive tabs.
+    const int min_active_width = tab_style()->GetMinimumActiveWidth(false);
+    size_info.min_inactive_width =
+        std::max(size_info.min_inactive_width, min_active_width);
+  }
+
+  return size_info;
+}
+
+TabNestingInfo BraveTab::GetTabNestingInfo() const {
+  if (!tree_tab_node().has_value()) {
+    return TabNestingInfo{};
+  }
+
+  if (!GetTreeTabNode()) {
+    // The tab model in TabStripModel could be in detached state temporarily.
+    return TabNestingInfo{};
+  }
+
+  return {.tree_height = GetTreeHeight(), .level = GetTreeTabNode()->level()};
+}
+
+bool BraveTab::IsInCollapsedTreeTabNode() const {
+  if (!tree_tab_node().has_value()) {
     return false;
   }
 
-  switch (key_event.key_code()) {
-    case ui::VKEY_ESCAPE:
-      // Cancel the rename on Escape key press.
-      ExitRenameMode();
-      return true;
-    case ui::VKEY_RETURN:
-      // Commit the rename on Enter key press.
-      CommitRename();
-      return true;
-    default:
-      break;
+  return controller_->IsInCollapsedTreeTabNode(*tree_tab_node());
+}
+
+bool BraveTab::ShouldPaintTabAccent() const {
+  return controller_->ShouldPaintTabAccent(this);
+}
+
+std::optional<TabAccentColors> BraveTab::GetTabAccentColors() const {
+  return controller_->GetTabAccentColors(this);
+}
+
+ui::ImageModel BraveTab::GetTabAccentIcon() const {
+  return controller_->GetTabAccentIcon(this);
+}
+
+base::WeakPtr<BraveTab> BraveTab::GetWeakPtr() {
+  return weak_factory_.GetWeakPtr();
+}
+
+void BraveTab::InitTreeToggleButton() {
+  constexpr int kButtonPadding = 12;
+  const int icon_size = GetLayoutConstant(LayoutConstant::kTabCloseButtonSize);
+  const int button_size = icon_size + kButtonPadding;
+  auto tree_toggle = std::make_unique<views::ImageButton>(base::BindRepeating(
+      &BraveTab::OnTreeToggleButtonPressed, base::Unretained(this)));
+  tree_toggle->SetImageHorizontalAlignment(views::ImageButton::ALIGN_CENTER);
+  tree_toggle->SetImageVerticalAlignment(views::ImageButton::ALIGN_MIDDLE);
+  tree_toggle->SetPreferredSize(gfx::Size(button_size, button_size));
+  tree_toggle->SetFocusBehavior(views::View::FocusBehavior::ACCESSIBLE_ONLY);
+  tree_toggle->SetVisible(false);
+  tree_toggle_button_ = AddChildView(std::move(tree_toggle));
+}
+
+void BraveTab::OnTreeToggleButtonPressed() {
+  if (!tree_tab_node().has_value()) {
+    return;
+  }
+  const tabs::TreeTabNode* node = GetTreeTabNode();
+  if (!node) {
+    return;
+  }
+  controller_->SetTreeTabNodeCollapsed(*tree_tab_node(), !node->collapsed());
+}
+
+void BraveTab::UpdateTreeToggleButtonIcon() {
+  if (!tree_toggle_button_ || !GetTreeTabNode()) {
+    return;
   }
 
-  return false;
+  const int icon_size = GetLayoutConstant(LayoutConstant::kTabCloseButtonSize);
+  const SkColor icon_color =
+      tab_style_views()->CalculateTargetColors().foreground_color;
+  const bool collapsed = GetTreeTabNode()->collapsed();
+  const auto& icon = collapsed ? vector_icons::kSubmenuArrowChromeRefreshIcon
+                               : vector_icons::kExpandMoreIcon;
+  tree_toggle_button_->SetImageModel(
+      views::Button::STATE_NORMAL,
+      ui::ImageModel::FromVectorIcon(icon, icon_color, icon_size));
+  tree_toggle_button_->SetImageModel(
+      views::Button::STATE_HOVERED,
+      ui::ImageModel::FromVectorIcon(icon, icon_color, icon_size));
+  tree_toggle_button_->SetImageModel(
+      views::Button::STATE_PRESSED,
+      ui::ImageModel::FromVectorIcon(icon, icon_color, icon_size));
 }
 
-void BraveTab::CommitRename() {
-  auto text = rename_textfield_->GetText();
-  controller_->SetCustomTitleForTab(
-      this,
-      text.empty() ? std::nullopt : std::make_optional(std::u16string(text)));
-  ExitRenameMode();
-}
-
-void BraveTab::ExitRenameMode() {
-  CHECK(in_renaming_mode());
-
-  rename_textfield_->SetVisible(false);
-  title_->SetVisible(true);
-
-  rename_textfield_->SetText(std::u16string());
-}
-
-void BraveTab::UpdateRenameTextfieldBounds() {
-  int constexpr kHeight = 18;
-
-  // Update the bounds of the rename textfield to match the title bounds.
-  auto bounds = title_->bounds();
-  bounds.set_y(bounds.CenterPoint().y() - kHeight / 2);
-  bounds.set_height(kHeight);
-  rename_textfield_->SetBoundsRect(bounds);
+// static
+int BraveTab::GetTabMinWidthForMode(brave_tabs::TabMinWidthMode mode,
+                                    int min_width,
+                                    int standard_width) {
+  switch (mode) {
+    case brave_tabs::TabMinWidthMode::kDefault:
+      return min_width;
+    case brave_tabs::TabMinWidthMode::kMinimum:
+      return min_width;
+    case brave_tabs::TabMinWidthMode::kMedium:
+      return 76;  // We're using this value from Firefox's default min width.
+    case brave_tabs::TabMinWidthMode::kLarge:
+      return standard_width / 2;
+    case brave_tabs::TabMinWidthMode::kFull:
+      return standard_width;
+  }
 }
 
 BEGIN_METADATA(BraveTab)

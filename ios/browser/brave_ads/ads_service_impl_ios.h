@@ -17,6 +17,7 @@
 #include "brave/components/brave_ads/core/browser/service/ads_service_callback.h"
 #include "brave/components/brave_ads/core/mojom/brave_ads.mojom-forward.h"
 #include "brave/components/brave_ads/core/public/ads_callback.h"
+#include "brave/components/brave_ads/core/public/ads_client/ads_client_notifier.h"
 #include "brave/components/brave_ads/core/public/common/functional/once_closure_task_queue.h"
 
 class PrefService;
@@ -29,17 +30,16 @@ namespace brave_ads {
 
 class Ads;
 class AdsClient;
-class NewTabPageAdPrefetcher;
 class AdsServiceImplIOS : public AdsService {
  public:
   explicit AdsServiceImplIOS(PrefService* prefs);
+
+  AdsClientNotifier* GetAdsClientNotifier();
 
   AdsServiceImplIOS(const AdsServiceImplIOS&) = delete;
   AdsServiceImplIOS& operator=(const AdsServiceImplIOS&) = delete;
 
   ~AdsServiceImplIOS() override;
-
-  bool IsInitialized() const;
 
   void InitializeAds(const std::string& storage_path,
                      std::unique_ptr<AdsClient> ads_client,
@@ -61,6 +61,8 @@ class AdsServiceImplIOS : public AdsService {
   void NotifyDidClearAdsServiceData() const;
 
   // AdsService:
+  bool IsInitialized() const override;
+
   bool IsBrowserUpgradeRequiredToServeAds() const override;
 
   int64_t GetMaximumNotificationAdsPerHour() const override;
@@ -81,13 +83,8 @@ class AdsServiceImplIOS : public AdsService {
 
   void GetStatementOfAccounts(GetStatementOfAccountsCallback callback) override;
 
-  mojom::NewTabPageAdInfoPtr MaybeGetPrefetchedNewTabPageAd() override;
-  void PrefetchNewTabPageAd() override;
-  void OnFailedToPrefetchNewTabPageAd(
-      const std::string& placement_id,
-      const std::string& creative_instance_id) override;
   void ParseAndSaveNewTabPageAds(
-      base::Value::Dict dict,
+      base::DictValue dict,
       ParseAndSaveNewTabPageAdsCallback callback) override;
   void MaybeServeNewTabPageAd(
       MaybeServeMojomNewTabPageAdCallback callback) override;
@@ -129,9 +126,6 @@ class AdsServiceImplIOS : public AdsService {
   void NotifyTabTextContentDidChange(int32_t tab_id,
                                      const std::vector<GURL>& redirect_chain,
                                      const std::string& text) override;
-  void NotifyTabHtmlContentDidChange(int32_t tab_id,
-                                     const std::vector<GURL>& redirect_chain,
-                                     const std::string& html) override;
   void NotifyTabDidStartPlayingMedia(int32_t tab_id) override;
   void NotifyTabDidStopPlayingMedia(int32_t tab_id) override;
   void NotifyTabDidChange(int32_t tab_id,
@@ -142,7 +136,7 @@ class AdsServiceImplIOS : public AdsService {
   void NotifyTabDidLoad(int32_t tab_id, int http_status_code) override;
   void NotifyDidCloseTab(int32_t tab_id) override;
 
-  void NotifyUserGestureEventTriggered(int32_t page_transition_type) override;
+  void NotifyUserGestureEventTriggered(int32_t page_transition) override;
 
   void NotifyBrowserDidBecomeActive() override;
   void NotifyBrowserDidResignActive() override;
@@ -161,27 +155,19 @@ class AdsServiceImplIOS : public AdsService {
   void ClearAdsData(ClearDataCallback callback, bool success);
   void ClearAdsDataCallback(ClearDataCallback callback);
 
-  void RefetchNewTabPageAd();
-  void RefetchNewTabPageAdCallback(bool success);
-  void ResetNewTabPageAd();
-
-  void OnParseAndSaveNewTabPageAdsCallback(
-      ParseAndSaveNewTabPageAdsCallback callback,
-      bool success);
-
   const raw_ptr<PrefService> prefs_;  // Not owned.
 
   const scoped_refptr<base::SequencedTaskRunner> file_task_runner_;
 
   OnceClosureTaskQueue task_queue_;
 
+  std::unique_ptr<AdsClientNotifier> ads_client_notifier_;
+
   base::FilePath storage_path_;
   std::unique_ptr<AdsClient> ads_client_;
   mojom::SysInfoPtr mojom_sys_info_;
   mojom::BuildChannelInfoPtr mojom_build_channel_;
   mojom::WalletInfoPtr mojom_wallet_;
-
-  std::unique_ptr<NewTabPageAdPrefetcher> new_tab_page_ad_prefetcher_;
 
   std::unique_ptr<Ads> ads_;
 

@@ -5,9 +5,10 @@
 
 import { assertNotReached } from 'chrome://resources/js/assert.js'
 import * as React from 'react'
-import { useDispatch } from 'react-redux'
-import { ThunkDispatch } from '@reduxjs/toolkit'
 import { skipToken } from '@reduxjs/toolkit/query/react'
+
+// redux
+import { useAppDispatch } from './use-redux'
 
 // actions
 import { UIActions } from '../slices/ui.slice'
@@ -103,7 +104,7 @@ export const useSelectedPendingTransaction = () => {
 
 export const usePendingTransactions = () => {
   // redux
-  const dispatch = useDispatch<ThunkDispatch<any, any, any>>()
+  const dispatch = useAppDispatch()
   const selectedPendingTransactionId = useSafeUISelector(
     UISelectors.selectedPendingTransactionId,
   )
@@ -507,6 +508,10 @@ export const usePendingTransactions = () => {
       return
     }
 
+    // Keep panel on pending transaction view until we navigate to
+    // transactionStatus (e.g. ZCash submission can take several seconds)
+    dispatch(PanelActions.setSubmittingTransaction(transactionInfo))
+
     try {
       const result = await approveTransaction({
         chainId: transactionInfo.chainId,
@@ -547,6 +552,7 @@ export const usePendingTransactions = () => {
         }),
       )
       dispatch(PanelActions.navigateTo('transactionStatus'))
+      dispatch(PanelActions.setSubmittingTransaction(undefined))
     }
   }, [approveTransaction, dispatch, transactionInfo])
 

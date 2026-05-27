@@ -16,6 +16,13 @@ extension Strings {
     value: "Cancel",
     comment: ""
   )
+  public static let addButtonTitle = NSLocalizedString(
+    "addButtonTitle",
+    tableName: "BraveShared",
+    bundle: .module,
+    value: "Add",
+    comment: "Add a new item to the current list"
+  )
   /// A confirmation title that appears in an alert to dismiss changes in a form or text input
   public static let dismissChangesConfirmationTitle = NSLocalizedString(
     "DismissChangesConfirmationTitle",
@@ -800,32 +807,6 @@ extension Strings {
         comment: "Button text to let users know they can use the vpn on all their devices"
       )
   }
-}
-
-// MARK:-  ErrorPageHelper.swift
-extension Strings {
-  public static let errorPageReloadButtonTitle = NSLocalizedString(
-    "ErrorPageReloadButtonTitle",
-    tableName: "BraveShared",
-    bundle: .module,
-    value: "Reload",
-    comment: "Shown in error pages on a button that will try to load the page again"
-  )
-  public static let errorPageOpenInSafariButtonTitle = NSLocalizedString(
-    "ErrorPageOpenInSafariButtonTitle",
-    tableName: "BraveShared",
-    bundle: .module,
-    value: "Open in Safari",
-    comment: "Shown in error pages for files that can't be shown and need to be downloaded."
-  )
-  public static let errorPageCantBeReachedTry =
-    NSLocalizedString(
-      "errorPageCantBeReachedTry",
-      tableName: "BraveShared",
-      bundle: .module,
-      value: "Try re-typing the URL, or opening a search engine and searching for the new URL.",
-      comment: "Shown in error pages to suggest a fix to the user."
-    )
 }
 
 // MARK:-  FindInPageBar.swift
@@ -2100,6 +2081,14 @@ extension Strings {
       value: "Set as Default Browser",
       comment: "Settings item to set the Brave as a default browser on the iOS device."
     )
+  public static let addToDockSettingsCell =
+    NSLocalizedString(
+      "addToDockSettingsCell",
+      tableName: "BraveShared",
+      bundle: .module,
+      value: "Add to Dock",
+      comment: "Settings item that opens instructions for adding Brave to the iOS dock."
+    )
   public static let setDefaultBrowserCalloutTitle =
     NSLocalizedString(
       "setDefaultBrowserCalloutTitle",
@@ -2593,12 +2582,12 @@ extension Strings {
     value: "Privacy",
     comment: "Settings privacy section title"
   )
-  public static let security = NSLocalizedString(
-    "Security",
+  public static let autofill = NSLocalizedString(
+    "Autofill",
     tableName: "BraveShared",
     bundle: .module,
-    value: "Security",
-    comment: "Settings security section title"
+    value: "Autofill",
+    comment: "Settings autofill section title"
   )
   public static let saveLogins = NSLocalizedString(
     "SaveLogins",
@@ -2729,7 +2718,7 @@ extension Strings {
     comment: "Settings item for clearing passwords and login data"
   )
   public static let siteAndShieldsSettings = NSLocalizedString(
-    "SavedLogins",
+    "SiteAndShieldsSettings",
     tableName: "BraveShared",
     bundle: .module,
     value: "Site and Shields Settings",
@@ -2909,78 +2898,6 @@ extension Strings {
     value: "Photo by %@",
     comment:
       "Label that says who took a photograph that will be displayed to the user. '%@' is a placeholder and will include be a specific person's name, example 'Bill Gates'."
-  )
-
-  public static let braveAccount = NSLocalizedString(
-    "BraveAccount",
-    tableName: "BraveShared",
-    bundle: .module,
-    value: "Brave Account",
-    comment: "Title for the Brave Account section in settings"
-  )
-
-  public static let braveAccountEmailAddress = NSLocalizedString(
-    "BraveAccountEmailAddress",
-    tableName: "BraveShared",
-    bundle: .module,
-    value: "Email address",
-    comment: "Title shown when user is logged in"
-  )
-
-  public static let braveAccountSignOut = NSLocalizedString(
-    "BraveAccountSignOut",
-    tableName: "BraveShared",
-    bundle: .module,
-    value: "Sign out",
-    comment: "Button text to sign out of Brave Account"
-  )
-
-  public static let braveAccountAlmostThere = NSLocalizedString(
-    "BraveAccountAlmostThere",
-    tableName: "BraveShared",
-    bundle: .module,
-    value: "Almost there!",
-    comment: "Title shown when waiting for email verification"
-  )
-
-  public static let braveAccountAlmostThereDetail = NSLocalizedString(
-    "BraveAccountAlmostThereDetail",
-    tableName: "BraveShared",
-    bundle: .module,
-    value: "A confirmation email is on the way. Click the button in that email to activate your account.",
-    comment: "Detail text for the almost there title"
-  )
-
-  public static let braveAccountResendConfirmationEmail = NSLocalizedString(
-    "BraveAccountResendConfirmationEmail",
-    tableName: "BraveShared",
-    bundle: .module,
-    value: "Resend confirmation email",
-    comment: "Button text to resend confirmation email"
-  )
-
-  public static let braveAccountResendConfirmationEmailDetail = NSLocalizedString(
-    "BraveAccountResendConfirmationEmailDetail",
-    tableName: "BraveShared",
-    bundle: .module,
-    value: "Don't see the email? Check your spam folder or click on the button to resend the confirmation email.",
-    comment: "Detail text for the resend confirmation email button"
-  )
-
-  public static let braveAccountCancelRegistration = NSLocalizedString(
-    "BraveAccountCancelRegistration",
-    tableName: "BraveShared",
-    bundle: .module,
-    value: "Cancel registration",
-    comment: "Button text to cancel Brave Account registration"
-  )
-
-  public static let braveAccountGetStarted = NSLocalizedString(
-    "BraveAccountGetStarted",
-    tableName: "BraveShared",
-    bundle: .module,
-    value: "Get Started",
-    comment: "Button text to get started with Brave Account"
   )
 
   public static let features = NSLocalizedString(
@@ -3825,14 +3742,6 @@ extension Strings {
     comment:
       "Setting to choose the user interface theme for normal browsing mode, contains choices like 'light' or 'dark' themes"
   )
-  public static let themesDisplayBrightnessFooter = NSLocalizedString(
-    "ThemesDisplayBrightnessFooter",
-    tableName: "BraveShared",
-    bundle: .module,
-    value: "These settings are not applied in private browsing mode.",
-    comment:
-      "Text specifying that the above setting does not impact the user interface while they user is in private browsing mode."
-  )
   public static let themesAutomaticOption = NSLocalizedString(
     "ThemesAutomaticOption",
     tableName: "BraveShared",
@@ -4281,18 +4190,9 @@ extension Strings {
         tableName: "BraveShared",
         bundle: .module,
         value:
-          "Sponsored images are branded backgrounds that appear in newly opened tabs in the browser. Enabling these Sponsored Images supports Brave's mission.",
-        comment: "The text description of image type which is being used NTP"
+          "Sponsored images are branded backgrounds that appear in newly opened tabs in the browser. Enabling these Sponsored Images supports Brave's mission. [Learn More](#learn-more)",
+        comment: "The text description of image type which is being used NTP. The text inside the square brackets should be translated and is a link"
       )
-    public static let imageTypeSelectionDescriptionLearnMore =
-      NSLocalizedString(
-        "ntp.imageTypeSelectionDescriptionLearnMore",
-        tableName: "BraveShared",
-        bundle: .module,
-        value: "Learn more",
-        comment: "The text label of image type learn more link"
-      )
-
     public static let settingsTitle = NSLocalizedString(
       "ntp.settingsTitle",
       tableName: "BraveShared",
@@ -5771,6 +5671,14 @@ extension Strings {
         comment: "The title of the product subscription the user purchased (Yearly subscription)"
       )
 
+    public static let originPurchaseName =
+      NSLocalizedString(
+        "storekitReceiptViewer.originPurchaseName",
+        bundle: .module,
+        value: "Brave Origin",
+        comment: "The title of the Brave Origin product"
+      )
+
     public static let receiptViewerTitle =
       NSLocalizedString(
         "storekitReceiptViewer.receiptViewerTitle",
@@ -6534,6 +6442,23 @@ extension Strings {
         value:
           "Keep private browsing tabs open when you close the app, ensuring private browsing sessions continue seamlessly.",
         comment: ""
+      )
+    public static let rememberBrowsingModeTitle =
+      NSLocalizedString(
+        "tabs.settings.rememberBrowsingModeTitle",
+        tableName: "BraveShared",
+        bundle: .module,
+        value: "Remember Browsing Mode",
+        comment: "Toggle to launch the browser in private mode when Keep Private Tabs is enabled"
+      )
+    public static let rememberBrowsingModeDescription =
+      NSLocalizedString(
+        "tabs.settings.rememberBrowsingModeDescription",
+        tableName: "BraveShared",
+        bundle: .module,
+        value:
+          "If browser was in private mode when last closed, it will open in private mode on re-launch.",
+        comment: "The description of the toggle for users to allow the browser to remember its last browsing mode so it can re-launch in that mode when Keep Private Tabs is enabled."
       )
     public static let autoOpenKeyboardTitle = NSLocalizedString(
       "tabs.settings.autoOpenKeyboardTitle",
@@ -9463,6 +9388,102 @@ extension Strings {
       bundle: .module,
       value: "The contact file could not be read. It may be corrupted or in an unsupported format.",
       comment: "Message for error alert when a VCard contact file cannot be parsed or opened"
+    )
+  }
+}
+
+// MARK: - Autofill
+extension Strings {
+  public struct Autofill {
+    public static let settingsSectionTitle = NSLocalizedString(
+      "autofill.settings.title",
+      tableName: "BraveShared",
+      bundle: .module,
+      value: "Autofill",
+      comment: "Settings autofill section title"
+    )
+    public static let managePasswordsTitle = NSLocalizedString(
+      "autofill.managePasswords.title",
+      tableName: "BraveShared",
+      bundle: .module,
+      value: "Manage Passwords",
+      comment: "Title for navigation bar of the Manage Passwords screen"
+    )
+    public static let managePasswordsInstructions = NSLocalizedString(
+      "autofill.managePasswords.instructions",
+      tableName: "BraveShared",
+      bundle: .module,
+      value: "Create, save and manage your passwords to easily sign in to sites and apps.",
+      comment:
+        "The message displayed on the manage passwords list screen, when there's at least one password, explain the feature"
+    )
+    public static let managePasswordsSavedListHeaderTitle = NSLocalizedString(
+      "autofill.managePasswords.headerTitle",
+      tableName: "BraveShared",
+      bundle: .module,
+      value: "Saved",
+      comment:
+        "Title for the section header in the Manage Passwords list screen, that lists the saved sites"
+    )
+    public static let managePasswordsListSearchWebsitesPrompt = NSLocalizedString(
+      "autofill.managePasswords.searchWebsitesPrompt",
+      tableName: "BraveShared",
+      bundle: .module,
+      value: "Search Websites",
+      comment:
+        "Prompt that is diplayed in the search bar of the Manage Passwords list screen"
+    )
+    public static let managePasswordsOfferToSavePasswords = NSLocalizedString(
+      "autofill.managePasswords.offerToSavePasswords",
+      tableName: "BraveShared",
+      bundle: .module,
+      value: "Offer to save passwords",
+      comment: "Display text for the option to offer to save passwords"
+    )
+    public static let managePasswordsNeverSavedListHeaderTitle =
+      NSLocalizedString(
+        "autofill.managePasswords.neverSavedListHeaderTitle",
+        tableName: "BraveShared",
+        bundle: .module,
+        value: "Never Saved",
+        comment: "The header title displayed over the never saved passwords list"
+      )
+    public static let managePasswordsDeleteCredentialButtonTitle = NSLocalizedString(
+      "autofill.managePasswords.deleteManagePasswordButtonTitle",
+      tableName: "BraveShared",
+      bundle: .module,
+      value: "Delete",
+      comment: "Label for the button used to delete the current login."
+    )
+    public static let managePasswordsDeleteCredentialsAlertTitle = NSLocalizedString(
+      "autofill.managePasswords.deleteCredentialsAlertTitle",
+      tableName: "BraveShared",
+      bundle: .module,
+      value: "Are you sure?",
+      comment: "Prompt title when deleting passwords"
+    )
+    public static let managePasswordsUnknownDomainText = NSLocalizedString(
+      "autofill.managePasswords.UnknownDomainText",
+      tableName: "BraveShared",
+      bundle: .module,
+      value: "Unknown",
+      comment: "Text to show when the origin of a managed password is not available"
+    )
+    public static let managePasswordsDeleteCredentialConfirmMessage = NSLocalizedString(
+      "autofill.managePasswords.deleteCredentialConfirmMessage",
+      tableName: "BraveShared",
+      bundle: .module,
+      value: "This will remove the saved password(s) for %@ from your sync chain and your device.",
+      comment:
+        "Alert message warning the user that deleting non-synced passwords will permanently remove them"
+    )
+    public static let managePasswordMultipleAccounts = NSLocalizedString(
+      "autofill.managePassword.multipleAccounts",
+      tableName: "BraveShared",
+      bundle: .module,
+      value: "Accounts",
+      comment:
+        "Label for account when indicating that a domain has multiple accounts"
     )
   }
 }

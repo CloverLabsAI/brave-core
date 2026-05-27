@@ -7,30 +7,33 @@ package org.chromium.chrome.browser.tasks.tab_management;
 
 import android.content.Context;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-
-import org.chromium.base.supplier.ObservableSupplier;
+import org.chromium.base.supplier.MonotonicObservableSupplier;
+import org.chromium.base.supplier.NonNullObservableSupplier;
+import org.chromium.build.annotations.NullMarked;
 import org.chromium.chrome.browser.compositor.CompositorViewHolder;
 import org.chromium.chrome.browser.hub.HubContainerView;
 import org.chromium.chrome.browser.hub.HubLayoutAnimatorProvider;
+import org.chromium.chrome.browser.hub.PaneId;
 import org.chromium.chrome.browser.ui.edge_to_edge.EdgeToEdgeController;
 import org.chromium.chrome.browser.user_education.UserEducationHelper;
 
 import java.util.function.DoubleConsumer;
 
+@NullMarked
 public abstract class BraveTabSwitcherPaneBase extends TabSwitcherPaneBase {
     BraveTabSwitcherPaneBase(
-            @NonNull Context context,
-            @NonNull TabSwitcherPaneCoordinatorFactory factory,
+            @PaneId int paneId,
+            Context context,
+            TabSwitcherPaneCoordinatorFactory factory,
             boolean isIncognito,
-            @NonNull DoubleConsumer onToolbarAlphaChange,
-            @NonNull UserEducationHelper userEducationHelper,
-            @NonNull ObservableSupplier<EdgeToEdgeController> edgeToEdgeSupplier,
-            @NonNull ObservableSupplier<CompositorViewHolder> compositorViewHolderSupplier,
-            @NonNull TabGroupCreationUiDelegate tabGroupCreationUiDelegate,
-            @Nullable ObservableSupplier<Boolean> xrSpaceModeObservableSupplier) {
+            DoubleConsumer onToolbarAlphaChange,
+            UserEducationHelper userEducationHelper,
+            MonotonicObservableSupplier<EdgeToEdgeController> edgeToEdgeSupplier,
+            MonotonicObservableSupplier<CompositorViewHolder> compositorViewHolderSupplier,
+            TabGroupCreationUiDelegate tabGroupCreationUiDelegate,
+            NonNullObservableSupplier<Boolean> xrSpaceModeObservableSupplier) {
         super(
+                paneId,
                 context,
                 factory,
                 isIncognito,
@@ -43,9 +46,9 @@ public abstract class BraveTabSwitcherPaneBase extends TabSwitcherPaneBase {
     }
 
     @Override
-    public @NonNull HubLayoutAnimatorProvider createHideHubLayoutAnimatorProvider(
-            @NonNull HubContainerView hubContainerView) {
-        if (getTabSwitcherPaneCoordinatorSupplier().get() == null && getCurrentTab() != null) {
+    public HubLayoutAnimatorProvider createHideHubLayoutAnimatorProvider(
+            HubContainerView hubContainerView) {
+        if (getTabSwitcherPaneCoordinator() == null && getCurrentTab() != null) {
             // Force call TabSwitcherPaneBase.createTabSwitcherPaneCoordinator
             // to ensure TabSwitcherPaneBase.mTabSwitcherPaneCoordinatorSupplier is set
             super.createTabSwitcherPaneCoordinator();

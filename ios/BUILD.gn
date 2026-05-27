@@ -10,6 +10,7 @@ import("//brave/build/mac/tweak_info_plist.gni")
 import("//brave/components/ai_chat/ios/browser/headers.gni")
 import("//brave/components/brave_shields/ios/browser/headers.gni")
 import("//brave/components/brave_talk/buildflags/buildflags.gni")
+import("//brave/components/brave_user_agent/ios/common/headers.gni")
 import("//brave/components/debounce/ios/browser/headers.gni")
 import("//brave/components/url_sanitizer/ios/browser/headers.gni")
 import("//brave/ios/browser/api/ads/headers.gni")
@@ -48,6 +49,7 @@ import("//brave/ios/browser/api/web/web_state/headers.gni")
 import("//brave/ios/browser/api/web_view/headers.gni")
 import("//brave/ios/browser/api/webcompat_reporter/headers.gni")
 import("//brave/ios/browser/brave_shields/headers.gni")
+import("//brave/ios/browser/content_settings/headers.gni")
 import("//brave/ios/browser/debounce/headers.gni")
 import("//brave/ios/browser/url_sanitizer/headers.gni")
 import("//brave/ios/web_view/headers.gni")
@@ -89,6 +91,8 @@ brave_core_public_headers = [
   "//brave/ios/browser/ai_chat/ai_chat_ui_handler_bridge.h",
   "//brave/ios/browser/brave_account/brave_account_authentication_bridge.h",
   "//brave/ios/browser/brave_account/brave_account_authentication_bridge_impl.h",
+  "//brave/ios/browser/brave_account/brave_account_constants_bridge.h",
+  "//brave/ios/browser/brave_account/brave_account_feature_bridge.h",
   "//brave/ios/browser/brave_origin/brave_origin_service_bridge.h",
   "//brave/ios/browser/brave_origin/brave_origin_service_factory_bridge.h",
   "//brave/ios/browser/brave_news/brave_news_pref_names_bridge.h",
@@ -118,6 +122,12 @@ brave_core_public_headers = [
   "//brave/ios/browser/safari_data_import/safari_data_importer_bridge.h",
   "//brave/ios/browser/safari_data_import/safari_data_importer_coordinator.h",
   "//brave/ios/browser/playlist/playlist_pref_names_bridge.h",
+  "//brave/ios/browser/ui/l10n_utils_typed_bridge.h",
+  "//ui/base/l10n/l10n_util_mac_bridge.h",
+  "$root_gen_dir/components/grit/brave_components_swift_strings.h",
+  "//brave/ios/browser/web/logins/logins_tab_helper_bridge.h",
+  "//brave/ios/browser/brave_talk/brave_talk_tab_helper_bridge.h",
+  "//ios/chrome/browser/web/model/print/print_handler.h",
 ]
 
 brave_core_public_headers += ads_public_headers
@@ -126,6 +136,8 @@ brave_core_public_headers += brave_domains_public_headers
 brave_core_public_headers += brave_shields_public_headers
 brave_core_public_headers += brave_shields_api_public_headers
 brave_core_public_headers += brave_shields_component_public_headers
+brave_core_public_headers += brave_user_agent_component_public_headers
+brave_core_public_headers += content_settings_component_public_headers
 brave_core_public_headers += url_sanitizer_component_public_headers
 brave_core_public_headers += browser_url_sanitizer_public_headers
 brave_core_public_headers += browser_api_de_amp_public_headers
@@ -213,9 +225,12 @@ ios_framework_bundle("brave_core_ios_framework") {
   deps = [
     ":brave_core_plist",
     ":brave_core_umbrella_header",
+    "//brave/components/resources:strings",
     "//brave/ios/app",
+    "//brave/ios/browser/ui",
     "//brave/ios/components/constants",
     "//brave/ios/web_view",
+    "//ui/base",
   ]
 
   deps += ads_public_deps
@@ -229,6 +244,8 @@ ios_framework_bundle("brave_core_ios_framework") {
 
   sources = brave_core_public_headers
   sources += ios_web_view_public_headers
+  sources +=
+      [ "$root_gen_dir/components/grit/brave_components_swift_strings.mm" ]
 
   public_headers = get_target_outputs(":brave_core_umbrella_header")
   public_headers += brave_core_public_headers

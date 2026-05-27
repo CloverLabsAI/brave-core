@@ -5,21 +5,40 @@
 
 #import "brave/ios/browser/web/brave_web_client.h"
 
+#import <WebKit/WebKit.h>
+
 #include "base/feature_list.h"
 #include "base/functional/bind.h"
 #include "base/ios/ns_error_util.h"
+#include "base/no_destructor.h"
+#include "base/notimplemented.h"
 #include "base/strings/sys_string_conversions.h"
+#include "brave/components/brave_talk/buildflags/buildflags.h"
 #include "brave/components/constants/url_constants.h"
+#include "brave/ios/browser/ai_chat/ai_chat_distiller_javascript_feature.h"
+#include "brave/ios/browser/api/profile/profile_bridge_impl.h"
 #include "brave/ios/browser/api/web_view/brave_web_view_internal.h"
+#include "brave/ios/browser/brave_ads/ads_media_reporting_javascript_feature.h"
+#include "brave/ios/browser/brave_search/brave_search_ad_results_javascript_feature.h"
 #include "brave/ios/browser/ui/web_view/features.h"
 #include "brave/ios/browser/web/brave_web_main_parts.h"
+#include "brave/ios/browser/web/de_amp/de_amp_javascript_feature.h"
+#include "brave/ios/browser/web/document_fetch/document_fetch_javascript_feature.h"
+#include "brave/ios/browser/web/force_paste/force_paste_javascript_feature.h"
+#include "brave/ios/browser/web/logins/logins_javascript_feature.h"
+#include "brave/ios/browser/web/night_mode/night_mode_javascript_feature.h"
+#include "brave/ios/browser/web/page_metadata/page_metadata_javascript_feature.h"
+#include "brave/ios/browser/web/reader_mode/reader_mode_javascript_feature.h"
 #include "components/autofill/ios/browser/autofill_java_script_feature.h"
 #include "components/autofill/ios/browser/suggestion_controller_java_script_feature.h"
 #include "components/autofill/ios/form_util/form_handlers_java_script_feature.h"
+#include "components/language/ios/browser/language_detection_java_script_feature.h"
 #include "components/password_manager/ios/password_manager_java_script_feature.h"
 #import "components/translate/ios/browser/translate_java_script_feature.h"
+#include "ios/chrome/browser/shared/model/profile/profile_ios.h"
 #include "ios/chrome/browser/shared/model/url/chrome_url_constants.h"
 #include "ios/chrome/browser/web/model/chrome_web_client.h"
+#include "ios/chrome/browser/web/model/print/print_java_script_feature.h"
 #import "ios/components/security_interstitials/ios_security_interstitial_java_script_feature.h"
 #import "ios/components/security_interstitials/lookalikes/lookalike_url_error.h"
 #import "ios/components/security_interstitials/safe_browsing/safe_browsing_error.h"
@@ -33,6 +52,10 @@
 #import "ios/web_view/public/cwv_navigation_delegate.h"
 #import "net/base/apple/url_conversions.h"
 #include "url/gurl.h"
+
+#if BUILDFLAG(ENABLE_BRAVE_TALK)
+#include "brave/ios/browser/brave_talk/brave_talk_launcher_javascript_feature.h"
+#endif
 
 BraveWebClient::BraveWebClient() {}
 
@@ -92,6 +115,34 @@ std::vector<web::JavaScriptFeature*> BraveWebClient::GetJavaScriptFeatures(
     features.push_back(autofill::FormHandlersJavaScriptFeature::GetInstance());
     features.push_back(
         autofill::SuggestionControllerJavaScriptFeature::GetInstance());
+  }
+  if (base::FeatureList::IsEnabled(
+          brave::features::kUseProfileWebViewConfiguration)) {
+    static base::NoDestructor<PrintJavaScriptFeature> print_feature;
+    features.push_back(print_feature.get());
+    features.push_back(
+        language::LanguageDetectionJavaScriptFeature::GetInstance());
+    features.push_back(translate::TranslateJavaScriptFeature::GetInstance());
+
+    // Add Brave iOS ported JavaScriptFeatures based on their original
+    // counterpart in //brave-ios
+    features.push_back(
+        brave_ads::AdsMediaReportingJavaScriptFeature::GetInstance());
+    features.push_back(AIChatDistillerJavaScriptFeature::GetInstance());
+    features.push_back(BraveSearchAdResultsJavaScriptFeature::GetInstance());
+#if BUILDFLAG(ENABLE_BRAVE_TALK)
+    features.push_back(BraveTalkLauncherJavaScriptFeature::GetInstance());
+#endif
+    features.push_back(DeAmpJavaScriptFeature::GetInstance());
+    features.push_back(DocumentFetchJavaScriptFeature::GetInstance());
+    features.push_back(ForcePasteJavaScriptFeature::GetInstance());
+    features.push_back(NightModeJavaScriptFeature::GetInstance());
+    features.push_back(PageMetadataJavaScriptFeature::GetInstance());
+    features.push_back(brave::ReaderModeJavaScriptFeature::GetInstance());
+    if (!base::FeatureList::IsEnabled(
+            brave::features::kUseChromiumWebViewsAutofill)) {
+      features.push_back(LoginsJavaScriptFeature::GetInstance());
+    }
   }
   return features;
 }
@@ -191,4 +242,32 @@ NSString* BraveWebClient::GetUserAgentForRequest(
                           request:request];
   }
   return nil;
+}
+
+bool BraveWebClient::CanRunOpenPanel(web::WebState* source) const
+    API_AVAILABLE(ios(18.4)) {
+  return false;
+}
+
+void BraveWebClient::RunOpenPanel(
+    web::WebState* source,
+    WKOpenPanelParameters* parameters,
+    WKFrameInfo* frame,
+    base::OnceCallback<void(NSArray<NSURL*>*)> completion) const
+    API_AVAILABLE(ios(18.4)) {
+  NOTIMPLEMENTED();
+}
+
+void BraveWebClient::DidResetConfiguration(web::BrowserState* browser_state,
+                                           WKWebViewConfiguration* config) {
+  if (BraveWebView.didResetConfiguration) {
+    auto* profile = ProfileIOS::FromBrowserState(browser_state);
+    ProfileBridgeImpl* profile_bridge =
+        [[ProfileBridgeImpl alloc] initWithProfile:profile];
+    BraveWebView.didResetConfiguration(profile_bridge, config);
+  }
+}
+
+bool BraveWebClient::IsSmoothScrollingSupported() const {
+  return true;
 }

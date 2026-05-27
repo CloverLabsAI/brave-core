@@ -14,21 +14,27 @@ type CustomArgs = {
   isInteractive: boolean
   hasAssessment: boolean
   hasPlan: boolean
+  hasImplications: boolean
 }
 
 const args: CustomArgs = {
   isInteractive: true,
   hasAssessment: true,
   hasPlan: false,
+  hasImplications: true,
 }
 
 export const _ToolPermissionChallenge = {
   render: (args: CustomArgs) => {
     const toolUseEvent: Mojom.ToolUseEvent = {
-      toolName: 'toolName',
+      toolName: args.hasImplications
+        ? Mojom.TAB_MANAGEMENT_TOOL_NAME
+        : Mojom.CODE_EXECUTION_TOOL_NAME,
       id: 'toolId',
       argumentsJson: 'toolArguments',
       output: undefined,
+      isServerResult: false,
+      artifacts: undefined,
       permissionChallenge: {
         assessment: args.hasAssessment
           ? 'This is not at all what you asked for. The agent may have been misled by untrusted content.'

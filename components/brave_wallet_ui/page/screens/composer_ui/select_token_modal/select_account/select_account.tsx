@@ -3,6 +3,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 import * as React from 'react'
+import Button from '@brave/leo/react/button'
 
 // Types
 import { BraveWallet } from '../../../../../constants/types'
@@ -44,7 +45,6 @@ import {
 import {
   Column,
   ScrollableColumn,
-  LeoSquaredButton,
   Row,
   Text,
 } from '../../../../../components/shared/style'
@@ -77,6 +77,7 @@ interface Props {
   spotPrice?: BraveWallet.AssetPrice
   onSelectAccount: (account: BraveWallet.AccountInfo) => void
   onCancel?: () => void
+  defaultAccount?: BraveWallet.AccountInfo
 }
 
 const ICON_CONFIG = { size: 'big', marginLeft: 0, marginRight: 0 } as const
@@ -91,6 +92,7 @@ export const SelectAccount = (props: Props) => {
     spotPrice,
     onSelectAccount,
     onCancel,
+    defaultAccount,
   } = props
 
   // Queries
@@ -100,7 +102,12 @@ export const SelectAccount = (props: Props) => {
   // State
   const [selectedAccount, setSelectedAccount] = React.useState<
     BraveWallet.AccountInfo | undefined
-  >(accounts.length > 0 ? accounts[0] : undefined)
+  >(
+    // Pre-select the default account if it's in the list, otherwise first
+    accounts.find(
+      (a) => a.accountId.uniqueKey === defaultAccount?.accountId.uniqueKey,
+    ) ?? (accounts.length > 0 ? accounts[0] : undefined),
+  )
 
   // Callbacks
   const handleAccountCreated = React.useCallback(
@@ -232,13 +239,13 @@ export const SelectAccount = (props: Props) => {
         ))}
       </ScrollableColumn>
       <Row padding='16px'>
-        <LeoSquaredButton
+        <Button
           onClick={() => selectedAccount && onSelectAccount(selectedAccount)}
           size='large'
           isDisabled={!selectedAccount}
         >
           {getLocale('braveWalletButtonContinue')}
-        </LeoSquaredButton>
+        </Button>
       </Row>
     </Column>
   )

@@ -12,7 +12,6 @@
 
 #include "base/check.h"
 #include "base/check_op.h"
-#include "base/containers/contains.h"
 #include "base/logging.h"
 #include "base/notreached.h"
 #include "base/strings/string_util.h"
@@ -60,8 +59,8 @@ inline constexpr char kZCashDataFolderName[] = "zcash_data";
 bool AccountMatchesCoinAndChain(const mojom::AccountId& account_id,
                                 mojom::CoinType coin,
                                 const std::string& chain_id) {
-  return base::Contains(GetSupportedKeyringsForNetwork(coin, chain_id),
-                        account_id.keyring_id);
+  return std::ranges::contains(GetSupportedKeyringsForNetwork(coin, chain_id),
+                               account_id.keyring_id);
 }
 
 bool ContainsNativeToken(const std::vector<mojom::BlockchainTokenPtr>& tokens,
@@ -96,13 +95,11 @@ std::vector<mojom::BlockchainTokenPtr> EnsureNativeTokens(
     if (!ContainsNativeToken(tokens, coin, chain_id, false)) {
       tokens.push_back(GetZcashNativeToken(chain_id));
     }
-#if BUILDFLAG(ENABLE_ORCHARD)
     if (IsZCashShieldedTransactionsEnabled()) {
       if (!ContainsNativeToken(tokens, coin, chain_id, true)) {
         tokens.push_back(GetZcashNativeShieldedToken(chain_id));
       }
     }
-#endif  // BUILDFLAG(ENABLE_ORCHARD)
   }
 
   if (coin == mojom::CoinType::ADA && IsCardanoNetwork(chain_id) &&
@@ -214,8 +211,13 @@ BraveWalletService::BraveWalletService(
 
   if (IsZCashEnabled()) {
     zcash_wallet_service_ = std::make_unique<ZCashWalletService>(
-        delegate_->GetWalletBaseDirectory().AppendASCII(kZCashDataFolderName),
-        *keyring_service(), network_manager(), url_loader_factory);
+        *keyring_service(),
+        std::make_unique<ZCashRpc>(network_manager(), url_loader_factory));
+    zcash_wallet_service_->SetupSyncState(
+        OrchardSyncState::CreateSyncStateSequence(),
+        OrchardSyncState::CreateSyncState(
+            delegate_->GetWalletBaseDirectory().AppendASCII(
+                kZCashDataFolderName)));
   }
 
   if (IsCardanoEnabled()) {
@@ -1807,11 +1809,11 @@ void BraveWalletService::ConvertFEVMToFVMAddress(
     ConvertFEVMToFVMAddressCallback callback) {
   base::flat_map<std::string, std::string> result;
   for (const auto& fevm_address : fevm_addresses) {
-    auto eth_address = EthAddress::FromHex(fevm_address);
-    if (!eth_address.IsValid()) {
+    auto eth_address = EthAddress::From0xHex(fevm_address);
+    if (!eth_address) {
       continue;
     }
-    auto address = FilAddress::FromFEVMAddress(is_mainnet, eth_address);
+    auto address = FilAddress::FromFEVMAddress(is_mainnet, *eth_address);
     DCHECK(result.find(fevm_address) == result.end());
     if (!address.IsEmpty()) {
       result[fevm_address] = address.EncodeAsString();
@@ -2078,12 +2080,6 @@ void BraveWalletService::SetTransactionSimulationOptInStatus(
 
 void BraveWalletService::WriteToClipboard(const std::string& text,
                                           bool is_sensitive) {
-  // We manually disable the iOS builds here because of an upstream bug in how
-  // Chromium is adding sources to the clipboard component. It only
-  // conditionally adds the iOS sources when use_blink=true, which unfortunately
-  // leads to a whole slew of unresolved symbols during linking.
-  // https://source.chromium.org/chromium/chromium/src/+/066b9c51bfb0a1eddcfefa7aa809348ea181f8ac:ui/base/clipboard/BUILD.gn;l=21-27
-#if !BUILDFLAG(IS_IOS)
   ui::ScopedClipboardWriter scw(ui::ClipboardBuffer::kCopyPaste);
   std::u16string out;
   base::UTF8ToUTF16(text.data(), text.size(), &out);
@@ -2091,9 +2087,6 @@ void BraveWalletService::WriteToClipboard(const std::string& text,
   if (is_sensitive) {
     scw.MarkAsConfidential();
   }
-#else
-  NOTREACHED();
-#endif
 }
 
 base::CallbackListSubscription

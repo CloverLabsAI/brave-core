@@ -10,11 +10,9 @@
 
 #include "base/files/file_path.h"
 #include "base/files/file_util.h"
-#include "base/files/scoped_temp_dir.h"
 #include "base/path_service.h"
 #include "base/run_loop.h"
 #include "base/test/bind.h"
-#include "base/test/scoped_feature_list.h"
 #include "base/test/scoped_path_override.h"
 #include "base/test/task_environment.h"
 #include "base/time/time.h"
@@ -28,12 +26,10 @@
 #include "brave/components/brave_wallet/browser/test_utils.h"
 #include "brave/components/brave_wallet/browser/tx_service.h"
 #include "brave/components/brave_wallet/common/brave_wallet.mojom.h"
-#include "brave/components/brave_wallet/common/features.h"
 #include "components/component_updater/component_updater_paths.h"
 #include "components/component_updater/mock_component_updater_service.h"
 #include "components/sync_preferences/testing_pref_service_syncable.h"
 #include "components/update_client/crx_update_item.h"
-#include "services/data_decoder/public/cpp/test_support/in_process_data_decoder.h"
 #include "services/network/public/cpp/weak_wrapper_shared_url_loader_factory.h"
 #include "services/network/test/test_url_loader_factory.h"
 #include "testing/gmock/include/gmock/gmock.h"
@@ -88,25 +84,18 @@ class MockBraveWalletServiceDelegateImpl
 class WalletDataFilesInstallerUnitTest : public testing::Test {
  public:
   WalletDataFilesInstallerUnitTest()
-      : task_environment_(base::test::TaskEnvironment::TimeSource::MOCK_TIME),
-        shared_url_loader_factory_(
-            base::MakeRefCounted<network::WeakWrapperSharedURLLoaderFactory>(
-                &url_loader_factory_)) {}
+      : task_environment_(base::test::TaskEnvironment::TimeSource::MOCK_TIME) {}
 
   ~WalletDataFilesInstallerUnitTest() override = default;
 
   void SetUp() override {
-    base::test::ScopedFeatureList feature_list;
-    feature_list.InitAndEnableFeature(
-        brave_wallet::features::kNativeBraveWalletFeature);
-
     RegisterProfilePrefs(prefs_.registry());
     RegisterLocalStatePrefs(local_state_.registry());
     RegisterProfilePrefsForMigration(prefs_.registry());
     RegisterLocalStatePrefsForMigration(local_state_.registry());
 
     brave_wallet_service_ = std::make_unique<BraveWalletService>(
-        shared_url_loader_factory_,
+        url_loader_factory_.GetSafeWeakWrapper(),
         std::make_unique<MockBraveWalletServiceDelegateImpl>(), &prefs_,
         &local_state_);
 
@@ -128,7 +117,7 @@ class WalletDataFilesInstallerUnitTest : public testing::Test {
   }
 
   void TearDown() override {
-    installer().ResetForTesting();
+    installer().Reset();
     registry()->ResetForTesting();
   }
 
@@ -230,8 +219,6 @@ class WalletDataFilesInstallerUnitTest : public testing::Test {
   sync_preferences::TestingPrefServiceSyncable prefs_;
   sync_preferences::TestingPrefServiceSyncable local_state_;
   network::TestURLLoaderFactory url_loader_factory_;
-  scoped_refptr<network::SharedURLLoaderFactory> shared_url_loader_factory_;
-  data_decoder::test::InProcessDataDecoder in_process_data_decoder_;
   std::unique_ptr<BraveWalletService> brave_wallet_service_;
   std::unique_ptr<component_updater::MockComponentUpdateService> cus_;
   base::FilePath install_dir_;
@@ -263,7 +250,6 @@ TEST_F(WalletDataFilesInstallerUnitTest, OnDemandInstallAndParsing_EmptyPath) {
   RunUntilIdle();
   CreateWallet();
 
-  RunUntilIdle();
   EXPECT_TRUE(registry()->IsEmptyForTesting());
 }
 
@@ -275,7 +261,6 @@ TEST_F(WalletDataFilesInstallerUnitTest,
   SetOnDemandInstallCallbackWithComponentReady(install_dir());
   CreateWallet();
 
-  RunUntilIdle();
   EXPECT_TRUE(registry()->IsEmptyForTesting());
 }
 
@@ -306,7 +291,6 @@ TEST_F(WalletDataFilesInstallerUnitTest,
 
   CreateWallet();
 
-  RunUntilIdle();
   EXPECT_FALSE(registry()->IsEmptyForTesting());
   EXPECT_TRUE(registry()->GetPrepopulatedNetworks().empty());
   EXPECT_EQ(registry()->GetCoingeckoId(
@@ -337,7 +321,49 @@ TEST_F(WalletDataFilesInstallerUnitTest,
   WriteCoingeckoIdsMapToFile();
 
   RestoreWallet();
-  RunUntilIdle();
+
+  EXPECT_FALSE(keyring_service()->GetAllAccountInfos().empty());
+
+  EXPECT_FALSE(registry()->IsEmptyForTesting());
+  EXPECT_EQ(registry()->GetCoingeckoId(
+                "0xa", "0x7f5c764cbc14f9669b88837ca1490cca17c31607"),
+            "usd-coin");
+}
+
+TEST_F(WalletDataFilesInstallerUnitTest,
+       OnDemandInstallAndParsing_RestoreWallet_OfacSanctioned) {
+  // Test that if we have an OFAC list, we should not create any accounts under
+  // those addresses. In this case, we add both of the test account addresses to
+  // the OFAC list. This ensures that the OFAC loading strongly happens-before
+  // we create the set of restored accounts.
+
+  EXPECT_CALL(*updater(), RegisterComponent(testing::_))
+      .Times(1)
+      .WillOnce(testing::Return(true));
+  SetOnDemandInstallCallbackWithComponentReady(install_dir());
+  WriteCoingeckoIdsMapToFile();
+
+  const std::string ofac_list_json = R"({
+    "addresses": [
+      "0xf81229fe54d8a20fbc1e1e2a3451d1c7489437db",
+      "brg44hdsehzapvs8beqzvkq4egwevs3fre6ze2eno6s8"
+    ]
+  })";
+  ASSERT_TRUE(base::WriteFile(
+      install_dir().Append(
+          FPL("ofac-sanctioned-digital-currency-addresses.json")),
+      ofac_list_json));
+
+  base::test::TestFuture<bool> future;
+
+  keyring_service()->RestoreWallet(kMnemonicDivideCruise, kTestWalletPassword,
+                                   false, future.GetCallback());
+
+  // We treat sanctioned addresses as an invalid mnemonic.
+  auto success = future.Take();
+  EXPECT_FALSE(success);
+  EXPECT_TRUE(keyring_service()->GetAllAccountInfos().empty());
+
   EXPECT_FALSE(registry()->IsEmptyForTesting());
   EXPECT_EQ(registry()->GetCoingeckoId(
                 "0xa", "0x7f5c764cbc14f9669b88837ca1490cca17c31607"),

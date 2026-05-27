@@ -63,11 +63,9 @@
 
     <!-- Brave wallet 2.0 colors -->
     <color name="brave_wallet_dn_panel_bg">#EDEEF1</color>
-    <color name="button_disabled">#46464a</color>
-    <color name="text_disabled">#21272a</color>
+
     <color name="text_on_primary">#FFFFFF</color>
     <color name="icon_interactive">#434fcf</color>
-    <color name="divider_subtle">#e4e4e5</color>
     <color name="system_feedback_error">#B3002A</color>
 
     <!-- Text colors -->
@@ -81,6 +79,8 @@
     <color name="text_color_30">#b7c6ff</color>
 
     <!-- Onboarding colors -->
+    <color name="onboarding_background_gradient_start">#FFEEF2FF</color>
+    <color name="onboarding_background_gradient_end">#FFDFE4F6</color>
     <color name="onboarding_orange">#fb542b</color>
     <color name="onboarding_gray">#84889c</color>
     <color name="onboarding_black">#1e2029</color>
@@ -99,7 +99,6 @@
 
     <color name="onboarding_welcome_text_color">#F0F2FF</color>
     <color name="onboarding_card_bg_color">@android:color/white</color>
-    <color name="onboarding_card_text_color">#212529</color>
     <color name="onboarding_negative_button_color">#4C54D2</color>
     <color name="onboarding_search_highlight_color">#737ADE</color>
     <color name="onboarding_arrow_color">#4D54D3</color>
@@ -170,6 +169,7 @@
     <color name="news_settings_following_count_bg_color">#1A000000</color>
     <color name="news_settings_optin_color">#CCCCCC</color>
     <color name="news_settings_unfollow_color">#4C54D2</color>
+    <color name="news_settings_item_highlight">@color/material_primary_95</color>
 
     <!-- Incognito mode colors -->
     <color name="toolbar_background_primary_dark">@color/primitive_private_window_5</color>
@@ -221,7 +221,8 @@
     <color name="add_custom_filter_button_disabled_color">#A8ADBF</color>
 
     <color name="brave_stats_ads_color">#FF7654</color>
-    <color name="brave_stats_data_saved_color">#737ADE</color>
+    <color name="brave_stats_data_saved_color">@color/primitive_primary_70</color>
+    <color name="brave_stats_data_saved_value_text_color">@color/primitive_primary_80</color>
     <color name="brave_state_time_count_color">#FFFFFF</color>
 
     <color name="brave_stats_pager_ads_color">#CD4400</color>
@@ -331,6 +332,7 @@
     <color name="text_tertiary">#78787c</color>
     <color name="primary_20">#dfe4f6</color>
     <color name="button_background">#434fcf</color>
+    <color name="button_background_10">#19434FCF</color>
 
     <color name="divider_interactive">#bcc6f3</color>
 
@@ -339,20 +341,8 @@
     <color name="location_bar_background_color_for_ntp">#f2f2f2</color>
     <color name="toolbar_background_color_for_ntp">@android:color/white</color>
 
-    <color name="primitive_blurple_10">#110c50</color>
-    <color name="primitive_blurple_15">#181266</color>
-    <color name="primitive_blurple_20">#20197f</color>
-    <color name="primitive_blurple_25">#271e93</color>
-    <color name="primitive_blurple_35">#3a2ecd</color>
-    <color name="primitive_blurple_40">#434fcf</color>
-    <color name="primitive_blurple_50">#5b67e8</color>
-    <color name="primitive_blurple_80">#bcc6f3</color>
-    <color name="primitive_blurple_90">#dfe4f6</color>
-    <color name="primitive_blurple_95">#f0f2fa</color>
-    <color name="primitive_blurple_98">#f9fafd</color>
-    <color name="semantic_text_interactive">#BDC2FF</color>
-    <color name="semantic_divider_interactive">#7985FF</color>
-    <color name="semantic_button_background">#BDC2FF</color>
+    <color name="semantic_text_interactive">#BCC6F3</color>
+    <color name="semantic_divider_interactive">#7686EC</color>
 
     <color name="schemes_on_surface">#1c1c1d</color>
     <color name="schemes_on_surface_variant">#464649</color>
@@ -361,8 +351,7 @@
     <color name="schemes_on_primary">#ffffff</color>
     <color name="schemes_surface_container_highest">#e4e4e5</color>
     <color name="schemes_surface_container_lowest">#ffffff</color>
-
-    <color name="button_background_widget_promo">#4551D1</color>
+    <color name="schemes_surface_container">#F2F2F3</color>
 
     <color name="open_yt_dialog_bg">#FFFFFF</color>
 
@@ -399,4 +388,5 @@
     <color name="material_secondary_40">@color/primitive_secondary_40</color>
     <color name="material_tertiary_80">@color/primitive_tertiary_80</color>
     <color name="material_tertiary_40">@color/primitive_tertiary_40</color>
+
 </resources>

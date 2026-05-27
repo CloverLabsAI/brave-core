@@ -3,6 +3,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 
+/* eslint-disable import/first */
+
 // Set up loadTimeData mock BEFORE importing components
 ;(window as any).loadTimeData = {
   getString: jest.fn((key: string) => {
@@ -25,6 +27,7 @@ import userEvent from '@testing-library/user-event'
 import * as Mojom from '../../../common/mojom'
 import {
   getCompletionEvent,
+  getSearchQueriesEvent,
   getWebSourcesEvent,
 } from '../../../common/test_data_utils'
 import { createTextContentBlock } from '../../../common/content_block'
@@ -91,33 +94,31 @@ test('AssistantResponse should include expandable sources', async () => {
     ],
   }
   render(
-    <AssistantResponse
-      events={testEntry.events!}
-      isEntryInteractivityAllowed={false}
-      isLeoModel={true}
-      isEntryInProgress={false}
-      allowedLinks={[]}
-    />,
+    <MockContext>
+      <AssistantResponse
+        events={testEntry.events!}
+        isEntryInteractivityAllowed={false}
+        isLeoModel={true}
+        isEntryInProgress={false}
+        allowedLinks={[]}
+      />
+    </MockContext>,
   )
-  // There should be the first items showing
-  let links = screen.getAllByRole('link')
-  expect(links).toHaveLength(4)
+  // There should be the first 4 source buttons + 1 expand button
+  let buttons = screen.getAllByRole('button')
+  expect(buttons).toHaveLength(5)
   // The expand button should be visible
-  const expandButton = screen.getByRole('button')
+  const expandButton = document.querySelector<HTMLButtonElement>(
+    'button[name="expand"]',
+  )!
   await userEvent.click(expandButton)
-  // There should be all items showing
-  links = screen.getAllByRole('link')
-  expect(links).toHaveLength(8)
+  // There should be all 8 source buttons (expand button removed)
+  buttons = screen.getAllByRole('button')
+  expect(buttons).toHaveLength(8)
 })
 
 test('AssistantResponse should render memory tool events inline', async () => {
   const mockHasMemory = () => Promise.resolve({ exists: true })
-  const mockUIObserver = {
-    onMemoriesChanged: {
-      addListener: jest.fn().mockReturnValue('listener-id'),
-    },
-    removeListener: jest.fn(),
-  }
 
   const memoryToolEvent: Mojom.ConversationEntryEvent = {
     toolUseEvent: {
@@ -131,14 +132,7 @@ test('AssistantResponse should render memory tool events inline', async () => {
   const events = [memoryToolEvent, getCompletionEvent('I will remember that.')]
 
   render(
-    <MockContext
-      uiHandler={
-        {
-          hasMemory: mockHasMemory,
-        } as unknown as Mojom.UntrustedUIHandlerRemote
-      }
-      uiObserver={mockUIObserver as unknown as Mojom.UntrustedUICallbackRouter}
-    >
+    <MockContext uiHandler={{ hasMemory: mockHasMemory }}>
       <AssistantResponse
         events={events}
         isEntryInteractivityAllowed={false}
@@ -179,13 +173,7 @@ test(
     ]
 
     render(
-      <MockContext
-        uiHandler={
-          {
-            hasMemory: mockHasMemory,
-          } as unknown as Mojom.UntrustedUIHandlerRemote
-        }
-      >
+      <MockContext uiHandler={{ hasMemory: mockHasMemory }}>
         <AssistantResponse
           events={events}
           isEntryInteractivityAllowed={false}
@@ -217,13 +205,15 @@ test('AssistantResponse should not render iframe when richResults is null or emp
   ]
 
   const { container } = render(
-    <AssistantResponse
-      events={events}
-      isEntryInteractivityAllowed={false}
-      isLeoModel={true}
-      isEntryInProgress={false}
-      allowedLinks={[]}
-    />,
+    <MockContext>
+      <AssistantResponse
+        events={events}
+        isEntryInteractivityAllowed={false}
+        isLeoModel={true}
+        isEntryInProgress={false}
+        allowedLinks={[]}
+      />
+    </MockContext>,
   )
 
   // Should not render any iframes when richResults is empty
@@ -258,16 +248,87 @@ test('AssistantResponse should render iframe when richResults has data', () => {
   ]
 
   const { container } = render(
-    <AssistantResponse
-      events={events}
-      isEntryInteractivityAllowed={false}
-      isLeoModel={true}
-      isEntryInProgress={false}
-      allowedLinks={[]}
-    />,
+    <MockContext>
+      <AssistantResponse
+        events={events}
+        isEntryInteractivityAllowed={false}
+        isLeoModel={true}
+        isEntryInProgress={false}
+        allowedLinks={[]}
+      />
+    </MockContext>,
   )
 
   // Should render iframes for each richResult
   const iframes = container.querySelectorAll('iframe')
   expect(iframes).toHaveLength(2)
+})
+
+test('AssistantResponse should aggregate sources from multiple events', async () => {
+  const events = [
+    getCompletionEvent('test completion'),
+    getWebSourcesEvent([
+      {
+        title: 'Source 1',
+        faviconUrl: { url: 'https://imgs.example.com/favicon1.ico' },
+        url: { url: 'https://1.example.com/path' },
+      },
+      {
+        title: 'Source 2',
+        faviconUrl: { url: 'https://imgs.example.com/favicon2.ico' },
+        url: { url: 'https://2.example.com/path' },
+      },
+    ]),
+    getWebSourcesEvent([
+      {
+        title: 'Source 3',
+        faviconUrl: { url: 'https://imgs.example.com/favicon3.ico' },
+        url: { url: 'https://3.example.com/path' },
+      },
+      {
+        title: 'Source 4',
+        faviconUrl: { url: 'https://imgs.example.com/favicon4.ico' },
+        url: { url: 'https://4.example.com/path' },
+      },
+    ]),
+  ]
+
+  render(
+    <MockContext>
+      <AssistantResponse
+        events={events}
+        isEntryInteractivityAllowed={false}
+        isLeoModel={true}
+        isEntryInProgress={false}
+        allowedLinks={[]}
+      />
+    </MockContext>,
+  )
+
+  // All 4 sources from both events should be rendered
+  const buttons = screen.getAllByRole('button')
+  expect(buttons).toHaveLength(4)
+})
+
+test('AssistantResponse should aggregate search queries from multiple events', () => {
+  const events = [
+    getCompletionEvent('test completion'),
+    getSearchQueriesEvent(['query one']),
+    getSearchQueriesEvent(['query two']),
+  ]
+
+  const { container } = render(
+    <MockContext>
+      <AssistantResponse
+        events={events}
+        isEntryInteractivityAllowed={false}
+        isLeoModel={true}
+        isEntryInProgress={false}
+        allowedLinks={[]}
+      />
+    </MockContext>,
+  )
+
+  const summary = container.querySelector('[data-test-id="search-summary"]')
+  expect(summary).toBeInTheDocument()
 })

@@ -10,6 +10,10 @@
  * #include=theme-color-picker-chromium
  * #css_wrapper_metadata_end */
 
+cr-theme-color {
+  max-width: var(--cr-theme-color-max-width, none);
+}
+
 /* when we remove the element entirely, we'll get regression from it.
   so Instead of removing the element, just hides it. */
 #defaultColor {

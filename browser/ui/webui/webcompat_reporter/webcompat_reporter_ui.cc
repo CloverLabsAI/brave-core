@@ -192,7 +192,7 @@ WebcompatReporterDOMHandler::AsWeekPtr() {
 
 void WebcompatReporterDOMHandler::OnWindowResize(const int& height) {
   AllowJavascript();
-  base::Value::Dict event_data;
+  base::DictValue event_data;
   event_data.Set(kGetViewPortSizeParamName, height);
   FireWebUIListener(kOnViewPortSizeChangedEventName, event_data);
 }
@@ -222,7 +222,7 @@ void WebcompatReporterDOMHandler::RegisterMessages() {
 }
 
 void WebcompatReporterDOMHandler::HandleCaptureScreenshot(
-    const base::Value::List& args) {
+    const base::ListValue& args) {
   CHECK_EQ(args.size(), 1u);
   auto* const render_widget_host_view = GetRenderWidgetHostViewForActiveTab();
   if (!render_widget_host_view) {
@@ -247,17 +247,18 @@ void WebcompatReporterDOMHandler::HandleCaptureScreenshot(
   }
 
   render_widget_host_view->CopyFromSurface(
-      {}, output_size,
+      {}, output_size, base::TimeDelta(),
       base::BindOnce(
           [](base::WeakPtr<WebcompatReporterDOMHandler> handler,
              scoped_refptr<base::SequencedTaskRunner> ui_task_runner,
              base::Value callback_id,
-             const viz::CopyOutputBitmapWithMetadata& result) {
+             const content::CopyFromSurfaceResult& result) {
+            CHECK(result.has_value());
             ui_task_runner->PostTask(
-                FROM_HERE,
-                base::BindOnce(&WebcompatReporterDOMHandler::
-                                   HandleCapturedScreenshotBitmap,
-                               handler, result.bitmap, std::move(callback_id)));
+                FROM_HERE, base::BindOnce(&WebcompatReporterDOMHandler::
+                                              HandleCapturedScreenshotBitmap,
+                                          handler, result->bitmap,
+                                          std::move(callback_id)));
           },
           weak_ptr_factory_.GetWeakPtr(), ui_task_runner_, args[0].Clone()));
 }
@@ -291,7 +292,7 @@ void WebcompatReporterDOMHandler::HandleEncodedScreenshotPNG(
 }
 
 void WebcompatReporterDOMHandler::HandleGetCapturedScreenshot(
-    const base::Value::List& args) {
+    const base::ListValue& args) {
   CHECK_EQ(args.size(), 1u);
 
   AllowJavascript();
@@ -305,7 +306,7 @@ void WebcompatReporterDOMHandler::HandleGetCapturedScreenshot(
   ResolveJavascriptCallback(args[0], screenshot_b64);
 }
 
-void WebcompatReporterDOMHandler::HandleInit(const base::Value::List& args) {
+void WebcompatReporterDOMHandler::HandleInit(const base::ListValue& args) {
   CHECK_EQ(args.size(), 1u);
 
   AllowJavascript();
@@ -316,24 +317,24 @@ void WebcompatReporterDOMHandler::HandleInit(const base::Value::List& args) {
     return;
   }
 
-  base::Value::Dict event_data;
+  base::DictValue event_data;
   event_data.Set(kGetViewPortSizeParamName, *max_height);
   ResolveJavascriptCallback(args[0], event_data);
 }
 
 void WebcompatReporterDOMHandler::HandleClearScreenshot(
-    const base::Value::List& args) {
+    const base::ListValue& args) {
   pending_report_->screenshot_png = std::nullopt;
 }
 
 void WebcompatReporterDOMHandler::HandleSubmitReport(
-    const base::Value::List& args) {
+    const base::ListValue& args) {
   DCHECK_EQ(args.size(), 1U);
   if (!args[0].is_dict()) {
     return;
   }
 
-  const base::Value::Dict& submission_args = args[0].GetDict();
+  const base::DictValue& submission_args = args[0].GetDict();
 
   const std::string* url_arg = submission_args.FindString(kSiteURLField);
   const std::string* ad_block_setting_arg =

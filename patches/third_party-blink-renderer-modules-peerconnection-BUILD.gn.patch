@@ -1,8 +1,8 @@
 diff --git a/third_party/blink/renderer/modules/peerconnection/BUILD.gn b/third_party/blink/renderer/modules/peerconnection/BUILD.gn
-index f4c4410182f08..bfa5600cdb531 100644
+index 054a691045e27ba624f4954a26a0f3e9a27af07e..0e1a7a93a551a053b342a35f6402e0c2210ea4dc 100644
 --- a/third_party/blink/renderer/modules/peerconnection/BUILD.gn
 +++ b/third_party/blink/renderer/modules/peerconnection/BUILD.gn
-@@ -173,6 +173,7 @@ blink_modules_sources("peerconnection") {
+@@ -175,6 +175,7 @@ blink_modules_sources("peerconnection") {
  
    public_deps = [ "//third_party/webrtc_overrides:webrtc_component" ]
    deps = [

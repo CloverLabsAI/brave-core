@@ -16,8 +16,8 @@
 #include "brave/grit/brave_generated_resources.h"
 #include "brave/net/proxy_resolution/proxy_config_service_tor.h"
 #include "chrome/browser/profiles/profile.h"
-#include "chrome/browser/ui/browser_list.h"
-#include "chrome/browser/ui/browser_list_observer.h"
+#include "chrome/browser/ui/browser_finder.h"
+#include "chrome/browser/ui/browser_window/public/global_browser_collection.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
 #include "chrome/test/base/in_process_browser_test.h"
 #include "chrome/test/base/ui_test_utils.h"
@@ -162,14 +162,15 @@ class OnionLocationNavigationThrottleBrowserTest : public InProcessBrowserTest {
     if (wait_for_tor_window) {
       browser_creation_observer.Wait();
     }
-    BrowserList* browser_list = BrowserList::GetInstance();
-    ASSERT_EQ(2U, browser_list->size());
-    Browser* tor_browser;
-    for (Browser* a_browser : *browser_list) {
-      if (a_browser->profile()->IsTor()) {
-        tor_browser = a_browser;
-      }
-    }
+    ASSERT_EQ(2U, chrome::GetTotalBrowserCount());
+    Browser* tor_browser = nullptr;
+    GlobalBrowserCollection::GetInstance()->ForEach(
+        [&tor_browser](BrowserWindowInterface* a_browser) {
+          if (a_browser->GetProfile()->IsTor()) {
+            tor_browser = a_browser->GetBrowserForMigrationOnly();
+          }
+          return !tor_browser;
+        });
     ASSERT_NE(nullptr, tor_browser);
     content::WebContents* tor_web_contents =
         tor_browser->GetTabStripModel()->GetActiveWebContents();
@@ -272,11 +273,10 @@ IN_PROC_BROWSER_TEST_F(OnionLocationNavigationThrottleBrowserTest,
 
   // Onion Domain
   ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), GURL(kTestOnionURL)));
-  BrowserList* browser_list = BrowserList::GetInstance();
-  EXPECT_EQ(1U, browser_list->size());
+  EXPECT_EQ(1U, chrome::GetTotalBrowserCount());
 
   ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), url));
-  EXPECT_EQ(1U, browser_list->size());
+  EXPECT_EQ(1U, chrome::GetTotalBrowserCount());
 }
 
 IN_PROC_BROWSER_TEST_F(OnionLocationNavigationThrottleBrowserTest,
@@ -291,8 +291,7 @@ IN_PROC_BROWSER_TEST_F(OnionLocationNavigationThrottleBrowserTest,
   EXPECT_TRUE(helper->onion_location().is_empty());
 
   ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), url));
-  BrowserList* browser_list = BrowserList::GetInstance();
-  EXPECT_EQ(1U, browser_list->size());
+  EXPECT_EQ(1U, chrome::GetTotalBrowserCount());
   ASSERT_FALSE(browser()->profile()->IsTor());
 
   web_contents = browser()->tab_strip_model()->GetActiveWebContents();
@@ -310,8 +309,7 @@ IN_PROC_BROWSER_TEST_F(OnionLocationNavigationThrottleBrowserTest, NotOnion) {
   EXPECT_TRUE(helper->onion_location().is_empty());
 
   ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), url));
-  BrowserList* browser_list = BrowserList::GetInstance();
-  EXPECT_EQ(1U, browser_list->size());
+  EXPECT_EQ(1U, chrome::GetTotalBrowserCount());
   ASSERT_FALSE(browser()->profile()->IsTor());
 
   web_contents = browser()->tab_strip_model()->GetActiveWebContents();
@@ -329,8 +327,7 @@ IN_PROC_BROWSER_TEST_F(OnionLocationNavigationThrottleBrowserTest, HTTPHost) {
   EXPECT_TRUE(helper->onion_location().is_empty());
 
   ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), url));
-  BrowserList* browser_list = BrowserList::GetInstance();
-  EXPECT_EQ(1U, browser_list->size());
+  EXPECT_EQ(1U, chrome::GetTotalBrowserCount());
   ASSERT_FALSE(browser()->profile()->IsTor());
 
   web_contents = browser()->tab_strip_model()->GetActiveWebContents();

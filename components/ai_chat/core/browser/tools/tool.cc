@@ -5,6 +5,8 @@
 
 #include "brave/components/ai_chat/core/browser/tools/tool.h"
 
+#include <algorithm>
+
 #include "brave/components/ai_chat/core/common/mojom/ai_chat.mojom.h"
 #include "brave/components/ai_chat/core/common/mojom/common.mojom.h"
 
@@ -17,7 +19,7 @@ std::string_view Tool::Type() const {
   return "function";
 }
 
-std::optional<base::Value::Dict> Tool::InputProperties() const {
+std::optional<base::DictValue> Tool::InputProperties() const {
   return std::nullopt;
 }
 
@@ -29,9 +31,15 @@ bool Tool::IsAgentTool() const {
   return false;
 }
 
-bool Tool::IsSupportedByModel(const mojom::Model& model) const {
+bool Tool::IsSupportedByModel(
+    const mojom::Model& model,
+    const ConversationCapabilitySet& conversation_capabilities) const {
   // Implementors should add any extra checks in an override.
-  return model.supports_tools;
+  return model.supports_tools &&
+         std::ranges::all_of(conversation_capabilities, [&](auto capability) {
+           return std::ranges::contains(model.supported_capabilities,
+                                        capability);
+         });
 }
 
 std::variant<bool, mojom::PermissionChallengePtr>
@@ -47,11 +55,11 @@ void Tool::UserPermissionGranted(const std::string& tool_use_id) {
 bool Tool::SupportsConversation(
     bool is_temporary,
     bool has_untrusted_content,
-    mojom::ConversationCapability conversation_capability) const {
+    const ConversationCapabilitySet& conversation_capabilities) const {
   return true;
 }
 
-std::optional<base::Value::Dict> Tool::ExtraParams() const {
+std::optional<base::DictValue> Tool::ExtraParams() const {
   return std::nullopt;
 }
 

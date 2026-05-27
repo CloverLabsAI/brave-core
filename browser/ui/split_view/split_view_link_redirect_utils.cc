@@ -15,9 +15,9 @@
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
 #include "chrome/browser/ui/ui_features.h"
+#include "components/split_tabs/split_tab_id.h"
 #include "components/tabs/public/split_tab_collection.h"
 #include "components/tabs/public/split_tab_data.h"
-#include "components/tabs/public/split_tab_id.h"
 #include "components/tabs/public/tab_collection.h"
 #include "components/tabs/public/tab_interface.h"
 #include "content/public/browser/web_contents.h"
@@ -155,8 +155,7 @@ namespace split_view {
 bool MaybeRedirectToRightPane(content::WebContents* source,
                               const GURL& url,
                               const content::Referrer& referrer) {
-  CHECK(base::FeatureList::IsEnabled(features::kSplitViewLink) &&
-        base::FeatureList::IsEnabled(::features::kSideBySide));
+  CHECK(base::FeatureList::IsEnabled(features::kSplitViewLink));
   CHECK(source);
 
   bool from_window_open = false;

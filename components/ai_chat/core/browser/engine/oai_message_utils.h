@@ -43,7 +43,7 @@ std::vector<OAIMessage> BuildOAIMessages(
     PageContentsMap&& page_contents,
     const EngineConsumer::ConversationHistory& conversation_history,
     PrefService* prefs,
-    bool is_temporary_chat,
+    bool exclude_memory,
     uint32_t remaining_length,
     base::FunctionRef<void(std::string&)> sanitize_input);
 
@@ -55,6 +55,15 @@ std::vector<OAIMessage> BuildOAIQuestionSuggestionsMessages(
 std::optional<std::vector<OAIMessage>> BuildOAIRewriteSuggestionMessages(
     const std::string& text,
     mojom::ActionType action_type);
+
+// Build content blocks from page contents with truncation support.
+// max_associated_content_length is updated to reflect remaining space.
+// max_per_content_length limits each individual content block size.
+std::vector<mojom::ContentBlockPtr> BuildOAIPageContentBlocks(
+    const PageContents& page_contents,
+    uint32_t& max_associated_content_length,
+    base::FunctionRef<void(std::string&)> sanitize_input,
+    std::optional<uint32_t> max_per_content_length = std::nullopt);
 
 std::optional<std::vector<OAIMessage>>
 BuildOAIGenerateConversationTitleMessages(

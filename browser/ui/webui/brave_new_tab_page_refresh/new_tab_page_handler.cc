@@ -8,6 +8,7 @@
 #include <utility>
 
 #include "base/check.h"
+#include "base/functional/callback_helpers.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/types/to_address.h"
 #include "brave/browser/ntp_background/new_tab_takeover_infobar_delegate.h"
@@ -19,7 +20,10 @@
 #include "brave/components/brave_search_conversion/pref_names.h"
 #include "brave/components/brave_talk/buildflags/buildflags.h"
 #include "brave/components/constants/pref_names.h"
+#include "brave/components/misc_metrics/brave_search_metrics.h"
+#include "brave/components/misc_metrics/navigation_source_metrics.h"
 #include "brave/components/misc_metrics/new_tab_metrics.h"
+#include "brave/components/misc_metrics/page_metrics.h"
 #include "brave/components/ntp_background_images/common/pref_names.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
@@ -47,6 +51,7 @@ NewTabPageHandler::NewTabPageHandler(
     PrefService& pref_service,
     TemplateURLService& template_url_service,
     misc_metrics::NewTabMetrics& new_tab_metrics,
+    misc_metrics::PageMetrics* page_metrics,
     bool was_restored)
     : receiver_(this, std::move(receiver)),
       update_observer_(pref_service, top_sites_facade.get()),
@@ -63,6 +68,11 @@ NewTabPageHandler::NewTabPageHandler(
   CHECK(background_facade_);
   CHECK(top_sites_facade_);
   CHECK(vpn_facade_);
+
+  if (page_metrics) {
+    brave_search_metrics_ = &page_metrics->brave_search_metrics();
+    navigation_source_metrics_ = &page_metrics->navigation_source_metrics();
+  }
 
   update_observer_.SetCallback(base::BindRepeating(&NewTabPageHandler::OnUpdate,
                                                    weak_factory_.GetWeakPtr()));
@@ -135,7 +145,14 @@ void NewTabPageHandler::GetSponsoredImageBackground(
     return std::move(callback).Run(nullptr);
   }
 
-  auto sponsored_background = background_facade_->GetSponsoredImageBackground();
+  background_facade_->GetSponsoredImageBackground(
+      base::BindOnce(&NewTabPageHandler::OnGetSponsoredImageBackground,
+                     weak_factory_.GetWeakPtr(), std::move(callback)));
+}
+
+void NewTabPageHandler::OnGetSponsoredImageBackground(
+    GetSponsoredImageBackgroundCallback callback,
+    mojom::SponsoredImageBackgroundPtr sponsored_background) {
   if (sponsored_background) {
     ntp_background_images::NewTabTakeoverInfoBarDelegate::
         MaybeDisplayAndIncrementCounter(base::to_address(web_contents_),
@@ -186,6 +203,18 @@ void NewTabPageHandler::SetShowSearchBox(bool show_search_box,
                                          SetShowSearchBoxCallback callback) {
   pref_service_->SetBoolean(brave_search_conversion::prefs::kShowNTPSearchBox,
                             show_search_box);
+  std::move(callback).Run();
+}
+
+void NewTabPageHandler::GetShowChatInput(GetShowChatInputCallback callback) {
+  std::move(callback).Run(pref_service_->GetBoolean(
+      brave_search_conversion::prefs::kShowNTPChatInput));
+}
+
+void NewTabPageHandler::SetShowChatInput(bool show_chat_input,
+                                         SetShowChatInputCallback callback) {
+  pref_service_->SetBoolean(brave_search_conversion::prefs::kShowNTPChatInput,
+                            show_chat_input);
   std::move(callback).Run();
 }
 
@@ -300,6 +329,9 @@ void NewTabPageHandler::ReportSearchResultUsage(
     int64_t engine_prepopulate_id,
     ReportSearchResultUsageCallback callback) {
   new_tab_metrics_->ReportNTPSearchUsage(engine_prepopulate_id);
+  if (brave_search_metrics_) {
+    brave_search_metrics_->MaybeRecordNTPSearch(engine_prepopulate_id);
+  }
   std::move(callback).Run();
 }
 
@@ -369,6 +401,16 @@ void NewTabPageHandler::IncludeMostVisitedTopSite(
     const std::string& url,
     IncludeMostVisitedTopSiteCallback callback) {
   top_sites_facade_->IncludeMostVisitedTopSite(url);
+  std::move(callback).Run();
+}
+
+void NewTabPageHandler::RecordTopSiteClick(
+    RecordTopSiteClickCallback callback) {
+  if (navigation_source_metrics_) {
+    bool is_custom =
+        top_sites_facade_->GetListKind() == mojom::TopSitesListKind::kCustom;
+    navigation_source_metrics_->RecordTopSiteNavigation(is_custom);
+  }
   std::move(callback).Run();
 }
 

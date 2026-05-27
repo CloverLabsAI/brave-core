@@ -35,11 +35,13 @@
 #include "brave/components/ai_chat/core/browser/tools/tool_provider.h"
 #include "brave/components/ai_chat/core/browser/types.h"
 #include "brave/components/ai_chat/core/common/mojom/ai_chat.mojom.h"
+#include "brave/components/ai_chat/core/common/mojom/common.mojom-forward.h"
 #include "brave/components/ai_chat/core/common/mojom/common.mojom.h"
 #include "brave/components/ai_chat/core/common/mojom/untrusted_frame.mojom.h"
 #include "mojo/public/cpp/bindings/pending_receiver.h"
 #include "mojo/public/cpp/bindings/receiver_set.h"
 #include "mojo/public/cpp/bindings/remote_set.h"
+#include "third_party/abseil-cpp/absl/container/flat_hash_set.h"
 
 class AIChatUIBrowserTest;
 namespace mojo {
@@ -102,9 +104,6 @@ class ConversationHandler : public mojom::ConversationHandler,
         const std::string& conversation_uuid,
         uint64_t total_tokens,
         uint64_t trimmed_tokens) {}
-    virtual void OnSelectedLanguageChanged(
-        ConversationHandler* handler,
-        const std::string& selected_language) {}
     virtual void OnAssociatedContentUpdated(ConversationHandler* handler) {}
   };
 
@@ -209,7 +208,7 @@ class ConversationHandler : public mojom::ConversationHandler,
                           const std::string& new_text) override;
   void RegenerateAnswer(const std::string& turn_uuid,
                         const std::string& model_key) override;
-  void SubmitSummarizationRequest() override;
+  void SubmitSummarizationRequest();
   void SubmitSuggestion(const std::string& suggestion_title) override;
   const std::vector<Suggestion>& GetSuggestedQuestionsForTest() const;
   void SetSuggestedQuestionForTest(std::string title, std::string prompt);
@@ -217,7 +216,6 @@ class ConversationHandler : public mojom::ConversationHandler,
   void GetAssociatedContentInfo(
       GetAssociatedContentInfoCallback callback) override;
   void RetryAPIRequest() override;
-  void GetAPIResponseError(GetAPIResponseErrorCallback callback) override;
   void ClearErrorAndGetFailedMessage(
       ClearErrorAndGetFailedMessageCallback callback) override;
   void StopGenerationAndMaybeGetHumanEntry(
@@ -240,9 +238,11 @@ class ConversationHandler : public mojom::ConversationHandler,
   void GetScreenshots(GetScreenshotsCallback callback) override;
 
   // mojom::UntrustedConversationHandler
+  void SwitchToNonPremiumModel() override;
   void RespondToToolUseRequest(
       const std::string& tool_id,
-      std::vector<mojom::ContentBlockPtr> output_json) override;
+      std::vector<mojom::ContentBlockPtr> output_json,
+      std::vector<mojom::ToolArtifactPtr> artifacts) override;
   void ProcessPermissionChallenge(const std::string& tool_use_id,
                                   bool user_result) override;
 
@@ -298,6 +298,11 @@ class ConversationHandler : public mojom::ConversationHandler,
 
   std::vector<base::WeakPtr<Tool>> GetToolsForTesting() { return GetTools(); }
 
+  mojom::ConversationEntriesStatePtr
+  GetStateForConversationEntriesForTesting() {
+    return GetStateForConversationEntries();
+  }
+
  protected:
   // ModelService::Observer
   void OnModelListUpdated() override;
@@ -325,8 +330,6 @@ class ConversationHandler : public mojom::ConversationHandler,
   FRIEND_TEST_ALL_PREFIXES(ConversationHandlerUnitTest,
                            OnGetStagedEntriesFromContent_FailedChecks);
   FRIEND_TEST_ALL_PREFIXES(ConversationHandlerUnitTest_NoAssociatedContent,
-                           SelectedLanguage);
-  FRIEND_TEST_ALL_PREFIXES(ConversationHandlerUnitTest_NoAssociatedContent,
                            ContentReceipt);
   FRIEND_TEST_ALL_PREFIXES(ConversationHandlerUnitTest,
                            OnAutoScreenshotsTaken_AppliesMaxImagesLimit);
@@ -337,8 +340,9 @@ class ConversationHandler : public mojom::ConversationHandler,
   FRIEND_TEST_ALL_PREFIXES(
       ConversationHandlerUnitTest,
       GetTools_MemoryToolFilteredForTemporaryConversations);
-
   void InitEngine();
+
+  void BuildCapabilitiesSet();
 
   // Setup tools for the conversation. When a new user message is added, we
   // can reset some of the state of the tools, ready for the next loop.
@@ -394,7 +398,6 @@ class ConversationHandler : public mojom::ConversationHandler,
   void OnConversationTokenInfoChanged(uint64_t total_tokens,
                                       uint64_t trimmed_tokens);
   void OnConversationUIConnectionChanged(mojo::RemoteSetElementId id);
-  void OnSelectedLanguageChanged(const std::string& selected_language);
   void OnAPIRequestInProgressChanged();
   void OnToolUseTaskStateChanged();
   void OnStateForConversationEntriesChanged();
@@ -423,7 +426,6 @@ class ConversationHandler : public mojom::ConversationHandler,
   mojom::ConversationTurnPtr pending_conversation_entry_;
   // Any previously-generated suggested questions
   std::vector<Suggestion> suggestions_;
-  std::string selected_language_;
 
   // Is a conversation engine request in progress (does not include
   // non-conversation engine requests.
@@ -467,13 +469,12 @@ class ConversationHandler : public mojom::ConversationHandler,
   // Data store UUID for conversation
   raw_ptr<mojom::Conversation> metadata_;
 
-  // |conversation_capability_| informs some system prompt behavior,
+  // |conversation_capabilities_| informs some system prompt behavior,
   // as well as letting ToolProviders know which tools to provide.
   // We might want to phase this out if all tools are part of all conversations
   // or if we have some kind of dynamic ToolProvider-led user toggle choices.
   // If we keep it, should it be part of mojom::Conversation?
-  mojom::ConversationCapability conversation_capability_ =
-      mojom::ConversationCapability::CHAT;
+  absl::flat_hash_set<mojom::ConversationCapability> conversation_capabilities_;
 
   // Set of tab IDs that have been part of tasks whilst this conversation is
   // in-memory. Since conversations are finite (limited by context size) and not

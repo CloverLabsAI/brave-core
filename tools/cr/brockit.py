@@ -555,13 +555,13 @@ class Versioned(Task):
     excluded from addition at this stage.
     """
         terminal.run([
-            'third_party/depot_tools/vpython3', './tools/crates/run_gnrt.py',
-            'vendor'
+            Path('third_party/depot_tools/vpython3'),
+            './tools/crates/run_gnrt.py', 'vendor'
         ],
                      cwd=repository.chromium.path)
         terminal.run([
-            'third_party/depot_tools/vpython3', './tools/crates/run_gnrt.py',
-            'gen'
+            Path('third_party/depot_tools/vpython3'),
+            './tools/crates/run_gnrt.py', 'gen'
         ],
                      cwd=repository.chromium.path)
 
@@ -1202,6 +1202,8 @@ class Upgrade(Versioned):
         current_value = self.get_assigned_value(toolchain_diff,
                                                 key,
                                                 removed=True)
+        if not updated_value and not current_value:
+            return None
         commit_log = repository.chromium.run_git(
             'log', f'{self.working_version}..{self.target_version}', '-S',
             updated_value, '--pretty=oneline', '-1', file_path)
@@ -1223,6 +1225,9 @@ class Upgrade(Versioned):
     updated, indicating a new toolchain is required.
         """
         result = self._check_toolchain('build/vs_toolchain.py', 'SDK_VERSION')
+        if not result:
+            result = self._check_toolchain('build/vs_toolchain.py',
+                                           'TOOLCHAIN_HASH')
         if result:
             result['description'] = (
                 'Windows SDK has been updated. '

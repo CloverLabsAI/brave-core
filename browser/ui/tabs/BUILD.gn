@@ -19,9 +19,10 @@ source_set("tabs_public") {
     "//chrome/browser/ui/tabs:tabs_public",
   ]
 
-  if (!is_android) {
-    sources += [ "public/constants.h" ]
-  }
+  deps = [
+    "//brave/browser/ui/views/page_action",
+    "//brave/components/containers/buildflags",
+  ]
 }
 
 if (!is_android) {
@@ -34,15 +35,25 @@ if (!is_android) {
       ":tabs_public",
       "//brave/browser/psst",
       "//brave/browser/ui/side_panel",
+      "//brave/browser/ui/views/page_action",
       "//brave/components/psst/browser/content",
       "//brave/components/psst/common",
       "//chrome/browser/content_settings:content_settings_factory",
       "//chrome/browser/profiles",
+      "//chrome/browser/ui/side_panel:side_panel_views_dependent",
       "//chrome/browser/ui/tabs:impl",
     ]
 
     if (enable_ai_chat) {
       deps += [ "//brave/browser/ai_chat" ]
+    }
+
+    if (enable_containers) {
+      deps += [
+        "//brave/browser/containers",
+        "//brave/components/containers/core/browser",
+        "//brave/components/containers/core/common:features",
+      ]
     }
   }
 
@@ -64,47 +75,72 @@ if (!is_android) {
       "//chrome/browser:browser_public_dependencies",
     ]
   }
-}
 
-source_set("tab_menu") {
-  sources = [
-    "brave_browser_tab_menu_model_delegate.cc",
-    "brave_browser_tab_menu_model_delegate.h",
-    "brave_tab_menu_model_factory.cc",
-    "brave_tab_menu_model_factory.h",
-    "tab_menu_model_delegate.cc",
-  ]
+  source_set("tab_menu") {
+    sources = [
+      "brave_browser_tab_menu_model_delegate.cc",
+      "brave_browser_tab_menu_model_delegate.h",
+      "brave_tab_menu_model_factory.cc",
+      "brave_tab_menu_model_factory.h",
+      "tab_menu_model_delegate.cc",
+    ]
 
-  deps = [
-    "//base",
-    "//brave/components/containers/buildflags",
-    "//chrome/browser/ui/browser_window",
-    "//chrome/browser/ui/tabs:tab_menu",
-    "//ui/compositor",
-    "//ui/views",
-  ]
+    deps = [
+      "//base",
+      "//brave/components/containers/buildflags",
+      "//chrome/browser/ui/browser_window",
+      "//chrome/browser/ui/tabs:tab_menu",
+      "//ui/compositor",
+      "//ui/views",
+    ]
 
-  if (enable_containers) {
-    deps += [ "//brave/browser/ui/containers" ]
+    if (enable_containers) {
+      sources += [
+        "containers_tab_menu_model_delegate.cc",
+        "containers_tab_menu_model_delegate.h",
+      ]
+      deps += [
+        "//brave/browser/ui/containers",
+        "//brave/components/containers/content/browser",
+        "//brave/components/containers/core/browser",
+        "//brave/components/containers/core/common",
+        "//components/tabs:public",
+      ]
+    }
   }
-}
 
-source_set("tab_model") {
-  sources = [
-    "brave_split_tab_menu_model.cc",
-    "brave_split_tab_menu_model.h",
-  ]
+  source_set("tab_model") {
+    sources = [
+      "brave_split_tab_menu_model.cc",
+      "brave_split_tab_menu_model.h",
+    ]
 
-  deps = [
-    "//base",
-    "//brave/browser/ui/split_view",
-    "//brave/components/resources:strings_grit",
-    "//brave/components/vector_icons",
-    "//chrome/browser/ui/tabs",
-    "//chrome/browser/ui/tabs:tab_model",
-    "//chrome/browser/ui/tabs:tab_strip",
-    "//ui/base",
-  ]
+    deps = [
+      "//base",
+      "//brave/browser/ui/split_view",
+      "//brave/components/resources:strings_grit",
+      "//brave/components/vector_icons",
+      "//chrome/browser/ui/tabs",
+      "//chrome/browser/ui/tabs:tab_model",
+      "//chrome/browser/ui/tabs:tab_strip",
+      "//ui/base",
+    ]
+  }
+
+  source_set("tree_tab") {
+    sources = [
+      "brave_tree_tab_strip_collection_delegate.cc",
+      "brave_tree_tab_strip_collection_delegate.h",
+      "tree_tab_model.cc",
+      "tree_tab_model.h",
+    ]
+
+    deps = [
+      "//base",
+      "//brave/components/tabs",
+      "//components/tabs:public",
+    ]
+  }
 }
 
 source_set("browser_tests") {
@@ -131,16 +167,4 @@ source_set("browser_tests") {
   if (enable_containers) {
     deps += [ "//brave/components/containers/core/common:features" ]
   }
-}
-
-source_set("tree_tab") {
-  sources = [
-    "tree_tab_model.cc",
-    "tree_tab_model.h",
-  ]
-
-  deps = [
-    "//base",
-    "//brave/components/tabs",
-  ]
 }

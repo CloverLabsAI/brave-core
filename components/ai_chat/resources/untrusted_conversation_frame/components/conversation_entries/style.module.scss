@@ -31,6 +31,14 @@
   gap: var(--leo-spacing-m);
 }
 
+.selectedTextContext {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--leo-spacing-m);
+  margin-right: auto;
+}
+
 .humanMessageBubble {
   display: flex;
   align-items: flex-start;
@@ -69,10 +77,6 @@
   font-style: normal;
   font-weight: 700;
   line-height: 10px;
-}
-
-.divToKeepGap {
-  min-width: 16px;
 }
 
 .attachmentsContainer {

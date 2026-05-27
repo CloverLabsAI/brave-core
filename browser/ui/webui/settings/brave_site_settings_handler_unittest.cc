@@ -29,8 +29,8 @@ namespace {
 constexpr char kIsValidKey[] = "isValid";
 constexpr char kReasonKey[] = "reason";
 
-base::Value::Dict GetResponsePayload(bool valid, const std::string& message) {
-  base::Value::Dict value;
+base::DictValue GetResponsePayload(bool valid, const std::string& message) {
+  base::DictValue value;
   value.Set(kIsValidKey, base::Value(valid));
   value.Set(kReasonKey, base::Value(message));
   return value;
@@ -39,8 +39,12 @@ base::Value::Dict GetResponsePayload(bool valid, const std::string& message) {
 
 class TestBraveSiteSettingsHandlerUnittest : public testing::Test {
  public:
-  TestBraveSiteSettingsHandlerUnittest() {
-    TestingBrowserProcess::GetGlobal()->CreateGlobalFeaturesForTesting();
+  TestBraveSiteSettingsHandlerUnittest() = default;
+  ~TestBraveSiteSettingsHandlerUnittest() override = default;
+
+  void SetUp() override {
+    TestingBrowserProcess::GetGlobal()->SetUpGlobalFeaturesForTesting(
+        /*profile_manager=*/false);
     TestingProfile::Builder builder;
 
     profile_ = builder.Build();
@@ -53,7 +57,9 @@ class TestBraveSiteSettingsHandlerUnittest : public testing::Test {
     handler_->set_web_ui(&test_web_ui_);
     handler_->RegisterMessages();
   }
-  ~TestBraveSiteSettingsHandlerUnittest() override {
+
+  void TearDown() override {
+    testing::Test::TearDown();
     // The test handler unusually owns its own TestWebUI, so we make sure to
     // unbind it from the base class before the derived class is destroyed.
     handler_->set_web_ui(nullptr);
@@ -62,7 +68,7 @@ class TestBraveSiteSettingsHandlerUnittest : public testing::Test {
   content::TestWebUI* web_ui() { return &test_web_ui_; }
   PrefService* prefs() { return profile_->GetPrefs(); }
 
-  void HandleIsPatternValidForType(const base::Value::List& args) {
+  void HandleIsPatternValidForType(const base::ListValue& args) {
     handler_->HandleIsPatternValidForType(args);
   }
   bool IsPatternValidForBraveContentType(ContentSettingsType content_type,
@@ -80,7 +86,7 @@ class TestBraveSiteSettingsHandlerUnittest : public testing::Test {
 };
 
 TEST_F(TestBraveSiteSettingsHandlerUnittest, InValidShieldsType) {
-  base::Value::List args;
+  base::ListValue args;
   args.Append(base::Value("id"));
   args.Append(base::Value("[*.]brave.com"));
   args.Append(base::Value(site_settings::ContentSettingsTypeToGroupName(
@@ -95,7 +101,7 @@ TEST_F(TestBraveSiteSettingsHandlerUnittest, InValidShieldsType) {
 }
 
 TEST_F(TestBraveSiteSettingsHandlerUnittest, ValidShieldsType) {
-  base::Value::List args;
+  base::ListValue args;
   args.Append(base::Value("id"));
   args.Append(base::Value("brave.com"));
   args.Append(base::Value(site_settings::ContentSettingsTypeToGroupName(
@@ -107,7 +113,7 @@ TEST_F(TestBraveSiteSettingsHandlerUnittest, ValidShieldsType) {
 }
 
 TEST_F(TestBraveSiteSettingsHandlerUnittest, ValidNonShieldsType) {
-  base::Value::List args;
+  base::ListValue args;
   args.Append(base::Value("id"));
   args.Append(base::Value("[*.]brave.com"));
   args.Append(base::Value(site_settings::ContentSettingsTypeToGroupName(

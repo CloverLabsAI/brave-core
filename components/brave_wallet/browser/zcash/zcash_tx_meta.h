@@ -10,14 +10,9 @@
 #include <utility>
 
 #include "brave/components/brave_wallet/browser/tx_meta.h"
-
-namespace base {
-class Value;
-}  // namespace base
+#include "brave/components/brave_wallet/browser/zcash/zcash_transaction.h"
 
 namespace brave_wallet {
-
-class ZCashTransaction;
 
 class ZCashTxMeta : public TxMeta {
  public:
@@ -30,7 +25,7 @@ class ZCashTxMeta : public TxMeta {
   bool operator==(const ZCashTxMeta& other) const;
 
   // TxMeta
-  base::Value::Dict ToValue() const override;
+  base::DictValue ToValue() const override;
   mojom::TransactionInfoPtr ToTransactionInfo() const override;
   mojom::CoinType GetCoinType() const override;
 

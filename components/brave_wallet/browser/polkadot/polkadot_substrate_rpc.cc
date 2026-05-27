@@ -5,14 +5,19 @@
 
 #include "brave/components/brave_wallet/browser/polkadot/polkadot_substrate_rpc.h"
 
+#include "base/bit_cast.h"
+#include "base/check.h"
+#include "base/containers/extend.h"
 #include "base/containers/span.h"
 #include "base/containers/span_reader.h"
+#include "base/containers/to_vector.h"
 #include "base/functional/bind.h"
 #include "base/json/json_writer.h"
 #include "base/numerics/checked_math.h"
-#include "base/strings/strcat.h"
+#include "base/strings/strcat.h"  // IWYU pragma: export
 #include "base/strings/string_number_conversions.h"
 #include "brave/components/brave_wallet/browser/brave_wallet_utils.h"
+#include "brave/components/brave_wallet/browser/internal/polkadot_extrinsic.rs.h"
 #include "brave/components/brave_wallet/browser/network_manager.h"
 #include "brave/components/brave_wallet/browser/polkadot/polkadot_substrate_rpc_responses.h"
 #include "brave/components/brave_wallet/common/hash_utils.h"
@@ -214,17 +219,55 @@ base::expected<RpcResponse, std::string> HandleRpcCall(
 }
 
 std::optional<PolkadotBlockHeader> ParseChainHeaderFromHex(
-    const polkadot_substrate_rpc_responses::PolkadotChainHeader& res) {
+    const polkadot_substrate_rpc_responses::ChainHeader& res) {
   PolkadotBlockHeader header;
-  if (!PrefixedHexStringToFixed(res.result->parent_hash, header.parent_hash)) {
+
+  if (!PrefixedHexStringToFixed(res.parent_hash, header.parent_hash)) {
     return std::nullopt;
   }
 
-  if (!base::HexStringToUInt(res.result->number, &header.block_number)) {
+  if (!base::HexStringToUInt(res.number, &header.block_number)) {
     return std::nullopt;
+  }
+
+  if (!PrefixedHexStringToFixed(res.state_root, header.state_root)) {
+    return std::nullopt;
+  }
+
+  if (!PrefixedHexStringToFixed(res.extrinsics_root, header.extrinsics_root)) {
+    return std::nullopt;
+  }
+
+  // We need this for hashing the block header.
+  // If we receive more than u32::MAX logs, it's safe to say we're getting bad
+  // data from the remote.
+  auto num_logs = base::CheckedNumeric<uint32_t>(res.digest.logs.size());
+  if (!num_logs.IsValid()) {
+    return std::nullopt;
+  }
+
+  auto enc_num_logs = compact_scale_encode_u32(num_logs.ValueOrDie());
+
+  base::Extend(header.encoded_logs, enc_num_logs);
+  for (const auto& log_str : res.digest.logs) {
+    std::vector<uint8_t> log;
+    if (!PrefixedHexStringToBytes(log_str, &log)) {
+      return std::nullopt;
+    }
+    base::Extend(header.encoded_logs, log);
   }
 
   return header;
+}
+
+std::optional<std::vector<std::string>> ParseExtrinsics(
+    polkadot_substrate_rpc_responses::ChainBlockData& res) {
+  for (const auto& extrinsic : res.extrinsics) {
+    if (!IsValidHexString(extrinsic)) {
+      return std::nullopt;
+    }
+  }
+  return std::move(res.extrinsics);
 }
 
 }  // namespace
@@ -317,8 +360,8 @@ void PolkadotSubstrateRpc::GetAccountBalance(
 
   auto payload = base::WriteJson(MakeRpcRequestJson(
       "state_queryStorageAt",
-      base::Value::List().Append(
-          base::Value(base::Value::List().Append(std::move(rpc_cmd))))));
+      base::ListValue().Append(
+          base::Value(base::ListValue().Append(std::move(rpc_cmd))))));
 
   CHECK(payload);
 
@@ -394,7 +437,7 @@ void PolkadotSubstrateRpc::GetBlockHeader(
   base::ListValue params;
 
   if (blockhash) {
-    params.Append(base::HexEncode(*blockhash));
+    params.Append(base::HexEncodeLower(*blockhash));
   }
 
   auto payload =
@@ -424,7 +467,7 @@ void PolkadotSubstrateRpc::OnGetBlockHeader(GetBlockHeaderCallback callback,
     return std::move(callback).Run(std::nullopt, std::nullopt);
   }
 
-  auto header = ParseChainHeaderFromHex(*res);
+  auto header = ParseChainHeaderFromHex(res->result.value());
   if (!header) {
     // We received { "parentHash": "...", "number": "..." } that contained
     // invalid hex or hex that exceeded numeric limits.
@@ -432,6 +475,63 @@ void PolkadotSubstrateRpc::OnGetBlockHeader(GetBlockHeaderCallback callback,
   }
 
   std::move(callback).Run(std::move(*header), std::nullopt);
+}
+
+void PolkadotSubstrateRpc::GetBlock(
+    std::string_view chain_id,
+    std::optional<base::span<uint8_t, kPolkadotBlockHashSize>> block_hash,
+    GetBlockCallback callback) {
+  auto url = GetNetworkURL(chain_id);
+
+  base::ListValue params;
+
+  if (block_hash) {
+    params.Append(base::HexEncodeLower(*block_hash));
+  }
+
+  auto payload =
+      base::WriteJson(MakeRpcRequestJson("chain_getBlock", std::move(params)));
+  CHECK(payload);
+
+  api_request_helper_.Request(
+      net::HttpRequestHeaders::kPostMethod, url, *payload, "application/json",
+      base::BindOnce(&PolkadotSubstrateRpc::OnGetBlock,
+                     weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
+}
+
+void PolkadotSubstrateRpc::OnGetBlock(GetBlockCallback callback,
+                                      APIRequestResult api_result) {
+  auto res = HandleRpcCall<polkadot_substrate_rpc_responses::PolkadotBlock>(
+      api_result);
+
+  if (!res.has_value()) {
+    // We received either a network error, an actual RPC error or JSON that
+    // didn't match our schema.
+    return std::move(callback).Run(std::nullopt, res.error());
+  }
+
+  if (!res->result) {
+    // We received { "result": null } from the RPC, not an error.
+    return std::move(callback).Run(std::nullopt, std::nullopt);
+  }
+
+  auto header = ParseChainHeaderFromHex(res->result->block.header);
+  if (!header) {
+    // We received { "parentHash": "...", "number": "..." } that contained
+    // invalid hex or hex that exceeded numeric limits.
+    return std::move(callback).Run(std::nullopt, WalletParsingErrorMessage());
+  }
+
+  auto extrinsics = ParseExtrinsics(res->result->block);
+  if (!extrinsics) {
+    return std::move(callback).Run(std::nullopt, WalletParsingErrorMessage());
+  }
+
+  PolkadotBlock block;
+  block.header = std::move(header.value());
+  block.extrinsics = std::move(extrinsics.value());
+
+  std::move(callback).Run(std::move(block), std::nullopt);
 }
 
 void PolkadotSubstrateRpc::GetBlockHash(std::string_view chain_id,
@@ -540,6 +640,208 @@ void PolkadotSubstrateRpc::OnGetRuntimeVersion(
   version.transaction_version = transaction_version.ValueOrDie();
 
   return std::move(callback).Run(version, std::nullopt);
+}
+
+void PolkadotSubstrateRpc::GetMetadata(std::string_view chain_id,
+                                       GetMetadataCallback callback) {
+  auto url = GetNetworkURL(chain_id);
+
+  auto payload = base::WriteJson(
+      MakeRpcRequestJson("state_getMetadata", base::ListValue()));
+  CHECK(payload);
+
+  api_request_helper_.Request(
+      net::HttpRequestHeaders::kPostMethod, url, *payload, "application/json",
+      base::BindOnce(&PolkadotSubstrateRpc::OnGetMetadata,
+                     weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
+}
+
+void PolkadotSubstrateRpc::OnGetMetadata(GetMetadataCallback callback,
+                                         APIRequestResult api_result) {
+  auto res =
+      HandleRpcCall<polkadot_substrate_rpc_responses::PolkadotMetadataResponse>(
+          api_result);
+
+  if (!res.has_value()) {
+    // We received either a network error, an actual RPC error or JSON that
+    // didn't match our schema.
+    return std::move(callback).Run(base::unexpected(res.error()));
+  }
+
+  if (!res->result) {
+    // We received { "result": null } from the RPC, treat as an error for this
+    // RPC call.
+    return std::move(callback).Run(
+        base::unexpected(WalletParsingErrorMessage()));
+  }
+
+  return std::move(callback).Run(base::ok(*res->result));
+}
+
+void PolkadotSubstrateRpc::SubmitExtrinsic(std::string_view chain_id,
+                                           std::string_view signed_extrinsic,
+                                           SubmitExtrinsicCallback callback) {
+  auto url = GetNetworkURL(chain_id);
+
+  base::ListValue params;
+  params.Append(signed_extrinsic);
+
+  auto payload = base::WriteJson(
+      MakeRpcRequestJson("author_submitExtrinsic", std::move(params)));
+  CHECK(payload);
+
+  api_request_helper_.Request(
+      net::HttpRequestHeaders::kPostMethod, url, *payload, "application/json",
+      base::BindOnce(&PolkadotSubstrateRpc::OnSubmitExtrinsic,
+                     weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
+}
+
+void PolkadotSubstrateRpc::OnSubmitExtrinsic(SubmitExtrinsicCallback callback,
+                                             APIRequestResult api_result) {
+  auto res =
+      HandleRpcCall<polkadot_substrate_rpc_responses::PolkadotSubmitExtrinsic>(
+          api_result);
+
+  if (!res.has_value()) {
+    // We received either a network error, an actual RPC error or JSON that
+    // didn't match our schema.
+    return std::move(callback).Run(std::nullopt, res.error());
+  }
+
+  if (!res->result) {
+    // We received { "result": null } from the RPC, treat as an error for this
+    // RPC call.
+    return std::move(callback).Run(std::nullopt, WalletParsingErrorMessage());
+  }
+
+  return std::move(callback).Run(*res->result, std::nullopt);
+}
+
+void PolkadotSubstrateRpc::GetPaymentInfo(std::string_view chain_id,
+                                          base::span<const uint8_t> extrinsic,
+                                          GetPaymentInfoCallback callback) {
+  auto url = GetNetworkURL(chain_id);
+
+  base::ListValue params;
+
+  params.Append("TransactionPaymentApi_query_info");
+
+  uint32_t size = 0;
+  if (!base::CheckedNumeric<uint32_t>(extrinsic.size()).AssignIfValid(&size)) {
+    return std::move(callback).Run(
+        base::unexpected(WalletInternalErrorMessage()));
+  }
+
+  auto data = base::ToVector(extrinsic);
+  base::Extend(data, base::byte_span_from_ref(size));
+
+  params.Append(base::HexEncodeLower(data));
+
+  auto payload =
+      base::WriteJson(MakeRpcRequestJson("state_call", std::move(params)));
+  CHECK(payload);
+
+  api_request_helper_.Request(
+      net::HttpRequestHeaders::kPostMethod, url, *payload, "application/json",
+      base::BindOnce(&PolkadotSubstrateRpc::OnGetPaymentInfo,
+                     weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
+}
+
+void PolkadotSubstrateRpc::OnGetPaymentInfo(GetPaymentInfoCallback callback,
+                                            APIRequestResult api_result) {
+  auto res =
+      HandleRpcCall<polkadot_substrate_rpc_responses::PolkadotPaymentInfo>(
+          api_result);
+
+  if (!res.has_value()) {
+    // We received either a network error, an actual RPC error or JSON that
+    // didn't match our schema.
+    return std::move(callback).Run(base::unexpected(res.error()));
+  }
+
+  if (!res->result) {
+    // We received { "result": null } from the RPC, treat as an error for this
+    // RPC call.
+    return std::move(callback).Run(
+        base::unexpected(WalletParsingErrorMessage()));
+  }
+
+  std::vector<uint8_t> query_info;
+  if (!PrefixedHexStringToBytes(res->result.value(), &query_info)) {
+    return std::move(callback).Run(
+        base::unexpected(WalletParsingErrorMessage()));
+  }
+
+  std::array<uint8_t, 16> partial_fee_bytes = {};
+  if (!parse_fee_info(::rust::Slice<const uint8_t>(query_info),
+                      partial_fee_bytes)) {
+    return std::move(callback).Run(
+        base::unexpected(WalletParsingErrorMessage()));
+  }
+
+  return std::move(callback).Run(
+      base::ok(base::bit_cast<uint128_t>(partial_fee_bytes)));
+}
+
+void PolkadotSubstrateRpc::GetEvents(
+    std::string_view chain_id,
+    base::span<const uint8_t, kPolkadotBlockHashSize> block_hash,
+    GetEventsCallback callback) {
+  auto url = GetNetworkURL(chain_id);
+
+  base::ListValue params;
+
+  // xxhash("System") | xxhash("Events")
+  //
+  // xxhashAsU8a(System, 128) => 0x26aa394eea5630e07c48ae0c9558cef7
+  // xxhashAsU8a(Events, 128) => 0x80d41e5e16056765bc8461851072c9d7
+  // https://github.com/polkadot-js/common/blob/047840319ef3f758880cc112b987888b8b2749d0/packages/util-crypto/src/xxhash/asU8a.ts#L24
+
+  params.Append(
+      "26aa394eea5630e07c48ae0c9558cef780d41e5e16056765bc8461851072c9d7");
+  params.Append(base::HexEncodeLower(block_hash));
+
+  auto payload = base::WriteJson(
+      MakeRpcRequestJson("state_getStorage", std::move(params)));
+  CHECK(payload);
+
+  api_request_helper_.Request(
+      net::HttpRequestHeaders::kPostMethod, url, *payload, "application/json",
+      base::BindOnce(&PolkadotSubstrateRpc::OnGetEvents,
+                     weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
+}
+
+void PolkadotSubstrateRpc::OnGetEvents(GetEventsCallback callback,
+                                       APIRequestResult api_result) {
+  auto res = HandleRpcCall<polkadot_substrate_rpc_responses::PolkadotEvents>(
+      api_result);
+
+  if (!res.has_value()) {
+    // We received either a network error, an actual RPC error or JSON that
+    // didn't match our schema.
+    return std::move(callback).Run(base::unexpected(res.error()));
+  }
+
+  if (!res->result) {
+    // We received { "result": null } from the RPC, treat as an error for this
+    // RPC call.
+    return std::move(callback).Run(
+        base::unexpected(WalletParsingErrorMessage()));
+  }
+
+  std::string_view events_str = res->result.value();
+  if (events_str.starts_with("0x")) {
+    events_str.remove_prefix(2);
+  }
+
+  std::vector<uint8_t> events;
+  if (!base::HexStringToBytes(events_str, &events)) {
+    // Returned string contained non-hex.
+    return std::move(callback).Run(
+        base::unexpected(WalletParsingErrorMessage()));
+  }
+
+  std::move(callback).Run(base::ok(std::move(events)));
 }
 
 GURL PolkadotSubstrateRpc::GetNetworkURL(std::string_view chain_id) {

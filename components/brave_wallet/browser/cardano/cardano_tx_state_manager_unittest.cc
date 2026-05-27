@@ -13,7 +13,6 @@
 #include "base/test/task_environment.h"
 #include "brave/components/brave_wallet/browser/cardano/cardano_test_utils.h"
 #include "brave/components/brave_wallet/browser/cardano/cardano_transaction.h"
-#include "brave/components/brave_wallet/browser/cardano/cardano_transaction_serializer.h"
 #include "brave/components/brave_wallet/browser/cardano/cardano_tx_meta.h"
 #include "brave/components/brave_wallet/browser/pref_names.h"
 #include "brave/components/brave_wallet/browser/test_utils.h"
@@ -61,16 +60,13 @@ TEST_F(CardanoTxStateManagerUnitTest, CardanoTxMetaAndValue) {
 
   std::unique_ptr<CardanoTransaction> tx =
       std::make_unique<CardanoTransaction>();
-  tx->set_amount(200000);
-  tx->set_to(*CardanoAddress::FromString(kMockCardanoAddress2));
-
-  CardanoTransaction::TxInput input;
-  input.utxo_address = *CardanoAddress::FromString(kMockCardanoAddress1);
+  CardanoTransaction::TxInput input(
+      *CardanoAddress::FromString(kMockCardanoAddress1));
   input.utxo_value = 200000;
   tx->AddInput(std::move(input));
 
-  CardanoTransaction::TxOutput output;
-  output.address = *CardanoAddress::FromString(kMockCardanoAddress2);
+  CardanoTransaction::TxOutput output(
+      *CardanoAddress::FromString(kMockCardanoAddress2));
   output.amount = 200000 - 1000;
   tx->AddOutput(std::move(output));
 
@@ -85,7 +81,7 @@ TEST_F(CardanoTxStateManagerUnitTest, CardanoTxMetaAndValue) {
   meta.set_origin(url::Origin::Create(GURL("https://test.brave.com/")));
   meta.set_chain_id(mojom::kCardanoTestnet);
 
-  base::Value::Dict meta_value = meta.ToValue();
+  base::DictValue meta_value = meta.ToValue();
   auto meta_from_value =
       cardano_tx_state_manager_->ValueToCardanoTxMeta(meta_value);
   ASSERT_TRUE(meta_from_value);

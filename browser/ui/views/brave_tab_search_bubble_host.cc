@@ -18,11 +18,9 @@ void BraveTabSearchBubbleHost::SetBubbleArrow(
 }
 
 bool BraveTabSearchBubbleHost::ShowTabSearchBubble(
-    bool triggered_by_keyboard_shortcut,
-    tab_search::mojom::TabSearchSection section,
-    tab_search::mojom::TabOrganizationFeature organization_feature) {
-  bool result = TabSearchBubbleHost::ShowTabSearchBubble(
-      triggered_by_keyboard_shortcut, section, organization_feature);
+    bool triggered_by_keyboard_shortcut) {
+  bool result =
+      TabSearchBubbleHost::ShowTabSearchBubble(triggered_by_keyboard_shortcut);
   if (!arrow_ || !result) {
     return result;
   }
@@ -54,7 +52,7 @@ bool BraveTabSearchBubbleHost::ShowTabSearchBubble(
     // In this case, anchor bubble onto the screen edge. we should also reparent
     // native widget, as vertical tab's widget could be hidden.
     gfx::Rect bounds = anchor_widget->GetWorkAreaBoundsInScreen();
-    int offset = GetLayoutConstant(TAB_PRE_TITLE_PADDING);
+    int offset = GetLayoutConstant(LayoutConstant::kTabPreTitlePadding);
     bubble_delegate->SetAnchorView(nullptr);
     bubble_delegate->set_parent_window(anchor_widget->GetNativeView());
     bubble_delegate->SetAnchorRect(

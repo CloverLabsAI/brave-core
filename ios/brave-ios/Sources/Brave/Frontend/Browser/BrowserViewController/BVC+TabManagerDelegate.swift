@@ -23,16 +23,22 @@ extension BrowserViewController: TabManagerDelegate {
     tab.browserData = .init(tab: tab, tabGeneratorAPI: profileController.tabGeneratorAPI)
     tab.browserData?.miscDelegate = self
     tab.pullToRefresh = .init(tab: tab)
-    if profileController.profile.prefs.isPlaylistAvailable {
+    if tab.profile.prefs.isPlaylistAvailable {
       tab.playlist = .init(tab: tab)
     }
     tab.youtubeQualityTabHelper = .init(tab: tab)
     SnackBarTabHelper.create(for: tab)
     tab.braveUserAgentExceptions = braveCore.braveUserAgentExceptions
-    tab.translateHelper = .init(tab: tab, delegate: self)
+    if FeatureList.kUseProfileWebViewConfiguration.enabled {
+      tab.translate = .init(tab: tab, delegate: self)
+    } else {
+      tab.legacyTranslateHelper = .init(tab: tab, delegate: self)
+    }
     tab.pageMetadataHelper = .init(tab: tab)
     tab.faviconTabHelper = .init(tab: tab)
     tab.userActivityHelper = .init(tab: tab)
+    tab.print = .init(tab: tab, baseViewController: self)
+    tab.forcePaste = .init(tab: tab)
     tab.aiChatWebUIHelper = .init(
       tab: tab,
       webDelegate: tab.leoTabHelper,
@@ -56,6 +62,9 @@ extension BrowserViewController: TabManagerDelegate {
     }
     tab.walletWebUIHelper = .init(
       tab: tab,
+      showApprovePanelUIHandler: { [weak self] tab in
+        self?.showApprovePanelUI(tab: tab)
+      },
       showWalletBackUpHandler: { [weak self] in
         self?.showWalletBackupUI()
       },
@@ -66,16 +75,47 @@ extension BrowserViewController: TabManagerDelegate {
         self?.showOnboarding(isNewWallet)
       }
     )
-    let profile =
-      tab.isPrivate ? profileController.profile.offTheRecordProfile : profileController.profile
     let braveShieldsHelper: BraveShieldsTabHelper = .init(
       tab: tab,
-      braveShieldsSettings: BraveShieldsSettingsServiceFactory.get(profile: profile)
+      braveShieldsSettings: BraveShieldsSettingsServiceFactory.get(profile: tab.profile)
     )
     tab.braveShieldsHelper = braveShieldsHelper
     // When `BraveShieldsTabHelper+TabPolicyDecider` is moved to `BraveShields` target,
     // we should add it as a policy decider at initialization.
     tab.addPolicyDecider(braveShieldsHelper)
+    tab.logins = .init(tab: tab, passwordAPI: profileController.passwordAPI)
+    tab.nightMode = .init(tab: tab)
+
+    if FeatureList.kUseProfileWebViewConfiguration.enabled {
+      tab.readerMode = .init(tab: tab)
+    }
+
+    tab.braveTalk = .init(tab: tab, coordinator: braveTalkJitsiCoordinator)
+    tab.braveTalk?.onExitCall = { [weak self] in
+      guard let self = self else { return }
+      // When we close the call, redirect to Brave Talk home page if the selected tab is still the
+      // original talk URL
+      if let url = self.tabManager.selectedTab?.visibleURL,
+        let currentHost = url.host,
+        DomainUserScript.braveTalkHelper.associatedDomains.contains(currentHost)
+      {
+        var components = URLComponents()
+        components.host = currentHost
+        components.scheme = url.scheme
+        self.select(url: components.url!, isUserDefinedURLNavigation: false)
+      }
+    }
+
+    tab.braveSearch = .init(tab: tab, rewards: rewards)
+    tab.braveSearch?.presentSearchResultClickedInfoBar = { [weak self] in
+      guard let self else { return }
+      let searchResultClickedInfobar = SearchResultAdClickedInfoBar(
+        onLinkPressed: { [weak self] url in
+          self?.tabManager.addTabAndSelect(URLRequest(url: url), isPrivate: false)
+        }
+      )
+      show(toast: searchResultClickedInfobar, duration: nil)
+    }
   }
 
   func tabManager(
@@ -117,7 +157,7 @@ extension BrowserViewController: TabManagerDelegate {
       updateURLBar()
       recordScreenTimeUsage(for: tab)
 
-      if let url = tab.visibleURL, !InternalURL.isValid(url: url) {
+      if let url = tab.visibleURL, !url.isNewTabURL, !InternalURL.isValid(url: url) {
         let previousEstimatedProgress = previous?.estimatedProgress ?? 1.0
         let selectedEstimatedProgress = tab.estimatedProgress
 
@@ -179,17 +219,22 @@ extension BrowserViewController: TabManagerDelegate {
 
     let shouldShowPlaylistURLBarButton = selected?.visibleURL?.isPlaylistSupportedSiteURL == true
 
-    if let readerMode = selected?.browserData?.getContentScript(
-      name: ReaderModeScriptHandler.scriptName
-    )
-      as? ReaderModeScriptHandler,
-      !shouldShowPlaylistURLBarButton
-    {
-      topToolbar.updateReaderModeState(readerMode.state)
-      if readerMode.state == .active {
-        showReaderModeBar(animated: false)
+    if !shouldShowPlaylistURLBarButton {
+      let readerModeState: ReaderModeState?
+      if FeatureList.kUseProfileWebViewConfiguration.enabled {
+        readerModeState = selected?.readerMode?.state
       } else {
-        hideReaderModeBar(animated: false)
+        readerModeState =
+          (selected?.browserData?.getContentScript(name: ReaderModeScriptHandler.scriptName)
+          as? ReaderModeScriptHandler)?.state
+      }
+      if let readerModeState {
+        topToolbar.updateReaderModeState(readerModeState)
+        if readerModeState == .active {
+          showReaderModeBar(animated: false)
+        } else {
+          hideReaderModeBar(animated: false)
+        }
       }
 
       updatePlaylistURLBar(
@@ -202,7 +247,7 @@ extension BrowserViewController: TabManagerDelegate {
     }
 
     if FeatureList.kBraveTranslateEnabled.enabled, let selectedTab = selected,
-      selectedTab.translateHelper != nil
+      selectedTab.legacyTranslateHelper != nil || selectedTab.translate != nil
     {
       updateTranslateURLBar(tab: selectedTab, state: selectedTab.translationState ?? .unavailable)
       updatePlaylistURLBar(
@@ -217,7 +262,7 @@ extension BrowserViewController: TabManagerDelegate {
     updateScreenTimeUrl(tabManager.selectedTab?.visibleURL)
     updateInContentHomePanel(selected?.visibleURL as URL?)
 
-    notificationsPresenter.removeNotification(with: WalletNotification.Constant.id)
+    removeWalletNotificationAndClearOrigin()
     WalletProviderPermissionRequestsManager.shared.cancelAllPendingRequests(for: [.eth, .sol])
     WalletProviderAccountCreationRequestManager.shared.cancelAllPendingRequests(coins: [.eth, .sol])
     updateURLBarWalletButton()
@@ -256,10 +301,6 @@ extension BrowserViewController: TabManagerDelegate {
     updateTabsBarVisibility()
     tab.removeObserver(self)
     tab.removePolicyDecider(self)
-
-    if !privateBrowsingManager.isPrivateBrowsing {
-      rewards.reportTabClosed(tabId: Int(tab.rewardsId ?? 0))
-    }
   }
 
   func tabManagerDidAddTabs(_ tabManager: TabManager) {
@@ -318,7 +359,7 @@ extension BrowserViewController: TabManagerDelegate {
   }
 
   func hideToastsOnNavigationStartIfNeeded(_ tabManager: TabManager) {
-    if tabManager.selectedTab?.braveSearchResultAdManager == nil {
+    if tabManager.selectedTab?.braveSearch?.braveSearchResultAdManager == nil {
       searchResultAdClickedInfoBar?.dismiss(false)
       searchResultAdClickedInfoBar = nil
     }

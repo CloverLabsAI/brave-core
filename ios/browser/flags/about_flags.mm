@@ -16,10 +16,10 @@
 #include "brave/components/debounce/core/common/features.h"
 #include "brave/components/skus/common/features.h"
 #include "brave/ios/browser/api/translate/features.h"
-#include "brave/ios/browser/ui/tab_tray/features.h"
+#include "brave/ios/browser/ui/quick_view/features.h"
 #include "brave/ios/browser/ui/web_view/features.h"
-#include "brave/ios/browser/ui/webui/ai_chat/features.h"
 #include "build/build_config.h"
+#include "components/webui/flags/feature_entry.h"
 #include "components/webui/flags/feature_entry_macros.h"
 #include "components/webui/flags/flags_state.h"
 #include "net/base/features.h"
@@ -30,6 +30,31 @@
 #endif
 
 #define EXPAND_FEATURE_ENTRIES(...) __VA_ARGS__,
+
+#if BUILDFLAG(ENABLE_BRAVE_WALLET)
+const flags_ui::FeatureEntry::FeatureParam
+    kZCashShieldedTransactionsDisabled[] = {
+        {"zcash_shielded_transactions_enabled", "false"}};
+const flags_ui::FeatureEntry::FeatureParam kZCashShieldedTransactionsEnabled[] =
+    {{"zcash_shielded_transactions_enabled", "true"}};
+const flags_ui::FeatureEntry::FeatureVariation kZCashFeatureVariations[] = {
+    {"- Shielded support disabled", kZCashShieldedTransactionsDisabled,
+     nullptr},
+    {"- Shielded support enabled (WebUI Only)",
+     kZCashShieldedTransactionsEnabled, nullptr}};
+#endif  // BUILDFLAG(ENABLE_BRAVE_WALLET)
+
+const flags_ui::FeatureEntry::FeatureParam kBraveIOSUserAgentVersion[] = {
+    {"default_user_agent", "1"}};
+const flags_ui::FeatureEntry::FeatureParam kBraveIOSUserAgentSuffix[] = {
+    {"default_user_agent", "2"}};
+const flags_ui::FeatureEntry::FeatureParam kBraveIOSUserAgentSuffixComment[] = {
+    {"default_user_agent", "3"}};
+const flags_ui::FeatureEntry::FeatureVariation
+    kBraveIOSUserAgentFeatureVariations[] = {
+        {"- Version", kBraveIOSUserAgentVersion, nullptr},
+        {"- Suffix", kBraveIOSUserAgentSuffix, nullptr},
+        {"- Suffix Comment", kBraveIOSUserAgentSuffixComment, nullptr}};
 
 #define BRAVE_SKU_SDK_FEATURE_ENTRIES                   \
   EXPAND_FEATURE_ENTRIES({                              \
@@ -45,11 +70,12 @@
   EXPAND_FEATURE_ENTRIES(                                                     \
       {                                                                       \
           "brave-wallet-zcash",                                               \
-          "Enable BraveWallet ZCash support",                                 \
-          "Zcash support for native Brave Wallet",                            \
+          "Enable BraveWallet ZCash support by option",                       \
+          "Zcash support for Brave Wallet",                                   \
           flags_ui::kOsIos,                                                   \
-          FEATURE_VALUE_TYPE(                                                 \
-              brave_wallet::features::kBraveWalletZCashFeature),              \
+          FEATURE_WITH_PARAMS_VALUE_TYPE(                                     \
+              brave_wallet::features::kBraveWalletZCashFeature,               \
+              kZCashFeatureVariations, "BraveWalletZCash"),                   \
       },                                                                      \
       {                                                                       \
           "brave-wallet-bitcoin",                                             \
@@ -76,6 +102,14 @@
           flags_ui::kOsIos,                                                   \
           FEATURE_VALUE_TYPE(brave_wallet::features::                         \
                                  kBraveWalletTransactionSimulationsFeature),  \
+      },                                                                      \
+      {                                                                       \
+          "brave-wallet-enable-cardano",                                      \
+          "Enable Brave Wallet(WebUI) Cardano support",                       \
+          "Cardano support for Brave Wallet(WebUI)",                          \
+          flags_ui::kOsIos,                                                   \
+          FEATURE_VALUE_TYPE(                                                 \
+              brave_wallet::features::kBraveWalletCardanoFeature),            \
       })
 
 #define BRAVE_SHIELDS_FEATURE_ENTRIES                                          \
@@ -174,16 +208,48 @@
           "Permits the use of private IP addresses as model endpoint URLs", \
           flags_ui::kOsIos,                                                 \
           FEATURE_VALUE_TYPE(ai_chat::features::kAllowPrivateIPs),          \
+      },                                                                    \
+      {                                                                     \
+          "brave-ai-chat-rich-search-widgets",                              \
+          "Brave AI Chat Rich Search Widgets",                              \
+          "Enables AI Chat Rich Search Widgets",                            \
+          flags_ui::kOsIos,                                                 \
+          FEATURE_VALUE_TYPE(ai_chat::features::kRichSearchWidgets),        \
+      },                                                                    \
+      {                                                                     \
+          "brave-ai-chat-conversation-api-v2",                              \
+          "Brave AI Chat Conversation API V2",                              \
+          "Enables Conversation API V2 for AI Chat",                        \
+          flags_ui::kOsIos,                                                 \
+          FEATURE_VALUE_TYPE(ai_chat::features::kAIChatConversationAPIV2),  \
+      },                                                                    \
+      {                                                                     \
+          "brave-ai-chat-user-choice-tool",                                 \
+          "Brave AI Chat User Choice Tool",                                 \
+          "AI can offer a multiple choice question to the user during a "   \
+          "conversation.",                                                  \
+          flags_ui::kOsIos,                                                 \
+          FEATURE_VALUE_TYPE(ai_chat::features::kAIChatUserChoiceTool),     \
       })
 
-#define BRAVE_WALLET_FEATURE_ENTRIES                                    \
-  EXPAND_FEATURE_ENTRIES({                                              \
-      "brave-wallet-webui-ios",                                         \
-      "Enable WebUI for Brave Wallet iOS",                              \
-      "Enables WebUI for Brave Wallet",                                 \
-      flags_ui::kOsIos,                                                 \
-      FEATURE_VALUE_TYPE(brave_wallet::features::kBraveWalletWebUIIOS), \
-  })
+#define BRAVE_WALLET_FEATURE_ENTRIES                                      \
+  EXPAND_FEATURE_ENTRIES(                                                 \
+      {                                                                   \
+          "brave-wallet-webui-ios",                                       \
+          "Enable WebUI for Brave Wallet iOS",                            \
+          "Enables WebUI for Brave Wallet",                               \
+          flags_ui::kOsIos,                                               \
+          FEATURE_VALUE_TYPE(                                             \
+              brave_wallet::features::kBraveWalletWebUIFeature),          \
+      },                                                                  \
+      {                                                                   \
+          "brave-wallet-cardano-dapp-support-ios",                        \
+          "Enable Cardano dApp Support for Brave Wallet(WebUI) iOS",      \
+          "Enables Cardano dApp Support for Brave Wallet(WebUI)",         \
+          flags_ui::kOsIos,                                               \
+          FEATURE_VALUE_TYPE(                                             \
+              brave_wallet::features::kBraveWalletCardanoDAppSupportIOS), \
+      })
 #else
 #define BRAVE_NATIVE_WALLET_FEATURE_ENTRIES
 #define BRAVE_WALLET_FEATURE_ENTRIES
@@ -204,19 +270,19 @@
           FEATURE_VALUE_TYPE(brave_component_updater::kUseDevUpdaterUrl),      \
       },                                                                       \
       {                                                                        \
-          "brave-use-modern-tab-tray",                                         \
-          "Use modern tab tray UI",                                            \
-          "Replace the tab tray UI with a modern replacement",                 \
-          flags_ui::kOsIos,                                                    \
-          FEATURE_VALUE_TYPE(brave::features::kModernTabTrayEnabled),          \
-      },                                                                       \
-      {                                                                        \
           "brave-sync-default-passwords",                                      \
           "Enable password syncing by default",                                \
           "Turn on password syncing when Sync is enabled.",                    \
           flags_ui::kOsIos,                                                    \
           FEATURE_VALUE_TYPE(                                                  \
               brave_sync::features::kBraveSyncDefaultPasswords),               \
+      },                                                                       \
+      {                                                                        \
+          "brave-use-chromium-webviews-autofill",                              \
+          "Chromium WebView's Autofill",                                       \
+          "Enable Chromium WebView's Autofill",                                \
+          flags_ui::kOsIos,                                                    \
+          FEATURE_VALUE_TYPE(brave::features::kUseChromiumWebViewsAutofill),   \
       },                                                                       \
       {                                                                        \
           "brave-translate-enabled",                                           \
@@ -237,14 +303,28 @@
           "Use Brave user agent",                                              \
           "Includes Brave version information in the user agent",              \
           flags_ui::kOsIos,                                                    \
-          FEATURE_VALUE_TYPE(brave_user_agent::features::kUseBraveUserAgent),  \
+          FEATURE_WITH_PARAMS_VALUE_TYPE(                                      \
+              brave_user_agent::features::kUseBraveUserAgent,                  \
+              kBraveIOSUserAgentFeatureVariations, "BraveIOSUserAgent"),       \
       },                                                                       \
       {                                                                        \
-          "brave-use-chromium-web-embedder",                                   \
-          "Use Chromium Web Embedder",                                         \
-          "Replace WKWebView usages with Chromium web views",                  \
+          "should-cancel-requests-for-user-agent-change",                      \
+          "Cancel requests for user agent change",                             \
+          "Enables cancelling requests when we need to change the user agent " \
+          "for the new destination",                                           \
           flags_ui::kOsIos,                                                    \
-          FEATURE_VALUE_TYPE(brave::features::kUseChromiumWebViews),           \
+          FEATURE_VALUE_TYPE(brave_user_agent::features::                      \
+                                 kShouldCancelRequestsForUserAgentChange),     \
+      },                                                                       \
+      {                                                                        \
+          "brave-use-profile-web-views-configuration",                         \
+          "Use a single web view configuraton per profile",                    \
+          "Replaces per-tab web view configurations with per-profile "         \
+          "configurations to match Chromium. Enabling this changes how Brave " \
+          "injects JavaScript into pages.",                                    \
+          flags_ui::kOsIos,                                                    \
+          FEATURE_VALUE_TYPE(                                                  \
+              brave::features::kUseProfileWebViewConfiguration),               \
       },                                                                       \
       {                                                                        \
           "brave-debounce",                                                    \
@@ -275,6 +355,13 @@
           "do not share it unless asked to by Brave staff.",                   \
           flags_ui::kOsIos,                                                    \
           FEATURE_VALUE_TYPE(brave_rewards::features::kVerboseLoggingFeature), \
+      },                                                                       \
+      {                                                                        \
+          "brave-quick-view",                                                  \
+          "Enable QuickView",                                                  \
+          "Enable QuickView feature",                                          \
+          flags_ui::kOsIos,                                                    \
+          FEATURE_VALUE_TYPE(brave::features::kQuickViewEnabled),              \
       })                                                                       \
   BRAVE_SHIELDS_FEATURE_ENTRIES                                                \
   BRAVE_NATIVE_WALLET_FEATURE_ENTRIES                                          \

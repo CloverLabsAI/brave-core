@@ -49,6 +49,14 @@
 <translation id="2998960761270772157">บล็อกองค์ประกอบเข้าสู่ระบบ เมนู ความคิดเห็น และข้อมูลวิดีโอบน youtube.com</translation>
 <translation id="8531835121131500698">บล็อก YouTube Shorts</translation>
 <translation id="2167271714269158912">บล็อก Shorts จากหน้าแรก หน้ามาแรง และผลการค้นหาบน youtube.com</translation>
+<translation id="2564435705466025309">บล็อก YouTube วิดีโอที่มีการดับบิ้งอัตโนมัติ</translation>
+<translation id="3603500459037204525">บล็อกวิดีโอที่มีการดับบิ้งอัตโนมัติจากการปรากฏบนหน้าแรก YouTube และผลลัพธ์การค้นหา</translation>
+<translation id="4067265130987656010">บล็อก YouTube ภาพย่อ</translation>
+<translation id="3034711349887440574">บล็อกภาพย่อจากการปรากฏบนหน้าแรก YouTube และผลลัพธ์การค้นหา</translation>
+<translation id="8741919213635379855">บล็อก YouTube Playables</translation>
+<translation id="2216551241986578034">บล็อก Playables จากการปรากฏบนหน้าแรก YouTube และผลลัพธ์การค้นหา</translation>
+<translation id="9038505474874975130">บล็อก YouTube วิดีโอสำหรับสมาชิกเท่านั้น</translation>
+<translation id="3084239516382196983">บล็อกวิดีโอสำหรับสมาชิกเท่านั้นจากการปรากฏบนหน้าแรก YouTube และผลลัพธ์การค้นหา</translation>
 <translation id="6052725679982758334">การบล็อกโซเชียลมีเดีย</translation>
 <translation id="7498695072878479744">อนุญาตให้ใช้ปุ่มเข้าสู่ระบบผ่าน Google บนเว็บไซต์ภายนอก</translation>
 <translation id="863171915776379000">อนุญาตให้เข้าสู่ระบบผ่าน Facebook และโพสต์แบบฝัง</translation>
@@ -68,8 +76,6 @@
 <translation id="7304425663107214334">แสดงคำแนะนำของเบราว์เซอร์</translation>
 <translation id="8982438328166986164">แสดงเว็บไซต์แนะนำตามบุ๊กมาร์กและประวัติการเข้าชมของคุณ</translation>
 <translation id="924029461438529367">แสดงคำแนะนำในการค้นหา</translation>
-<translation id="6285118765755298263">จัดทำดัชนีเครื่องมือค้นหาอื่นๆ</translation>
-<translation id="919715748352669592">จัดทำดัชนีเว็บไซต์ที่เป็นไปตามข้อกำหนดของ OpenSearch โดยอัตโนมัติ</translation>
 <translation id="9148058034647219655">ออก</translation>
 <translation id="7534079972563542000">Unstoppable Domains</translation>
 <translation id="6486983549008741930">การกรองเนื้อหา</translation>
@@ -145,6 +151,8 @@
 <translation id="4690906712010847708">ไม่ต้องอัปเกรดการเชื่อมต่อเป็น HTTPS (ปิดใช้งาน)</translation>
 <translation id="693506469193748756">ไม่ต้องจำฉันเมื่อฉันปิดเว็บไซต์นี้</translation>
 <translation id="6975864539539353406">ล้างคุกกี้และข้อมูลอื่นๆ ของไซต์เมื่อคุณปิดไซต์</translation>
+<translation id="7740929262043547697">อนุญาตการบล็อกองค์ประกอบในหน้าต่างแบบส่วนตัว</translation>
+<translation id="1260864846935682371">เปิดใช้งานฟีเจอร์บล็อกองค์ประกอบของ Shields ในหน้าต่างแบบส่วนตัว โปรดทราบว่าส่วนที่ถูกบล็อกในหน้าต่างแบบส่วนตัวจะถูกบล็อกในหน้าต่างทั่วไปด้วย</translation>
 <translation id="1680858055899097121">อย่าคงแท็บไว้เมื่อจบการท่องเว็บแต่ละรอบ</translation>
 <translation id="7142548388914389999">อนุญาตการวิเคราะห์ผลิตภัณฑ์โดยรักษาความเป็นส่วนตัว (P3A)</translation>
 <translation id="5254037869598726291">ข้อมูล P3A ที่ไม่ระบุชื่อช่วยให้ Brave ประเมินการใช้งานโดยรวม และช่วยให้มั่นใจว่าเรากำลังปรับปรุงฟีเจอร์ยอดนิยม</translation>
@@ -164,10 +172,6 @@
 <translation id="9110294136812584522">เว็บไซต์สามารถขอใช้การลงชื่อเข้าใช้ด้วย Google แบบเก่าผ่านคุกกี้ของบุคคลที่สาม</translation>
 <translation id="2903783737778379345">ไม่อนุญาตให้ใช้การลงชื่อเข้าใช้ด้วย Google แบบเก่าผ่านคุกกี้ของบุคคลที่สาม</translation>
 <translation id="6880817299303842099">อนุญาตการใช้คุกกี้ของบุคคลที่สามสำหรับการลงชื่อเข้าใช้ด้วย Google แบบเก่า</translation>
-<translation id="2136412236435693622">การเข้าถึง Localhost</translation>
-<translation id="4172219483893066798">เว็บไซต์สามารถขอสิทธิ์เข้าถึงทรัพยากร Localhost ได้</translation>
-<translation id="7181706637590665047">อย่าอนุญาตสิทธิ์เข้าถึงทรัพยากร Localhost</translation>
-<translation id="1485435696620658073">ได้รับอนุญาตให้เข้าถึงทรัพยากร Localhost</translation>
 <translation id="181905442828471321">ค่าเริ่มต้นทั่วไปของ Brave Shields</translation>
 <translation id="2675679258824361492">การตั้งค่าความเป็นส่วนตัวอื่นๆ</translation>
 <translation id="8026334261755873520">ล้างข้อมูลการท่องเว็บ</translation>
@@ -192,14 +196,27 @@
 <translation id="834487290629916192">ภายหลัง</translation>
 <translation id="4117451092682672487">ปกป้องความเป็นส่วนตัวง่ายๆ</translation>
 <translation id="7909375417585209817">เมื่อ Brave เป็นค่าเริ่มต้น ทุกลิงก์ที่คุณคลิกจะเปิดด้วยการป้องกันความเป็นส่วนตัวของ Brave</translation>
-<translation id="7370959926683925817">บล็อกโฆษณาและบันทึกข้อมูลทุกวัน</translation>
-<translation id="7281027579943912834">ด้วยการตั้ง Brave เป็นค่าเริ่มต้น ทุกลิงก์ที่คุณคลิกจะได้รับการป้องกันด้วย ad-block ของ Brave ในทุกหน้าเพจ วิดีโอ และสตรีม</translation>
-<translation id="5148943178722443958">ช่วยปรับปรุง Brave ให้ดีขึ้น</translation>
+<translation id="763369711159699222">ช่วยปรับปรุง Brave ให้ดีขึ้น</translation>
+<translation id="8025937231644975408">บอกให้เราทราบทีว่าฟีเจอร์ใดที่คุณชื่นชอบที่สุด</translation>
 <translation id="6718362830686703942">ส่งรายงานการวินิจฉัยหากคุณพบข้อขัดข้องหรืออาการค้าง</translation>
 <translation id="8616157231067364693">แชร์ข้อมูลเชิงลึกของผลิตภัณฑ์แบบส่วนตัวและไม่ระบุชื่อ ซึ่งมีข้อมูลเกี่ยวกับคุณสมบัติที่ผู้ใช้ Brave ใช้</translation>
 <translation id="2888496576732880897">ช่วยให้ Brave Search เติบโต</translation>
+<translation id="7198716519700700181">บล็อคการขัดจังหวะเมื่อคุณสตรีม</translation>
 <translation id="7044431516245362795">เข้าร่วมโครงการ Web Discovery เพื่อช่วยขยายดัชนีและปรับปรุงผลการค้นหา <ph name="LEARN_MORE_START"/>ดูข้อมูลเพิ่มเติม<ph name="LEARN_MORE_END"/></translation>
+<translation id="4847979153841887006">โลโก้ Brave</translation>
+<translation id="1389386068457132299">พื้นหลังการเข้าสู่ระบบ</translation>
+<translation id="5101985748360228609">การตกแต่งใบไม้ด้านบน</translation>
+<translation id="5270920361877570459">การตกแต่งใบไม้ด้านล่าง</translation>
+<translation id="4021716437419160885">เลื่อนลง</translation>
+<translation id="4767173360729868049">ภาพประกอบช่วยให้ Brave Search เติบโต</translation>
+<translation id="8241918461631453498">ภาพประกอบการบล็อคการขัดจังหวะ</translation>
+<translation id="8213310572767907663">ภาพประกอบทำให้ Brave ดีขึ้น</translation>
+<translation id="2427917529469438577">บล็อคสิ่งรบกวนที่น่ารำคาญบนเว็บไซต์สตรีมมิ่งที่คุณชื่นชอบ</translation>
 <translation id="7818938154803162778">แน่นอน ฉันจะช่วย</translation>
+<translation id="5298784657468199167">ส่งรายงานข้อขัดข้อง</translation>
+<translation id="6188781052835527980">ส่งรายงานการวินิจฉัยแบบไม่ระบุชื่อหากคุณพบข้อขัดข้องหรืออาการค้าง</translation>
+<translation id="4780647518983772446">แชร์ข้อมูลเชิงลึกของผลิตภัณฑ์แบบส่วนตัวและไม่ระบุชื่อ ซึ่งมีข้อมูลเกี่ยวกับคุณสมบัติ Brave ที่ใช้</translation>
+<translation id="5109496672133133896">ข้อมูลเชิงลึกของผลิตภัณฑ์แบบส่วนตัว</translation>
 <translation id="3545804467215833536">แตะเพื่อดู Brave Shields</translation>
 <translation id="1724327820822194498">ดูสิ่งรบกวนทั้งหมดที่ Brave บล็อกในทุกหน้าด้วย Brave Shields</translation>
 <translation id="5386259141409498372"><ph name="BIG_TECH"/> และ <ph name="TRACKER"/> บล็อกโฆษณาอื่นๆ &amp; ตัวติดตามแล้ว</translation>
@@ -225,7 +242,7 @@
 <translation id="4225265925807365011">ฉันมีวลีกู้คืนรหัส 24 คำ</translation>
 <translation id="3570367516044491911">ตั้งเป็นเบราว์เซอร์เริ่มต้น</translation>
 <translation id="6800338374677644736">ตั้งเป็นเบราว์เซอร์เริ่มต้น</translation>
-<translation id="1545749641540134597">Scan QR Code</translation>
+<translation id="1545749641540134597">สแกน QR Code</translation>
 <translation id="5317781812114905957">คำแนะนำ</translation>
 <translation id="8515319483805157233">หากต้องการค้นหาด้วย QR Code ให้นำ QR Code มาไว้ตรงกลางกรอบ</translation>
 <translation id="7658239707568436148">ยกเลิก</translation>
@@ -371,6 +388,14 @@
 <translation id="8793108040181436796">วิดเจ็ต</translation>
 <translation id="8643377320501056697">แสดงเว็บไซต์ยอดนิยม</translation>
 <translation id="7275773481201277457">แสดงสถิติ Brave</translation>
+<translation id="7462178177755090262">หน้าจอเริ่มต้น</translation>
+<translation id="5365434987337264071">แท็บที่เปิดล่าสุด</translation>
+<translation id="6019856124237323989">{HOURS, plural,
+          =1 {แท็บใหม่หลังจาก <ph name="HOURS_ONE"/> ชั่วโมงที่ไม่มีการใช้งาน}
+          other {แท็บใหม่หลังจาก <ph name="HOURS_MANY"/> ชั่วโมงที่ไม่มีการใช้งาน}
+        }</translation>
+<translation id="5233638681132016545">แท็บใหม่</translation>
+<translation id="8395271296293035055">กลับไปยังแท็บล่าสุดของคุณ</translation>
 <translation id="8297488609722895137">ภาพถ่ายโดย <ph name="PHOTO_BY"/></translation>
 <translation id="2898634658146274982">เปิดลิงก์ภายนอกใน Brave</translation>
 <translation id="5616508928556767259">เปิดลิงก์จากแอปอื่นๆ ใน Brave Webview หมายเหตุ: ต้องตั้งค่า Brave เป็นเบราว์เซอร์เริ่มต้น</translation>
@@ -381,7 +406,7 @@
 <translation id="717952606991220586">อุ๊ย มีบางอย่างผิดปกติ โปรดลองใหม่ภายหลัง</translation>
 <translation id="987264212798334818">ทั่วไป</translation>
 <translation id="1116694919640316211">เกี่ยวกับ</translation>
-<translation id="1275213816424141989">ไว้ทีหลัง</translation>
+<translation id="2370739752330685659">ภายหลัง</translation>
 <translation id="3624048886326677117">บล็อกตัวติดตาม &amp; Ads (ที่รุนแรง)</translation>
 <translation id="7151914815476509258">บล็อกตัวติดตาม &amp; Ads (ทั่วไป)</translation>
 <translation id="7384778069178817075">อนุญาตโฆษณา &amp; แอปติดตามทั้งหมด</translation>
@@ -419,6 +444,13 @@
 <translation id="7141438739990875547">เครือข่าย Bitcoin</translation>
 <translation id="9055546041146396417">หากเว็บดูเหมือนมีปัญหา ลองปิด Shields ดู</translation>
 <translation id="7898672232170410330">บล็อกองค์ประกอบ</translation>
+<translation id="9064628362799094520">ย่อยข้อมูลของเว็บไซต์</translation>
+<translation id="8949611615512336262">ย่อยแบบอัตโนมัติ: <ph name="AUTO_SHRED_MODE_TEXT"/></translation>
+<translation id="9140049656798805345">ย่อยข้อมูลของเว็บไซต์เดี๋ยวนี้</translation>
+<translation id="6795622376590884449">ย่อยแบบอัตโนมัติ</translation>
+<translation id="7961015016161918242">ไม่ต้องเลย</translation>
+<translation id="1991004083507807299">ปิดแท็บของเว็บไซต์แล้ว</translation>
+<translation id="5827277414420724690">ปิดแอป</translation>
 <translation id="1209739344687072997">รายงานเว็บไซต์เสียหาย</translation>
 <translation id="8510478288840333677">แจ้งให้ผู้พัฒนา Brave ทราบว่าเว็บไซต์นี้ทำงานไม่ถูกต้องเมื่อเปิดระบบปกป้อง:</translation>
 <translation id="1653405824851871276">ขอบคุณที่ช่วยทำให้ Brave มีประสิทธิภาพมากขึ้นสำหรับทุกคน โดยรายงานนี้จะมีข้อมูลที่จำเป็นสำหรับเราในการแก้ไขเว็บไซต์นี้เท่านั้น <ph name="LEARN_MORE"/></translation>
@@ -492,7 +524,6 @@
 <translation id="5705882733397021510">ย้อนกลับ</translation>
 <translation id="7889432931837317731">เปิดโดยอัตโนมัติเมื่อเป็นไปได้</translation>
 <translation id="1029304566263314007">แสดงการแจ้งเตือนความคืบหน้าการดาวน์โหลด</translation>
-<translation id="2910433761530295035">ถามตำแหน่งที่จะบันทึกไฟล์ (หากตรวจพบการ์ด SD)</translation>
 <translation id="2977501775944575564">การดาวน์โหลดหลายรายการพร้อมกัน</translation>
 <translation id="6224180438946945617">เปิดใช้งานการดาวน์โหลดหลายรายการพร้อมกันเพื่อเร่งความเร็วในการดาวน์โหลด</translation>
 <translation id="8967385052772844086">ดูรายงานความเป็นส่วนตัวฉบับเต็ม</translation>
@@ -761,7 +792,6 @@
 <translation id="6889920539620318793">ตั้งค่าเป็นใช้งาน</translation>
 <translation id="2653659639078652383">ส่ง</translation>
 <translation id="4945690646623486292">เลือกเครือข่าย</translation>
-<translation id="5233638681132016545">แท็บใหม่</translation>
 <translation id="8006088103295786154">เข้าถึง Brave Wallet</translation>
 <translation id="5308380583665731573">เชื่อมต่อ</translation>
 <translation id="8030169304546394654">ไม่ได้เชื่อมต่อ</translation>
@@ -914,6 +944,9 @@
 <translation id="703185154752046151">วิดเจ็ตที่เพิ่มลงในหน้าจอหลัก</translation>
 <translation id="4635094429202343515">ลองใช้วิดเจ็ต Brave Search</translation>
 <translation id="4809681171446727314">เข้าถึงการค้นหาที่อิสระและเป็นส่วนตัวได้ทันทีจากหน้าจอหลักของคุณ</translation>
+<translation id="3280562213547448728">การค้นหาด้วยเสียง</translation>
+<translation id="3925312712530886302">เปิด Search ส่วนตัว</translation>
+<translation id="9214590551301647710">เปิด Leo</translation>
 <translation id="7751715172931488388">เพิ่มวิดเจ็ต</translation>
 <translation id="7285167584112910782">การค้นหาด่วนของ Brave</translation>
 <translation id="2326703104633309781">ใช้ Brave Translate</translation>
@@ -945,15 +978,25 @@
 <translation id="5494920125229734069">เลือกทั้งหมด</translation>
 <translation id="2361906291514218784">Leo AI</translation>
 <translation id="944736176598169208">รีวอร์ด</translation>
-<translation id="4272190451231642425">ส่งรายงานการขัดข้องโดยอัตโนมัติ</translation>
 <translation id="1199170151481311646">การวิเคราะห์ข้อมูลที่รักษาความเป็นส่วนตัว</translation>
 <translation id="1706715315466634757">อีเมลนามแฝง</translation>
+<translation id="738840791756723657">AI</translation>
 <translation id="6709133671862442373">ข่าวสาร</translation>
 <translation id="5990642573624858459">การรายงานสถิติ</translation>
 <translation id="7705524343798198388">VPN</translation>
 <translation id="2441719842399509963">รีเซ็ตเป็นค่าเริ่มต้น</translation>
 <translation id="4922034974043704366">คุณลักษณะนี้ถูกเปิดใช้งานเนื่องจากคุณได้เลือกที่จะใช้งาน</translation>
-<translation id="3144818380093107753">Brave Origin เป็นวิธีการสมัครสมาชิกเพื่อปิดการใช้งานฟีเจอร์ที่สร้างรายได้ซึ่งปกติแล้วจะสนับสนุน Brave ในฐานะธุรกิจ ผู้สมัครสมาชิก Brave Origin จะยังคงได้รับประโยชน์จากการปกป้องความเป็นส่วนตัวชั้นนำของอุตสาหกรรม, การบล็อกโฆษณา, และความเร็ว (ผ่าน Brave Shields) รวมถึงการอัปเดตซอฟต์แวร์เป็นประจำ, แพตช์ Chromium, และการปรับปรุงด้านความปลอดภัยและความเป็นส่วนตัว พวกเขายังจะสามารถปลดล็อกตัวเลือกในการปิดการใช้งานฟีเจอร์ต่างๆ เช่น Brave Leo, ข่าว, รางวัล, กระเป๋าเงิน, VPN, โดเมน Web3 และอื่นๆ อีกมากมาย&lt;br/&gt;&lt;br/&gt;ผู้สมัครสมาชิกจะเห็นแผงควบคุมใหม่ในเมนูการตั้งค่าเบราว์เซอร์ คุณสมบัติที่มีอยู่—รวมถึงคุณสมบัติใหม่ใด ๆ ที่เราพัฒนาในอนาคต—จะปรากฏที่นี่ และจะถูกปิดใช้งานตามค่าเริ่มต้น&lt;br/&gt;&lt;br/&gt;&lt;b&gt;หมายเหตุ: Brave Origin จะไม่ปิดใช้งานคุณสมบัติเบราว์เซอร์ที่คุณใช้อยู่ในปัจจุบัน และจะไม่ส่งผลกระทบต่อคุณสมบัติของ Brave Search หรือโฆษณาของ Brave Search&lt;/b&gt;</translation>
+<translation id="2587535830241068901">ปรับแต่งเบราว์เซอร์ของคุณในขณะที่ยังคงสนับสนุน Brave</translation>
+<translation id="7235314227387539944">Brave Origin เป็นเบราว์เซอร์เวอร์ชั่นที่เสียค่าใช้สำหรับผู้ใช้ที่ไม่ต้องการฟีเจอร์ทั้งหมดที่สนับสนุน Brave ในฐานะธุรกิจ แต่ยังต้องการความเป็นส่วนตัวที่เพียงแค่ Brave เท่านั้นที่มีให้ ผู้ใช้ Origin จะได้รับประโยชน์อย่างต่อเนื่องจากการป้องกันความเป็นส่วนตัวระดับอุตสาหกรรม การบล็อกโฆษณา และความเร็ว (ผ่าน Shields) รวมถึงการอัปเดตซอฟต์แวร์อย่างสม่ำเสมอ แพตช์ Chromium และการปรับปรุงความเป็นส่วนตัวและความปลอดภัย Origin จะลบฟีเจอร์อื่นๆ ส่วนใหญ่ออกจากเบราว์เซอร์</translation>
+<translation id="7941943775131052130">โปรดทราบว่าการซื้อ Brave Origin จะรวมถึงการเข้าถึง Brave Search แบบพรีเมียมด้วย เนื่องจาก Origin จะลบโฆษณาออกจากหน้าผลลัพธ์ Brave Search</translation>
+<translation id="2573819149217596923">การเปลี่ยนฟีเจอร์ Brave</translation>
+<translation id="7415416427817229128">การเปิดใช้งานหรือปิดใช้งานฟีเจอร์ Brave จำเป็นต้องรีสตาร์ทเบราว์เซอร์เพื่อใช้การเปลี่ยนแปลง คุณต้องการรีสตาร์ทตอนนี้หรือไม่</translation>
+<translation id="2256115617011615191">รีสตาร์ทตอนนี้</translation>
+<translation id="2160089182263405907">ปิดฟีเจอร์</translation>
+<translation id="3362364767724670721">การเปิดใช้งานหรือปิดใช้งานฟีเจอร์ Brave ต้องเรียกใช้เบราว์เซอร์ใหม่เพื่อนำการเปลี่ยนแปลงไปใช้ โปรด แตะ <ph name="BEGIN_BOLD"/>เรียกใช้ใหม่ตอนนี้<ph name="END_BOLD"/> เมื่อ Origin เสร็จสิ้นการอัปเดต</translation>
+<translation id="1028940738207645746">คุณแน่ใจหรือไม่ว่าต้องการรีเซ็ตการตั้งค่าทั้งหมดเป็นค่าเริ่มต้น</translation>
+<translation id="5939518447894949180">รีเซ็ต</translation>
+<translation id="8554205386170195281">ซื้อ</translation>
 <translation id="8613144770663526433">ลงชื่อเข้าใช้ด้วย Brave Wallet</translation>
 <translation id="3696514931437952995">คุณกำลังลงชื่อเข้าใช้ <ph name="ORIGIN"/> Brave Wallet จะแบ่งปันที่อยู่ Wallet ของคุณกับ <ph name="ORIGIN"/></translation>
 <translation id="1028781062521375153">ดูรายละเอียด</translation>
@@ -988,7 +1031,6 @@
 <translation id="1309636029062006520">สร้างเพลย์ลิสต์เสียงและวิดีโอที่คุณชื่นชอบ และเล่นได้ทุกที่ทุกเวลา</translation>
 <translation id="7899390017499980820">ปุ่มเพิ่มไปยังเพลย์ลิสต์</translation>
 <translation id="6901152954398668317">แสดงหรือซ่อนปุ่ม "เพิ่มไปยังเพลย์ลิสต์" เพื่อเข้าถึงการเพิ่มหรือลบสื่ออย่างรวดเร็ว</translation>
-<translation id="5939518447894949180">รีเซ็ต</translation>
 <translation id="8199028711686989861">ลบวิดีโอทั้งหมดออกจากเพลย์ลิสต์ รวมถึงพื้นที่เก็บข้อมูลในโหมดออฟไลน์ด้วย</translation>
 <translation id="4590997608186539865">เพลย์ลิสต์</translation>
 <translation id="7525067979554623046">สร้าง</translation>
@@ -1069,17 +1111,22 @@
 <translation id="4650851936784160359">ไม่สามารถอัปเดตรายการตัวกรองได้ โปรดลองอีกครั้ง</translation>
 <translation id="3098054327870766317">แสดงปุ่มย้อนกลับเมื่อแท็บถูกปิด</translation>
 <translation id="1336494649091412226">คุณแน่ใจไหมว่าต้องการออกจาก Brave</translation>
+<translation id="6061635824229591714">ต้องการย่อยข้อมูลของเว็บไซต์นี้หรือไม่</translation>
+<translation id="1265051174491933207">การย่อยข้อมูลจะลบข้อมูลของเว็บไซต์และปิดแท็บทั้งหมดของ '<ph name="SITE_NAME"/>' การกระทำนี้ไม่สามารถยกเลิกได้</translation>
+<translation id="5528772406060281700">ย่อยข้อมูลของเว็บไซต์</translation>
+<translation id="4426990318287827331">ย่อยข้อมูล</translation>
 <translation id="7942415993090181327">ประวัติการแชท</translation>
 <translation id="6859935199732075666">แสดงข้อผิดพลาดของ Safe Browsing</translation>
 <translation id="2735247450315842119">อนุญาตให้ถ่ายภาพหน้าจอในแท็บส่วนตัว</translation>
 <translation id="8420414929552321089">หากมีการอนุญาต แท็บส่วนตัวจะมองเห็นได้เมื่อเปิดหลายแอป</translation>
 <translation id="7956713633345437162">บุ๊กมาร์กบนมือถือ</translation>
+<translation id="7984508421152399880">ซื้อเลย</translation>
 <translation id="6261139507111008244">สนับสนุนภารกิจของเรา &amp; งานโอเพนซอร์ส</translation>
-<translation id="7882690061170175552">ส่วนติดต่อผู้ใช้ของเบราว์เซอร์แบบมินิมอลที่จัดวางตรงกลางบนโล่</translation>
+<translation id="6073373503121903099">เบราว์เซอร์ UI ขั้นต่ำที่มุ่งเน้นไปที่ Brave Shields</translation>
 <translation id="2267973897341040743">รักษาฟังก์ชันหลักของตัวบล็อกโฆษณา, ความเป็นส่วนตัว, &amp; , ความเร็ว</translation>
-<translation id="1361157028850796410">คุ้มค่าที่สุด</translation>
-<translation id="7280825497485894053">การสมัครสมาชิกรายเดือน</translation>
-<translation id="4570901726096223030">เรียนรู้เพิ่มเติมเกี่ยวกับ Origin</translation>
+<translation id="3339535734679532460">ซื้อครั้งเดียว ไม่มีค่าสมัครสมาชิกเพิ่มเติม</translation>
+<translation id="2805615640226281689">การซื้อครั้งเดียว</translation>
+<translation id="261433018299584676">รับรหัสเข้าสู่ระบบ</translation>
 <translation id="1943432128510653496">บันทึกรหัสผ่าน</translation>
 <translation id="2100273922101894616">ลงชื่อเข้าใช้อัตโนมัติ</translation>
 <translation id="363596933471559332">ลงชื่อเข้าใช้เว็บไซต์โดยอัตโนมัติโดยใช้ข้อมูลเข้าสู่ระบบที่เก็บไว้ เมื่อฟีเจอร์นี้ปิดอยู่ ระบบจะขอให้คุณยืนยันทุกครั้งก่อนลงชื่อเข้าใช้เว็บไซต์</translation>
@@ -1134,4 +1181,20 @@
 <translation id="1724977129262658800">ปลดล็อกเพื่อแก้ไขรหัสผ่าน</translation>
 <translation id="5780792035410621042">หากต้องการคัดลอกรหัสผ่าน ให้ตั้งค่าการล็อกหน้าจอในอุปกรณ์ก่อน</translation>
 <translation id="7986497153528221272">หากต้องการดูรหัสผ่าน ให้ตั้งค่าการล็อกหน้าจอในอุปกรณ์ก่อน</translation>
+<translation id="4882237634123415792">เครื่องมือค้นหาแบบกำหนดเอง</translation>
+<translation id="8364431224461158026">เพิ่มเครื่องมือค้นหาแบบกำหนดเอง</translation>
+<translation id="7307935603426295341">แก้ไขเครื่องมือค้นหาแบบกำหนดเอง</translation>
+<translation id="4002066346123236978">ชื่อ</translation>
+<translation id="3653110185270660915">ป้อนชื่อของเครื่องมือค้นหา</translation>
+<translation id="7400418766976504921">URL</translation>
+<translation id="6410668567036790476">เพิ่มเครื่องมือค้นหา</translation>
+<translation id="6289878295410648689">เขียน URL การค้นหาและแทนที่คำค้นหาด้วย <ph name="SPECIAL_SYMBOL"/></translation>
+<translation id="8943582268084103903">ตัวอย่างเช่น: https://youtube.com/search?q=<ph name="SPECIAL_SYMBOL"/> หากไซต์รองรับ OpenSearch จะเพิ่มตัวเลือกให้โดยอัตโนมัติขณะแก้ไขฟิลด์นี้</translation>
+<translation id="8706939021136180678">URL ไม่ถูกต้อง</translation>
+<translation id="6528099556282059181">เครื่องมือค้นหาเพิ่มเข้าไปแล้ว</translation>
+<translation id="463451857046640291">ไม่สามารถเพิ่มเครื่องมือค้นหา</translation>
+<translation id="1229671956956864948">ไม่สามารถอัปเดตเครื่องมือค้นหา</translation>
+<translation id="1462771969120037152">ไม่สามารถลบเครื่องมือค้นหา เครื่องมือค้นหาที่คุณพยายามลบอาจตั้งค่าเป็นเครื่องมือค้นหาเริ่มต้น</translation>
+<translation id="1079140196216383600">ลบเครื่องมือค้นหาแบบกำหนดเอง</translation>
+<translation id="525276572490219787">คุณแน่ใจหรือไม่ว่าต้องการลบ "<ph name="SEARCH_ENGINE_NAME"/>" การดำเนินการนี้ไม่สามารถย้อนกลับได้</translation>
 </translationbundle>

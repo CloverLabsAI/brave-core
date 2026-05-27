@@ -8,28 +8,31 @@
 
 #include <optional>
 
-#include "base/values.h"
 #include "brave/components/brave_ads/core/internal/segments/segment_alias.h"
 #include "brave/components/brave_ads/core/internal/targeting/behavioral/purchase_intent/resource/purchase_intent_funnel_info.h"
 #include "brave/components/brave_ads/core/internal/targeting/behavioral/purchase_intent/resource/purchase_intent_funnel_keyphrase_info.h"
 #include "brave/components/brave_ads/core/internal/targeting/behavioral/purchase_intent/resource/purchase_intent_segment_keyphrase_info.h"
 
+namespace base {
+class DictValue;
+}  // namespace base
+
 namespace brave_ads {
 
-std::optional<int> ParseVersion(const base::Value::Dict& dict);
+std::optional<int> ParseVersion(const base::DictValue& dict);
 
-std::optional<SegmentList> ParseSegments(const base::Value::Dict& dict);
+std::optional<SegmentList> ParseSegments(const base::DictValue& dict);
 
 std::optional<PurchaseIntentSegmentKeyphraseList> ParseSegmentKeyphrases(
     const SegmentList& segments,
-    const base::Value::Dict& dict);
+    const base::DictValue& dict);
 
 std::optional<PurchaseIntentFunnelKeyphraseList> ParseFunnelKeyphrases(
-    const base::Value::Dict& dict);
+    const base::DictValue& dict);
 
 std::optional<PurchaseIntentFunnelSiteMap> ParseFunnelSites(
     const SegmentList& segments,
-    const base::Value::Dict& dict);
+    const base::DictValue& dict);
 
 }  // namespace brave_ads
 

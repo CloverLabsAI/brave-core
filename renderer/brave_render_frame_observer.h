@@ -10,6 +10,7 @@
 
 #include "content/public/renderer/render_frame_observer.h"
 #include "services/service_manager/public/cpp/binder_registry.h"
+#include "v8/include/v8.h"
 
 class BraveRenderFrameObserver : public content::RenderFrameObserver {
  public:
@@ -25,6 +26,8 @@ class BraveRenderFrameObserver : public content::RenderFrameObserver {
       const std::string& interface_name,
       mojo::ScopedMessagePipeHandle* interface_pipe) override;
   void DidClearWindowObject() override;
+  void DidCreateScriptContext(v8::Local<v8::Context> context,
+                              int32_t world_id) override;
 
  protected:
   ~BraveRenderFrameObserver() override;

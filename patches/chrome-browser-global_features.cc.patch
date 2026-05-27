@@ -1,0 +1,21 @@
+diff --git a/chrome/browser/global_features.cc b/chrome/browser/global_features.cc
+index 92ef5a35d16a163bf3ffedb6a78359e4ac8ade27..1bf78288e321045c6d8114b5b20e59ee0032100f 100644
+--- a/chrome/browser/global_features.cc
++++ b/chrome/browser/global_features.cc
+@@ -71,6 +71,7 @@
+ #include "chrome/browser/on_device_translation/installer_impl.h"
+ #endif  // BUILDFLAG(ENABLE_ON_DEVICE_TRANSLATION)
+ 
++GlobalFeatures* CreateBraveGlobalFeatures();
+ namespace {
+ 
+ // This is the generic entry point for test code to stub out browser
+@@ -89,7 +90,7 @@ std::unique_ptr<GlobalFeatures> GlobalFeatures::CreateGlobalFeatures() {
+     return GetFactory().Run();
+   }
+   // Constructor is protected.
+-  return base::WrapUnique(new GlobalFeatures());
++  return base::WrapUnique(CreateBraveGlobalFeatures());
+ }
+ 
+ GlobalFeatures::~GlobalFeatures() = default;

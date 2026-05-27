@@ -44,49 +44,30 @@ extension BrowserViewController: TopToolbarDelegate {
 
     isTabTrayActive = true
 
-    if FeatureList.kModernTabTrayEnabled.enabled {
-      let tabTrayController = TabGridHostingController(
-        tabManager: tabManager,
-        historyModel: HistoryModel(
-          api: self.profileController.historyAPI,
-          tabManager: self.tabManager,
-          toolbarUrlActionsDelegate: self,
-          dismiss: { [weak self] in self?.dismiss(animated: true) },
-          askForAuthentication: self.askForLocalAuthentication
-        ),
-        openTabsModel: profileController.openTabsAPI,
+    let tabTrayController = TabGridHostingController(
+      tabManager: tabManager,
+      historyModel: HistoryModel(
+        api: self.profileController.historyAPI,
+        tabManager: self.tabManager,
         toolbarUrlActionsDelegate: self,
-        profileController: profileController,
-        windowProtection: windowProtection,
-        didAddTab: { [weak self] in
-          if Preferences.General.openKeyboardOnNTPSelection.value {
-            self?.focusURLBar()
-          }
+        dismiss: { [weak self] in self?.dismiss(animated: true) },
+        askForAuthentication: self.askForLocalAuthentication
+      ),
+      openTabsModel: profileController.openTabsAPI,
+      toolbarUrlActionsDelegate: self,
+      profileController: profileController,
+      windowProtection: windowProtection,
+      didAddTab: { [weak self] in
+        if Preferences.General.openKeyboardOnNTPSelection.value {
+          self?.focusURLBar()
         }
-      )
-      tabTrayController.modalPresentationStyle = .fullScreen
-      if !UIAccessibility.isReduceMotionEnabled {
-        tabTrayController.transitioningDelegate = tabTrayController
       }
-      present(tabTrayController, animated: true)
-    } else {
-      let tabTrayController = TabTrayController(
-        tabManager: tabManager,
-        braveCore: profileController,
-        windowProtection: windowProtection
-      ).then {
-        $0.delegate = self
-        $0.toolbarUrlActionsDelegate = self
-      }
-      let container = UINavigationController(rootViewController: tabTrayController)
-      container.delegate = self
-
-      if !UIAccessibility.isReduceMotionEnabled {
-        container.transitioningDelegate = tabTrayController
-        container.modalPresentationStyle = .fullScreen
-      }
-      present(container, animated: true)
+    )
+    tabTrayController.modalPresentationStyle = .fullScreen
+    if !UIAccessibility.isReduceMotionEnabled {
+      tabTrayController.transitioningDelegate = tabTrayController
     }
+    present(tabTrayController, animated: true)
   }
 
   func topToolbarDidPressReload(_ topToolbar: TopToolbarView) {
@@ -221,9 +202,6 @@ extension BrowserViewController: TopToolbarDelegate {
   func topToolbarDisplayTextForURL(_ topToolbar: URL?) -> (String?, Bool) {
     // use the initial value for the URL so we can do proper pattern matching with search URLs
     var searchURL = self.tabManager.selectedTab?.currentInitialURL
-    if let url = searchURL, InternalURL.isValid(url: url) {
-      searchURL = url
-    }
     if let query = profile.searchEngines.queryForSearchURL(
       searchURL as URL?,
       forType: privateBrowsingManager.isPrivateBrowsing ? .privateMode : .standard
@@ -293,7 +271,11 @@ extension BrowserViewController: TopToolbarDelegate {
   func topToolbarDidPressTranslateButton(_ urlBar: TopToolbarView) {
     guard let tab = tabManager.selectedTab else { return }
 
-    if let translateHelper = tab.translateHelper {
+    if let translateTabHelper = tab.translate {
+      translateTabHelper.toggleTranslation()
+    }
+
+    if let translateHelper = tab.legacyTranslateHelper {
       translateHelper.presentUI(on: self)
 
       if tab.translationState == .active {
@@ -316,12 +298,8 @@ extension BrowserViewController: TopToolbarDelegate {
 
     if let url = URL(string: text), url.scheme == "brave" || url.scheme == "chrome" {
       topToolbar.leaveOverlayMode()
-      if FeatureList.kUseChromiumWebViews.enabled {
-        finishEditingAndSubmit(url, isUserDefinedURLNavigation: isUserDefinedURLNavigation)
-        return true
-      } else {
-        return handleChromiumWebUIURL(url)
-      }
+      finishEditingAndSubmit(url, isUserDefinedURLNavigation: isUserDefinedURLNavigation)
+      return true
     }
 
     guard let fixupURL = URIFixup.getURL(text) else {
@@ -363,56 +341,9 @@ extension BrowserViewController: TopToolbarDelegate {
     return true
   }
 
-  /// Handles displaying a Chromium web view for brave:// url that would display WebUI
-  func handleChromiumWebUIURL(_ url: URL) -> Bool {
-    let supportedPages = [
-      "flags",
-      "histograms",
-      "local-state",
-      "version",
-      "skus-internals",
-      "ads-internals",
-      "credits",
-      "sync-internals",
-      "policy",
-    ]
-    guard let host = url.host, supportedPages.contains(host) else {
-      return false
-    }
-    let controller = ChromeWebUIController(braveCore: profileController, isPrivateBrowsing: false)
-    controller.webView.load(URLRequest(url: url))
-    controller.title = url.host?.capitalizeFirstLetter
-    let webView = controller.webView
-    controller.navigationItem.rightBarButtonItem = UIBarButtonItem(
-      systemItem: .search,
-      primaryAction: .init { [weak webView] _ in
-        webView?.findInPageController.startFindInPage()
-      }
-    )
-    let container = UINavigationController(rootViewController: controller)
-    container.presentationController?.delegate = self
-    controller.navigationItem.leftBarButtonItem = .init(
-      systemItem: .done,
-      primaryAction: .init { [unowned container] _ in
-        container.dismiss(animated: true) {
-          self.updateTabsBarVisibility()
-        }
-      }
-    )
-    self.present(container, animated: true)
-    return true
-  }
-
   func topToolbarDidEnterOverlayMode(_ topToolbar: TopToolbarView) {
     updateTabsBarVisibility()
     displayFavoritesController()
-
-    // Dismiss any onboarding popovers when entering overlay mode
-    if let popoverController = presentedViewController as? PopoverController,
-      popoverController.contentController is FocusNTPOnboardingViewController
-    {
-      popoverController.dismissPopover()
-    }
   }
 
   func topToolbarDidLeaveOverlayMode(_ topToolbar: TopToolbarView) {
@@ -741,8 +672,8 @@ extension BrowserViewController: TopToolbarDelegate {
 
   func topToolbarDidTapWalletButton(_ urlBar: TopToolbarView) {
     guard let selectedTab = tabManager.selectedTab,
-      let origin = selectedTab.browserData?.getOrigin(),
-      let tabDappStore = selectedTab.tabDappStore
+      let tabDappStore = selectedTab.tabDappStore,
+      let origin = selectedTab.lastCommittedURL?.origin
     else {
       return
     }
@@ -997,12 +928,12 @@ extension BrowserViewController: TopToolbarDelegate {
       guard let url = tabManager.selectedTab?.visibleURL else { return nil }
 
       if let internalURL = InternalURL(url) {
-        if internalURL.isErrorPage {
-          return internalURL.originalURLFromErrorPage
-        }
         if internalURL.isReaderModePage {
           return internalURL.extractedUrlParam
         }
+        return nil
+      }
+      if url.isNewTabURL {
         return nil
       }
       return url
@@ -1083,8 +1014,7 @@ extension BrowserViewController: ToolbarDelegate {
   func topToolbarDidTapSecureContentState(_ urlBar: TopToolbarView) {
     guard let tab = tabManager.selectedTab, let url = tab.visibleURL
     else { return }
-    let hasCertificate =
-      (tab.serverTrust ?? (try? ErrorPageHelper.serverTrust(from: url))) != nil
+    let hasCertificate = tab.serverTrust != nil
     let pageSecurityView = PageSecurityView(
       displayURL: urlBar.locationView.urlDisplayLabel.text ?? url.absoluteDisplayString,
       secureState: tab.visibleSecureContentState,

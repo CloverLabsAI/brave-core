@@ -83,14 +83,13 @@ void AIChatFeedbackAPI::SendRating(
     bool is_premium,
     const base::span<const mojom::ConversationTurnPtr>& history,
     const std::string& model_name,
-    const std::string& selected_language,
     api_request_helper::APIRequestHelper::ResultCallback on_complete_callback) {
-  base::Value::Dict payload;
+  base::DictValue payload;
 
-  base::Value::List chat;
+  base::ListValue chat;
   int id = 0;
   for (auto& turn : history) {
-    base::Value::Dict turn_dict;
+    base::DictValue turn_dict;
     turn_dict.Set("id", id);
     turn_dict.Set("type", turn->character_type == mojom::CharacterType::HUMAN
                               ? "human"
@@ -107,7 +106,6 @@ void AIChatFeedbackAPI::SendRating(
   payload.Set("locale",
               base::StrCat({brave_l10n::GetDefaultISOLanguageCodeString(), "_",
                             brave_l10n::GetDefaultISOCountryCodeString()}));
-  payload.Set("selected_language", selected_language);
   payload.Set("rating", static_cast<int>(is_liked));
   payload.Set("channel", channel_name_);
   payload.Set("platform", brave_stats::GetPlatformIdentifier());
@@ -128,9 +126,8 @@ void AIChatFeedbackAPI::SendFeedback(
     const std::string& feedback,
     const std::string& rating_id,
     const std::optional<std::string>& hostname,
-    const std::string& selected_language,
     api_request_helper::APIRequestHelper::ResultCallback on_complete_callback) {
-  base::Value::Dict dict;
+  base::DictValue dict;
 
   dict.Set("ymd", brave_stats::GetDateAsYMD(base::Time::Now()));
   dict.Set("category", category);
@@ -139,7 +136,6 @@ void AIChatFeedbackAPI::SendFeedback(
   dict.Set("locale",
            base::StrCat({brave_l10n::GetDefaultISOLanguageCodeString(), "_",
                          brave_l10n::GetDefaultISOCountryCodeString()}));
-  dict.Set("selected_language", selected_language);
 
   if (hostname.has_value()) {
     dict.Set("domain", hostname.value());

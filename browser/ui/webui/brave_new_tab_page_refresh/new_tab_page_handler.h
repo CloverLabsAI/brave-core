@@ -27,7 +27,10 @@ class TemplateURLService;
 enum class WindowOpenDisposition;
 
 namespace misc_metrics {
+class BraveSearchMetrics;
+class NavigationSourceMetrics;
 class NewTabMetrics;
+class PageMetrics;
 }
 
 namespace content {
@@ -55,6 +58,7 @@ class NewTabPageHandler : public mojom::NewTabPageHandler {
                     PrefService& pref_service,
                     TemplateURLService& template_url_service,
                     misc_metrics::NewTabMetrics& new_tab_metrics,
+                    misc_metrics::PageMetrics* page_metrics,
                     bool was_restored);
 
   ~NewTabPageHandler() override;
@@ -90,6 +94,9 @@ class NewTabPageHandler : public mojom::NewTabPageHandler {
   void GetShowSearchBox(GetShowSearchBoxCallback callback) override;
   void SetShowSearchBox(bool show_search_box,
                         SetShowSearchBoxCallback callback) override;
+  void GetShowChatInput(GetShowChatInputCallback callback) override;
+  void SetShowChatInput(bool show_chat_input,
+                        SetShowChatInputCallback callback) override;
   void GetSearchSuggestionsEnabled(
       GetSearchSuggestionsEnabledCallback callback) override;
   void SetSearchSuggestionsEnabled(
@@ -149,6 +156,7 @@ class NewTabPageHandler : public mojom::NewTabPageHandler {
   void IncludeMostVisitedTopSite(
       const std::string& url,
       IncludeMostVisitedTopSiteCallback callback) override;
+  void RecordTopSiteClick(RecordTopSiteClickCallback callback) override;
   void GetShowClock(GetShowClockCallback callback) override;
   void SetShowClock(bool show_clock, SetShowClockCallback callback) override;
   void GetClockFormat(GetClockFormatCallback callback) override;
@@ -177,6 +185,10 @@ class NewTabPageHandler : public mojom::NewTabPageHandler {
   void ReportVPNWidgetUsage(ReportVPNWidgetUsageCallback callback) override;
 
  private:
+  void OnGetSponsoredImageBackground(
+      GetSponsoredImageBackgroundCallback callback,
+      mojom::SponsoredImageBackgroundPtr sponsored_background);
+
   void OnCustomBackgroundsSelected(ShowCustomBackgroundChooserCallback callback,
                                    std::vector<base::FilePath> paths);
 
@@ -194,6 +206,9 @@ class NewTabPageHandler : public mojom::NewTabPageHandler {
   raw_ref<PrefService> pref_service_;
   raw_ref<TemplateURLService> template_url_service_;
   raw_ref<misc_metrics::NewTabMetrics> new_tab_metrics_;
+  raw_ptr<misc_metrics::BraveSearchMetrics> brave_search_metrics_ = nullptr;
+  raw_ptr<misc_metrics::NavigationSourceMetrics> navigation_source_metrics_ =
+      nullptr;
   bool was_restored_ = false;
   base::WeakPtrFactory<NewTabPageHandler> weak_factory_{this};
 };

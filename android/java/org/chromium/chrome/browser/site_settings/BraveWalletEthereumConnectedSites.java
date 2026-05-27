@@ -9,17 +9,20 @@ import android.os.Bundle;
 
 import androidx.preference.Preference;
 
-import org.chromium.base.supplier.ObservableSupplier;
-import org.chromium.base.supplier.ObservableSupplierImpl;
+import org.chromium.base.supplier.MonotonicObservableSupplier;
+import org.chromium.base.supplier.ObservableSuppliers;
+import org.chromium.base.supplier.SettableMonotonicObservableSupplier;
 import org.chromium.chrome.R;
 import org.chromium.chrome.browser.settings.BravePreferenceFragment;
 import org.chromium.components.browser_ui.settings.SettingsUtils;
+import org.chromium.components.browser_ui.settings.search.BaseSearchIndexProvider;
 
-public class BraveWalletEthereumConnectedSites
-        extends BravePreferenceFragment implements Preference.OnPreferenceChangeListener {
+public class BraveWalletEthereumConnectedSites extends BravePreferenceFragment
+        implements Preference.OnPreferenceChangeListener {
     private static final String PREF_BRAVE_WALLET_ETHEREUM_CONNECTED_SITES =
             "pref_brave_wallet_ethereum_connected_sites";
-    private final ObservableSupplierImpl<String> mPageTitle = new ObservableSupplierImpl<>();
+    private final SettableMonotonicObservableSupplier<String> mPageTitle =
+            ObservableSuppliers.createMonotonic();
 
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
@@ -28,7 +31,7 @@ public class BraveWalletEthereumConnectedSites
     }
 
     @Override
-    public ObservableSupplier<String> getPageTitle() {
+    public MonotonicObservableSupplier<String> getPageTitle() {
         return mPageTitle;
     }
 
@@ -36,6 +39,13 @@ public class BraveWalletEthereumConnectedSites
     public boolean onPreferenceChange(Preference preference, Object newValue) {
         return true;
     }
+
+    // This fragment displays a dynamic connected-sites widget; there are no static preferences
+    // to index.
+    public static final BaseSearchIndexProvider SEARCH_INDEX_DATA_PROVIDER =
+            new BaseSearchIndexProvider(
+                    BraveWalletEthereumConnectedSites.class.getName(),
+                    BaseSearchIndexProvider.INDEX_OPT_OUT);
 
     @Override
     public void onDestroyView() {

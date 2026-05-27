@@ -4,6 +4,7 @@
 // you can obtain one at https://mozilla.org/MPL/2.0/.
 
 import * as React from 'react'
+import Button from '@brave/leo/react/button'
 
 // Selectors
 import { useSafeUISelector } from '../../../common/hooks/use-safe-selector'
@@ -19,6 +20,9 @@ import {
 // Hooks
 import { useSwap } from './hooks/useSwap'
 import { useOnClickOutside } from '../../../common/hooks/useOnClickOutside'
+import {
+  useIsKeyboardVisible, //
+} from '../../../common/hooks/use_is_keyboard_visible'
 
 // Utils
 import { getLocale } from '$web-common/locale'
@@ -40,11 +44,7 @@ import {
 import { PopupModal } from '../../../components/desktop/popup-modals/index'
 
 // Styled Components
-import {
-  Column,
-  LeoSquaredButton,
-  VerticalSpace,
-} from '../../../components/shared/style'
+import { Column, VerticalSpace } from '../../../components/shared/style'
 import {
   ReviewButtonRow,
   AlertMessage,
@@ -107,6 +107,8 @@ export const Swap = () => {
   const isPanel = useSafeUISelector(UISelectors.isPanel)
   const isMobile = useSafeUISelector(UISelectors.isMobile)
   const isMobileOrPanel = isMobile || isPanel
+  const isIOS = useSafeUISelector(UISelectors.isIOS)
+  const isKeyboardVisible = useIsKeyboardVisible()
 
   // Refs
   const selectTokenModalRef = React.useRef<HTMLDivElement>(null)
@@ -133,10 +135,10 @@ export const Swap = () => {
     showPrivacyModal,
   )
 
-  // Memos
-  const tokenColor = React.useMemo(() => {
-    return getDominantColorFromImageURL(toToken?.logo ?? '')
-  }, [toToken?.logo])
+  // Computed
+  const tokenColor = isIOS
+    ? undefined
+    : getDominantColorFromImageURL(toToken?.logo ?? '')
 
   // render
   return (
@@ -265,16 +267,18 @@ export const Swap = () => {
               </Column>
             </ToAsset>
           </ToSectionWrapper>
-          <ReviewButtonRow isMobile={isMobile}>
+          <ReviewButtonRow
+            isMobile={isMobile && !isKeyboardVisible && !isSubmitButtonDisabled}
+          >
             <ReviewButtonBackground>
-              <LeoSquaredButton
+              <Button
                 onClick={onSubmit}
                 size='large'
                 isDisabled={isSubmitButtonDisabled}
                 isLoading={isFetchingQuote || isSubmittingSwap}
               >
                 {submitButtonText}
-              </LeoSquaredButton>
+              </Button>
             </ReviewButtonBackground>
           </ReviewButtonRow>
         </ToSectionBackground>
@@ -290,11 +294,16 @@ export const Swap = () => {
           selectedFromToken={fromToken}
           selectedToToken={toToken}
           selectedNetwork={
-            !isBridge && selectingFromOrTo === 'to' ? fromNetwork : undefined
+            !isBridge
+              ? selectingFromOrTo === 'to'
+                ? fromNetwork // Swap: selecting TO → pre-fill with FROM's network
+                : toNetwork // Swap: selecting FROM → pre-fill with TO's network
+              : undefined // Bridge: no pre-fill
           }
           modalType={isBridge ? 'bridge' : 'swap'}
           selectedSendOption='#token'
           needsAccount={needsAccountSelected}
+          defaultAccount={selectingFromOrTo === 'to' ? toAccount : fromAccount}
         />
       )}
       {showPrivacyModal && (

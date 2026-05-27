@@ -10,7 +10,6 @@
 #include <utility>
 
 #include "base/check.h"
-#include "base/containers/contains.h"
 #include "base/json/values_util.h"
 #include "brave/components/playlist/content/browser/playlist_constants.h"
 
@@ -50,7 +49,7 @@ constexpr char kPlaylistItemMediaFileBytesKey[] = "mediaFileBytes";
 
 }  // namespace
 
-bool IsItemValueMalformed(const base::Value::Dict& dict) {
+bool IsItemValueMalformed(const base::DictValue& dict) {
   bool isMalformed = !dict.contains(kPlaylistItemIDKey) ||
                      !dict.contains(kPlaylistItemTitleKey) ||
                      !dict.contains(kPlaylistItemThumbnailPathKey) ||
@@ -77,8 +76,8 @@ bool IsItemValueMalformed(const base::Value::Dict& dict) {
   // DO NOT ADD MORE
 }
 
-void MigratePlaylistOrder(const base::Value::Dict& playlists,
-                          base::Value::List& order) {
+void MigratePlaylistOrder(const base::DictValue& playlists,
+                          base::ListValue& order) {
   base::flat_set<std::string> missing_ids;
   for (const auto [id, _] : playlists) {
     missing_ids.insert(id);
@@ -87,7 +86,7 @@ void MigratePlaylistOrder(const base::Value::Dict& playlists,
   base::flat_set<std::string> removed_ids;
   for (const auto& existing_id_value : order) {
     const auto& existing_id = existing_id_value.GetString();
-    if (base::Contains(missing_ids, existing_id)) {
+    if (missing_ids.contains(existing_id)) {
       missing_ids.erase(existing_id);
     } else {
       removed_ids.insert(existing_id);
@@ -97,7 +96,7 @@ void MigratePlaylistOrder(const base::Value::Dict& playlists,
   // Added 2024.01.
   // Data resetting had left dangled data in the order list and it caused crash
   order.EraseIf([&](const auto& id_value) {
-    return base::Contains(removed_ids, id_value.GetString());
+    return removed_ids.contains(id_value.GetString());
   });
 
   for (const auto& id : missing_ids) {
@@ -105,8 +104,7 @@ void MigratePlaylistOrder(const base::Value::Dict& playlists,
   }
 }
 
-mojom::PlaylistItemPtr ConvertValueToPlaylistItem(
-    const base::Value::Dict& dict) {
+mojom::PlaylistItemPtr ConvertValueToPlaylistItem(const base::DictValue& dict) {
   DCHECK(!IsItemValueMalformed(dict));
 
   auto item = mojom::PlaylistItem::New();
@@ -139,10 +137,9 @@ mojom::PlaylistItemPtr ConvertValueToPlaylistItem(
   return item;
 }
 
-base::Value::Dict ConvertPlaylistItemToValue(
-    const mojom::PlaylistItemPtr& item) {
-  base::Value::Dict playlist_value =
-      base::Value::Dict()
+base::DictValue ConvertPlaylistItemToValue(const mojom::PlaylistItemPtr& item) {
+  base::DictValue playlist_value =
+      base::DictValue()
           .Set(kPlaylistItemIDKey, item->id)
           .Set(kPlaylistItemTitleKey, item->name)
           .Set(kPlaylistItemPageSrcKey, item->page_source.spec())
@@ -161,7 +158,7 @@ base::Value::Dict ConvertPlaylistItemToValue(
                      item->hls_media_path.spec());
 #endif  // BUILDFLAG(IS_ANDROID)
 
-  base::Value::List parent;
+  base::ListValue parent;
   for (const auto& parent_playlist_id : item->parents) {
     parent.Append(base::Value(parent_playlist_id));
   }
@@ -171,9 +168,8 @@ base::Value::Dict ConvertPlaylistItemToValue(
   return playlist_value;
 }
 
-mojom::PlaylistPtr ConvertValueToPlaylist(
-    const base::Value::Dict& playlist_dict,
-    const base::Value::Dict& items_dict) {
+mojom::PlaylistPtr ConvertValueToPlaylist(const base::DictValue& playlist_dict,
+                                          const base::DictValue& items_dict) {
   mojom::PlaylistPtr playlist = mojom::Playlist::New();
   playlist->id = *playlist_dict.FindString(kPlaylistIDKey);
   playlist->name = *playlist_dict.FindString(kPlaylistNameKey);
@@ -186,11 +182,11 @@ mojom::PlaylistPtr ConvertValueToPlaylist(
   return playlist;
 }
 
-base::Value::Dict ConvertPlaylistToValue(const mojom::PlaylistPtr& playlist) {
-  base::Value::Dict value;
+base::DictValue ConvertPlaylistToValue(const mojom::PlaylistPtr& playlist) {
+  base::DictValue value;
   value.Set(kPlaylistIDKey, playlist->id.value());
   value.Set(kPlaylistNameKey, playlist->name);
-  auto item_ids = base::Value::List();
+  auto item_ids = base::ListValue();
   for (const auto& items : playlist->items) {
     item_ids.Append(items->id);
   }

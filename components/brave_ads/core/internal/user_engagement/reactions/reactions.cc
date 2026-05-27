@@ -227,28 +227,28 @@ bool Reactions::IsAdMarkedAsInappropriate(
 ///////////////////////////////////////////////////////////////////////////////
 
 void Reactions::LoadAdReactions() {
-  if (std::optional<base::Value::Dict> dict =
+  if (std::optional<base::DictValue> dict =
           GetProfileDictPref(prefs::kAdReactions)) {
     ad_reactions_ = ReactionMapFromDict(*dict);
   }
 }
 
 void Reactions::LoadSegmentReactions() {
-  if (std::optional<base::Value::Dict> dict =
+  if (std::optional<base::DictValue> dict =
           GetProfileDictPref(prefs::kSegmentReactions)) {
     segment_reactions_ = ReactionMapFromDict(*dict);
   }
 }
 
 void Reactions::LoadSavedAds() {
-  if (std::optional<base::Value::List> list =
+  if (std::optional<base::ListValue> list =
           GetProfileListPref(prefs::kSaveAds)) {
     saved_ads_ = ReactionSetFromList(*list);
   }
 }
 
 void Reactions::LoadMarkedAsInappropriate() {
-  if (std::optional<base::Value::List> list =
+  if (std::optional<base::ListValue> list =
           GetProfileListPref(prefs::kMarkedAsInappropriate)) {
     marked_as_inappropriate_ = ReactionSetFromList(*list);
   }
@@ -261,42 +261,31 @@ void Reactions::Load() {
   LoadMarkedAsInappropriate();
 }
 
-void Reactions::NotifyDidLikeAd(const std::string& advertiser_id) const {
-  for (ReactionsObserver& observer : observers_) {
-    observer.OnDidLikeAd(advertiser_id);
-  }
+void Reactions::NotifyDidLikeAd(const std::string& advertiser_id) {
+  observers_.Notify(&ReactionsObserver::OnDidLikeAd, advertiser_id);
 }
 
-void Reactions::NotifyDidDislikeAd(const std::string& advertiser_id) const {
-  for (ReactionsObserver& observer : observers_) {
-    observer.OnDidDislikeAd(advertiser_id);
-  }
+void Reactions::NotifyDidDislikeAd(const std::string& advertiser_id) {
+  observers_.Notify(&ReactionsObserver::OnDidDislikeAd, advertiser_id);
 }
 
-void Reactions::NotifyDidLikeSegment(const std::string& segment) const {
-  for (ReactionsObserver& observer : observers_) {
-    observer.OnDidLikeSegment(segment);
-  }
+void Reactions::NotifyDidLikeSegment(const std::string& segment) {
+  observers_.Notify(&ReactionsObserver::OnDidLikeSegment, segment);
 }
 
-void Reactions::NotifyDidDislikeSegment(const std::string& segment) const {
-  for (ReactionsObserver& observer : observers_) {
-    observer.OnDidDislikeSegment(segment);
-  }
+void Reactions::NotifyDidDislikeSegment(const std::string& segment) {
+  observers_.Notify(&ReactionsObserver::OnDidDislikeSegment, segment);
 }
 
-void Reactions::NotifyDidToggleSaveAd(
-    const std::string& creative_instance_id) const {
-  for (ReactionsObserver& observer : observers_) {
-    observer.OnDidToggleSaveAd(creative_instance_id);
-  }
+void Reactions::NotifyDidToggleSaveAd(const std::string& creative_instance_id) {
+  observers_.Notify(&ReactionsObserver::OnDidToggleSaveAd,
+                    creative_instance_id);
 }
 
 void Reactions::NotifyDidToggleMarkAdAsInappropriate(
-    const std::string& creative_set) const {
-  for (ReactionsObserver& observer : observers_) {
-    observer.OnDidToggleMarkAdAsInappropriate(creative_set);
-  }
+    const std::string& creative_set) {
+  observers_.Notify(&ReactionsObserver::OnDidToggleMarkAdAsInappropriate,
+                    creative_set);
 }
 
 }  // namespace brave_ads

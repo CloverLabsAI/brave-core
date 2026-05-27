@@ -16,6 +16,19 @@ namespace brave_origin {
 // Base key for all profile-scoped BraveOrigin policy preferences in local state
 inline constexpr char kBraveOriginPolicies[] = "brave.brave_origin.policies";
 
+// Whether the user has validated their Brave Origin purchase at startup.
+// Stored in local state so the startup dialog doesn't re-show every launch.
+inline constexpr char kOriginPurchaseValidated[] =
+    "brave.origin.purchase_validated";
+
+#if BUILDFLAG(IS_LINUX)
+// Whether the user accepted the Linux free tier without purchasing.
+// Stored in local state so the startup dialog doesn't re-show, but
+// distinct from kOriginPurchaseValidated so we know they haven't paid.
+inline constexpr char kOriginFreeTierAccepted[] =
+    "brave.origin.free_tier_accepted";
+#endif
+
 namespace prefs {
 
 #if BUILDFLAG(IS_ANDROID)

@@ -15,6 +15,7 @@
 #include "base/logging.h"
 #include "base/strings/string_number_conversions.h"
 #include "base/task/thread_pool.h"
+#include "brave/components/brave_ads/browser/component_updater/resource_component_observer.h"
 
 namespace brave_ads {
 
@@ -121,7 +122,7 @@ void ResourceComponent::LoadManifestCallback(const std::string& component_id,
                                              const std::string& json) {
   VLOG(8) << "Manifest JSON: " << json;
 
-  std::optional<base::Value::Dict> dict =
+  std::optional<base::DictValue> dict =
       base::JSONReader::ReadDict(json, base::JSON_PARSE_RFC);
   if (!dict) {
     VLOG(0) << "Failed to parse manifest";
@@ -149,13 +150,13 @@ void ResourceComponent::LoadResourceCallback(
     const std::string& json) {
   VLOG(8) << "Resource JSON: " << json;
 
-  std::optional<base::Value::Dict> root =
+  std::optional<base::DictValue> root =
       base::JSONReader::ReadDict(json, base::JSON_PARSE_RFC);
   if (!root) {
     VLOG(0) << "Failed to parse resource";
     return;
   }
-  const base::Value::Dict& dict = *root;
+  const base::DictValue& dict = *root;
 
   std::optional<int> schema_version = dict.FindInt(kSchemaVersionKey);
   if (!schema_version) {
@@ -224,16 +225,14 @@ void ResourceComponent::LoadResourceCallback(
 void ResourceComponent::NotifyResourceComponentDidChange(
     const std::string& manifest_version,
     const std::string& id) {
-  for (auto& observer : observers_) {
-    observer.OnResourceComponentDidChange(manifest_version, id);
-  }
+  observers_.Notify(&ResourceComponentObserver::OnResourceComponentDidChange,
+                    manifest_version, id);
 }
 
 void ResourceComponent::NotifyDidUnregisterResourceComponent(
     const std::string& id) {
-  for (auto& observer : observers_) {
-    observer.OnDidUnregisterResourceComponent(id);
-  }
+  observers_.Notify(
+      &ResourceComponentObserver::OnDidUnregisterResourceComponent, id);
 }
 
 }  // namespace brave_ads

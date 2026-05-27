@@ -121,6 +121,63 @@ export const accountEndpoints = ({
       providesTags: [{ type: 'AccountInfos', id: ACCOUNT_TAG_IDS.SELECTED }],
     }),
 
+    getPolkadotCompatibleNetworks: query<
+      BraveWallet.NetworkInfo[],
+      BraveWallet.AccountId
+    >({
+      queryFn: async (accountId, { endpoint }, _extraOptions, baseQuery) => {
+        try {
+          const { polkadotWalletService } = baseQuery(undefined).data
+          const { networks } =
+            await polkadotWalletService.getCompatibleNetworks(accountId)
+
+          if (!networks) {
+            throw new Error('compatible networks unavailable')
+          }
+
+          return {
+            data: networks,
+          }
+        } catch (error) {
+          return handleEndpointError(
+            endpoint,
+            `Unable to fetch compatible Polkadot networks for account ${accountId.uniqueKey}`,
+            error,
+          )
+        }
+      },
+    }),
+
+    getPolkadotAddressForNetwork: query<
+      string,
+      {
+        accountId: BraveWallet.AccountId
+        chainId: string
+      }
+    >({
+      queryFn: async ({ accountId, chainId }, { endpoint }, _, baseQuery) => {
+        try {
+          const { polkadotWalletService } = baseQuery(undefined).data
+          const { address, errorMessage } =
+            await polkadotWalletService.getAddress(accountId, chainId)
+
+          if (!address || errorMessage) {
+            throw new Error(errorMessage || 'address unavailable')
+          }
+
+          return {
+            data: address,
+          }
+        } catch (error) {
+          return handleEndpointError(
+            endpoint,
+            `Unable to fetch Polkadot address for account ${accountId.uniqueKey} on chain ${chainId}`,
+            error,
+          )
+        }
+      },
+    }),
+
     addAccount: mutation<
       BraveWallet.AccountInfo,
       {
@@ -363,6 +420,52 @@ export const accountEndpoints = ({
           return handleEndpointError(
             endpoint,
             'Failed to import account',
+            error,
+          )
+        }
+      },
+      invalidatesTags: [
+        'AccountInfos',
+        'Network',
+        'TokenBalances',
+        'TokenBalancesForChainId',
+        'AccountTokenCurrentBalance',
+      ],
+    }),
+
+    importPolkadotAccount: mutation<
+      true,
+      {
+        accountName: string
+        jsonExport: string
+        password: string
+        network: string
+      }
+    >({
+      queryFn: async (arg, { endpoint }, extraOptions, baseQuery) => {
+        try {
+          const { cache, data: api } = baseQuery(undefined)
+          const { keyringService } = api
+          const result = await keyringService.importPolkadotAccount(
+            arg.accountName,
+            arg.jsonExport,
+            arg.password,
+            arg.network,
+          )
+
+          if (!result.account) {
+            throw new Error('No result')
+          }
+
+          cache.clearAccountsRegistry()
+
+          return {
+            data: true,
+          }
+        } catch (error) {
+          return handleEndpointError(
+            endpoint,
+            'Failed to import Polkadot account',
             error,
           )
         }

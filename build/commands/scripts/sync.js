@@ -4,18 +4,21 @@
 // you can obtain one at https://mozilla.org/MPL/2.0/.
 
 // Check environment before doing anything.
-require('../lib/checkEnvironment')
+import '../lib/checkEnvironment.js'
 
-const fs = require('fs')
-const program = require('commander')
-const path = require('path')
-const config = require('../lib/config')
-const util = require('../lib/util')
-const Log = require('../lib/logging')
-const depotTools = require('../lib/depotTools')
-const syncUtil = require('../lib/syncUtils')
+import fs from 'node:fs'
+import program from 'commander'
+import path from 'node:path'
+import config from '../lib/config.js'
+import util from '../lib/util.js'
+import Log from '../lib/logging.js'
+import depotTools from '../lib/depotTools.js'
+import { isCI } from '../lib/ciDetect.ts'
+import syncUtil from '../lib/syncUtils.js'
+import sisoUtils from '../lib/sisoUtils.js'
 
 program
+  // @ts-ignore
   .version(process.env.npm_package_version)
   .option('--gclient_verbose', 'verbose output for gclient')
   .option('--target_os <target_os>', 'comma-separated target OS list')
@@ -106,7 +109,7 @@ async function RunCommand() {
     syncUtil.writeGclientConfig(targetOSList, targetArchList)
   }
 
-  if (config.isCI) {
+  if (isCI) {
     program.delete_unused_deps = true
   }
 
@@ -135,6 +138,8 @@ async function RunCommand() {
       util.runGclient(['runhooks'])
     })
   }
+
+  sisoUtils.writeSisoRc()
 }
 
 function commaSeparatedToList(value, defaultValue) {

@@ -4,7 +4,9 @@
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 import * as React from 'react'
 import LeoButton from '@brave/leo/react/button'
-import { useDispatch } from 'react-redux'
+
+// Redux
+import { useAppDispatch } from '../../../../common/hooks/use-redux'
 
 // Actions
 import * as WalletPanelActions from '../../../../panel/actions/wallet_panel_actions'
@@ -48,16 +50,18 @@ import {
   Wrapper,
   ErrorOrSuccessIconWrapper,
   ErrorOrSuccessIcon,
+  InternalStatusText,
 } from '../common/common.style'
 import { Column, Row, Text } from '../../../shared/style'
 
 interface Props {
   transaction: SerializableTransactionInfo
   onClose: () => void
+  swapStatus?: BraveWallet.Gate3SwapStatus
 }
 
 export const TransactionFailedOrCanceled = (props: Props) => {
-  const { transaction, onClose } = props
+  const { transaction, onClose, swapStatus } = props
 
   // redux
   const transactionProviderErrorRegistry = useUnsafeUISelector(
@@ -66,14 +70,19 @@ export const TransactionFailedOrCanceled = (props: Props) => {
 
   // Hooks
   const [retryTx] = useRetryTransactionMutation()
-  const dispatch = useDispatch()
+  const dispatch = useAppDispatch()
 
   // Computed
   const txCoinType = getCoinFromTxDataUnion(transaction.txDataUnion)
   const isBridge = isBridgeTransaction(transaction)
   const isSwap = isSwapTransaction(transaction)
+  const isSwapOrBridge = isBridge || isSwap
   const isSolanaATACreation =
     getIsSolanaAssociatedTokenAccountCreation(transaction)
+
+  // Check if swap was refunded
+  const isSwapRefunded =
+    swapStatus?.status === BraveWallet.Gate3SwapStatusCode.kRefunded
 
   const providerError = transactionProviderErrorRegistry[transaction.id]
   const errorCode =
@@ -96,6 +105,20 @@ export const TransactionFailedOrCanceled = (props: Props) => {
     }
     return 'braveWalletSend'
   }, [isBridge, isSwap])
+
+  // Title for swap failures/refunds
+  const failureTitle = React.useMemo(() => {
+    if (isSolanaATACreation) {
+      return getLocale('braveWalletTransactionFailedTitle')
+    }
+    if (isSwapRefunded) {
+      return getLocale('braveWalletSwapRefunded')
+    }
+    return getLocale('braveWalletUnableToSendSwapOrBridge').replace(
+      '$1',
+      getLocale(sendSwapOrBridgeLocale).toLocaleLowerCase(),
+    )
+  }, [isSolanaATACreation, isSwapRefunded, sendSwapOrBridgeLocale])
 
   // Methods
   const onClickRetryTransaction = () => {
@@ -128,15 +151,14 @@ export const TransactionFailedOrCanceled = (props: Props) => {
             name='close'
           />
         </ErrorOrSuccessIconWrapper>
-        <Title>
-          {isSolanaATACreation
-            ? getLocale('braveWalletTransactionFailedTitle')
-            : getLocale('braveWalletUnableToSendSwapOrBridge').replace(
-                '$1',
-                getLocale(sendSwapOrBridgeLocale).toLocaleLowerCase(),
-              )}
-        </Title>
-        <TransactionIntent transaction={transaction} />
+        <Title>{failureTitle}</Title>
+        <TransactionIntent
+          transaction={transaction}
+          swapStatus={swapStatus}
+        />
+        {isSwapOrBridge && swapStatus?.internalStatus && (
+          <InternalStatusText>{swapStatus.internalStatus}</InternalStatusText>
+        )}
         <Text
           textSize='12px'
           isBold={false}

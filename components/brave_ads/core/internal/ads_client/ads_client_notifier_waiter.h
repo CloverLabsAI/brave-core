@@ -13,6 +13,7 @@
 #include "base/run_loop.h"
 #include "base/scoped_observation.h"
 #include "brave/components/brave_ads/core/public/ads_client/ads_client_notifier_observer.h"
+#include "ui/base/page_transition_types.h"
 
 class GURL;
 
@@ -38,7 +39,6 @@ class AdsClientNotifierWaiter final : public AdsClientNotifierObserver {
   void WaitForOnNotifyDidUnregisterResourceComponent();
   void WaitForOnNotifyRewardsWalletDidUpdate();
   void WaitForOnNotifyTabTextContentDidChange();
-  void WaitForOnNotifyTabHtmlContentDidChange();
   void WaitForOnNotifyTabDidStartPlayingMedia();
   void WaitForOnNotifyTabDidStopPlayingMedia();
   void WaitForOnNotifyTabDidChange();
@@ -66,9 +66,6 @@ class AdsClientNotifierWaiter final : public AdsClientNotifierObserver {
   void OnNotifyTabTextContentDidChange(int32_t tab_id,
                                        const std::vector<GURL>& redirect_chain,
                                        const std::string& text) override;
-  void OnNotifyTabHtmlContentDidChange(int32_t tab_id,
-                                       const std::vector<GURL>& redirect_chain,
-                                       const std::string& html) override;
   void OnNotifyTabDidStartPlayingMedia(int32_t tab_id) override;
   void OnNotifyTabDidStopPlayingMedia(int32_t tab_id) override;
   void OnNotifyTabDidChange(int32_t tab_id,
@@ -78,7 +75,8 @@ class AdsClientNotifierWaiter final : public AdsClientNotifierObserver {
                             bool is_visible) override;
   void OnNotifyTabDidLoad(int32_t tab_id, int http_status_code) override;
   void OnNotifyDidCloseTab(int32_t tab_id) override;
-  void OnNotifyUserGestureEventTriggered(int32_t page_transition_type) override;
+  void OnNotifyUserGestureEventTriggered(
+      ui::PageTransition page_transition) override;
   void OnNotifyUserDidBecomeIdle() override;
   void OnNotifyUserDidBecomeActive(base::TimeDelta idle_time,
                                    bool screen_was_locked) override;
@@ -94,7 +92,6 @@ class AdsClientNotifierWaiter final : public AdsClientNotifierObserver {
   base::RunLoop on_notify_did_unregister_resource_component_run_loop_;
   base::RunLoop on_notify_rewards_wallet_did_update_run_loop_;
   base::RunLoop on_notify_tab_text_content_did_change_run_loop_;
-  base::RunLoop on_notify_tab_html_content_did_change_run_loop_;
   base::RunLoop on_notify_tab_did_start_playing_media_run_loop_;
   base::RunLoop on_notify_tab_did_stop_playing_media_run_loop_;
   base::RunLoop on_notify_tab_did_change_run_loop_;

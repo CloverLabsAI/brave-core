@@ -14,10 +14,12 @@
 
 #include "base/gtest_prod_util.h"
 #include "base/memory/raw_ptr.h"
+#include "base/memory/weak_ptr.h"
 #include "base/types/expected.h"
 #include "brave/components/brave_wallet/browser/cardano/cardano_hd_keyring.h"
 #include "brave/components/brave_wallet/browser/polkadot/polkadot_utils.h"
 #include "brave/components/brave_wallet/common/brave_wallet.mojom.h"
+#include "brave/components/brave_wallet/common/brave_wallet_constants.h"
 #include "brave/components/brave_wallet/common/brave_wallet_types.h"
 #include "brave/components/brave_wallet/common/buildflags/buildflags.h"
 #include "brave/components/brave_wallet/common/zcash_utils.h"
@@ -49,6 +51,7 @@ class FilecoinKeyring;
 class JsonRpcService;
 class KeyringServiceUnitTest;
 class PasswordEncryptor;
+class PolkadotImportKeyring;
 class PolkadotKeyring;
 class SolanaKeyring;
 class SolanaProviderImplUnitTest;
@@ -100,6 +103,11 @@ class KeyringService : public mojom::KeyringService {
   mojom::AccountInfoPtr AddAccountSync(mojom::CoinType coin,
                                        mojom::KeyringId keyring_id,
                                        const std::string& account_name);
+
+  void CreateDefaultAccountsForSelectedNetworks(
+      std::vector<mojom::AddAccountArgsPtr> account_args,
+      CreateDefaultAccountsForSelectedNetworksCallback callback) override;
+
   void EncodePrivateKeyForExport(
       mojom::AccountIdPtr account_id,
       const std::string& password,
@@ -132,6 +140,16 @@ class KeyringService : public mojom::KeyringService {
       const std::string& account_name,
       const std::string& payload,
       const std::string& network);
+  void ImportPolkadotAccount(const std::string& account_name,
+                             const std::string& json_export,
+                             const std::string& password,
+                             const std::string& network,
+                             ImportPolkadotAccountCallback callback) override;
+  mojom::AccountInfoPtr ImportPolkadotAccountSync(
+      const std::string& account_name,
+      const std::string& json_export,
+      const std::string& password,
+      const std::string& network);
   void AddHardwareAccounts(std::vector<mojom::HardwareWalletAccountPtr> info,
                            AddHardwareAccountsCallback callback) override;
   std::vector<mojom::AccountInfoPtr> AddHardwareAccountsSync(
@@ -152,8 +170,7 @@ class KeyringService : public mojom::KeyringService {
                       SetAccountNameCallback callback) override;
   void Reset(bool notify_observer = true);
   void SignTransactionByDefaultKeyring(const mojom::AccountIdPtr& account_id,
-                                       EthTransaction* tx,
-                                       uint256_t chain_id);
+                                       EthTransaction* tx);
   std::optional<std::string> SignTransactionByFilecoinKeyring(
       const mojom::AccountIdPtr& account_id,
       const FilTransaction& tx);
@@ -257,7 +274,6 @@ class KeyringService : public mojom::KeyringService {
   std::optional<std::vector<uint8_t>> GetZCashPubKey(
       const mojom::AccountIdPtr& account_id,
       const mojom::ZCashKeyIdPtr& key_id);
-#if BUILDFLAG(ENABLE_ORCHARD)
   std::optional<OrchardAddrRawPart> GetOrchardRawBytes(
       const mojom::AccountIdPtr& account_id,
       const mojom::ZCashKeyIdPtr& key_id);
@@ -265,7 +281,6 @@ class KeyringService : public mojom::KeyringService {
       const mojom::AccountIdPtr& account_id);
   std::optional<OrchardSpendingKey> GetOrchardSpendingKey(
       const mojom::AccountIdPtr& account_id);
-#endif
 
   void UpdateNextUnusedAddressForCardanoAccount(
       const mojom::AccountIdPtr& account_id,
@@ -282,7 +297,7 @@ class KeyringService : public mojom::KeyringService {
       const mojom::AccountIdPtr& account_id,
       const mojom::CardanoKeyIdPtr& key_id,
       base::span<const uint8_t> message);
-  std::optional<base::Value::Dict> SignCip30MessageByCardanoKeyring(
+  std::optional<base::DictValue> SignCip30MessageByCardanoKeyring(
       const mojom::AccountIdPtr& account_id,
       const mojom::CardanoKeyIdPtr& key_id,
       base::span<const uint8_t> message);
@@ -290,6 +305,10 @@ class KeyringService : public mojom::KeyringService {
   // Polkadot
   std::optional<std::array<uint8_t, kPolkadotSubstrateAccountIdSize>>
   GetPolkadotPubKey(const mojom::AccountIdPtr& account_id);
+
+  std::optional<std::array<uint8_t, kSr25519SignatureSize>>
+  SignMessageByPolkadotKeyring(const mojom::AccountIdPtr& account_id,
+                               base::span<const uint8_t> message);
 
   const std::vector<mojom::AccountInfoPtr>& GetAllAccountInfos();
   mojom::AccountInfoPtr FindAccount(const mojom::AccountIdPtr& account_id);
@@ -332,6 +351,8 @@ class KeyringService : public mojom::KeyringService {
   FRIEND_TEST_ALL_PREFIXES(KeyringServiceUnitTest, EncodePrivateKeyForExport);
   FRIEND_TEST_ALL_PREFIXES(KeyringServiceUnitTest,
                            EncodePolkadotPrivateKeyForExport);
+  FRIEND_TEST_ALL_PREFIXES(KeyringServiceUnitTest,
+                           ImportPolkadotAccount_OfacSanctionedAddress);
   FRIEND_TEST_ALL_PREFIXES(KeyringServiceAccountDiscoveryUnitTest,
                            AccountDiscovery);
   FRIEND_TEST_ALL_PREFIXES(KeyringServiceAccountDiscoveryUnitTest,
@@ -359,6 +380,7 @@ class KeyringService : public mojom::KeyringService {
   friend class KeyringServiceUnitTest;
   friend class AssetDiscoveryManagerUnitTest;
   friend class SolanaTransactionUnitTest;
+  friend class PolkadotWalletServiceUnitTest;
 
   void ResetAllAccountInfosCache();
   mojom::AccountInfoPtr AddHDAccountForKeyring(mojom::KeyringId keyring_id,
@@ -404,7 +426,7 @@ class KeyringService : public mojom::KeyringService {
   bool IsKeyringEnabled(mojom::KeyringId keyring_id) const;
   void CreateKeyrings(const KeyringSeed& keyring_seed);
   void ClearKeyrings();
-  void CreateDefaultAccounts();
+  bool CreateDefaultAccounts();
   void LoadAllAccountsFromPrefs();
   void LoadAccountsFromPrefs(mojom::KeyringId keyring_id);
 
@@ -432,6 +454,13 @@ class KeyringService : public mojom::KeyringService {
       const std::string& password);
   bool CreateEncryptorAndValidatePasswordInternal(const std::string& password);
   void MaybeUnlockWithCommandLine();
+  void OnCreateWalletRegisterComponentUpdater(const std::string& mnemonic,
+                                              const std::string& password,
+                                              CreateWalletCallback callback);
+  void OnRestoreWalletRegisterComponentUpdater(const std::string& mnemonic,
+                                               const std::string& password,
+                                               bool is_legacy_eth_seed_format,
+                                               RestoreWalletCallback callback);
 
   std::unique_ptr<std::vector<mojom::AccountInfoPtr>> account_info_cache_;
   std::unique_ptr<base::OneShotTimer> auto_lock_timer_;
@@ -461,6 +490,8 @@ class KeyringService : public mojom::KeyringService {
 
   std::unique_ptr<PolkadotKeyring> polkadot_mainnet_keyring_;
   std::unique_ptr<PolkadotKeyring> polkadot_testnet_keyring_;
+  std::unique_ptr<PolkadotImportKeyring> polkadot_import_mainnet_keyring_;
+  std::unique_ptr<PolkadotImportKeyring> polkadot_import_testnet_keyring_;
 
   std::unique_ptr<PasswordEncryptor> encryptor_;
 
@@ -471,6 +502,8 @@ class KeyringService : public mojom::KeyringService {
 
   mojo::RemoteSet<mojom::KeyringServiceObserver> observers_;
   mojo::ReceiverSet<mojom::KeyringService> receivers_;
+
+  base::WeakPtrFactory<KeyringService> weak_ptr_factory_{this};
 
   KeyringService(const KeyringService&) = delete;
   KeyringService& operator=(const KeyringService&) = delete;

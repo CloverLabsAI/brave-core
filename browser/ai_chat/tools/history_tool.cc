@@ -38,7 +38,7 @@ std::string_view HistoryTool::Description() const {
          "the browser's back or forward buttons.";
 }
 
-std::optional<base::Value::Dict> HistoryTool::InputProperties() const {
+std::optional<base::DictValue> HistoryTool::InputProperties() const {
   return CreateInputProperties(
       {{kPropertyNameDirection,
         StringProperty(
@@ -58,7 +58,7 @@ void HistoryTool::UseTool(const std::string& input_json,
 
   if (!input.has_value()) {
     std::move(callback).Run(
-        CreateContentBlocksForText("Error: failed to parse input JSON"));
+        CreateContentBlocksForText("Error: failed to parse input JSON"), {});
     return;
   }
 
@@ -66,8 +66,10 @@ void HistoryTool::UseTool(const std::string& input_json,
   const auto* direction = input->FindString(kPropertyNameDirection);
   if (!direction ||
       (*direction != kDirectionBack && *direction != kDirectionForward)) {
-    std::move(callback).Run(CreateContentBlocksForText(
-        "Error: invalid or missing direction. Must be 'back' or 'forward'."));
+    std::move(callback).Run(
+        CreateContentBlocksForText("Error: invalid or missing direction. Must "
+                                   "be 'back' or 'forward'."),
+        {});
     return;
   }
 

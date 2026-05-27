@@ -10,9 +10,12 @@
 #include <string>
 
 #include "base/values.h"
+#include "brave/components/brave_ads/buildflags/buildflags.h"
 #include "brave/components/brave_ads/core/mojom/brave_ads.mojom-forward.h"
 #include "brave/components/brave_ads/core/public/ads_callback.h"
 #include "brave/components/brave_ads/core/public/ads_observer.h"
+
+static_assert(BUILDFLAG(ENABLE_BRAVE_ADS));
 
 namespace base {
 class Time;
@@ -43,7 +46,8 @@ class Ads {
   virtual void SetBuildChannel(
       mojom::BuildChannelInfoPtr mojom_build_channel) = 0;
 
-  virtual void SetFlags(mojom::FlagsPtr mojom_flags) = 0;
+  virtual void SetCommandLineSwitches(
+      mojom::CommandLineSwitchesPtr mojom_command_line_switches) = 0;
 
   virtual void SetContentSettings(
       mojom::ContentSettingsPtr mojom_content_settings) = 0;
@@ -59,11 +63,11 @@ class Ads {
   virtual void Shutdown(ShutdownCallback callback) = 0;
 
   // Called to get internals. The callback takes one argument -
-  // `base::Value::List` containing info of the obtained internals.
+  // `base::ListValue` containing info of the obtained internals.
   virtual void GetInternals(GetInternalsCallback callback) = 0;
 
   // Called to get diagnostics to help identify issues. The callback takes one
-  // argument - `base::Value::List` containing info of the obtained diagnostics.
+  // argument - `base::ListValue` containing info of the obtained diagnostics.
   virtual void GetDiagnostics(GetDiagnosticsCallback callback) = 0;
 
   // Called to get the statement of accounts. The callback takes one argument -
@@ -75,7 +79,7 @@ class Ads {
   // Called to parse and save new tab page ads. The callback takes one argument
   // - `bool` is set to `true` if successful otherwise `false`.
   virtual void ParseAndSaveNewTabPageAds(
-      base::Value::Dict dict,
+      base::DictValue dict,
       ParseAndSaveNewTabPageAdsCallback callback) = 0;
 
   // Called to serve a new tab page ad. The callback takes one argument -
@@ -142,7 +146,7 @@ class Ads {
       PurgeOrphanedAdEventsForTypeCallback callback) = 0;
 
   // Called to get ad history for the given date range in descending order. The
-  // callback takes one argument - `base::Value::List` containing info of the
+  // callback takes one argument - `base::ListValue` containing info of the
   // obtained ad history.
   virtual void GetAdHistory(base::Time from_time,
                             base::Time to_time,

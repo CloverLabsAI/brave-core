@@ -12,6 +12,7 @@
 #include "base/containers/extend.h"
 #include "base/numerics/safe_math.h"
 #include "base/strings/string_number_conversions.h"
+#include "base/values.h"
 #include "brave/components/brave_wallet/common/hash_utils.h"
 #include "crypto/aes_ctr.h"
 #include "crypto/kdf.h"
@@ -37,7 +38,7 @@ bool UTCPasswordVerification(
 }
 
 template <class T>
-std::optional<T> FindCheckedNumeric(const base::Value::Dict& dict,
+std::optional<T> FindCheckedNumeric(const base::DictValue& dict,
                                     std::string_view key) {
   auto value = dict.FindInt(key);
   if (!value || !base::CheckedNumeric<T>(*value).IsValid()) {
@@ -51,7 +52,7 @@ std::optional<T> FindCheckedNumeric(const base::Value::Dict& dict,
 
 std::optional<std::vector<uint8_t>> DecryptPrivateKeyFromJsonKeystore(
     const std::string& password,
-    const base::Value::Dict& dict) {
+    const base::DictValue& dict) {
   if (password.empty()) {
     return std::nullopt;
   }

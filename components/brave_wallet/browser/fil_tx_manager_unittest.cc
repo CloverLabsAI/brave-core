@@ -29,7 +29,6 @@
 #include "brave/components/brave_wallet/common/brave_wallet.mojom.h"
 #include "components/grit/brave_components_strings.h"
 #include "components/sync_preferences/testing_pref_service_syncable.h"
-#include "services/data_decoder/public/cpp/test_support/in_process_data_decoder.h"
 #include "services/network/public/cpp/resource_request.h"
 #include "services/network/public/cpp/weak_wrapper_shared_url_loader_factory.h"
 #include "services/network/test/test_url_loader_factory.h"
@@ -42,9 +41,9 @@ namespace brave_wallet {
 namespace {
 std::string GetSignedMessage(const std::string& message,
                              const std::string& data) {
-  base::Value::Dict dict;
+  base::DictValue dict;
   dict.Set("Message", "{message}");
-  base::Value::Dict signature;
+  base::DictValue signature;
   signature.Set("Data", data);
   signature.Set("Type", 1);
   dict.Set("Signature", std::move(signature));
@@ -59,10 +58,7 @@ std::string GetSignedMessage(const std::string& message,
 class FilTxManagerUnitTest : public testing::Test {
  public:
   FilTxManagerUnitTest()
-      : task_environment_(base::test::TaskEnvironment::TimeSource::MOCK_TIME),
-        shared_url_loader_factory_(
-            base::MakeRefCounted<network::WeakWrapperSharedURLLoaderFactory>(
-                &url_loader_factory_)) {}
+      : task_environment_(base::test::TaskEnvironment::TimeSource::MOCK_TIME) {}
 
   void SetUp() override {
     brave_wallet::RegisterLocalStatePrefs(local_state_.registry());
@@ -70,7 +66,8 @@ class FilTxManagerUnitTest : public testing::Test {
     brave_wallet::RegisterProfilePrefsForMigration(prefs_.registry());
     network_manager_ = std::make_unique<NetworkManager>(&prefs_);
     json_rpc_service_ = std::make_unique<JsonRpcService>(
-        shared_url_loader_factory_, network_manager_.get(), &prefs_, nullptr);
+        url_loader_factory_.GetSafeWeakWrapper(), network_manager_.get(),
+        &prefs_, nullptr);
     keyring_service_ = std::make_unique<KeyringService>(json_rpc_service_.get(),
                                                         &prefs_, &local_state_);
     ASSERT_TRUE(temp_dir_.CreateUniqueTempDir());
@@ -222,13 +219,11 @@ class FilTxManagerUnitTest : public testing::Test {
   sync_preferences::TestingPrefServiceSyncable prefs_;
   sync_preferences::TestingPrefServiceSyncable local_state_;
   network::TestURLLoaderFactory url_loader_factory_;
-  scoped_refptr<network::SharedURLLoaderFactory> shared_url_loader_factory_;
   std::unique_ptr<NetworkManager> network_manager_;
   std::unique_ptr<JsonRpcService> json_rpc_service_;
   std::unique_ptr<KeyringService> keyring_service_;
   std::unique_ptr<TxService> tx_service_;
   std::unordered_map<std::string, std::string> responses_;
-  data_decoder::test::InProcessDataDecoder in_process_data_decoder_;
 };
 
 TEST_F(FilTxManagerUnitTest, SubmitTransactions) {

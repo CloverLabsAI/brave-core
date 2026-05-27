@@ -32,7 +32,6 @@
 #include "components/prefs/pref_service.h"
 #include "components/sync_preferences/testing_pref_service_syncable.h"
 #include "content/public/test/browser_task_environment.h"
-#include "services/data_decoder/public/cpp/test_support/in_process_data_decoder.h"
 #include "services/network/public/cpp/weak_wrapper_shared_url_loader_factory.h"
 #include "services/network/test/test_url_loader_factory.h"
 #include "testing/gtest/include/gtest/gtest.h"
@@ -41,11 +40,7 @@ namespace brave_wallet {
 
 class EthPendingTxTrackerUnitTest : public testing::Test {
  public:
-  EthPendingTxTrackerUnitTest() {
-    shared_url_loader_factory_ =
-        base::MakeRefCounted<network::WeakWrapperSharedURLLoaderFactory>(
-            &url_loader_factory_);
-  }
+  EthPendingTxTrackerUnitTest() = default;
 
   void SetUp() override {
     TestingProfile::Builder builder;
@@ -72,17 +67,13 @@ class EthPendingTxTrackerUnitTest : public testing::Test {
 
     network_manager_ = std::make_unique<NetworkManager>(GetPrefs());
     json_rpc_service_ = std::make_unique<JsonRpcService>(
-        shared_url_loader_factory(), network_manager_.get(), GetPrefs(),
-        nullptr);
+        url_loader_factory_.GetSafeWeakWrapper(), network_manager_.get(),
+        GetPrefs(), nullptr);
   }
 
   JsonRpcService* json_rpc_service() { return json_rpc_service_.get(); }
 
   PrefService* GetPrefs() { return profile_->GetPrefs(); }
-
-  network::SharedURLLoaderFactory* shared_url_loader_factory() {
-    return url_loader_factory_.GetSafeWeakWrapper().get();
-  }
 
   network::TestURLLoaderFactory* test_url_loader_factory() {
     return &url_loader_factory_;
@@ -92,7 +83,6 @@ class EthPendingTxTrackerUnitTest : public testing::Test {
 
  private:
   network::TestURLLoaderFactory url_loader_factory_;
-  scoped_refptr<network::SharedURLLoaderFactory> shared_url_loader_factory_;
   content::BrowserTaskEnvironment task_environment_;
   std::unique_ptr<TestingProfile> profile_;
   std::unique_ptr<NetworkManager> network_manager_;
@@ -102,7 +92,6 @@ class EthPendingTxTrackerUnitTest : public testing::Test {
   std::unique_ptr<value_store::ValueStoreFrontend> storage_;
   std::unique_ptr<TxStorageDelegateImpl> delegate_;
   std::unique_ptr<AccountResolverDelegateForTest> account_resolver_delegate_;
-  data_decoder::test::InProcessDataDecoder in_process_data_decoder_;
 
  protected:
   std::unique_ptr<EthTxStateManager> tx_state_manager_;

@@ -66,10 +66,6 @@ void Dayparts::Insert(
   mojom_db_transaction->actions.push_back(std::move(mojom_db_action));
 }
 
-std::string Dayparts::GetTableName() const {
-  return kTableName;
-}
-
 void Dayparts::Create(const mojom::DBTransactionInfoPtr& mojom_db_transaction) {
   CHECK(mojom_db_transaction);
 
@@ -116,7 +112,19 @@ void Dayparts::MigrateToV48(
   // should not drop the table as it will store catalog and non-catalog ad units
   // and maintain relationships with other tables.
   DropTable(mojom_db_transaction, "dayparts");
-  Create(mojom_db_transaction);
+  Execute(mojom_db_transaction, R"(
+      CREATE TABLE dayparts (
+        campaign_id TEXT NOT NULL,
+        days_of_week TEXT NOT NULL,
+        start_minute INT NOT NULL,
+        end_minute INT NOT NULL,
+        PRIMARY KEY (
+          campaign_id,
+          days_of_week,
+          start_minute,
+          end_minute
+        ) ON CONFLICT REPLACE
+      ))");
 }
 
 std::string Dayparts::BuildInsertSql(
@@ -136,8 +144,7 @@ std::string Dayparts::BuildInsertSql(
             start_minute,
             end_minute
           ) VALUES $2)",
-      {GetTableName(),
-       BuildBindColumnPlaceholders(/*column_count=*/4, row_count)},
+      {kTableName, BuildBindColumnPlaceholders(/*column_count=*/4, row_count)},
       nullptr);
 }
 

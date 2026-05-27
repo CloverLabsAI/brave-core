@@ -29,8 +29,8 @@ group("grdp") {
     ":fonts_grdp",
     ":icons_grdp",
     ":leo_bundle",
-    ":opaque_ke",
     ":static_grdp",
+    "//brave/components/brave_account/resources/opaque_ke",
   ]
   if (include_polymer) {
     public_deps += [ ":build_grdp" ]
@@ -104,28 +104,6 @@ transpile_web_ui("leo_bundle") {
   resource_name = "leo"
 }
 
-transpile_web_ui("opaque_ke") {
-  resource_name = "opaque_ke"
-  generate_grdp = true
-  resource_path_prefix = "brave"
-
-  entry_points = [ [
-        "opaque_ke",
-        rebase_path("wasm/opaque_ke/index.js"),
-      ] ]
-
-  inputs = [
-    rebase_path("wasm/Cargo.lock"),
-    rebase_path("wasm/opaque_ke/src/lib.rs"),
-  ]
-
-  imports_from = [ "//brave/ui/webui/resources/wasm/" ]
-
-  rust_packages = [ rebase_path("wasm/opaque_ke/Cargo.toml") ]
-
-  public_asset_path = "chrome://resources/brave/"
-}
-
 # Create a grdp that //ui/webui/resources can include in its main resources GRD
 generate_grd("static_grdp") {
   grd_prefix = "brave_webui"
@@ -181,6 +159,7 @@ leo_icons = [
   "bar-chart.svg",
   "bat-color.svg",
   "bing-color.svg",
+  "biometric-login.svg",
   "bluetooth-off.svg",
   "bluetooth.svg",
   "brave-icon-monochrome.svg",
@@ -189,6 +168,7 @@ leo_icons = [
   "brave-icon-search-color.svg",
   "brave-icon-search.svg",
   "brave-search-big-color.svg",
+  "broom.svg",
   "browser-add.svg",
   "browser-extensions.svg",
   "browser-home.svg",
@@ -196,6 +176,7 @@ leo_icons = [
   "btc-color.svg",
   "calendar-check.svg",
   "camera.svg",
+  "caps-lock.svg",
   "carat-down.svg",
   "carat-first.svg",
   "carat-last.svg",
@@ -245,6 +226,7 @@ leo_icons = [
   "deepseek-color.svg",
   "disable-outline.svg",
   "discover.svg",
+  "dot.svg",
   "download-off.svg",
   "download.svg",
   "duckduckgo-color.svg",
@@ -282,6 +264,7 @@ leo_icons = [
   "grid04.svg",
   "hamburger-menu.svg",
   "hand-coins.svg",
+  "hand-raised.svg",
   "hearts.svg",
   "help-outline.svg",
   "history.svg",
@@ -295,6 +278,7 @@ leo_icons = [
   "key-lock-off.svg",
   "key-lock.svg",
   "key.svg",
+  "kimi-color.svg",
   "launch-off.svg",
   "launch.svg",
   "leo-cursor.svg",
@@ -307,6 +291,7 @@ leo_icons = [
   "loading-spinner.svg",
   "location-off.svg",
   "location-on.svg",
+  "lock-dots.svg",
   "lock-open.svg",
   "lock-plain.svg",
   "lock.svg",
@@ -321,6 +306,7 @@ leo_icons = [
   "meta-color.svg",
   "microphone-off.svg",
   "microphone.svg",
+  "minus.svg",
   "mistral-color.svg",
   "money-bag-coins.svg",
   "more-horizontal.svg",
@@ -402,12 +388,15 @@ leo_icons = [
   "safe.svg",
   "screenshot.svg",
   "search-fuel-tank.svg",
+  "search-movie.svg",
+  "search-news.svg",
   "search-zoom-in.svg",
   "search.svg",
   "send.svg",
   "send-filled.svg",
   "settings.svg",
   "share-macos.svg",
+  "shield-disable.svg",
   "shield-done.svg",
   "shield-done-filled.svg",
   "shield-star.svg",
@@ -480,6 +469,7 @@ leo_icons = [
   "window-tab-new.svg",
   "window.svg",
   "windows-open.svg",
+  "zai-color.svg",
   "import-arrow.svg",
   "metamask-color.svg",
   "phantom-color.svg",
@@ -506,6 +496,7 @@ leo_icons = [
 
 if (enable_brave_vpn_panel) {
   leo_icons += [
+    "country-ae.svg",
     "country-al.svg",
     "country-ar.svg",
     "country-at.svg",
@@ -541,6 +532,7 @@ if (enable_brave_vpn_panel) {
     "country-lu.svg",
     "country-mx.svg",
     "country-my.svg",
+    "country-ng.svg",
     "country-nl.svg",
     "country-no.svg",
     "country-nz.svg",
@@ -550,8 +542,10 @@ if (enable_brave_vpn_panel) {
     "country-pt.svg",
     "country-py.svg",
     "country-ro.svg",
+    "country-rs.svg",
     "country-se.svg",
     "country-sg.svg",
+    "country-sk.svg",
     "country-th.svg",
     "country-tr.svg",
     "country-ua.svg",
@@ -567,7 +561,6 @@ if (enable_speedreader) {
     "characters.svg",
     "forward-outline.svg",
     "headphones.svg",
-    "minus.svg",
     "pause-outline.svg",
     "play-outline.svg",
     "product-speedreader.svg",

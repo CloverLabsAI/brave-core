@@ -1,8 +1,8 @@
 diff --git a/chrome/browser/ui/android/toolbar/java/res/layout/toolbar_phone.xml b/chrome/browser/ui/android/toolbar/java/res/layout/toolbar_phone.xml
-index 8e8b98227decca9cc02bf8a2a8fed3ea4e14dee4..ecfec4f14d5a2c37a8ffee98e4772e498d48a197 100644
+index 52e1748d74a589cb37bbfda824f6868c9bd86433..47c1123d1905fa0792c36c73c46be26f86ad19f2 100644
 --- a/chrome/browser/ui/android/toolbar/java/res/layout/toolbar_phone.xml
 +++ b/chrome/browser/ui/android/toolbar/java/res/layout/toolbar_phone.xml
-@@ -53,9 +53,11 @@ found in the LICENSE file.
+@@ -46,9 +46,11 @@ found in the LICENSE file.
          android:orientation="horizontal"
          android:layout_width="wrap_content"
          android:layout_height="wrap_content"

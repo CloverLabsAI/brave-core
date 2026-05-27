@@ -21,8 +21,9 @@ import org.chromium.ai_chat.mojom.PremiumStatus;
 import org.chromium.base.BraveFeatureList;
 import org.chromium.base.BravePreferenceKeys;
 import org.chromium.base.Log;
-import org.chromium.base.supplier.ObservableSupplier;
-import org.chromium.base.supplier.ObservableSupplierImpl;
+import org.chromium.base.supplier.MonotonicObservableSupplier;
+import org.chromium.base.supplier.ObservableSuppliers;
+import org.chromium.base.supplier.SettableMonotonicObservableSupplier;
 import org.chromium.chrome.R;
 import org.chromium.chrome.browser.billing.InAppPurchaseWrapper;
 import org.chromium.chrome.browser.billing.LinkSubscriptionUtils;
@@ -35,6 +36,8 @@ import org.chromium.chrome.browser.util.TabUtils;
 import org.chromium.components.browser_ui.settings.ChromeBasePreference;
 import org.chromium.components.browser_ui.settings.ChromeSwitchPreference;
 import org.chromium.components.browser_ui.settings.SettingsUtils;
+import org.chromium.components.browser_ui.settings.search.BaseSearchIndexProvider;
+import org.chromium.components.browser_ui.settings.search.SettingsIndexData;
 
 public class BraveLeoPreferences extends BravePreferenceFragment
         implements Preference.OnPreferenceChangeListener {
@@ -48,7 +51,8 @@ public class BraveLeoPreferences extends BravePreferenceFragment
     private static final String PREF_DEFAULT_MODEL = "default_model";
     public static final String PREF_LEO_QUICK_SEARCH_ENGINE = "leo_quick_search_engine";
 
-    private final ObservableSupplierImpl<String> mPageTitle = new ObservableSupplierImpl<>();
+    private final SettableMonotonicObservableSupplier<String> mPageTitle =
+            ObservableSuppliers.createMonotonic();
     private ChromeSwitchPreference mHistory;
 
     @Override
@@ -58,7 +62,7 @@ public class BraveLeoPreferences extends BravePreferenceFragment
     }
 
     @Override
-    public ObservableSupplier<String> getPageTitle() {
+    public MonotonicObservableSupplier<String> getPageTitle() {
         return mPageTitle;
     }
 
@@ -217,4 +221,22 @@ public class BraveLeoPreferences extends BravePreferenceFragment
         setModel();
         checkLinkPurchase();
     }
+
+    public static final BaseSearchIndexProvider SEARCH_INDEX_DATA_PROVIDER =
+            new BaseSearchIndexProvider(
+                    BraveLeoPreferences.class.getName(), R.xml.brave_leo_preferences) {
+
+                @Override
+                public void updateDynamicPreferences(Context context, SettingsIndexData indexData) {
+                    String frag = BraveLeoPreferences.class.getName();
+                    // Subscription prefs are hidden by default and shown only at runtime based
+                    // on subscription state; exclude them from the search index.
+                    indexData.removeEntryForKey(frag, PREF_LINK_SUBSCRIPTION);
+                    indexData.removeEntryForKey(frag, PREF_MANAGE_SUBSCRIPTION);
+                    indexData.removeEntryForKey(frag, PREF_GO_PREMIUM);
+                    if (!ChromeFeatureList.isEnabled(BraveFeatureList.AI_CHAT_HISTORY)) {
+                        indexData.removeEntryForKey(frag, PREF_HISTORY);
+                    }
+                }
+            };
 }

@@ -14,12 +14,13 @@
 #include "chrome/browser/search/search.h"
 #include "chrome/browser/ui/browser_commands.h"
 #include "chrome/browser/ui/browser_finder.h"
-#include "chrome/browser/ui/browser_list.h"
 #include "chrome/browser/ui/browser_tabstrip.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
+#include "chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h"
 #include "chrome/browser/ui/startup/launch_mode_recorder.h"
 #include "chrome/browser/ui/startup/startup_browser_creator.h"
 #include "chrome/browser/ui/startup/startup_browser_creator_impl.h"
+#include "chrome/browser/ui/tab_ui_helper.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
 #include "chrome/browser/ui/webui/ntp/new_tab_ui.h"
@@ -71,9 +72,9 @@ void AddBookmarkNode(Profile* profile) {
 IN_PROC_BROWSER_TEST_F(BraveBrowserBrowserTest, NTPFaviconTest) {
   ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), GURL("brave://newtab/")));
 
-  auto* tab_model = browser()->tab_strip_model();
-  EXPECT_TRUE(
-      browser()->ShouldDisplayFavicon(tab_model->GetActiveWebContents()));
+  tabs::TabInterface* const tab_interface =
+      browser()->tab_strip_model()->GetActiveTab();
+  EXPECT_TRUE(TabUIHelper::From(tab_interface)->ShouldDisplayFavicon());
 }
 
 IN_PROC_BROWSER_TEST_F(BraveBrowserBrowserTest, LoadWebUIURLWithBadSchemeTest) {
@@ -222,17 +223,11 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserBrowserTest,
   ASSERT_EQ(2, tab_strip->count());
 
   // Create another browser with existing tab.
+  ui_test_utils::BrowserCreatedObserver browser_created_observer;
   chrome::MoveTabsToNewWindow(browser(), {1});
+  Browser* new_browser = browser_created_observer.Wait();
   ASSERT_EQ(1, tab_strip->count());
 
-  // Get new browser.
-  Browser* new_browser = nullptr;
-  for (Browser* b : *BrowserList::GetInstance()) {
-    if (b != browser()) {
-      new_browser = b;
-      break;
-    }
-  }
   ASSERT_TRUE(new_browser);
   base::RunLoop().RunUntilIdle();
 

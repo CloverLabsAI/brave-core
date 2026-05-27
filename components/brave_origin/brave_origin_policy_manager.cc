@@ -65,7 +65,7 @@ std::optional<bool> BraveOriginPolicyManager::GetPolicyValue(
   }
 
   // Get policies dict once and pass to internal helper
-  const base::Value::Dict& policies_dict =
+  const base::DictValue& policies_dict =
       local_state_->GetDict(kBraveOriginPolicies);
   return GetPolicyValueInternal(policy_key, policy_info->default_value,
                                 policies_dict, profile_id);
@@ -88,7 +88,7 @@ PoliciesEnabledMap BraveOriginPolicyManager::GetAllBrowserPolicies() const {
   PoliciesEnabledMap policies;
 
   // Get policies dict once for all lookups
-  const base::Value::Dict& policies_dict =
+  const base::DictValue& policies_dict =
       local_state_->GetDict(kBraveOriginPolicies);
 
   for (const auto& [policy_key, policy_info] : browser_policy_definitions_) {
@@ -107,7 +107,7 @@ PoliciesEnabledMap BraveOriginPolicyManager::GetAllProfilePolicies(
   PoliciesEnabledMap policies;
 
   // Get policies dict once for all lookups
-  const base::Value::Dict& policies_dict =
+  const base::DictValue& policies_dict =
       local_state_->GetDict(kBraveOriginPolicies);
 
   for (const auto& [policy_key, policy_info] : profile_policy_definitions_) {
@@ -167,8 +167,23 @@ bool BraveOriginPolicyManager::IsInitialized() const {
   return initialized_;
 }
 
+void BraveOriginPolicyManager::SetPurchased(bool purchased) {
+  if (is_purchased_ == purchased) {
+    return;
+  }
+  is_purchased_ = purchased;
+  if (initialized_) {
+    observers_.Notify(&brave_policy::BravePolicyObserver::OnBravePoliciesReady);
+  }
+}
+
+bool BraveOriginPolicyManager::IsPurchased() const {
+  return is_purchased_;
+}
+
 void BraveOriginPolicyManager::Shutdown() {
   initialized_ = false;
+  is_purchased_ = false;
   browser_policy_definitions_.clear();
   profile_policy_definitions_.clear();
   local_state_ = nullptr;
@@ -178,7 +193,7 @@ void BraveOriginPolicyManager::Shutdown() {
 bool BraveOriginPolicyManager::GetPolicyValueInternal(
     std::string_view policy_key,
     bool default_value,
-    const base::Value::Dict& policies_dict,
+    const base::DictValue& policies_dict,
     std::optional<std::string_view> profile_id) const {
   std::string pref_key = GetBraveOriginPrefKey(policy_key, profile_id);
   const base::Value* policy_value = policies_dict.Find(pref_key);

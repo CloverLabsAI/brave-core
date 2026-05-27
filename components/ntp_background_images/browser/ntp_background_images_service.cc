@@ -19,6 +19,7 @@
 #include "base/notreached.h"
 #include "base/path_service.h"
 #include "base/strings/string_util.h"
+#include "base/values.h"
 #include "brave/components/ntp_background_images/browser/features.h"
 #include "brave/components/ntp_background_images/browser/ntp_background_images_component_installer.h"
 #include "brave/components/ntp_background_images/browser/ntp_background_images_data.h"
@@ -340,7 +341,7 @@ void NTPBackgroundImagesService::OnSponsoredComponentReady(
 
 void NTPBackgroundImagesService::OnGetSponsoredComponentJsonData(
     const std::string& json_string) {
-  std::optional<base::Value::Dict> json_value = base::JSONReader::ReadDict(
+  std::optional<base::DictValue> json_value = base::JSONReader::ReadDict(
       json_string, base::JSON_PARSE_CHROMIUM_EXTENSIONS);
   if (!json_value) {
     SCOPED_CRASH_KEY_STRING64("Issue50267", "variations_country_code",
@@ -352,7 +353,7 @@ void NTPBackgroundImagesService::OnGetSponsoredComponentJsonData(
     DVLOG(2) << "Read json data failed. Invalid JSON data";
     return;
   }
-  base::Value::Dict& data = *json_value;
+  base::DictValue& data = *json_value;
 
   sponsored_images_data_ = std::make_unique<NTPSponsoredImagesData>(
       data, sponsored_images_installed_dir_);

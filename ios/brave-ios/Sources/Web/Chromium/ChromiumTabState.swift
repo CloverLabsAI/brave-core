@@ -15,16 +15,21 @@ import os
 class ChromiumTabState: TabState, TabStateImpl {
   init(
     id: UUID,
-    configuration: CWVWebViewConfiguration,
+    configuration: BraveWebViewConfiguration,
     wkConfiguration: WKWebViewConfiguration?
   ) {
     self.id = id
+    self.profile = configuration.profile
     self.cwvConfiguration = configuration
     self.wkConfiguration = wkConfiguration
     if let wkConfiguration {
       assert(
         configuration.isPersistent == wkConfiguration.websiteDataStore.isPersistent,
         "Persistance of configurations must match"
+      )
+      assert(
+        !FeatureList.kUseProfileWebViewConfiguration.enabled,
+        "Passing in a WKWebViewConfiguration with UseChromiumWebViewsJavaScript enabled is invalid"
       )
     }
     self.navigationHandler = .init(tab: self)
@@ -190,10 +195,8 @@ class ChromiumTabState: TabState, TabStateImpl {
 
   // MARK: - Tab
 
-  var id: UUID
-  var isPrivate: Bool {
-    !cwvConfiguration.isPersistent
-  }
+  let id: UUID
+  let profile: any Profile
 
   var data: TabDataValues {
     get { _data.withLock { $0 } }
@@ -252,7 +255,14 @@ class ChromiumTabState: TabState, TabStateImpl {
 
     attachWebObservers()
 
-    if createdWKWebView != nil {
+    if FeatureList.kUseProfileWebViewConfiguration.enabled || createdWKWebView != nil {
+      // If UseProfileWebViewConfiguration is enabled, we will never pass in a WebKit configuration
+      // while creating the CWVWebView which means we won't have a way to determine when the
+      // underlying WKWebView is created so we will call `didCreateWebView` anyways. The usage of
+      // `internalWebView` is mostly hidden anyways and `TabState.configuration` is not going to be
+      // useful when the feature flag is enabled anyways.
+      //
+      // If UseProfileWebViewConfiguration is not enabled:
       // CWVWebView only creates the underlying WKWebView if you pass in a WKWebViewConfiguration.
       // When a new web view is created via window.open we must wait until WebState creates the
       // underlying web view using the configuration passed by WebKit
@@ -278,14 +288,14 @@ class ChromiumTabState: TabState, TabStateImpl {
   var visibleSecureContentState: SecureContentState {
     guard let lastCommittedURL = lastCommittedURL else { return .unknown }
 
+    if lastCommittedURL.isNewTabURL {
+      // New Tab Page is a special case, should be treated as `unknown` instead of `localhost`
+      return .unknown
+    }
     let isAppSpecificURL =
       lastCommittedURL.scheme == "brave" || lastCommittedURL.scheme == "chrome"
       || InternalURL.isValid(url: lastCommittedURL)
     if isAppSpecificURL {
-      if let internalURL = InternalURL(lastCommittedURL), internalURL.isAboutHomeURL {
-        // New Tab Page is a special case, should be treated as `unknown` instead of `localhost`
-        return .unknown
-      }
       return .localhost
     }
 
@@ -309,7 +319,10 @@ class ChromiumTabState: TabState, TabStateImpl {
   var serverTrust: SecTrust? {
     return webView?.visibleSSLStatus?.certificate?.createServerTrust()
   }
-  var favicon: Favicon?
+  var faviconStatus: FaviconStatus? {
+    guard let faviconStatus = webView?.faviconStatus else { return nil }
+    return .init(faviconStatus)
+  }
   var url: URL? {
     visibleURL
   }
@@ -485,11 +498,11 @@ class ChromiumTabState: TabState, TabStateImpl {
     )
   }
 
-  var configuration: WKWebViewConfiguration {
+  var configuration: WKWebViewConfiguration? {
     if let configuration = webView?.internalWebView?.configuration {
       return configuration
     }
-    return wkConfiguration ?? .init()
+    return wkConfiguration
   }
 
   var dataForDisplayedPDF: Data? {
@@ -498,13 +511,6 @@ class ChromiumTabState: TabState, TabStateImpl {
 
   var sampledPageTopColor: UIColor? {
     return webView?.internalWebView?.sampledPageTopColor
-  }
-
-  var viewPrintFormatter: UIViewPrintFormatter? {
-    // We can technically get the print formatter from `WebState::GetView()` as that returns
-    // the underlying CRWContainerView which exposes the underlying `WKWebView`'s viewPrintFormatter
-    // but for now this is enough.
-    return webView?.internalWebView?.viewPrintFormatter()
   }
 
   var viewScale: CGFloat {
@@ -552,6 +558,12 @@ extension UserAgentType {
     case .mobile: self = .mobile
     default: self = .none
     }
+  }
+}
+
+extension FaviconStatus {
+  init(_ faviconStatus: CWVFaviconStatus) {
+    self.init(url: faviconStatus.url, image: faviconStatus.image)
   }
 }
 
@@ -606,6 +618,13 @@ class CWVContainerView: UIView {
         setNeedsLayout()
       }
     }
+  }
+
+  override func viewPrintFormatter() -> UIViewPrintFormatter {
+    if let webView {
+      return webView.viewPrintFormatter()
+    }
+    return super.viewPrintFormatter()
   }
 
   override func layoutSubviews() {

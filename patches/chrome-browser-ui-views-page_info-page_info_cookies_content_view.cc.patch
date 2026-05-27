@@ -1,10 +1,10 @@
 diff --git a/chrome/browser/ui/views/page_info/page_info_cookies_content_view.cc b/chrome/browser/ui/views/page_info/page_info_cookies_content_view.cc
-index e6971128b7b3c7577545b68d5817a9c5bb4f8899..2c879d64197d10930edc3a89b7b6d2459fd48311 100644
+index 145c7e9fa39ec606ceb6bcba99308d8ce34207a8..b4ddd6d38a299f20e9de13897a5f33a5a76f0d7d 100644
 --- a/chrome/browser/ui/views/page_info/page_info_cookies_content_view.cc
 +++ b/chrome/browser/ui/views/page_info/page_info_cookies_content_view.cc
-@@ -364,6 +364,7 @@ void PageInfoCookiesContentView::SetThirdPartyCookiesInfo(
+@@ -335,6 +335,7 @@ void PageInfoCookiesContentView::SetThirdPartyCookiesInfo(
+     CookieControlsState controls_state,
      CookieControlsEnforcement enforcement,
-     CookieBlocking3pcdStatus blocking_status,
      base::Time expiration) {
 +  BRAVE_PAGE_INFO_COOKIES_CONTENT_VIEW_SET_THIRD_PARTY_COOKIES_INFO
    if (controls_state == CookieControlsState::kHidden) {

@@ -6,6 +6,7 @@
 package org.chromium.chrome.browser.settings;
 
 import static org.chromium.base.ThreadUtils.runOnUiThread;
+import static org.chromium.build.NullUtil.assumeNonNull;
 
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
@@ -28,8 +29,9 @@ import com.bumptech.glide.Glide;
 
 import org.chromium.base.BravePreferenceKeys;
 import org.chromium.base.ThreadUtils;
-import org.chromium.base.supplier.ObservableSupplier;
-import org.chromium.base.supplier.ObservableSupplierImpl;
+import org.chromium.base.supplier.MonotonicObservableSupplier;
+import org.chromium.base.supplier.ObservableSuppliers;
+import org.chromium.base.supplier.SettableMonotonicObservableSupplier;
 import org.chromium.base.task.PostTask;
 import org.chromium.base.task.TaskTraits;
 import org.chromium.brave_news.mojom.BraveNewsController;
@@ -37,12 +39,14 @@ import org.chromium.brave_news.mojom.Channel;
 import org.chromium.brave_news.mojom.FeedSearchResultItem;
 import org.chromium.brave_news.mojom.Publisher;
 import org.chromium.brave_news.mojom.UserEnabled;
+import org.chromium.build.annotations.MonotonicNonNull;
 import org.chromium.chrome.R;
 import org.chromium.chrome.browser.brave_news.BraveNewsControllerFactory;
 import org.chromium.chrome.browser.brave_news.BraveNewsUtils;
 import org.chromium.chrome.browser.preferences.ChromeSharedPreferences;
 import org.chromium.chrome.browser.util.BraveConstants;
 import org.chromium.components.browser_ui.settings.SearchUtils;
+import org.chromium.components.browser_ui.settings.SearchViewProvider;
 import org.chromium.mojo.bindings.ConnectionErrorHandler;
 import org.chromium.mojo.system.MojoException;
 import org.chromium.url.mojom.Url;
@@ -53,7 +57,7 @@ import java.util.List;
 import java.util.Map;
 
 public class BraveNewsPreferencesDetails extends BravePreferenceFragment
-        implements BraveNewsPreferencesListener, ConnectionErrorHandler {
+        implements BraveNewsPreferencesListener, ConnectionErrorHandler, SearchViewProvider {
     private RecyclerView mRecyclerView;
 
     private BraveNewsPreferencesTypeAdapter mAdapter;
@@ -61,7 +65,9 @@ public class BraveNewsPreferencesDetails extends BravePreferenceFragment
     private String mBraveNewsPreferencesType;
     private String mSearch = "";
     private HashMap<String, String> mFeedSearchResultItemFollowMap = new HashMap<>();
-    private final ObservableSupplierImpl<String> mPageTitle = new ObservableSupplierImpl<>();
+    private final SettableMonotonicObservableSupplier<String> mPageTitle =
+            ObservableSuppliers.createMonotonic();
+    private @MonotonicNonNull SearchViewProvider.Observer mSearchViewObserver;
 
     @Override
     public View onCreateView(
@@ -137,7 +143,7 @@ public class BraveNewsPreferencesDetails extends BravePreferenceFragment
     }
 
     @Override
-    public ObservableSupplier<String> getPageTitle() {
+    public MonotonicObservableSupplier<String> getPageTitle() {
         return mPageTitle;
     }
 
@@ -293,6 +299,11 @@ public class BraveNewsPreferencesDetails extends BravePreferenceFragment
     }
 
     @Override
+    public void setSearchViewObserver(SearchViewProvider.Observer observer) {
+        mSearchViewObserver = observer;
+    }
+
+    @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         MenuItem closeItem = menu.findItem(R.id.close_menu_id);
         if (closeItem != null) {
@@ -306,18 +317,29 @@ public class BraveNewsPreferencesDetails extends BravePreferenceFragment
             SearchView searchView = (SearchView) searchItem.getActionView();
             searchView.setMaxWidth(Integer.MAX_VALUE);
             searchView.setQueryHint(getActivity().getString(R.string.brave_news_settings_search));
-            SearchUtils.initializeSearchView(searchItem, mSearch, getActivity(), (query) -> {
-                boolean queryHasChanged = mSearch == null ? query != null && !query.isEmpty()
-                                                          : !mSearch.equals(query);
-                mSearch = query;
-                if (queryHasChanged && mSearch.length() > 0) {
-                    search();
-                } else if (mSearch.length() == 0) {
-                    mAdapter.notifyItemRangeRemoved(0, mAdapter.getItemCount());
-                    mAdapter.setItems(new ArrayList<Channel>(), new ArrayList<Publisher>(), null,
-                            BraveNewsPreferencesSearchType.Init, mFeedSearchResultItemFollowMap);
-                }
-            });
+            SearchUtils.initializeSearchView(
+                    searchItem,
+                    mSearch,
+                    getActivity(),
+                    assumeNonNull(mSearchViewObserver),
+                    (query) -> {
+                        boolean queryHasChanged =
+                                mSearch == null
+                                        ? query != null && !query.isEmpty()
+                                        : !mSearch.equals(query);
+                        mSearch = query;
+                        if (queryHasChanged && mSearch.length() > 0) {
+                            search();
+                        } else if (mSearch.length() == 0) {
+                            mAdapter.notifyItemRangeRemoved(0, mAdapter.getItemCount());
+                            mAdapter.setItems(
+                                    new ArrayList<Channel>(),
+                                    new ArrayList<Publisher>(),
+                                    null,
+                                    BraveNewsPreferencesSearchType.Init,
+                                    mFeedSearchResultItemFollowMap);
+                        }
+                    });
         }
     }
 

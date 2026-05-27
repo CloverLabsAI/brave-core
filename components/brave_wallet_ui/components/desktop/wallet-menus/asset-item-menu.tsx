@@ -43,21 +43,18 @@ import {
 } from '../../../utils/routes-utils'
 import {
   getAssetIdKey,
-  getDoesCoinSupportSwapOrBridge,
+  getDoesCoinSupportSwap,
+  getDoesCoinSupportBridge,
 } from '../../../utils/asset-utils'
 
 // Components
 import {
   SellAssetModal, //
 } from '../popup-modals/sell-asset-modal/sell-asset-modal'
+import { MenuWrapper } from './menu_wrapper'
 
 // Styled Components
-import {
-  StyledWrapper,
-  PopupButton,
-  PopupButtonText,
-  ButtonIcon,
-} from './wellet-menus.style'
+import { PopupButton, PopupButtonText, ButtonIcon } from './wellet-menus.style'
 import { VerticalDivider } from '../../shared/style'
 
 interface Props {
@@ -88,15 +85,25 @@ export const AssetItemMenu = (props: Props) => {
     .filter((account) => account.accountId.coin === BraveWallet.CoinType.ZEC)
     .map((account) => account.accountId)
 
-  const { data: availableShieldedAccount } =
+  const { data: availableShieldedAccountData } =
     useGetAvailableShieldedAccountQuery(
       asset.coin === BraveWallet.CoinType.ZEC
-        && !asset.isShielded
         && isZCashShieldedTransactionsEnabled
         && zcashAccountIds
         ? zcashAccountIds
         : skipToken,
     )
+
+  const shieldedAccount = React.useMemo(() => {
+    if (!availableShieldedAccountData) {
+      return undefined
+    }
+    return accounts.find(
+      (a) =>
+        a.accountId.uniqueKey
+        === availableShieldedAccountData.accountId.uniqueKey,
+    )
+  }, [accounts, availableShieldedAccountData])
 
   // Hooks
   const {
@@ -116,7 +123,14 @@ export const AssetItemMenu = (props: Props) => {
     return new Amount(assetBalance).isZero()
   }, [assetBalance])
 
-  const isSwapOrBridgeSupported = getDoesCoinSupportSwapOrBridge(asset.coin)
+  const canShieldFunds =
+    availableShieldedAccountData && !asset.isShielded && !isAssetsBalanceZero
+
+  const canUnshieldFunds =
+    availableShieldedAccountData && asset.isShielded && !isAssetsBalanceZero
+
+  const isSwapSupported = getDoesCoinSupportSwap(asset.coin)
+  const isBridgeSupported = getDoesCoinSupportBridge(asset.coin)
 
   const isSellSupported = React.useMemo(() => {
     return account !== undefined && checkIsAssetSellSupported(asset)
@@ -169,7 +183,7 @@ export const AssetItemMenu = (props: Props) => {
   }, [updateUserAssetVisible, asset])
 
   const onClickShieldFunds = React.useCallback(() => {
-    if (!availableShieldedAccount) {
+    if (!availableShieldedAccountData) {
       return
     }
 
@@ -177,13 +191,37 @@ export const AssetItemMenu = (props: Props) => {
       makeSendRoute(
         asset,
         account,
-        availableShieldedAccount.orchardInternalAddress,
+        availableShieldedAccountData.zcashAccountInfo.orchardInternalAddress,
       ),
     )
-  }, [availableShieldedAccount, asset, openOrPushRoute, account])
+  }, [availableShieldedAccountData, asset, openOrPushRoute, account])
+
+  const onClickUnshieldFunds = React.useCallback(() => {
+    if (
+      !canUnshieldFunds
+      || !shieldedAccount
+      || !availableShieldedAccountData
+    ) {
+      return
+    }
+    openOrPushRoute(
+      makeSendRoute(
+        asset,
+        shieldedAccount,
+        availableShieldedAccountData.zcashAccountInfo
+          .nextTransparentReceiveAddress.addressString,
+      ),
+    )
+  }, [
+    canUnshieldFunds,
+    asset,
+    openOrPushRoute,
+    shieldedAccount,
+    availableShieldedAccountData,
+  ])
 
   return (
-    <StyledWrapper yPosition={42}>
+    <MenuWrapper yPosition={42}>
       {foundMeldBuyToken && (
         <PopupButton onClick={onClickBuy}>
           <ButtonIcon name='coins-alt1' />
@@ -196,21 +234,17 @@ export const AssetItemMenu = (props: Props) => {
           <PopupButtonText>{getLocale('braveWalletSend')}</PopupButtonText>
         </PopupButton>
       )}
-      {isSwapOrBridgeSupported && (
-        <>
-          <PopupButton onClick={() => onClickSwapOrBridge('swap')}>
-            <ButtonIcon name='currency-exchange' />
-            <PopupButtonText>{getLocale('braveWalletSwap')}</PopupButtonText>
-          </PopupButton>
-          {!isIOS && (
-            <PopupButton onClick={() => onClickSwapOrBridge('bridge')}>
-              <ButtonIcon name='web3-bridge' />
-              <PopupButtonText>
-                {getLocale('braveWalletBridge')}
-              </PopupButtonText>
-            </PopupButton>
-          )}
-        </>
+      {isSwapSupported && (
+        <PopupButton onClick={() => onClickSwapOrBridge('swap')}>
+          <ButtonIcon name='currency-exchange' />
+          <PopupButtonText>{getLocale('braveWalletSwap')}</PopupButtonText>
+        </PopupButton>
+      )}
+      {!isIOS && isBridgeSupported && (
+        <PopupButton onClick={() => onClickSwapOrBridge('bridge')}>
+          <ButtonIcon name='web3-bridge' />
+          <PopupButtonText>{getLocale('braveWalletBridge')}</PopupButtonText>
+        </PopupButton>
       )}
       <PopupButton onClick={onClickDeposit}>
         <ButtonIcon name='money-bag-coins' />
@@ -238,13 +272,24 @@ export const AssetItemMenu = (props: Props) => {
           {getLocale('braveWalletConfirmHidingToken')}
         </PopupButtonText>
       </PopupButton>
-      {availableShieldedAccount && (
+      {canShieldFunds && (
         <>
           <VerticalDivider margin='0px 0px 8px 0px' />
           <PopupButton onClick={onClickShieldFunds}>
             <ButtonIcon name='shield-done' />
             <PopupButtonText>
               {getLocale('braveWalletShieldFunds')}
+            </PopupButtonText>
+          </PopupButton>
+        </>
+      )}
+      {canUnshieldFunds && (
+        <>
+          <VerticalDivider margin='0px 0px 8px 0px' />
+          <PopupButton onClick={onClickUnshieldFunds}>
+            <ButtonIcon name='shield-disable' />
+            <PopupButtonText>
+              {getLocale('braveWalletUnshieldFunds')}
             </PopupButtonText>
           </PopupButton>
         </>
@@ -261,6 +306,6 @@ export const AssetItemMenu = (props: Props) => {
           sellAssetBalance={assetBalance}
         />
       )}
-    </StyledWrapper>
+    </MenuWrapper>
   )
 }

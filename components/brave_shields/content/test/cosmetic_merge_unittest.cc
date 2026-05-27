@@ -6,7 +6,7 @@
 #include <optional>
 
 #include "base/test/values_test_util.h"
-#include "brave/components/brave_shields/content/browser/ad_block_service.h"
+#include "brave/components/brave_shields/content/browser/ad_block_engine_wrapper.h"
 #include "testing/gmock/include/gmock/gmock.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
@@ -23,11 +23,12 @@ class CosmeticResourceMergeTest : public testing::Test {
                                std::string_view b,
                                bool force_hide,
                                std::string_view expected) {
-    base::Value::Dict a_val = base::test::ParseJsonDict(a);
-    base::Value::Dict b_val = base::test::ParseJsonDict(b);
-    base::Value::Dict expected_val = base::test::ParseJsonDict(expected);
+    base::DictValue a_val = base::test::ParseJsonDict(a);
+    base::DictValue b_val = base::test::ParseJsonDict(b);
+    base::DictValue expected_val = base::test::ParseJsonDict(expected);
 
-    AdBlockService::MergeResourcesInto(std::move(b_val), a_val, force_hide);
+    AdBlockEngineWrapper::MergeResourcesInto(std::move(b_val), a_val,
+                                             force_hide);
 
     ASSERT_EQ(a_val, expected_val);
   }

@@ -16,7 +16,7 @@
 #include "base/gtest_prod_util.h"
 #include "brave/components/brave_wallet/browser/internal/hd_key_common.h"
 #include "brave/components/brave_wallet/browser/internal/secp256k1_signature.h"
-#include "crypto/process_bound_string.h"
+#include "brave/components/brave_wallet/common/brave_wallet_types.h"
 
 namespace brave_wallet {
 
@@ -30,7 +30,6 @@ inline constexpr size_t kSecp256k1SignMsgSize = 32;
 using Secp256k1SignMsgSpan = base::span<const uint8_t, kSecp256k1SignMsgSize>;
 using CompactSignatureSpan =
     base::span<const uint8_t, kSecp256k1CompactSignatureSize>;
-using SecureVector = std::vector<uint8_t, crypto::SecureAllocator<uint8_t>>;
 
 enum class ExtendedKeyVersion : uint32_t {
   // https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#serialization-format
@@ -125,12 +124,6 @@ class HDKey {
   std::array<uint8_t, kSecp256k1FingerprintSize> GetFingerprint() const;
 
  private:
-  FRIEND_TEST_ALL_PREFIXES(Eip1559TransactionUnitTest,
-                           GetSignedTransactionAndHash);
-  FRIEND_TEST_ALL_PREFIXES(Eip2930TransactionUnitTest,
-                           GetSignedTransactionAndHash);
-  FRIEND_TEST_ALL_PREFIXES(EthereumKeyringUnitTest, SignMessage);
-  FRIEND_TEST_ALL_PREFIXES(EthTransactionUnitTest, GetSignedTransactionAndHash);
   FRIEND_TEST_ALL_PREFIXES(HDKeyUnitTest, GenerateFromExtendedKey);
   FRIEND_TEST_ALL_PREFIXES(HDKeyUnitTest, SetPrivateKey);
   FRIEND_TEST_ALL_PREFIXES(HDKeyUnitTest, SetPublicKey);
@@ -139,7 +132,8 @@ class HDKey {
   HDKey& operator=(const HDKey& other);
   HDKey(const HDKey& other);
 
-  void SetPrivateKey(base::span<const uint8_t, kSecp256k1PrivateKeySize> value);
+  [[nodiscard]] bool SetPrivateKey(
+      base::span<const uint8_t, kSecp256k1PrivateKeySize> value);
   void SetChainCode(base::span<const uint8_t, kSecp256k1ChainCodeSize> value);
   void SetPublicKey(base::span<const uint8_t, kSecp256k1PubkeySize> value);
 

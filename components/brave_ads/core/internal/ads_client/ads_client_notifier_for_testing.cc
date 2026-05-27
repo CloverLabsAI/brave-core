@@ -78,16 +78,6 @@ void AdsClientNotifierForTesting::NotifyTabTextContentDidChange(
   RunTaskEnvironmentUntilIdle();
 }
 
-void AdsClientNotifierForTesting::NotifyTabHtmlContentDidChange(
-    int32_t tab_id,
-    const std::vector<GURL>& redirect_chain,
-    const std::string& html) {
-  ads_client_notifier_.NotifyTabHtmlContentDidChange(tab_id, redirect_chain,
-                                                     html);
-
-  RunTaskEnvironmentUntilIdle();
-}
-
 void AdsClientNotifierForTesting::NotifyTabDidStartPlayingMedia(
     int32_t tab_id) {
   ads_client_notifier_.NotifyTabDidStartPlayingMedia(tab_id);
@@ -127,8 +117,8 @@ void AdsClientNotifierForTesting::NotifyDidCloseTab(int32_t tab_id) {
 }
 
 void AdsClientNotifierForTesting::NotifyUserGestureEventTriggered(
-    int32_t page_transition_type) {
-  ads_client_notifier_.NotifyUserGestureEventTriggered(page_transition_type);
+    ui::PageTransition page_transition) {
+  ads_client_notifier_.NotifyUserGestureEventTriggered(page_transition);
 
   RunTaskEnvironmentUntilIdle();
 }

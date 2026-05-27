@@ -22,7 +22,6 @@
 #include "components/sync_preferences/testing_pref_service_syncable.h"
 #include "content/public/test/browser_task_environment.h"
 #include "net/traffic_annotation/network_traffic_annotation_test_helper.h"
-#include "services/data_decoder/public/cpp/test_support/in_process_data_decoder.h"
 #include "services/network/public/cpp/weak_wrapper_shared_url_loader_factory.h"
 #include "services/network/test/test_url_loader_factory.h"
 #include "testing/gtest/include/gtest/gtest.h"
@@ -104,7 +103,6 @@ class BraveNewsChannelsControllerTest : public testing::Test {
 
  protected:
   content::BrowserTaskEnvironment browser_task_environment_;
-  data_decoder::test::InProcessDataDecoder data_decoder_;
   network::TestURLLoaderFactory test_url_loader_factory_;
   api_request_helper::APIRequestHelper api_request_helper_;
   sync_preferences::TestingPrefServiceSyncable pref_service_;
@@ -143,7 +141,7 @@ TEST_F(BraveNewsChannelsControllerTest, GetAllChannelsLoadsSubscribedState) {
 
   auto one = channels.find("One");
   ASSERT_NE(channels.end(), one);
-  EXPECT_TRUE(base::Contains(one->second->subscribed_locales, "en_US"));
+  EXPECT_TRUE(std::ranges::contains(one->second->subscribed_locales, "en_US"));
 
   auto two = channels.find("Two");
   ASSERT_NE(channels.end(), two);
@@ -155,7 +153,7 @@ TEST_F(BraveNewsChannelsControllerTest, GetAllChannelsLoadsSubscribedState) {
 
   auto five = channels.find("Five");
   ASSERT_NE(channels.end(), five);
-  EXPECT_TRUE(base::Contains(five->second->subscribed_locales, "en_US"));
+  EXPECT_TRUE(std::ranges::contains(five->second->subscribed_locales, "en_US"));
 }
 
 TEST_F(BraveNewsChannelsControllerTest,
@@ -171,13 +169,13 @@ TEST_F(BraveNewsChannelsControllerTest,
   // In the en_US region, only the channel 'One' should be subscribed.
   for (const auto& it : channels) {
     EXPECT_EQ(it.first == "One",
-              base::Contains(it.second->subscribed_locales, "en_US"));
+              std::ranges::contains(it.second->subscribed_locales, "en_US"));
   }
 
   // In the ja_JA region, only the channel 'Five' should be subscribed.
   for (const auto& it : channels) {
     EXPECT_EQ(it.first == "Five",
-              base::Contains(it.second->subscribed_locales, "ja_JA"));
+              std::ranges::contains(it.second->subscribed_locales, "ja_JA"));
   }
 }
 
@@ -198,12 +196,12 @@ TEST_F(BraveNewsChannelsControllerTest, CanGetPublisherChannels) {
 
   auto channels = GetChannelsForPublisher("en_NZ", publisher);
   EXPECT_EQ(2u, channels.size());
-  EXPECT_EQ("foo", channels.at(0));
-  EXPECT_EQ("bar", channels.at(1));
+  EXPECT_TRUE(channels.contains("foo"));
+  EXPECT_TRUE(channels.contains("bar"));
 
   channels = GetChannelsForPublisher("en_AU", publisher);
   EXPECT_EQ(1u, channels.size());
-  EXPECT_EQ("foo", channels.at(0));
+  EXPECT_TRUE(channels.contains("foo"));
 }
 
 }  // namespace brave_news

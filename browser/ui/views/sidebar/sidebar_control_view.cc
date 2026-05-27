@@ -22,8 +22,8 @@
 #include "chrome/browser/ui/browser_command_controller.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/color/chrome_color_id.h"
+#include "chrome/browser/ui/side_panel/side_panel_ui.h"
 #include "chrome/browser/ui/singleton_tabs.h"
-#include "chrome/browser/ui/views/side_panel/side_panel_ui.h"
 #include "chrome/common/pref_names.h"
 #include "components/prefs/pref_service.h"
 #include "ui/base/l10n/l10n_util.h"
@@ -67,6 +67,8 @@ bool IsSidebarOnLeft(Browser* browser) {
 SidebarControlView::SidebarControlView(Delegate* delegate,
                                        BraveBrowser* browser)
     : delegate_(delegate), browser_(browser) {
+  // Don't follow RTL layout. Sidebar position is determined by its own setting.
+  SetMirrored(false);
   set_context_menu_controller(this);
 
   AddChildViews();
@@ -84,6 +86,7 @@ void SidebarControlView::OnThemeChanged() {
 
   UpdateBackgroundAndBorder();
   UpdateItemAddButtonState();
+  UpdateSettingsButtonState();
 }
 
 void SidebarControlView::UpdateBackgroundAndBorder() {
@@ -241,7 +244,7 @@ void SidebarControlView::UpdateSettingsButtonState() {
   sidebar_settings_view_->SetImageModel(
       views::Button::STATE_DISABLED,
       ui::ImageModel::FromVectorIcon(kLeoSettingsIcon,
-                                     kColorSidebarAddButtonDisabled,
+                                     kColorToolbarButtonIconInactive,
                                      SidebarButtonView::kDefaultIconSize));
 }
 
